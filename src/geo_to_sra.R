@@ -7,57 +7,124 @@ library(httr)
 library(tidyverse)
 library(DBI)
 
+
+# function to open page for GSE and extract info
+gse_info_maker <- function(gse){  
+  # load gse page and get summary and design and prj
+  page <- GET(paste0('https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=', gse)) %>% 
+    content(., 'text', encoding = 'UTF-8')
+  summary <- ((str_split(page, pattern = '<td nowrap>'))[[1]] %>% 
+                grep("Summary<", ., value = TRUE) %>% 
+                str_split(., pattern = 'justify\\">|<br>'))[[1]][2]
+  design <- ((str_split(page, pattern = '<td nowrap>'))[[1]] %>% 
+               grep("Overall design<", ., value = TRUE) %>% 
+               str_split(., pattern = 'justify\\">|<br>'))[[1]][2]
+  split <- (str_split(page, pattern = ' '))[[1]]
+  #acc <- split[grepl('acc', split)]
+  acc <- (str_split(split, pattern = '=|>|<|\\"')) %>% unlist()
+  prj <- acc[grepl('SRP', acc)] %>% unique() 
+  if (length(prj) == 0){prj <- NA}
+  line = c(gse, prj, summary, design)
+  names(line) <- c('GSE', 'SRA_PROJECT_ID', 'Summary', 'Design')
+  line
+}
 # web search to get info on GEO IDs
 base_url <- 'https://www.ncbi.nlm.nih.gov/gds/?term='
 GEO_ids <- scan('data/GEO_IDs.txt', what = 'character')
 search_url <- paste0(base_url, paste(GEO_ids, collapse = '+'))
-
-gse_prj <- data.frame(matrix(ncol = 2, nrow = 0))
+gse_prj <- data.frame(matrix(ncol = 4, nrow = 0))
 # extract GEO ID and SRA project ID from web page
-colnames(gse_prj) <- c("GSE", "SRA_PROJECT_ID")
+colnames(gse_prj) <- c("GSE", "SRA_PROJECT_ID", "Summary", "Design")
 for (i in GEO_ids){
   search_url <- paste0(base_url, i)
-  page <- GET(search_url) %>% content(., 'text', )
+  # load GEO search page to extract GSE
+  page <- GET(search_url) %>% content(., 'text', encoding = 'UTF-8')
   split <- (str_split(page, pattern = ' '))[[1]]
   acc <- split[grepl('acc', split)]
   acc <- (str_split(acc, pattern = '\\=|\\"|\\[|\\]|\\<|\\>')) %>% unlist()
+  
+
   gse <- acc[grepl('GSE', acc)] %>% unique() 
-  prj <- acc[grepl('PRJNA', acc)] %>% unique() 
-  if (length(prj) == 0){prj <- NA}
-  line = c(gse, prj)
-  names(line) <- c('GSE', 'SRA_PROJECT_ID')
+  line <- gse_info_maker(gse)
+  
+
   gse_prj <- bind_rows(gse_prj, line)
 }
-# if SRA ID is missing, then load specific GEO page from GSE
-# and search for it
-base_url <- 'https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc='
-missing_sra_gse <- gse_prj %>% filter(is.na(SRA_PROJECT_ID)) %>% pull(GSE)
-gse_prj2 <- data.frame(matrix(ncol = 2, nrow = 0))
+# super-series
+# some GSE are a bigger collection of other GSE....yay thanks GEO
+# if that's the case, then parse out all the related GSE
+# and re-run loop
+gse_prj_2 <- data.frame(matrix(ncol = 4, nrow = 0))
 # extract GEO ID and SRA project ID from web page
-colnames(gse_prj2) <- c("GSE", "SRA_PROJECT_ID")
-for (i in missing_sra_gse){
-  search_url <- paste0(base_url, i)
-  page <- GET(search_url) %>% content(., 'text', )
+colnames(gse_prj_2) <- c("GSE", "SRA_PROJECT_ID", "Summary", "Design")
+for (gse in (gse_prj %>% filter(grepl('SuperSeries', Summary)) %>% pull(GSE))){
+  page <- GET(paste0('https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=', gse)) %>% 
+    content(., 'text', encoding = 'UTF-8')
   split <- (str_split(page, pattern = ' '))[[1]]
-  acc <- split[grepl('acc', split)]
-  acc <- (str_split(acc, pattern = '\\=|\\"|\\[|\\]|\\<|\\>')) %>% unlist()
-  gse <- i
-  prj <- acc[grepl('PRJNA', acc)] %>% unique() 
-  if (length(prj) == 0){prj <- NA}
-  line = c(gse, paste(prj, collapse = ','))
-  names(line) <- c('GSE', 'SRA_PROJECT_ID')
-  gse_prj2 <- bind_rows(gse_prj2, line)
+  acc <- split[grepl('acc=GSE', split)]
+  acc <- (str_split(acc, pattern = '=|>|<|\\"|&')) %>% unlist()
+  gse_sub <- acc[grepl('GSE', acc)] %>% unique() 
+  # remove original gse
+  gse_sub <- gse_sub[!(gse_sub == gse)]
+  for (gse_ID in gse_sub){
+    line <- gse_info_maker(gse_ID)
+    gse_prj_2 <- bind_rows(gse_prj_2, line)
+  }
 }
 
-library(GEOquery)
-x <- getGEO('GSE12601')
+# missing studies
+# hand check to make certain you meant to keep
+# on 2019 06 28 the NA were micro-array based studies
+# GSE81905 is a super-series and grabbed by gse_prj_2
+gse_prj %>% filter(is.na(SRA_PROJECT_ID))
+# merge back together
+gse_prj <- bind_rows(gse_prj, gse_prj2) %>% 
+  filter(!is.na(SRA_PROJECT_ID), !grepl('bulk RNA', Summary)) # hand remove GSE81902 as this is bulk RNA-seq
 
+con <- dbConnect(bigrquery::bigquery(),
+                 project = 'isb-cgc-01-0006',
+                 dataset = 'omicidx',
+                 billing = 'rosy-solstice-244919')
 
 # do not select all columns, as that costs more money
 # bigquery essentially charges by data searched
 # and if you exclude columns you reduce the amount
 # of data you search across
-con %>% 
-  tbl('sra_study') %>% 
-  select(accession, title, study_accession) %>% 
-  filter(accession == 'SRP006387')
+sql_experiment <- paste0("SELECT study_accession, sample_accession, experiment_accession, title, attributes 
+              FROM sra_experiment WHERE study_accession IN ('", 
+              paste(gse_prj %>% 
+                      filter(!is.na(SRA_PROJECT_ID)) %>% 
+                               pull(SRA_PROJECT_ID), 
+                    collapse = "','"), "')")
+
+sql_sample <- paste0("SELECT sample_accession, organism, taxon_id, BioSample
+              FROM sra_sample WHERE accession IN ('", 
+                         paste(sra_experiment$sample_accession, 
+                               collapse = "','"), "')")
+
+sql_biosample <- paste0("SELECT accession, attributes, attribute_recs, title
+              FROM biosample WHERE accession IN ('", 
+                        paste(sra_sample$BioSample, 
+                              collapse = "','"), "')")
+
+sql_run <- paste0("SELECT accession, experiment_accession
+              FROM sra_run WHERE experiment_accession IN ('", 
+                  paste(sra_experiment$experiment_accession, 
+                        collapse = "','"), "')")
+
+sra_experiment <- dbGetQuery(con, sql_experiment)
+sra_sample <- dbGetQuery(con, sql_sample)
+sra_biosample <- dbGetQuery(con, sql_biosample)
+sra_run <- dbGetQuery(con, sql_run)
+
+
+# join the 4 into 1
+sra_metadata <- sra_experiment %>% 
+  left_join(., sra_sample, by = 'sample_accession') %>% 
+  left_join(., sra_biosample %>% 
+              rename(BioSample = accession, biosample_attributes = attributes, biosample_attribute_recs = attribute_recs, biosample_title = title),
+            by = 'BioSample') %>% 
+  left_join(., sra_run %>% rename(run_accession = accession),
+            by = 'experiment_accession')
+save(sra_metadata, file = 'data/sra_metadata.Rdata')
+write(sra_metadata$run_accession, file = 'data/run_accession.txt')
