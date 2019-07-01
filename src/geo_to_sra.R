@@ -140,3 +140,4 @@ sra_metadata <- sra_experiment %>%
 save(sra_metadata, file = 'data/sra_metadata.Rdata')
 write(sra_metadata$run_accession, file = 'data/run_accession.txt')
 write_tsv(gse_prj %>% rename(study_accession = 'SRA_PROJECT_ID'), path = 'data/GEO_Study_Level_Metadata.tsv')
+write_tsv(sra_metadata %>% select(sample_accession, run_accession, library_layout), path = 'data/sample_run_layout.tsv')
