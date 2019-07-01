@@ -95,7 +95,10 @@ con <- dbConnect(bigrquery::bigquery(),
 # of data you search across
 
 # build query
-sql_experiment <- paste0("SELECT study_accession, sample_accession, experiment_accession, title, attributes 
+sql_experiment <- paste0("SELECT study_accession, sample_accession, 
+                          experiment_accession, title, attributes, instrument_model, 
+                          library_layout, library_strategy, library_layout_length, 
+                          library_layout_sdev, library_source, platform
               FROM sra_experiment WHERE study_accession IN ('", 
               paste(gse_prj %>% 
                       filter(!is.na(SRA_PROJECT_ID)) %>% 
