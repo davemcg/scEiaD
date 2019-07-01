@@ -38,7 +38,7 @@ colnames(gse_prj) <- c("GSE", "SRA_PROJECT_ID", "Summary", "Design")
 for (i in GEO_ids){
   search_url <- paste0(base_url, i)
   # load GEO search page to extract GSE
-  page <- GET(search_url) %>% content(., 'text', encoding = 'UTF-8')
+  page <- GET(search_url) %>% httr::content(., type = 'text', encoding = 'UTF-8')
   split <- (str_split(page, pattern = ' '))[[1]]
   acc <- split[grepl('acc', split)]
   acc <- (str_split(acc, pattern = '\\=|\\"|\\[|\\]|\\<|\\>')) %>% unlist()
@@ -67,7 +67,9 @@ for (gse in (gse_prj %>% filter(grepl('SuperSeries', Summary)) %>% pull(GSE))){
   # remove original gse
   gse_sub <- gse_sub[!(gse_sub == gse)]
   for (gse_ID in gse_sub){
+    print(gse_ID)
     line <- gse_info_maker(gse_ID)
+    print(line)
     gse_prj_2 <- bind_rows(gse_prj_2, line)
   }
 }
@@ -78,8 +80,9 @@ for (gse in (gse_prj %>% filter(grepl('SuperSeries', Summary)) %>% pull(GSE))){
 # GSE81905 is a super-series and grabbed by gse_prj_2
 gse_prj %>% filter(is.na(SRA_PROJECT_ID))
 # merge back together
-gse_prj <- bind_rows(gse_prj, gse_prj2) %>% 
-  filter(!is.na(SRA_PROJECT_ID), !grepl('bulk RNA', Summary)) # hand remove GSE81902 as this is bulk RNA-seq
+gse_prj <- bind_rows(gse_prj, gse_prj_2) %>% 
+  filter(!is.na(SRA_PROJECT_ID), !grepl('bulk RNA', Summary)) %>% # hand remove GSE81902 as this is bulk RNA-seq
+  unique()
 
 con <- dbConnect(bigrquery::bigquery(),
                  project = 'isb-cgc-01-0006',
@@ -90,17 +93,22 @@ con <- dbConnect(bigrquery::bigquery(),
 # bigquery essentially charges by data searched
 # and if you exclude columns you reduce the amount
 # of data you search across
+
+# build query
 sql_experiment <- paste0("SELECT study_accession, sample_accession, experiment_accession, title, attributes 
               FROM sra_experiment WHERE study_accession IN ('", 
               paste(gse_prj %>% 
                       filter(!is.na(SRA_PROJECT_ID)) %>% 
                                pull(SRA_PROJECT_ID), 
                     collapse = "','"), "')")
+# run query
+sra_experiment <- dbGetQuery(con, sql_experiment)
 
 sql_sample <- paste0("SELECT sample_accession, organism, taxon_id, BioSample
               FROM sra_sample WHERE accession IN ('", 
-                         paste(sra_experiment$sample_accession, 
-                               collapse = "','"), "')")
+                     paste(sra_experiment$sample_accession, 
+                           collapse = "','"), "')")
+sra_sample <- dbGetQuery(con, sql_sample)
 
 sql_biosample <- paste0("SELECT accession, attributes, attribute_recs, title
               FROM biosample WHERE accession IN ('", 
@@ -112,8 +120,6 @@ sql_run <- paste0("SELECT accession, experiment_accession
                   paste(sra_experiment$experiment_accession, 
                         collapse = "','"), "')")
 
-sra_experiment <- dbGetQuery(con, sql_experiment)
-sra_sample <- dbGetQuery(con, sql_sample)
 sra_biosample <- dbGetQuery(con, sql_biosample)
 sra_run <- dbGetQuery(con, sql_run)
 
@@ -126,5 +132,8 @@ sra_metadata <- sra_experiment %>%
             by = 'BioSample') %>% 
   left_join(., sra_run %>% rename(run_accession = accession),
             by = 'experiment_accession')
+
+
 save(sra_metadata, file = 'data/sra_metadata.Rdata')
 write(sra_metadata$run_accession, file = 'data/run_accession.txt')
+write_tsv(gse_prj %>% rename(study_accession = 'SRA_PROJECT_ID'), path = 'data/GEO_Study_Level_Metadata.tsv')
