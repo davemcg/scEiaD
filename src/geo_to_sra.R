@@ -141,3 +141,7 @@ save(sra_metadata, file = 'data/sra_metadata.Rdata')
 write(sra_metadata$run_accession, file = 'data/run_accession.txt')
 write_tsv(gse_prj %>% rename(study_accession = 'SRA_PROJECT_ID'), path = 'data/GEO_Study_Level_Metadata.tsv')
 write_tsv(sra_metadata %>% select(sample_accession, run_accession, library_layout), path = 'data/sample_run_layout.tsv')
+
+write(sra_metadata %>% mutate(fastq_command = paste0('fasterq-dump ', run_accession, '; pigz -p 4 ', run_accession, '*fastq')) %>% pull(fastq_command), file = 'data/fasterq_dump.swarm')
+
+      
