@@ -95,10 +95,10 @@ con <- dbConnect(bigrquery::bigquery(),
 # of data you search across
 
 # build query
-sql_experiment <- paste0("SELECT study_accession, sample_accession, 
+sql_experiment <- paste0("SELECT study_accession, sample_accession, alias,
                           experiment_accession, title, attributes, instrument_model, 
-                          library_layout, library_strategy, library_layout_length, 
-                          library_layout_sdev, library_source, platform
+                          library_layout, library_strategy, library_construction_protocol, 
+                          library_layout_length, library_layout_sdev, library_source, platform
               FROM sra_experiment WHERE study_accession IN ('", 
               paste(gse_prj %>% 
                       filter(!is.na(SRA_PROJECT_ID)) %>% 
@@ -113,7 +113,7 @@ sql_sample <- paste0("SELECT sample_accession, organism, taxon_id, BioSample
                            collapse = "','"), "')")
 sra_sample <- dbGetQuery(con, sql_sample)
 
-sql_biosample <- paste0("SELECT accession, attributes, attribute_recs, title
+sql_biosample <- paste0("SELECT accession, attributes, attribute_recs, title, design
               FROM biosample WHERE accession IN ('", 
                         paste(sra_sample$BioSample, 
                               collapse = "','"), "')")
