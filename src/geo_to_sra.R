@@ -113,7 +113,7 @@ sql_sample <- paste0("SELECT sample_accession, organism, taxon_id, BioSample
                            collapse = "','"), "')")
 sra_sample <- dbGetQuery(con, sql_sample)
 
-sql_biosample <- paste0("SELECT accession, attributes, attribute_recs, title, design
+sql_biosample <- paste0("SELECT accession, attributes, attribute_recs, title, taxonomy_name
               FROM biosample WHERE accession IN ('", 
                         paste(sra_sample$BioSample, 
                               collapse = "','"), "')")
