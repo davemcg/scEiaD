@@ -3,7 +3,7 @@ SRP166660	GSE121707	10X_v2	YES	NA
 SRP200599	GSE132272	10X_v2	YES	NA
 SRP158081	GSE118614	10X_v2	YES	NA
 SRP194595	GSE130636	10X_v3	YES	NA
-SRP159286	GSE119343	SCRBSeq	YES	https://www.illumina.com/science/sequencing-method-explorer/kits-and-arrays/scrb-seq.html
+SRP159286	GSE119343	SCRBSeq	YES	https://www.illumina.com/science/sequencing-method-explorer/kits-and-arrays/scrb-seq.html, BC6 + UMI (N)10
 SRP136739	GSE112507	SMARTSeq_v4	NO	NA
 SRP186407	GSE126783	10X	YES	version not specified
 SRP158528	GSE118852	10X_v2	YES	NA
