@@ -1,0 +1,20 @@
+{
+	"__default__" :
+	{
+		"partition" : "quick",
+		"time" : "04:00:00",
+		"mem" : "8g",
+		"extra" : "",
+		"output"  : "00log/{rule}_{wildcards}.out",
+		"error" : "00log/{rule}_{wildcards}.err" 
+	},
+	"bustools_sort" : 
+	{
+		"mem" : "32G",
+		"time" : "00:30:00"
+	},
+	"bustools_whitelist_correct_count" :
+	{
+		"time" : "00:20:00"	
+	}
+}

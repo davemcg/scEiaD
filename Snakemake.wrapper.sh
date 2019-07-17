@@ -21,7 +21,7 @@ snakemake -s /home/mcgaugheyd/git/massive_integrated_eye_scRNA/Snakefile \
 -pr --jobs 1999 \
 --configfile /home/mcgaugheyd/git/massive_integrated_eye_scRNA/config.yaml \
 --use-conda \
---cluster-config /home/mcgaugheyd/git/ipsc_rpe_epigenomes/cluster.json \
+--cluster-config /home/mcgaugheyd/git/massive_integrated_eye_scRNA/cluster.json \
 --cluster "$sbcmd"  --latency-wait 120 --rerun-incomplete \
 -k --restart-times 0 \
 --resources parallel=4
