@@ -18,3 +18,5 @@ Approach:
     - species
     - cell types
     - trajectory
+
+![](https://github.com/davemcg/massive_integrated_eye_scRNA/blob/master/miescRNA.svg)
