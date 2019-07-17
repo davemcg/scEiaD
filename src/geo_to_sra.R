@@ -136,10 +136,20 @@ sra_metadata <- sra_experiment %>%
   left_join(., sra_run %>% rename(run_accession = accession),
             by = 'experiment_accession')
 
+# add in tech info about seq
+# have to custom correct SRP158081 as they use a blend of smart-seq and 10X....
+tech <- read_tsv('data/scTech.tsv')
+sra_metadata <- left_join(sra_metadata, tech) %>% 
+  mutate(Platform = case_when(study_accession == 'SRP158081' & grepl('Cell', title) ~ 'SMARTSeq_v2',
+                              TRUE ~ Platform),
+         UMI = case_when(study_accession == 'SRP158081' & grepl('Cell', title) ~ 'NO',
+                              TRUE ~ UMI)
+         )
 
 save(sra_metadata, file = 'data/sra_metadata.Rdata')
-write(sra_metadata$run_accession, file = 'data/run_accession.txt')
 write_tsv(gse_prj %>% rename(study_accession = 'SRA_PROJECT_ID'), path = 'data/GEO_Study_Level_Metadata.tsv')
+write_tsv(sra_metadata %>% select(sample_accession, run_accession, library_layout, organism, Platform), path = 'data/sample_run_layout_organism_tech.tsv')
+
 
 
       
