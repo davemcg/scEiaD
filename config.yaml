@@ -1,0 +1,2 @@
+srr_sample_file: '/home/mcgaugheyd/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv'
+srr_discrepancy_file: '/home/mcgaugheyd/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech_discrepancy.tsv'

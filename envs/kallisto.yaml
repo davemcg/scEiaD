@@ -1,0 +1,6 @@
+name: kallisto_046
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+   - kallisto =0.46.0
