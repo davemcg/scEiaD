@@ -148,7 +148,7 @@ sra_metadata <- left_join(sra_metadata, tech) %>%
 
 save(sra_metadata, file = 'data/sra_metadata.Rdata')
 write_tsv(gse_prj %>% rename(study_accession = 'SRA_PROJECT_ID'), path = 'data/GEO_Study_Level_Metadata.tsv')
-write_tsv(sra_metadata %>% select(sample_accession, run_accession, library_layout, organism, Platform), path = 'data/sample_run_layout_organism_tech.tsv')
+write_tsv(sra_metadata %>% select(sample_accession, run_accession, library_layout, organism, Platform, UMI), path = 'data/sample_run_layout_organism_tech.tsv')
 
 
 
