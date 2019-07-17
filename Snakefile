@@ -2,7 +2,7 @@ import glob as glob
 import subprocess as sp
 
 srr_sample_file = config['srr_sample_file']
-srr_sample_discrepancy_file = config['srr_discrepancy_file']
+#srr_sample_discrepancy_file = config['srr_discrepancy_file']
 
 # builds dictionary of dictionaries where first dict key is SRS 
 # and second dict key are SRS properties
@@ -85,11 +85,11 @@ SRS_nonUMI_samples = []
 for SRS in SRS_dict.keys():
 	if SRS_dict[SRS]['UMI'] and SRS_dict[SRS]['paired']:
 		SRS_UMI_samples.append(SRS)
-	elif SRS_dict['tech'] != 'BULK':
+	elif SRS_dict[SRS]['tech'] != 'BULK':
 		SRS_nonUMI_samples.append(SRS)
 
 wildcard_constraints:
-	SRS = '|'.join(SRS_UMI_samples)
+	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples)
 
 rule all:
 	input:
