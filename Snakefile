@@ -43,11 +43,6 @@ SRS_dict = metadata_builder(srr_sample_file)
 # SRS_dict = metadata_builder(srr_sample_discrepancy_file, SRS_dict, discrepancy = True)
 
 def lookup_run_from_SRS(SRS):
-	#i = '0'
-	#print(SRS)
-	#if '_' in SRS:
-	#	i= '1' if SRS[-1]=='1' else '2'# check L/R file
-	#	SRS=SRS[:-2]
 	SRR_files=SRS_dict[SRS]['SRR']
 	out = []
 	for SRR in SRR_files:
@@ -93,8 +88,8 @@ wildcard_constraints:
 
 rule all:
 	input:
-		expand('quant/{SRS}/genecount/gene.mtx', SRS = SRS_UMI_samples), # UMI data
-		expand('quant/{SRS}/abundances.tsv', SRS = SRS_nonUMI_samples) # non UMI data
+		expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples[0:10]), # UMI data
+		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples) # non UMI data
 		# expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
 
 # mouse, human, macaque fasta and gtf
@@ -185,7 +180,7 @@ rule kallisto_quant:
 		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS),
 		idx = lambda wildcards: SRS_info(wildcards.SRS, 'idx')
 	output:
-		quant = 'quant/{SRS}/abundances.tsv'
+		quant = 'quant/{SRS}/abundance.tsv.gz'
 	params:
 		paired = lambda wildcards: SRS_dict[wildcards.SRS]['paired']
 	threads: 8
@@ -197,13 +192,14 @@ rule kallisto_quant:
 													idx = input.idx,
 													SRS = wildcards.SRS)
 		else:
-			job = "kallisto bus --single -t {t} -b 100 --plaintext --bias \
+			job = "kallisto quant --single -l 200 -s 30  -t {t} -b 100 --plaintext --bias \
 					-i {idx} -o quant/{SRS} {fastq}".format(fastq = input.fastq,
                                                     t = threads,
 													idx = input.idx,
 													SRS = wildcards.SRS)
 		sp.run("echo " + job + '\n', shell = True)
 		sp.run(job, shell = True)	
+		sp.run('gzip quant/' + wildcards.SRS + '/*tsv')
 			
 			
 # sorting required for whitelist creation and correction
@@ -251,5 +247,17 @@ rule bustools_whitelist_correct_count:
 			-t {input.tx_name} \
 			--genecounts -
 		"""
-		
+
+rule create_sparse_matrix:
+	input:
+		'quant/{SRS}/genecount/gene.mtx'
+	output:
+		stats = 'quant/{SRS}/genecount/stats.tsv',
+		matrix = 'quant/{SRS}/genecount/matrix.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {output.matrix} {output.stats}
+		"""		
+
 #rule profit:
