@@ -15,7 +15,7 @@ def metadata_builder(file, SRS_dict = {}, discrepancy = False):
 			if SRS not in SRS_dict:
 				SRS_dict[SRS]={'SRR': [info[1]],
 					    	  'paired':True if info[2]=='PAIRED' else False, 
-					          'organism':info[3],
+					          'organism':info[3].replace(' ', '_'),
 		            	      'tech':info[4],
 						      'UMI':True if info[5]=='YES' else False,
 							  'Study': info[6]}
@@ -43,17 +43,17 @@ SRS_dict = metadata_builder(srr_sample_file)
 # various databases
 # SRS_dict = metadata_builder(srr_sample_discrepancy_file, SRS_dict, discrepancy = True)
 
-# build SRP <-> SRS dict for nonUMI data
-SRP_dict = {}
+# build organism <-> SRS dict for nonUMI data
+organism_dict = {}
 for x in SRS_dict:
 	if not SRS_dict[x]['UMI'] or not SRS_dict[x]['paired']:
-		study = SRS_dict[x]['Study']
-		if study not in SRP_dict:
-			SRP_dict[study] = [x]
+		organism = SRS_dict[x]['organism']
+		if organism not in organism_dict:
+			organism_dict[organism] = [x]
 		else:
-			srs = SRP_dict[study]
+			srs = organism_dict[organism]
 			srs.append(x)
-			SRP_dict[study] = srs
+			organism_dict[organism] = srs
 
 def lookup_run_from_SRS(SRS):
 	SRR_files=SRS_dict[SRS]['SRR']
@@ -70,13 +70,13 @@ def lookup_run_from_SRS(SRS):
 
 def SRS_info(SRS, data_to_return):
 	organism = SRS_dict[SRS]['organism']
-	if organism.lower() == 'mus musculus':
+	if organism.lower() == 'mus_musculus':
 		idx = 'references/kallisto_idx/gencode.vM22.pc_transcripts.fa.gz.idx'
 		txnames = 'references/gencode.vM22.metadata.MGI_tx_mapping.tsv'
-	elif organism.lower() == 'homo sapiens':
+	elif organism.lower() == 'homo_sapiens':
 		idx = 'references/kallisto_idx/gencode.v31.pc_transcripts.fa.gz.idx'
 		txnames = 'references/gencode.v31.metadata.HGNC_tx_mapping.tsv'
-	elif organism.lower() == 'macaca fascicularis':
+	elif organism.lower() == 'macaca_fascicularis':
 		idx = 'references/kallisto_idx/GCF_000364345.1_Macaca_fascicularis_5.0_rna.fna.gz.idx'
 		txnames = 'references/GCF_000364345.1_Macaca_fascicularis_5.0_tx_mapping.tsv'
 	else:
@@ -101,7 +101,7 @@ wildcard_constraints:
 
 rule all:
 	input:
-		expand('quant/{study}/tpm.Rdata', study = SRP_dict.keys()),
+		expand('quant/{organism}/tpm.Rdata', organism = organism_dict.keys()),
 		expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples) # non UMI data
 		# expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
@@ -274,14 +274,14 @@ rule create_sparse_matrix:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {output.matrix} {output.stats}
 		"""		
 
-rule merge_nonUMI_quant_by_study:
+rule merge_nonUMI_quant_by_organism:
 	input:
-		lambda wildcards: expand('quant/{SRS}/abundance.tsv.gz', SRS = SRP_dict[wildcards.study])
+		quant = lambda wildcards: expand('quant/{SRS}/abundance.tsv.gz', SRS = organism_dict[wildcards.organism]),
+		tx_map = lambda wildcards: SRS_info(organism_dict[wildcards.organism][0], 'tx')
 	output:
-		'quant/{study}/tpm.Rdata',
-		'quant/{study}/counts.Rdata'
+		'quant/{organism}/tpm.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_nonUMI_quant_by_study.R {output} {input} 
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.quant} 
 		"""
