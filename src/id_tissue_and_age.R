@@ -4,10 +4,17 @@ load('data/sra_metadata.Rdata')
 
 # age is in days, 0 is birth (so you can have negative if there are any prenatal)
 sra_metadata %>% mutate(Tissue = case_when(study_accession == 'SRP050054' ~ 'Retina',
-                                           study_accession == 'SRP073242' ~ 'Retina'),
-                        Age = case_when(study_accession == 'SRP050054' ~ '14',
-                                        study_accession == 'SRP073242' ~ '17'),
-                        TissueNote = case_when(study_accession == 'SRP073242' ~ 'Vsx2-GFP FACS'))
+                                           study_accession == 'SRP073242' ~ 'Retina',
+                                           study_accession == 'SRP075719' ~ 'Retina',
+                                           study_accession == 'SRP075720' ~ 'Retina',
+                                           study_accession == 'SRP106476' & !grepl('hPSC', biosample_attribute_recs) ~ 'Retina',
+                                           study_accession == 'SRP106476' & grepl('hPSC', biosample_attribute_recs) ~ 'Retina (hiPSC)'),
+                        Age = case_when(study_accession == 'SRP050054' ~ 14,
+                                        study_accession == 'SRP073242' ~ 17,
+                                        study_accession == 'SRP075719' ~ 17,
+                                        study_accession == 'SRP075720' ~ 17),
+                        TissueNote = case_when(study_accession == 'SRP073242' ~ 'Vsx2-GFP FACS',
+                                               study_accession == 'SRP075720' ~ 'Kcng4-cre;stop-YFP X Thy1-stop-YFP Line#1'))
                                               
 
 umi_counts <- tibble::tribble(
