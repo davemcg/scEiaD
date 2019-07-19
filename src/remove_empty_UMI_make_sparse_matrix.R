@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
-base_dir <- '/data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA/quant/'
+base_dir <- '/data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA/'
 
 SRS = args[1]
 matrix_file <- paste0(base_dir, args[2])
@@ -11,11 +11,11 @@ library(Seurat)
 library(BUSpaRse)
 library(Matrix)
 library(DropletUtils)
-# library(ggplot2)
+library(readr)
 
 # input data from project
 
-raw_matrix <- BUSpaRse::read_count_output(paste0(base_dir, SRS, '/genecount'),'gene', FALSE)
+raw_matrix <- BUSpaRse::read_count_output(paste0(base_dir, 'quant/', SRS, '/genecount'),'gene', FALSE)
 dim(raw_matrix)
 tot_counts <- Matrix::colSums(raw_matrix)
 
@@ -30,7 +30,7 @@ bc_rank <- barcodeRanks(raw_matrix)
 #   scale_y_log10() +
 #   labs(y = "Barcode rank", x = "Total UMI count")
 
-res_matrix <- sc_matrix[, tot_counts > metadata(bc_rank)$inflection]
+res_matrix <- raw_matrix[, tot_counts > metadata(bc_rank)$inflection]
 # dim(res_matrix)
 # 
 # seu <- CreateSeuratObject(res_matrix, min.cells = 3) %>%
@@ -47,11 +47,11 @@ res_matrix <- sc_matrix[, tot_counts > metadata(bc_rank)$inflection]
 # DimPlot(seu, reduction = "tsne", pt.size = 0.5)
 
 # write out pre/post UMI counts
-stats <- as_tibble('Gene_Number' = c(dim(raw_matrix)[1], dim(res_matrix)[1]), 
+stats <- data.frame('Gene_Number' = c(dim(raw_matrix)[1], dim(res_matrix)[1]), 
                     'UMI_Count' = c(dim(raw_matrix)[2], dim(res_matrix)[2]),
                     'State' = c('Raw', 'Processed'),
                     'SRS' = c(SRS,SRS))
 write_tsv(stats, path = stats_file)
 
 # save pared down counts
-save(res_matrix, matrix_file)
+save(res_matrix, file = matrix_file)
