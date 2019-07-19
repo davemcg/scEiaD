@@ -6,11 +6,8 @@ library(readr)
 library(stringr)
 library(dplyr)
 
-files <- c('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/quant/SRS3106638/abundance.tsv.gz',
-           '/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/quant/SRS3106639/abundance.tsv.gz',
-           '/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/quant/SRS3106675/abundance.tsv.gz',
-           '/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/quant/SRS3106675/abundance.tsv.gz')
 
+files <- args[seq(3,length(args))]
 SRS = str_extract(files, 'SRS.*/') %>% gsub('/','',.)
 tpm <- files %>% 
   map(fread, select = c('target_id', 'tpm')) %>% 
@@ -27,5 +24,11 @@ count <- left_join(target_lengths, tpm, by = 'target_id')
 colnames(tpm) <- c('target_id', 'length', 'eff_length', SRS)
 colnames(count) <- c('target_id', 'length', 'eff_length', SRS)
 
-save(tpm, file = args[1])
-save(count, file = args[2])
+sparse_tpm <- tpm[,2:ncol(tpm)]%>% as.matrix() %>% Matrix::Matrix(., sparse = TRUE)
+row.names(sparse_tpm) <- tpm[,1]
+sparse_count <- count[,2:ncol(count)]%>% as.matrix() %>% Matrix::Matrix(., sparse = TRUE)
+row.names(sparse_count) <- count[,1]
+
+
+save(sparse_tpm, file = args[1])
+save(sparse_count, file = args[2])
