@@ -1,4 +1,3 @@
-import glob as glob
 import subprocess as sp
 
 srr_sample_file = config['srr_sample_file']
@@ -18,7 +17,8 @@ def metadata_builder(file, SRS_dict = {}, discrepancy = False):
 					    	  'paired':True if info[2]=='PAIRED' else False, 
 					          'organism':info[3],
 		            	      'tech':info[4],
-						      'UMI':True if info[5]=='YES' else False}
+						      'UMI':True if info[5]=='YES' else False,
+							  'Study': info[6]}
 			else:
 				# this is mostly for SRA having the 'paired' status wrong
 				# don't want to hand-edit the main metadata file
@@ -30,7 +30,8 @@ def metadata_builder(file, SRS_dict = {}, discrepancy = False):
 									 'paired':True if info[2]=='PAIRED' else False,
 									 'organism':info[3],
 									 'tech':info[4],
-									 'UMI':True if info[5]=='YES' else False}
+									 'UMI':True if info[5]=='YES' else False,
+									 'Study': info[6]}
 				else:
 					runs = SRS_dict[SRS]['SRR']
 					runs.append(info[1])
@@ -41,6 +42,18 @@ SRS_dict = metadata_builder(srr_sample_file)
 # hand edited file which corrects mistakes that in the 
 # various databases
 # SRS_dict = metadata_builder(srr_sample_discrepancy_file, SRS_dict, discrepancy = True)
+
+# build SRP <-> SRS dict for nonUMI data
+SRP_dict = {}
+for x in SRS_dict:
+	if not SRS_dict[x]['UMI'] or not SRS_dict[x]['paired']:
+		study = SRS_dict[x]['Study']
+		if study not in SRP_dict:
+			SRP_dict[study] = [x]
+		else:
+			srs = SRP_dict[study]
+			srs.append(x)
+			SRP_dict[study] = srs
 
 def lookup_run_from_SRS(SRS):
 	SRR_files=SRS_dict[SRS]['SRR']
@@ -88,7 +101,8 @@ wildcard_constraints:
 
 rule all:
 	input:
-		expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples[0:10]), # UMI data
+		expand('quant/{study}/tpm.Rdata', study = SRP_dict.keys()),
+		expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples) # non UMI data
 		# expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
 
@@ -199,7 +213,7 @@ rule kallisto_quant:
 													SRS = wildcards.SRS)
 		sp.run("echo " + job + '\n', shell = True)
 		sp.run(job, shell = True)	
-		sp.run('gzip quant/' + wildcards.SRS + '/*tsv')
+		sp.run('gzip quant/' + wildcards.SRS + '/*tsv', shell = True)
 			
 			
 # sorting required for whitelist creation and correction
@@ -257,7 +271,17 @@ rule create_sparse_matrix:
 	shell:
 		"""
 		module load R/3.6
-		Rscript remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {output.matrix} {output.stats}
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {output.matrix} {output.stats}
 		"""		
 
-#rule profit:
+rule merge_nonUMI_quant_by_study:
+	input:
+		lambda wildcards: expand('quant/{SRS}/abundance.tsv.gz', SRS = SRP_dict[wildcards.study])
+	output:
+		'quant/{study}/tpm.Rdata',
+		'quant/{study}/counts.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_nonUMI_quant_by_study.R {output} {input} 
+		"""

@@ -21,5 +21,14 @@
 	{
 		"time" : "00:20:00",
 		"mem" : "16G"
+	},
+	"kallisto_quant" :
+	{
+		"time" : "00:45:00"
+	}
+	"merge_nonUMI_quant_by_study" : 
+	{
+		"time" : "00:30:00",
+		"mem" : "64G"
 	}
 }
