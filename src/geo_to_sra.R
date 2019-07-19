@@ -148,7 +148,12 @@ sra_metadata <- left_join(sra_metadata, tech) %>%
 
 save(sra_metadata, file = 'data/sra_metadata.Rdata')
 write_tsv(gse_prj %>% rename(study_accession = 'SRA_PROJECT_ID'), path = 'data/GEO_Study_Level_Metadata.tsv')
-write_tsv(sra_metadata %>% select(sample_accession, run_accession, library_layout, organism, Platform, UMI, study_accession), path = 'data/sample_run_layout_organism_tech.tsv')
+# remove BULK RNA-seq and SRP149898 which is missing the crucial paired end reads (need to contact author)
+write_tsv(sra_metadata %>% 
+            select(sample_accession, run_accession, library_layout, organism, Platform, UMI, study_accession) %>% 
+            filter(Platform != 'BULK', 
+                   study_accession != 'SRP149898'), 
+          path = 'data/sample_run_layout_organism_tech.tsv')
 write_tsv(sra_metadata %>% group_by(organism, Platform) %>% sample_n(1) %>% select(sample_accession, run_accession, library_layout, organism, Platform, UMI), path = 'data/sample_run_layout_organism_tech_for_svg.tsv')
 
 
