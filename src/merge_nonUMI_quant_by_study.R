@@ -5,7 +5,7 @@ library(purrr)
 library(readr)
 library(stringr)
 library(dplyr)
-
+library(data.table)
 
 files <- args[seq(3,length(args))]
 SRS = str_extract(files, 'SRS.*/') %>% gsub('/','',.)
