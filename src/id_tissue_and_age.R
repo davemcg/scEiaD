@@ -19,7 +19,7 @@ sra_metadata %>% mutate(Tissue = case_when(study_accession == 'SRP050054' ~ 'Ret
                                         study_accession == 'SRP075720' ~ 17,
                                         study_accession == 'SRP106476' ~ 90,
                                         study_accession == 'SRP157927' ~ 2000,
-                                        study_accession == 'SRP158081' ~ 'XX',
+                                        study_accession == 'SRP158081' ~ 'SRP158081',
                                         study_accession == 'SRP158528' ~ 2000),
                         TissueNote = case_when(study_accession == 'SRP073242' ~ 'Vsx2-GFP FACS',
                                                study_accession == 'SRP075720' ~ 'Kcng4-cre;stop-YFP X Thy1-stop-YFP Line#1',
@@ -29,17 +29,25 @@ sra_metadata %>% mutate(Tissue = case_when(study_accession == 'SRP050054' ~ 'Ret
                                                study_accession == 'SRP157927' & grepl('M3', biosample_title) ~ 'Macaque 3, Fovea',
                                                study_accession == 'SRP157927' & grepl('M4', biosample_title) ~ 'Macaque 4, Fovea',
                                                study_accession == 'SRP158081' ~ 'Sorted Retinal Progenitor Cell (Chx10-GFP positive)',
-                                               study_accession == 'SRP158528' ~ 'XX')) 
+                                               study_accession == 'SRP158528' ~ 'SRP158528')) 
 # SRP158081 age
 sra_metadata %>% 
   filter(study_accession == 'SRP158081') %>% 
   select(biosample_title) %>% 
   mutate(age = str_extract(biosample_title,'^[E|P]\\d+')) %>% 
   mutate(age = case_when(grepl('^E', age) ~ substr(age, 2,6) %>% as.numeric() - 19,
-                          TRUE ~ substr(age, 2,6) %>% as.numeric)) %>% sample_n(10)
+                          TRUE ~ substr(age, 2,6) %>% as.numeric))
                                               
 # SRP158528 TissueNotes
-sra_metadata %>% filter(study_accession == 'SRP158528') %>% select(sample_accession, biosample_attribute_recs) %>% unnest() %>% group_by(sample_accession) %>% summarise(x = paste(value, collapse = ' '))
+sra_metadata %>% 
+  filter(study_accession == 'SRP158528') %>% 
+  select(sample_accession, biosample_attribute_recs) %>% 
+  unnest() %>% 
+  group_by(sample_accession) %>% 
+  summarise(x = paste(value, collapse = ' ')) %>% 
+  mutate(x = gsub('retina ', '', x))
+
+
 umi_counts <- tibble::tribble(
     ~Gene,   ~UMI,         ~State,          ~sample_accession,
   22351,  4661, "Processed", "SRS1467249",
