@@ -148,11 +148,22 @@ sra_metadata <- left_join(sra_metadata, tech) %>%
 
 save(sra_metadata, file = 'data/sra_metadata.Rdata')
 write_tsv(gse_prj %>% rename(study_accession = 'SRA_PROJECT_ID'), path = 'data/GEO_Study_Level_Metadata.tsv')
+# hand add our internal RPE samples
+core_rpe = data.frame(sample_accession = c('scRNA_01','scRNA_01','scRNA_01','scRNA_01','scRNA_01','scRNA_01','scRNA_01','scRNA_01','scRNA_02','scRNA_02','scRNA_02','scRNA_02','scRNA_02','scRNA_02','scRNA_02','scRNA_02','scRNA_03','scRNA_03','scRNA_03','scRNA_03','scRNA_03','scRNA_03','scRNA_03','scRNA_03'),
+             run_accession = c('scRNA_01_S1_L001','scRNA_01_S1_L002','scRNA_01_S2_L001','scRNA_01_S2_L002','scRNA_01_S3_L001','scRNA_01_S3_L002','scRNA_01_S4_L001','scRNA_01_S4_L002','scRNA_02_S5_L001','scRNA_02_S5_L002','scRNA_02_S6_L001','scRNA_02_S6_L002','scRNA_02_S7_L001','scRNA_02_S7_L002','scRNA_02_S8_L001','scRNA_02_S8_L002','scRNA_03_S10_L001','scRNA_03_S10_L002','scRNA_03_S11_L001','scRNA_03_S11_L002','scRNA_03_S12_L001','scRNA_03_S12_L002','scRNA_03_S9_L001','scRNA_03_S9_L002'),
+             library_layout = rep('PAIRED', 24),
+             organism = rep('Homo sapiens', 24),
+             Platform = rep('10xv3', 24),
+             UMI = rep('UMI', 24),
+             study_accession = rep('OGVFB_Hufnagel_iPSC_RPE', 24),
+             stringsAsFactors = FALSE)
+             
 # remove BULK RNA-seq and SRP149898 which is missing the crucial paired end reads (need to contact author)
-write_tsv(sra_metadata %>% 
+write_tsv(bind_rows(sra_metadata %>% 
             select(sample_accession, run_accession, library_layout, organism, Platform, UMI, study_accession) %>% 
             filter(Platform != 'BULK', 
                    study_accession != 'SRP149898'), 
+            core_rpe),
           path = 'data/sample_run_layout_organism_tech.tsv')
 write_tsv(sra_metadata %>% group_by(organism, Platform) %>% sample_n(1) %>% select(sample_accession, run_accession, library_layout, organism, Platform, UMI), path = 'data/sample_run_layout_organism_tech_for_svg.tsv')
 
