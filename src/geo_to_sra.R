@@ -154,7 +154,7 @@ core_rpe = data.frame(sample_accession = c('scRNA_01','scRNA_01','scRNA_01','scR
              library_layout = rep('PAIRED', 24),
              organism = rep('Homo sapiens', 24),
              Platform = rep('10xv3', 24),
-             UMI = rep('UMI', 24),
+             UMI = rep('YES', 24),
              study_accession = rep('OGVFB_Hufnagel_iPSC_RPE', 24),
              stringsAsFactors = FALSE)
              
