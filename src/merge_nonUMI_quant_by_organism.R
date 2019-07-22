@@ -5,7 +5,7 @@ library(tximport)
 library(readr)
 library(stringr)
 library(dplyr)
-
+library(Matrix)
 
 files <- args[seq(3,length(args))]
 
