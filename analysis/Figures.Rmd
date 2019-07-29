@@ -10,7 +10,7 @@ load('../data/sra_metadata_extended.Rdata')
 ```
 
 Figure 1: Sample Count
-```{r}
+```{r, fig.height=1.5, fig.width=2}
 sra_metadata_extended %>% 
   group_by(study_accession, organism, Platform) %>% 
   count() %>% 
@@ -18,7 +18,8 @@ sra_metadata_extended %>%
   geom_bar(stat = 'identity', position = 'dodge') + 
   ggsci::scale_fill_jama()+ 
   theme_minimal() + 
-  ylab('Sample Count')
+  ylab('Sample Count') +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 sra_metadata_extended %>% 
   group_by(study_accession, organism, UMI, library_layout) %>% 
@@ -30,11 +31,12 @@ sra_metadata_extended %>%
   geom_bar(stat = 'identity', position = 'dodge') + 
   ggsci::scale_fill_jama()+ 
   theme_minimal() + 
-  ylab('Sample Count')
+  ylab('Sample Count') +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 ```
 
 Figure 1: Sample Count, with UMI counts
-```{r}
+```{r, fig.height=1.5, fig.width=2}
 umi_counts <- tibble::tribble(
   ~Gene_Counts,   ~UMI_Counts,         ~State,          ~sample_accession,
   22351,  4661, "Processed", "SRS1467249",
@@ -129,7 +131,8 @@ sra_metadata_extended %>% left_join(., umi_counts) %>%
   geom_bar(stat = 'identity', position = 'dodge') + 
   ggsci::scale_fill_jama()+ 
   theme_minimal() + 
-  ylab('Cell Count')
+  ylab('Cell Count') +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 sra_metadata_extended %>% left_join(., umi_counts) %>% 
   mutate(UMI_Counts = case_when(is.na(UMI_Counts) ~ 1,
@@ -140,7 +143,8 @@ sra_metadata_extended %>% left_join(., umi_counts) %>%
   geom_bar(stat = 'identity', position = 'dodge') + 
   ggsci::scale_fill_jama()+ 
   theme_minimal() + 
-  ylab('log2(Cell Count)')
+  ylab('log2(Cell Count)') +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
   
   
 ```
