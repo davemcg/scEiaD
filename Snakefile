@@ -102,6 +102,7 @@ wildcard_constraints:
 rule all:
 	input:
 		expand('quant/{organism}/tpm.Rdata', organism = organism_dict.keys()),
+		expand('quant/{SRS}/genecount/matrix_scTransform.Rdata', SRS = SRS_UMI_samples),
 		expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples) # non UMI data
 		# expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
@@ -284,4 +285,16 @@ rule merge_nonUMI_quant_by_organism:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.quant} 
+		"""
+
+rule seurat_scTransform:
+	input:
+		tx_map = lambda wildcards: SRS_info(wildcards.SRS, 'tx'),
+		matrix = 'quant/{SRS}/genecount/matrix.Rdata'
+	output:
+		'quant/{SRS}/genecount/matrix_scTransform.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_scTransform.R {input.tx_map} {input.matrix} {wildcards.SRS} {output}
 		"""
