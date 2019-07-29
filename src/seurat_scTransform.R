@@ -25,5 +25,5 @@ if (!grepl('macaca', args[1], ignore.case = TRUE)){
 }
 
 seurat_obj <- CreateSeuratObject(counts = res_matrix, project = sample_accession)
-seurat_obj <- SCTransform(object = seurat_obj, project = sample_accession)
+seurat_obj <- SCTransform(object = seurat_obj)
 save(seurat_obj, file = output_file)
