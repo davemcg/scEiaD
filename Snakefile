@@ -298,3 +298,15 @@ rule seurat_scTransform:
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_scTransform.R {input.tx_map} {input.matrix} {wildcards.SRS} {output}
 		"""
+
+rule seurat_sct_combine:
+	input:
+		'quant/{organism}/tpm.Rdata',
+		lambda wildcards: expand('quant/{SRS}/genecount/matrix_scTransform.Rdata', SRS = organism_dict[wildcards.organism])
+	output:
+		'quant/{organism}/matrix_scTransform_merged_SCT.Rdata'
+	threads: 16
+	shell:
+		"""
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seura_combine.R {output} {input}	
+		"""
