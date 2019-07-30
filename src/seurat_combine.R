@@ -5,26 +5,24 @@ args <- commandArgs(trailingOnly = TRUE)
 library(Seurat)
 library(Matrix)
 library(tidyverse)
+library(future)
+options(future.globals.maxSize = 40000 * 1024^2)
 # metadata
 metadata <- read_tsv(args[1])
 species <- args[2]
 
 sc_data <- list()
-for (i in seq(1,length(args))){
-  file = args[i]
+for (i in seq(1,length(rdata_files))){
+  file = rdata_files[i]
   sample_accession = str_extract(file, '(SRS|iPSC_RPE_scRNA_)\\d+')
   load(file)
-  sc_data[[sample_accession]] <- Seurat::CreateSeuratObject(counts = res_matrix, project = sample_accession)
-  sc_data[[sample_accession]] <- NormalizeData(sc_data[[sample_accession]], verbose = FALSE)
-  sc_data[[sample_accession]] <- FindVariableFeatures(sc_data[[sample_accession]], selection.method = 'vst', 
-                                                      nfeatures = 2000, verbose = FALSE)
-  }
+  sc_data[[sample_accession]] <- seurat_obj
+}
 
-samples <- str_extract(args, '(SRS|iPSC_RPE_scRNA_)\\d+')
+sc_data_features <- SelectIntegrationFeatures(object.list = sc_data, nfeatures = 3000, verbose = FALSE)
 
-sra_metadata_extended %>% 
-  filter(sample_accession %in% samples)
+sc_data <- PrepSCTIntegration(object.list = sc_data, anchor.features = sc_data_features, verbose = FALSE)
 
+sc_data_anchors <- FindIntegrationAnchors(object.list = sc_data, normalization.method = 'SCT', anchor.features = sc_data_features, verbose = FALSE)
 
-ref_samples <- sc_data[]
-anchors <- FindIntegrationAnchors(sc_data, dims = 1:30)
+sc_data_integrated <- IntegrateData(anchorset = sc_data_anchors, normalization.method = 'SCT', verbose = FALSE)
