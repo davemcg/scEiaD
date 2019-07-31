@@ -2,4 +2,4 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-   - sra-tools =2.9.6 
+  - sra-tools =2.9.6 

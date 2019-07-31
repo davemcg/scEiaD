@@ -34,5 +34,12 @@
 	"seurat_scTransform" :
 	{
 		"mem" : "64G"
+	},
+	"seurat_sct_combine" :
+	{
+		"mem" : "246G",
+		"partition" : "norm",
+		"time" : "24:00:00",
+		"extra" : " --gres=lscratch:100 "
 	}
 }

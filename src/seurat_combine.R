@@ -29,10 +29,10 @@ sc_data <- PrepSCTIntegration(object.list = sc_data, anchor.features = sc_data_f
 # this one takes HOURS
 sc_data_anchors <- FindIntegrationAnchors(object.list = sc_data, normalization.method = 'SCT', anchor.features = sc_data_features, verbose = TRUE)
 
-sc_data_integrated <- IntegrateData(anchorset = sc_data_anchors, normalization.method = 'SCT', verbose = FALSE)
+sc_data_integrated <- IntegrateData(anchorset = sc_data_anchors, normalization.method = 'SCT', verbose = TRUE)
 
 # PCA, UMAP
-sc_data_integrated <- RunPCA(sc_data_integrated, npcs = 100, ndims.print = 1:5, nfeatures.print = 5))
+sc_data_integrated <- RunPCA(sc_data_integrated, npcs = 100, ndims.print = 1:5, nfeatures.print = 5)
 sc_data_integrated <- RunUMAP(sc_data_integrated, dims = 1:75, min.dist = 0.75)
 
 save(sc_data_integrated, file = args[1])

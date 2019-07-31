@@ -44,16 +44,27 @@ SRS_dict = metadata_builder(srr_sample_file)
 # SRS_dict = metadata_builder(srr_sample_discrepancy_file, SRS_dict, discrepancy = True)
 
 # build organism <-> SRS dict for nonUMI data
-organism_dict = {}
+organism_well_dict = {}
 for x in SRS_dict:
 	if not SRS_dict[x]['UMI'] or not SRS_dict[x]['paired']:
 		organism = SRS_dict[x]['organism']
-		if organism not in organism_dict:
-			organism_dict[organism] = [x]
+		if organism not in organism_well_dict:
+			organism_well_dict[organism] = [x]
 		else:
-			srs = organism_dict[organism]
+			srs = organism_well_dict[organism]
 			srs.append(x)
-			organism_dict[organism] = srs
+			organism_well_dict[organism] = srs
+# build organsim <-> SRS dict for UMI/droplet data
+organism_droplet_dict = {}
+for x in SRS_dict:
+	if SRS_dict[x]['UMI'] and SRS_dict[x]['paired']:
+		organism = SRS_dict[x]['organism']
+		if organism not in organism_droplet_dict:
+			organism_droplet_dict[organism] = [x]
+		else:
+			srs = organism_droplet_dict[organism]
+			srs.append(x)
+			organism_droplet_dict[organism] = srs
 
 def lookup_run_from_SRS(SRS):
 	SRR_files=SRS_dict[SRS]['SRR']
@@ -101,7 +112,7 @@ wildcard_constraints:
 
 rule all:
 	input:
-		expand('quant/{organism}/tpm.Rdata', organism = organism_dict.keys()),
+		expand('quant/{organism}/matrix_scTransform_merged_SCT.Rdata', organism = organism_well_dict.keys()),
 		expand('quant/{SRS}/genecount/matrix_scTransform.Rdata', SRS = SRS_UMI_samples),
 		expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples) # non UMI data
@@ -277,8 +288,8 @@ rule create_sparse_matrix:
 
 rule merge_nonUMI_quant_by_organism:
 	input:
-		quant = lambda wildcards: expand('quant/{SRS}/abundance.tsv.gz', SRS = organism_dict[wildcards.organism]),
-		tx_map = lambda wildcards: SRS_info(organism_dict[wildcards.organism][0], 'tx')
+		quant = lambda wildcards: expand('quant/{SRS}/abundance.tsv.gz', SRS = organism_well_dict[wildcards.organism]),
+		tx_map = lambda wildcards: SRS_info(organism_well_dict[wildcards.organism][0], 'tx')
 	output:
 		'quant/{organism}/tpm.Rdata'
 	shell:
@@ -302,11 +313,12 @@ rule seurat_scTransform:
 rule seurat_sct_combine:
 	input:
 		'quant/{organism}/tpm.Rdata',
-		lambda wildcards: expand('quant/{SRS}/genecount/matrix_scTransform.Rdata', SRS = organism_dict[wildcards.organism])
+		lambda wildcards: expand('quant/{SRS}/genecount/matrix_scTransform.Rdata', SRS = organism_droplet_dict[wildcards.organism])
 	output:
 		'quant/{organism}/matrix_scTransform_merged_SCT.Rdata'
-	threads: 16
+	threads: 32
 	shell:
 		"""
+		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seura_combine.R {output} {input}	
 		"""
