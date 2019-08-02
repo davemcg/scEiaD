@@ -1,0 +1,25 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# UMAP Extraction
+```{r}
+library(Seurat)
+library(tidyverse)
+library(plotly)
+
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/integratedX.Rdata')
+# umap coords
+x <- sc_data_integrated@reductions$umap@cell.embeddings %>% as_tibble(rownames = 'Ident') %>% 
+  left_join(., sc_data_integrated %>% Idents() %>% enframe('Ident', value = 'Sample'))
+
+plot_ly(x %>% as_tibble() %>% sample_n(10000), x = ~UMAP_1, y = ~UMAP_2, z = ~UMAP_3, color = ~Sample) %>% add_markers()
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
