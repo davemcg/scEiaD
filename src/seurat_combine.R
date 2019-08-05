@@ -12,15 +12,15 @@ plan(strategy = "multicore", workers = 12)
 options(future.globals.maxSize = 40000 * 1024^2)
 
 # load in metadata for study project merging, UMI correction, and gene name changing
-metadata <- read_tsv(args[1])
-tx <- read_tsv(args[2], col_names = FALSE) %>% select(2,3) %>% unique()
+metadata <- read_tsv(args[2])
+tx <- read_tsv(args[3], col_names = FALSE) %>% select(2,3) %>% unique()
 colnames(tx) <- c('id', 'gene')
 
 # well data
-load(args[3])
+load(args[4])
 
 # sparse matrix files
-rdata_files = args[4:length(args)]
+rdata_files = args[5:length(args)]
 
 # roll through UMI data, 
 # correct gene names (upper case), force to be unique
