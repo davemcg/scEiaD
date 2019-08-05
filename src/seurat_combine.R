@@ -6,7 +6,7 @@ library(Seurat)
 library(Matrix)
 library(tidyverse)
 library(future)
-plan(strategy = "multicore", workers = 12)
+#plan(strategy = "multicore", workers = 12)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 40000 * 1024^2)

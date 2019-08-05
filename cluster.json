@@ -37,9 +37,9 @@
 	},
 	"seurat_sct_combine" :
 	{
-		"mem" : "246G",
-		"partition" : "norm",
-		"time" : "24:00:00",
+		"mem" : "350G",
+		"partition" : "largemem",
+		"time" : "8:00:00",
 		"extra" : " --gres=lscratch:100 "
 	}
 }

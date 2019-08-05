@@ -112,8 +112,7 @@ wildcard_constraints:
 
 rule all:
 	input:
-		expand('quant/{organism}/matrix_scTransform_merged_SCT.Rdata', organism = organism_well_dict.keys()),
-		expand('quant/{SRS}/genecount/matrix_scTransform.Rdata', SRS = SRS_UMI_samples),
+		expand('quant/{organism}/scTransformRPCA_merged.seuratV3.Rdata', organism = organism_well_dict.keys()),
 		expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples) # non UMI data
 		# expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
@@ -298,27 +297,35 @@ rule merge_nonUMI_quant_by_organism:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.quant} 
 		"""
 
-rule seurat_scTransform:
-	input:
-		tx_map = lambda wildcards: SRS_info(wildcards.SRS, 'tx'),
-		matrix = 'quant/{SRS}/genecount/matrix.Rdata'
-	output:
-		'quant/{SRS}/genecount/matrix_scTransform.Rdata'
-	shell:
-		"""
-		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_scTransform.R {input.tx_map} {input.matrix} {wildcards.SRS} {output}
-		"""
 
 rule seurat_sct_combine:
 	input:
-		'quant/{organism}/tpm.Rdata',
-		lambda wildcards: expand('quant/{SRS}/genecount/matrix_scTransform.Rdata', SRS = organism_droplet_dict[wildcards.organism])
+		srr_metadata = config['srr_sample_file'],		
+		tx_map = lambda wildcards: SRS_info(organism_well_dict[wildcards.organism][0], 'tx'),
+		well = 'quant/{organism}/tpm.Rdata',
+		droplet = lambda wildcards: expand('quant/{SRS}/genecount/matrix.Rdata', SRS = organism_droplet_dict[wildcards.organism])
 	output:
-		'quant/{organism}/matrix_scTransform_merged_SCT.Rdata'
-	threads: 32
+		'quant/{organism}/scTransformRPCA_merged.seuratV3.Rdata'
+	threads: 12
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seura_combine.R {output} {input}	
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_combine.R {output} {input}	
 		"""
+
+rule liger_combine:
+	input:
+		
+	output:
+		'quant/{organism}/liger_merged.seuratV3.Rdata'
+rule harmony_combine:
+	input:
+	output:
+		'quant/{organims}/harmony_merged.seuratV3.Rdata'
+
+# visualize retina markers and sample age
+rule assess_combime:
+	input:
+		expand('quant/{{organism}}/{method}_merged.seuratV3.Rdata', method = ['scTransformRPCA','liger','harmony'])
+	output:
+		
