@@ -52,10 +52,12 @@ study_sample <- metadata %>%
   filter(sample_accession %in% c(droplet_samples, well_samples)) %>% 
   select(study_accession, Platform, sample_accession) %>% 
   unique() %>% 
-  mutate(study_accession = paste0(study_accession, '_', Platform)) %>%
+  mutate(study_accession = paste0(study_accession, '__', Platform)) %>%
   mutate(tech = case_when(sample_accession %in% droplet_samples ~ 'droplet',
                           TRUE ~ 'well')) %>% 
   arrange(study_accession)
+# drop SRP161678 for now as it's giving weird errors right now
+study_sample <- study_sample %>% filter(!grepl('SRP161678', study_accession))
 
 # merge droplet and well data into one list of sparse matrices by study_accession
 study_data <- list()
