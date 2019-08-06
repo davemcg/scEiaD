@@ -6,7 +6,7 @@ library(Seurat)
 library(Matrix)
 library(tidyverse)
 library(future)
-plan(strategy = "multicore", workers = 12)
+# plan(strategy = "multicore", workers = 12)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 40000 * 1024^2)
@@ -77,7 +77,9 @@ for (i in unique(study_sample %>% pull(study_accession))){
     study_data[[i]] <- study_data[[i]][,colSums(is.na(study_data[[i]])) < 1]
   }
   study_data[[i]] <- CreateSeuratObject(study_data[[i]], project = i)
-  study_data[[i]] <- SCTransform(study_data[[i]])
+  # calc percentage mito genes
+  study_data[[i]][["percent.mt"]] <- PercentageFeatureSet(study_data[[i]], pattern = "^MT-")
+  study_data[[i]] <- SCTransform(study_data[[i]], vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
   study_data[[i]] <- RunPCA(study_data[[i]])
 }
 
