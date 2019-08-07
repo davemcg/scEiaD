@@ -52,7 +52,7 @@ study_sample <- metadata %>%
   filter(sample_accession %in% c(droplet_samples, well_samples)) %>% 
   select(study_accession, Platform, sample_accession) %>% 
   unique() %>% 
-  mutate(study_accession = paste0(study_accession, '__', Platform)) %>%
+  mutate(study_accession = paste0(study_accession, '__', Platform, '__', TissueNote)) %>%
   mutate(tech = case_when(sample_accession %in% droplet_samples ~ 'droplet',
                           TRUE ~ 'well')) %>% 
   arrange(study_accession)
@@ -98,3 +98,4 @@ anchors <- FindIntegrationAnchors(object.list = study_data,
                                   anchor.features = study_data_features, 
                                   reduction = "rpca")
 
+save(anchors, file = args[1])
