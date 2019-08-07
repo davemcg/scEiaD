@@ -35,11 +35,18 @@
 	{
 		"mem" : "64G"
 	},
+	"seurat_sct_anchor" :
+	{
+		"mem" : "700",
+		"partition" : "largemem",
+		"time" : "24:00:00",
+		"extra" : " --gres=lscratch:100"
+	},
 	"seurat_sct_combine" :
 	{
-		"mem" : "350G",
+		"mem" : "700G",
 		"partition" : "largemem",
-		"time" : "8:00:00",
-		"extra" : " --gres=lscratch:100 "
+		"time" : "12:00:00",
+		"extra" : " --gres=lscratch:100"
 	}
 }
