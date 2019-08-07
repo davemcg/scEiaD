@@ -298,20 +298,32 @@ rule merge_nonUMI_quant_by_organism:
 		"""
 
 
-rule seurat_sct_combine:
+rule seurat_sct_anchor:
 	input:
 		srr_metadata = config['srr_sample_file'],		
 		tx_map = lambda wildcards: SRS_info(organism_well_dict[wildcards.organism][0], 'tx'),
 		well = 'quant/{organism}/tpm.Rdata',
 		droplet = lambda wildcards: expand('quant/{SRS}/genecount/matrix.Rdata', SRS = organism_droplet_dict[wildcards.organism])
 	output:
-		'quant/{organism}/scTransformRPCA_merged.seuratV3.Rdata'
-	threads: 12
+		'quant/{organism}/scTransformRPCA_anchor.seuratV3.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_combine.R {output} {input}	
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_anchor.R {output} {input}	
 		"""
+
+rule seurat_sct_combine:
+	input:
+		'quant/{organism}/scTransformRPCA_anchor.seuratV3.Rdata'
+	output:
+		'quant/{organism}/scTransformRPCA_merged.seuratV3.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_combine.R {output} {input}
+		"""
+		
+
 
 rule liger_combine:
 	input:
