@@ -50,9 +50,9 @@ well_samples <- colnames(tpm)
 # merge by project
 study_sample <- metadata %>% 
   filter(sample_accession %in% c(droplet_samples, well_samples)) %>% 
-  select(study_accession, Platform, sample_accession, TissueNote) %>% 
+  select(study_accession, Platform, sample_accession) %>% 
   unique() %>% 
-  mutate(study_accession = paste0(study_accession, '__', Platform, '__', str_replace_all(TissueNote, "[^[:alnum:]]", ""))) %>%
+  mutate(study_accession = paste0(study_accession, '__', Platform)) %>%
   mutate(tech = case_when(sample_accession %in% droplet_samples ~ 'droplet',
                           TRUE ~ 'well')) %>% 
   arrange(study_accession)
