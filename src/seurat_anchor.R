@@ -6,7 +6,7 @@ library(Seurat)
 library(Matrix)
 library(tidyverse)
 library(future)
-# plan(strategy = "multicore", workers = 12)
+plan(strategy = "multicore", workers = 8)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 40000 * 1024^2)
@@ -50,7 +50,7 @@ well_samples <- colnames(tpm)
 # merge by project
 study_sample <- metadata %>% 
   filter(sample_accession %in% c(droplet_samples, well_samples)) %>% 
-  select(study_accession, Platform, sample_accession) %>% 
+  select(study_accession, Platform, sample_accession, Covariate) %>% 
   unique() %>% 
   mutate(study_accession = paste0(study_accession, '__', Platform, '__', Covariate)) %>%
   mutate(tech = case_when(sample_accession %in% droplet_samples ~ 'droplet',
@@ -90,6 +90,7 @@ study_data <- PrepSCTIntegration(object.list = study_data, anchor.features = stu
 study_data <- lapply(X = study_data, FUN = function(x) {
   x <- RunPCA(x, features = study_data_features, verbose = FALSE)
 })
+save(study_data_features, study_data, file = 'study_data__emergency.Rdata')
 
 # nope, trying rpca now, running out of memory with the "CCT" reduction method
 anchors <- FindIntegrationAnchors(object.list = study_data, 
