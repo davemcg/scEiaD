@@ -80,7 +80,7 @@ for (i in unique(study_sample %>% pull(study_accession))){
   # calc percentage mito genes
   study_data[[i]][["percent.mt"]] <- PercentageFeatureSet(study_data[[i]], pattern = "^MT-")
   study_data[[i]] <- SCTransform(study_data[[i]], vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
-  study_data[[i]] <- RunPCA(study_data[[i]])
+  #study_data[[i]] <- RunPCA(study_data[[i]])
 }
 
 study_data_features <- SelectIntegrationFeatures(object.list = study_data, nfeatures = 3000, verbose = FALSE)
@@ -92,6 +92,8 @@ study_data <- lapply(X = study_data, FUN = function(x) {
 })
 save(study_data_features, study_data, file = 'study_data__emergency.Rdata')
 
+# try clear some memory
+gc()
 # nope, trying rpca now, running out of memory with the "CCT" reduction method
 anchors <- FindIntegrationAnchors(object.list = study_data, 
                                   normalization.method = 'SCT', 
