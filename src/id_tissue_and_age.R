@@ -61,6 +61,7 @@ sra_metadata_extended <- sra_metadata %>%
                                study_accession == 'SRP050054' ~ str_extract(title, 'retina\\s\\d') %>% gsub(' ', '', .),
                                study_accession == 'SRP075720' & grepl('P17 1', biosample_attribute_recs) ~ 'Batch1',
                                study_accession == 'SRP075720' & grepl('P17 2', biosample_attribute_recs) ~ 'Batch2',
+                               study_accession == 'SRP194595' ~  gsub('\\s(Periphery|Fovea)\\sDonor\\s','',biosample_attribute_recs),
                                TRUE ~ 'None'),  
          TissueNote = case_when(study_accession == 'SRP073242' ~ 'Vsx2-GFP FACS',
                                 study_accession == 'SRP075720' ~ 'Kcng4-cre;stop-YFP X Thy1-stop-YFP Line#1',
