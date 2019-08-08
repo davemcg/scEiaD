@@ -52,7 +52,7 @@ study_sample <- metadata %>%
   filter(sample_accession %in% c(droplet_samples, well_samples)) %>% 
   select(study_accession, Platform, sample_accession) %>% 
   unique() %>% 
-  mutate(study_accession = paste0(study_accession, '__', Platform)) %>%
+  mutate(study_accession = paste0(study_accession, '__', Platform, '__', Covariate)) %>%
   mutate(tech = case_when(sample_accession %in% droplet_samples ~ 'droplet',
                           TRUE ~ 'well')) %>% 
   arrange(study_accession)
@@ -94,6 +94,7 @@ study_data <- lapply(X = study_data, FUN = function(x) {
 # nope, trying rpca now, running out of memory with the "CCT" reduction method
 anchors <- FindIntegrationAnchors(object.list = study_data, 
                                   normalization.method = 'SCT', 
+                                  reference = grep('SRP158081__10xv2', names(study_data)),
                                   scale = FALSE, 
                                   anchor.features = study_data_features, 
                                   reduction = "rpca")
