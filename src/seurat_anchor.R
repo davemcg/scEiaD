@@ -95,7 +95,7 @@ save(study_data_features, study_data, file = 'study_data__emergency.Rdata')
 # try clear some memory
 gc()
 # nope, trying rpca now, running out of memory with the "CCT" reduction method
-anchors <- FindIntegrationAnchors(object.list = study_data, 
+anchors <- FindIntegrationAnchors(object.list = study_data[-c(9,10)], 
                                   normalization.method = 'SCT', 
                                   reference = grep('SRP158081__10xv2', names(study_data)),
                                   scale = FALSE, 
