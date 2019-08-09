@@ -9,7 +9,7 @@ library(future)
 plan(strategy = "multicore", workers = 12)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
-options(future.globals.maxSize = 40000 * 1024^2)
+options(future.globals.maxSize = 80000 * 1024^2)
 downsample <- FALSE
 
 # load in metadata for study project merging, UMI correction, and gene name changing
@@ -19,6 +19,9 @@ colnames(tx) <- c('id', 'gene')
 
 # well data
 load(args[4])
+# remove cells with > 10000 or < 1000
+tpm <- tpm[,(diff(tpm@p) < 10000)]
+tpm <- tpm[,(diff(tpm@p) > 1000)]
 
 # sparse matrix files
 rdata_files = args[5:length(args)]
@@ -39,6 +42,8 @@ for (i in seq(1,length(rdata_files))){
     left_join(., tx, by = 'id') %>% 
     pull(gene) %>% 
     toupper()
+  # remove cells which have more than 6000 quantified genes (likely doublets)
+  res_matrix <- res_matrix[,diff(res_matrix@p) < 6000]
   colnames(res_matrix) <- make.unique(colnames(res_matrix))
   colnames(res_matrix) <- paste0(colnames(res_matrix), "_", sample_accession)
   row.names(res_matrix) <- make.unique(row.names(res_matrix))
@@ -61,7 +66,7 @@ study_sample <- metadata %>%
 study_sample <- study_sample %>% filter(!grepl('SRP161678', study_accession))
 
 # merge droplet and well data into one list of sparse matrices by study_sample$study_accession
-# downsample to no more than 10,000 per study
+# option to downsample to no more than 10,000 per study
 study_data <- list()
 for (i in unique(study_sample %>% pull(study_accession))){
   print(i)
@@ -84,10 +89,8 @@ for (i in unique(study_sample %>% pull(study_accession))){
     cols <- sample(seq(1, sample_n))
     study_data[[i]] <- study_data[[i]][,cols]
   }
-  
-  
-  
-  study_data[[i]] <- CreateSeuratObject(study_data[[i]], project = i)
+  # make seurat object, remove cells with few genes quantified
+  study_data[[i]] <- CreateSeuratObject(study_data[[i]], project = i, min.cells = 250)
   # calc percentage mito genes
   study_data[[i]][["percent.mt"]] <- PercentageFeatureSet(study_data[[i]], pattern = "^MT-")
   study_data[[i]] <- SCTransform(study_data[[i]], vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
@@ -101,7 +104,7 @@ study_data <- PrepSCTIntegration(object.list = study_data, anchor.features = stu
 study_data <- lapply(X = study_data, FUN = function(x) {
   x <- RunPCA(x, features = study_data_features, verbose = FALSE)
 })
-save(study_data_features, study_data, file = 'study_data__emergency.Rdata')
+save(study_data_features, study_data, file = 'study_data__emergency__2019_08_09.Rdata')
 
 # try clear some memory
 gc()
