@@ -6,7 +6,7 @@ library(Seurat)
 library(Matrix)
 library(tidyverse)
 library(future)
-plan(strategy = "multicore", workers = 8)
+#plan(strategy = "multicore", workers = 8)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 40000 * 1024^2)
@@ -96,7 +96,7 @@ save(study_data_features, study_data, file = 'study_data__emergency.Rdata')
 gc()
 # nope, trying rpca now, running out of memory with the "CCT" reduction method
 # 9,10 are "SRP075719__DropSeq__Batch1"     "SRP075719__DropSeq__Batch2"
-anchors <- FindIntegrationAnchors(object.list = study_data[-c(9)], 
+anchors <- FindIntegrationAnchors(object.list = study_data, 
                                   normalization.method = 'SCT', 
                                   reference = grep('SRP158081__10xv2', names(study_data)),
                                   scale = FALSE, 
