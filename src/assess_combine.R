@@ -8,6 +8,12 @@ load('~/git/massive_integrated_eye_scRNA/data/sra_metadata_extended.Rdata')
 
 library(tidyverse)
 library(Seurat)
+load('seurat_merged.Rdata')
+new_meta <- row.names(seurat_merged@meta.data) %>% enframe() %>% mutate(sample_accession = str_extract(value, 'SRS\\d+')) %>% left_join(sra_metadata_extended %>% select(sample_accession, study_accession, Platform, Age, TissueNote) %>% unique()) 
+
+seurat_merged@meta.data$Age <- new_meta$Age
+seurat_merged@meta.data$Platform <- new_meta$Platform
+seurat_merged@meta.data$study_accession <- new_meta$study_accession
 
 ###########################
 # plot by study
@@ -16,6 +22,14 @@ library(Seurat)
 ########################
 # plot by age
 ###########################
+
+
+new_meta <- row.names(seurat_merged@meta.data) %>% enframe() %>% mutate(sample_accession = str_extract(value, 'SRS\\d+')) %>% left_join(sra_metadata_extended %>% select(sample_accession, study_accession, Platform, Age, TissueNote) %>% unique()) 
+
+seurat_merged@meta.data$Age <- new_meta$Age
+seurat_merged@meta.data$Platform <- new_meta$Platform
+seurat_merged@meta.data$study_accession <- new_meta$study_accession
+
 
 ########################
 # plot by markers
