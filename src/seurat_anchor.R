@@ -6,10 +6,11 @@ library(Seurat)
 library(Matrix)
 library(tidyverse)
 library(future)
-#plan(strategy = "multicore", workers = 8)
+plan(strategy = "multicore", workers = 12)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 40000 * 1024^2)
+downsample <- FALSE
 
 # load in metadata for study project merging, UMI correction, and gene name changing
 metadata <- read_tsv(args[2])
@@ -59,15 +60,17 @@ study_sample <- metadata %>%
 # drop SRP161678 for now as it's giving weird errors right now
 study_sample <- study_sample %>% filter(!grepl('SRP161678', study_accession))
 
-# merge droplet and well data into one list of sparse matrices by study_accession
+# merge droplet and well data into one list of sparse matrices by study_sample$study_accession
+# downsample to no more than 10,000 per study
 study_data <- list()
 for (i in unique(study_sample %>% pull(study_accession))){
   print(i)
   samples <- study_sample %>% filter(study_accession == i) %>% pull(sample_accession) 
   tech <- study_sample %>% filter(study_accession == i) %>% pull(tech) %>% head(1)
   if (tech == 'droplet'){
-  study_data[[i]] <- do.call(cbind, sc_data[samples])
-  } else {
+    study_data[[i]] <- do.call(cbind, sc_data[samples])
+  }
+  else {
     # remove samples that aren't in tpm (which means they failed upstream QC)
     samples <- samples[samples %in% well_samples]
     study_data[[i]] <- tpm[,samples]
@@ -76,6 +79,14 @@ for (i in unique(study_sample %>% pull(study_accession))){
     # remove na columns
     study_data[[i]] <- study_data[[i]][,colSums(is.na(study_data[[i]])) < 1]
   }
+  if (downsample){
+    sample_n <- min(ncol(study_data[[i]]),10000)
+    cols <- sample(seq(1, sample_n))
+    study_data[[i]] <- study_data[[i]][,cols]
+  }
+  
+  
+  
   study_data[[i]] <- CreateSeuratObject(study_data[[i]], project = i)
   # calc percentage mito genes
   study_data[[i]][["percent.mt"]] <- PercentageFeatureSet(study_data[[i]], pattern = "^MT-")
@@ -98,7 +109,7 @@ gc()
 # 9,10 are "SRP075719__DropSeq__Batch1"     "SRP075719__DropSeq__Batch2"
 anchors <- FindIntegrationAnchors(object.list = study_data, 
                                   normalization.method = 'SCT', 
-                                  reference = grep('SRP158081__10xv2', names(study_data)),
+                                  #reference = grep('SRP158081__10xv2', names(study_data)),
                                   scale = FALSE, 
                                   anchor.features = study_data_features, 
                                   reduction = "rpca")
