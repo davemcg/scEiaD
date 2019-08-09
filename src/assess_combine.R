@@ -48,6 +48,9 @@ seurat_merged@meta.data$study_accession <- new_meta$study_accession
 seurat_merged <- make_hexbin(seurat_merged, nbins = 200)
 obj <- list()
 for (i in (toupper(c('Rho','Opn1sw', 'Rbpms', 'Sfrp2', 'Olig2', 'Tfap2a', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4')))){
-  plot_hexbin_gene()
+  obj[[i]] <- plot_hexbin_gene(seurat_merged, i, action = 'mean', type = 'logcounts')
 }
-FeaturePlot(study_data_integrated, toupper(c('Rho','Opn1sw', 'Rbpms', 'Sfrp2', 'Olig2', 'Tfap2a', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4')), pt.size = 0.1, order= FALSE)
+
+cowplot::plot_grid(plotlist = obj)
+
+#FeaturePlot(study_data_integrated, toupper(c('Rho','Opn1sw', 'Rbpms', 'Sfrp2', 'Olig2', 'Tfap2a', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4')), pt.size = 0.1, order= FALSE)
