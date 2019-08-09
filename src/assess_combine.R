@@ -8,6 +8,8 @@ load('~/git/massive_integrated_eye_scRNA/data/sra_metadata_extended.Rdata')
 
 library(tidyverse)
 library(Seurat)
+library(schex)
+library(cowplot)
 load('seurat_merged.Rdata')
 new_meta <- row.names(seurat_merged@meta.data) %>% enframe() %>% mutate(sample_accession = str_extract(value, 'SRS\\d+')) %>% left_join(sra_metadata_extended %>% select(sample_accession, study_accession, Platform, Age, TissueNote) %>% unique()) 
 
@@ -43,4 +45,9 @@ seurat_merged@meta.data$study_accession <- new_meta$study_accession
 # Vsx1 to bipolar
 # Elavl4 for RGC
 ####################################
+seurat_merged <- make_hexbin(seurat_merged, nbins = 200)
+obj <- list()
+for (i in (toupper(c('Rho','Opn1sw', 'Rbpms', 'Sfrp2', 'Olig2', 'Tfap2a', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4')))){
+  plot_hexbin_gene()
+}
 FeaturePlot(study_data_integrated, toupper(c('Rho','Opn1sw', 'Rbpms', 'Sfrp2', 'Olig2', 'Tfap2a', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4')), pt.size = 0.1, order= FALSE)
