@@ -13,7 +13,7 @@ Figure 1: Sample Count
 ```{r, fig.height=1.5, fig.width=2}
 sra_metadata_extended %>% 
   group_by(study_accession, organism, Platform) %>% 
-  count() %>% 
+  dplyr::count() %>% 
   ggplot(aes(fill = Platform, x=organism, group = study_accession, y=n)) + 
   geom_bar(stat = 'identity', position = 'dodge') + 
   ggsci::scale_fill_jama()+ 
@@ -23,7 +23,7 @@ sra_metadata_extended %>%
 
 sra_metadata_extended %>% 
   group_by(study_accession, organism, UMI, library_layout) %>% 
-  count() %>% 
+  dplyr::count() %>% 
   ungroup() %>% 
   mutate(UMI = case_when(UMI == 'YES' & library_layout == 'PAIRED' ~ TRUE,
                          TRUE ~ FALSE)) %>% 

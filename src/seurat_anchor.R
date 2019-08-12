@@ -115,6 +115,6 @@ anchors <- FindIntegrationAnchors(object.list = study_data,
                                   #reference = grep('SRP158081__10xv2', names(study_data)),
                                   scale = FALSE, 
                                   anchor.features = study_data_features, 
-                                  reduction = "rpca")
+                                  reduction = "cca")
 
 save(anchors, file = args[1])

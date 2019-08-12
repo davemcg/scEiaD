@@ -22,7 +22,7 @@ plot_ly(x %>% as_tibble() %>% sample_n(10000), x = ~UMAP_1, y = ~UMAP_2, z = ~UM
 ```{r}
 embeds <- Embeddings(y[['umap']])
 save(embeds, file = 'embeds.Rdata')
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/embeds.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/embeds_2019_08_09.Rdata')
 embeds %>% head()
 
 samps <- str_extract(embeds %>% row.names(), '(SRS|iPSC_RPE_scRNA_)\\d+')
@@ -30,6 +30,7 @@ new <- samps %>% enframe(value = 'sample_accession') %>% left_join(., sra_metada
 
 embeds <- embeds %>% as_tibble()
 embeds <- cbind(embeds, new)
-embeds <- embeds %>% mutate(Age = case_when(Age == 1e5 ~ 30, TRUE ~ Age))
+embeds <- embeds %>% mutate(Age = case_when(Age == 1000 ~ 30, TRUE ~ Age))
+embeds
 ```
 

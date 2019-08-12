@@ -11,26 +11,29 @@ library(Seurat)
 library(schex)
 library(cowplot)
 load('seurat_merged.Rdata')
-new_meta <- row.names(seurat_merged@meta.data) %>% enframe() %>% mutate(sample_accession = str_extract(value, 'SRS\\d+')) %>% left_join(sra_metadata_extended %>% select(sample_accession, study_accession, Platform, Age, TissueNote) %>% unique()) 
 
-seurat_merged@meta.data$Age <- new_meta$Age
-seurat_merged@meta.data$Platform <- new_meta$Platform
-seurat_merged@meta.data$study_accession <- new_meta$study_accession
+
+  new_meta <- row.names(seurat_obj@meta.data) %>% enframe() %>% mutate(sample_accession = str_extract(value, 'SRS\\d+')) %>% left_join(sra_metadata_extended %>% select(sample_accession, study_accession, Platform, Age, TissueNote) %>% unique()) 
+  
+  seurat_obj@meta.data$Age <- new_meta$Age
+  seurat_obj@meta.data$Platform <- new_meta$Platform
+  seurat_obj@meta.data$study_accession <- new_meta$study_accession
+
 
 ###########################
 # plot by study
 ############################
-
+DimPlot(seurat_obj, group.by = 'study_accession')
 ########################
 # plot by age
 ###########################
+embeds <- Embeddings(seurat_obj[['umap']])
+samps <- str_extract(embeds %>% row.names(), '(SRS|iPSC_RPE_scRNA_)\\d+')
+new <- samps %>% enframe(value = 'sample_accession') %>% left_join(., sra_metadata_extended %>% select(sample_accession, study_accession, Platform, Age, Source, TissueNote) %>% unique())
 
-
-new_meta <- row.names(seurat_merged@meta.data) %>% enframe() %>% mutate(sample_accession = str_extract(value, 'SRS\\d+')) %>% left_join(sra_metadata_extended %>% select(sample_accession, study_accession, Platform, Age, TissueNote) %>% unique()) 
-
-seurat_merged@meta.data$Age <- new_meta$Age
-seurat_merged@meta.data$Platform <- new_meta$Platform
-seurat_merged@meta.data$study_accession <- new_meta$study_accession
+embeds <- embeds %>% as_tibble()
+embeds <- cbind(embeds, new)
+embeds <- embeds %>% mutate(Age = case_when(Age == 1000 ~ 30, TRUE ~ Age))
 
 
 ########################
@@ -45,10 +48,10 @@ seurat_merged@meta.data$study_accession <- new_meta$study_accession
 # Vsx1 to bipolar
 # Elavl4 for RGC
 ####################################
-seurat_merged <- make_hexbin(seurat_merged, nbins = 200)
+seurat_obj <- make_hexbin(seurat_obj, nbins = 200)
 obj <- list()
 for (i in (toupper(c('Rho','Opn1sw', 'Rbpms', 'Sfrp2', 'Olig2', 'Tfap2a', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4')))){
-  obj[[i]] <- plot_hexbin_gene(seurat_merged, i, action = 'mean', type = 'logcounts')
+  obj[[i]] <- plot_hexbin_gene(seurat_obj, i, action = 'mean', type = 'logcounts')
 }
 
 cowplot::plot_grid(plotlist = obj)
