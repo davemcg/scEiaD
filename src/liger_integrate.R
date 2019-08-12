@@ -1,6 +1,3 @@
-rdata_files <- c('quant/SRS866911/genecount/matrix_scTransform.Rdata','quant/SRS866908/genecount/matrix_scTransform.Rdata','quant/SRS1467254/genecount/matrix_scTransform.Rdata','quant/SRS3971245/genecount/matrix_scTransform.Rdata','quant/SRS3971245/genecount/matrix_scTransform.Rdata','quant/SRS3971245/genecount/matrix_scTransform.Rdata','quant/SRS3971245/genecount/matrix_scTransform.Rdata','quant/SRS3971246/genecount/matrix_scTransform.Rdata','quant/SRS3971246/genecount/matrix_scTransform.Rdata','quant/SRS3971246/genecount/matrix_scTransform.Rdata','quant/SRS3971246/genecount/matrix_scTransform.Rdata','quant/SRS4363764/genecount/matrix_scTransform.Rdata','quant/SRS1467251/genecount/matrix_scTransform.Rdata','quant/SRS1467253/genecount/matrix_scTransform.Rdata','quant/SRS3674976/genecount/matrix_scTransform.Rdata','quant/SRS3674982/genecount/matrix_scTransform.Rdata','quant/SRS3674983/genecount/matrix_scTransform.Rdata','quant/SRS4363765/genecount/matrix_scTransform.Rdata','quant/SRS3674974/genecount/matrix_scTransform.Rdata','quant/SRS3674975/genecount/matrix_scTransform.Rdata','quant/SRS3674985/genecount/matrix_scTransform.Rdata','quant/SRS1467249/genecount/matrix_scTransform.Rdata','quant/SRS3674980/genecount/matrix_scTransform.Rdata','quant/SRS3971244/genecount/matrix_scTransform.Rdata','quant/SRS3971244/genecount/matrix_scTransform.Rdata','quant/SRS3971244/genecount/matrix_scTransform.Rdata','quant/SRS3971244/genecount/matrix_scTransform.Rdata','quant/SRS4363763/genecount/matrix_scTransform.Rdata','quant/SRS4386076/genecount/matrix_scTransform.Rdata','quant/SRS1467250/genecount/matrix_scTransform.Rdata','quant/SRS3674978/genecount/matrix_scTransform.Rdata','quant/SRS3674977/genecount/matrix_scTransform.Rdata','quant/SRS3674988/genecount/matrix_scTransform.Rdata','quant/SRS3674979/genecount/matrix_scTransform.Rdata','quant/SRS3674981/genecount/matrix_scTransform.Rdata','quant/SRS3674984/genecount/matrix_scTransform.Rdata','quant/SRS4386075/genecount/matrix_scTransform.Rdata','quant/SRS1467252/genecount/matrix_scTransform.Rdata','quant/SRS3674987/genecount/matrix_scTransform.Rdata','quant/SRS866912/genecount/matrix_scTransform.Rdata','quant/SRS866910/genecount/matrix_scTransform.Rdata','quant/SRS866909/genecount/matrix_scTransform.Rdata','quant/SRS866907/genecount/matrix_scTransform.Rdata','quant/SRS4363762/genecount/matrix_scTransform.Rdata','quant/SRS866906/genecount/matrix_scTransform.Rdata')
-
-
 library(Matrix)
 library(liger)
 library(tidyverse)
@@ -29,8 +26,8 @@ for (i in seq(1,length(rdata_files))){
 
 # merge by project
 study_sample <- sra_metadata_extended %>% filter(organism == 'Mus musculus', library_layout == 'PAIRED', UMI == 'YES') %>% select(study_accession, biosample_attribute_recs, sample_accession) %>% unique() %>% arrange(study_accession)
-study_sample <- study_sample %>% mutate(study_accession = case_when(grepl('Mixed', biosample_attribute_recs) ~ paste0(study_accession, '_P14_Mixed_CD1_C57Bl6'),
-                                                                             TRUE ~ study_accession))
+#study_sample <- study_sample %>% mutate(study_accession = case_when(grepl('Mixed', biosample_attribute_recs) ~ paste0(study_accession, '_P14_Mixed_CD1_C57Bl6'),
+#                                                                            TRUE ~ study_accession))
 study_sample 
 study_data <- list()
 for (i in unique(study_sample$study_accession)){
@@ -41,7 +38,7 @@ for (i in unique(study_sample$study_accession)){
 # liger time
 ligerex = createLiger(study_data)
 ligerex = normalize(ligerex)
-ligerex = selectGenes(ligerex, var.thresh = 0.1)
+ligerex = selectGenes(ligerex, var.thresh = 0.1, do.plot = FALSE)
 ligerex <- scaleNotCenter(ligerex)
 
 # suggestK(ligerex)
