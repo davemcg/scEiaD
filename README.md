@@ -11,8 +11,8 @@ Approach:
   - use omicidx to get SRA accession nums
   - clean metadata
   - download with fastq-dump 
-  - counts with bustools - kallisto
-  - merge all with liger
+  - counts with bustools - kallisto (or STAR)
+  - merge all with liger (or seurat CCA)
     - https://www.biorxiv.org/content/10.1101/459891v1
   - analyze:
     - species
