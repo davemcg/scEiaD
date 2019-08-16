@@ -290,7 +290,7 @@ rule merge_nonUMI_quant_by_organism:
 		quant = lambda wildcards: expand('quant/{SRS}/abundance.tsv.gz', SRS = organism_well_dict[wildcards.organism]),
 		tx_map = lambda wildcards: SRS_info(organism_well_dict[wildcards.organism][0], 'tx')
 	output:
-		'quant/{organism}/tpm.Rdata'
+		'quant/{organism}/counts.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -302,10 +302,11 @@ rule seurat_sct_anchor:
 	input:
 		srr_metadata = config['srr_sample_file'],		
 		tx_map = lambda wildcards: SRS_info(organism_well_dict[wildcards.organism][0], 'tx'),
-		well = 'quant/{organism}/tpm.Rdata',
+		well = 'quant/{organism}/counts.Rdata',
 		droplet = lambda wildcards: expand('quant/{SRS}/genecount/matrix.Rdata', SRS = organism_droplet_dict[wildcards.organism])
 	output:
 		'quant/{organism}/scTransformRPCA_anchor.seuratV3.Rdata'
+	threads: 6
 	shell:
 		"""
 		module load R/3.6
