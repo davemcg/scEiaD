@@ -6,11 +6,12 @@ library(Seurat)
 library(Matrix)
 library(tidyverse)
 library(future)
-plan(strategy = "multicore", workers = 12)
+plan(strategy = "multicore", workers = 8)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
-options(future.globals.maxSize = 80000 * 1024^2)
+options(future.globals.maxSize = 500000 * 1024^2)
 downsample <- FALSE
+stamp <- Sys.time() %>% gsub(' ', '__', .)
 
 # load in metadata for study project merging, UMI correction, and gene name changing
 metadata <- read_tsv(args[2])
@@ -20,8 +21,8 @@ colnames(tx) <- c('id', 'gene')
 # well data
 load(args[4])
 # remove cells with > 10000 or < 1000
-tpm <- tpm[,(diff(tpm@p) < 10000)]
-tpm <- tpm[,(diff(tpm@p) > 1000)]
+count <- count[,(diff(count@p) < 10000)]
+count <- count[,(diff(count@p) > 1000)]
 
 # sparse matrix files
 rdata_files = args[5:length(args)]
@@ -51,7 +52,7 @@ for (i in seq(1,length(rdata_files))){
 }
 
 # grab available well samples
-well_samples <- colnames(tpm)
+well_samples <- colnames(count)
 
 # merge by project
 study_sample <- metadata %>% 
@@ -62,6 +63,7 @@ study_sample <- metadata %>%
   mutate(tech = case_when(sample_accession %in% droplet_samples ~ 'droplet',
                           TRUE ~ 'well')) %>% 
   arrange(study_accession)
+
 # drop SRP161678 for now as it's giving weird errors right now
 study_sample <- study_sample %>% filter(!grepl('SRP161678', study_accession))
 
@@ -76,9 +78,9 @@ for (i in unique(study_sample %>% pull(study_accession))){
     study_data[[i]] <- do.call(cbind, sc_data[samples])
   }
   else {
-    # remove samples that aren't in tpm (which means they failed upstream QC)
+    # remove samples that aren't in count (which means they failed upstream QC)
     samples <- samples[samples %in% well_samples]
-    study_data[[i]] <- tpm[,samples]
+    study_data[[i]] <- count[,samples]
     row.names(study_data[[i]]) <- row.names(study_data[[i]]) %>% toupper()
     row.names(study_data[[i]]) <- make.unique(row.names(study_data[[i]]))
     # remove na columns
@@ -90,11 +92,23 @@ for (i in unique(study_sample %>% pull(study_accession))){
     study_data[[i]] <- study_data[[i]][,cols]
   }
   # make seurat object, remove cells with few genes quantified
-  study_data[[i]] <- CreateSeuratObject(study_data[[i]], project = i, min.cells = 250)
+  study_data[[i]] <- CreateSeuratObject(study_data[[i]], project = i)
   # calc percentage mito genes
   study_data[[i]][["percent.mt"]] <- PercentageFeatureSet(study_data[[i]], pattern = "^MT-")
   study_data[[i]] <- SCTransform(study_data[[i]], vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
   #study_data[[i]] <- RunPCA(study_data[[i]])
+}
+
+# identify sets with less than 200 cells, which will fail integration
+low_n <- c()
+for (i in names(study_data)){
+	if (nrow(study_data[[i]]) < 200){
+		low_n <- c(low_n, i)
+	}
+}
+
+if (length(low_n) > 0){
+	study_data[low_n] <- NULL
 }
 
 study_data_features <- SelectIntegrationFeatures(object.list = study_data, nfeatures = 3000, verbose = FALSE)
@@ -104,12 +118,11 @@ study_data <- PrepSCTIntegration(object.list = study_data, anchor.features = stu
 study_data <- lapply(X = study_data, FUN = function(x) {
   x <- RunPCA(x, features = study_data_features, verbose = FALSE)
 })
-save(study_data_features, study_data, file = 'study_data__emergency__2019_08_09.Rdata')
+save(study_data_features, study_data, file = paste0(stamp, '__study_data__emergency.Rdata'), compress = FALSE)
 
 # try clear some memory
 gc()
 # nope, trying rpca now, running out of memory with the "CCT" reduction method
-# 9,10 are "SRP075719__DropSeq__Batch1"     "SRP075719__DropSeq__Batch2"
 anchors <- FindIntegrationAnchors(object.list = study_data, 
                                   normalization.method = 'SCT', 
                                   #reference = grep('SRP158081__10xv2', names(study_data)),
@@ -117,4 +130,4 @@ anchors <- FindIntegrationAnchors(object.list = study_data,
                                   anchor.features = study_data_features, 
                                   reduction = "cca")
 
-save(anchors, file = args[1])
+save(anchors, file = args[1], compress = FALSE)
