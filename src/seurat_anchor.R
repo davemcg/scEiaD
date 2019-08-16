@@ -65,11 +65,25 @@ study_sample <- metadata %>%
   arrange(study_accession)
 
 # drop SRP161678 for now as it's giving weird errors right now
-study_sample <- study_sample %>% filter(!grepl('SRP161678', study_accession))
+# study_sample <- study_sample %>% filter(!grepl('SRP161678', study_accession))
 
 # merge droplet and well data into one list of sparse matrices by study_sample$study_accession
 # option to downsample to no more than 10,000 per study
 study_data <- list()
+# trycatch for SCTransform
+trySCTransform <- function(x){
+  tryCatch(
+    expr = {
+      SCTransform(x, vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
+      message("Successful SCTransform")
+    },
+    error = function(e){
+      message("Failed SCTransform")
+      print(e)
+      return(NULL)
+    }
+  )
+}
 for (i in unique(study_sample %>% pull(study_accession))){
   print(i)
   samples <- study_sample %>% filter(study_accession == i) %>% pull(sample_accession) 
@@ -95,20 +109,20 @@ for (i in unique(study_sample %>% pull(study_accession))){
   study_data[[i]] <- CreateSeuratObject(study_data[[i]], project = i)
   # calc percentage mito genes
   study_data[[i]][["percent.mt"]] <- PercentageFeatureSet(study_data[[i]], pattern = "^MT-")
-  study_data[[i]] <- SCTransform(study_data[[i]], vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
+  study_data[[i]] <- trySCTransform(study_data[[i]])
   #study_data[[i]] <- RunPCA(study_data[[i]])
 }
 
 # identify sets with less than 200 cells, which will fail integration
 low_n <- c()
 for (i in names(study_data)){
-	if (nrow(study_data[[i]]) < 200){
-		low_n <- c(low_n, i)
-	}
+  if (ncol(study_data[[i]]) < 200){
+    low_n <- c(low_n, i)
+  }
 }
 
 if (length(low_n) > 0){
-	study_data[low_n] <- NULL
+  study_data[low_n] <- NULL
 }
 
 study_data_features <- SelectIntegrationFeatures(object.list = study_data, nfeatures = 3000, verbose = FALSE)
