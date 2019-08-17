@@ -74,8 +74,8 @@ study_data <- list()
 trySCTransform <- function(x){
   tryCatch(
     expr = {
-      SCTransform(x, vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
       message("Successful SCTransform")
+      return(SCTransform(x, vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt")))
     },
     error = function(e){
       message("Failed SCTransform")
@@ -109,10 +109,12 @@ for (i in unique(study_sample %>% pull(study_accession))){
   study_data[[i]] <- CreateSeuratObject(study_data[[i]], project = i)
   # calc percentage mito genes
   study_data[[i]][["percent.mt"]] <- PercentageFeatureSet(study_data[[i]], pattern = "^MT-")
+  # remove cells with > 10% mito genes
+  study_data[[i]] <- subset(study_data[[i]], subset = percent.mt < 10)
   study_data[[i]] <- trySCTransform(study_data[[i]])
   #study_data[[i]] <- RunPCA(study_data[[i]])
 }
-
+save(study_data, file = paste0(stamp, '__study_data__emergency_01.Rdata'), compress = FALSE)
 # identify sets with less than 200 cells, which will fail integration
 low_n <- c()
 for (i in names(study_data)){
@@ -132,7 +134,7 @@ study_data <- PrepSCTIntegration(object.list = study_data, anchor.features = stu
 study_data <- lapply(X = study_data, FUN = function(x) {
   x <- RunPCA(x, features = study_data_features, verbose = FALSE)
 })
-save(study_data_features, study_data, file = paste0(stamp, '__study_data__emergency.Rdata'), compress = FALSE)
+save(study_data_features, study_data, file = paste0(stamp, '__study_data__emergency_02.Rdata'), compress = FALSE)
 
 # try clear some memory
 gc()

@@ -37,14 +37,14 @@
 	},
 	"seurat_sct_anchor" :
 	{
-		"mem" : "700",
+		"mem" : "1000G",
 		"partition" : "largemem",
-		"time" : "24:00:00",
+		"time" : "36:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
 	"seurat_sct_combine" :
 	{
-		"mem" : "700G",
+		"mem" : "1000G",
 		"partition" : "largemem",
 		"time" : "12:00:00",
 		"extra" : " --gres=lscratch:100"

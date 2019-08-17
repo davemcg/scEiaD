@@ -112,7 +112,7 @@ wildcard_constraints:
 
 rule all:
 	input:
-		expand('quant/{organism}/scTransformRPCA_merged.seuratV3.Rdata', organism = organism_well_dict.keys()),
+		expand('quant/{organism}/scTransformCCA_merged.seuratV3.Rdata', organism = organism_well_dict.keys()),
 		expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples) # non UMI data
 		# expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
@@ -305,7 +305,7 @@ rule seurat_sct_anchor:
 		well = 'quant/{organism}/counts.Rdata',
 		droplet = lambda wildcards: expand('quant/{SRS}/genecount/matrix.Rdata', SRS = organism_droplet_dict[wildcards.organism])
 	output:
-		'quant/{organism}/scTransformRPCA_anchor.seuratV3.Rdata'
+		'quant/{organism}/scTransformCCA_anchor.seuratV3.Rdata'
 	threads: 6
 	shell:
 		"""
@@ -315,9 +315,10 @@ rule seurat_sct_anchor:
 
 rule seurat_sct_combine:
 	input:
-		'quant/{organism}/scTransformRPCA_anchor.seuratV3.Rdata'
+		'quant/{organism}/scTransformCCA_anchor.seuratV3.Rdata'
 	output:
-		'quant/{organism}/scTransformRPCA_merged.seuratV3.Rdata'
+		'quant/{organism}/scTransformCCA_merged.seuratV3.Rdata'
+	threads: 6
 	shell:
 		"""
 		module load R/3.6
@@ -339,6 +340,6 @@ rule harmony_combine:
 # visualize retina markers and sample age
 rule assess_combime:
 	input:
-		expand('quant/{{organism}}/{method}_merged.seuratV3.Rdata', method = ['scTransformRPCA','liger','harmony'])
+		expand('quant/{{organism}}/{method}_merged.seuratV3.Rdata', method = ['scTransformCCA','liger','harmony'])
 	output:
 		
