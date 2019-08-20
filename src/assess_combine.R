@@ -37,7 +37,16 @@ new <- samps %>% enframe(value = 'sample_accession') %>% left_join(., sra_metada
 embeds <- embeds %>% as_tibble()
 embeds <- cbind(embeds, new)
 embeds <- embeds %>% mutate(Age = case_when(Age == 1000 ~ 30, TRUE ~ Age))
-embeds %>% ggplot(aes(x=UMAP_1, y=UMAP_2, colour = Age)) + geom_point(alpha=0.2, size = 0.1) + scale_color_viridis_c() + theme_minimal()
+embeds %>% ggplot(aes(x=UMAP_1, y=UMAP_2, colour = Age)) + 
+  geom_point(alpha=0.2, size = 0.1) + 
+  scale_color_viridis_c() + theme_minimal()
+
+embeds %>% ggplot(aes(UMAP_1, y=UMAP_2, colour = study_accession)) + 
+  geom_point(alpha=0.4, size = 0.1) + 
+  scale_color_viridis_d() + 
+  theme_minimal() + 
+  facet_wrap(~Age)
+
 ########################
 # plot by markers
 # Rho for rods
