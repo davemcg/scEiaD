@@ -10,24 +10,27 @@ library(tidyverse)
 library(Seurat)
 library(schex)
 library(cowplot)
-load('seurat_merged.Rdata')
+library(future)
+plan(strategy = "multicore", workers = 12)
+options(future.globals.maxSize = 2400000 * 1024^2)
+#load('obj.Rdata')
 
 
-  new_meta <- row.names(seurat_obj@meta.data) %>% enframe() %>% mutate(sample_accession = str_extract(value, 'SRS\\d+')) %>% left_join(sra_metadata_extended %>% select(sample_accession, study_accession, Platform, Age, TissueNote) %>% unique()) 
+  new_meta <- row.names(obj@meta.data) %>% enframe() %>% mutate(sample_accession = str_extract(value, 'SRS\\d+')) %>% left_join(sra_metadata_extended %>% select(sample_accession, study_accession, Platform, Age, TissueNote) %>% unique()) 
   
-  seurat_obj@meta.data$Age <- new_meta$Age
-  seurat_obj@meta.data$Platform <- new_meta$Platform
-  seurat_obj@meta.data$study_accession <- new_meta$study_accession
+  obj@meta.data$Age <- new_meta$Age
+  obj@meta.data$Platform <- new_meta$Platform
+  obj@meta.data$study_accession <- new_meta$study_accession
 
 
 ###########################
 # plot by study
 ############################
-DimPlot(seurat_obj, group.by = 'study_accession')
+DimPlot(obj, group.by = 'study_accession')
 ########################
 # plot by age
 ###########################
-embeds <- Embeddings(seurat_obj[['umap']])
+embeds <- Embeddings(obj[['umap']])
 samps <- str_extract(embeds %>% row.names(), '(SRS|iPSC_RPE_scRNA_)\\d+')
 new <- samps %>% enframe(value = 'sample_accession') %>% left_join(., sra_metadata_extended %>% select(sample_accession, study_accession, Platform, Age, Source, TissueNote) %>% unique())
 
@@ -47,12 +50,12 @@ embeds %>% ggplot(aes(x=UMAP_1, y=UMAP_2, colour = Age)) + geom_point(alpha=0.2,
 # Vsx1 to bipolar
 # Elavl4 for RGC
 ####################################
-seurat_obj <- make_hexbin(seurat_obj, nbins = 200)
-obj <- list()
+obj <- make_hexbin(obj, nbins = 200)
+schex <- list()
 for (i in (toupper(c('Rho','Opn1sw', 'Rbpms', 'Sfrp2', 'Olig2', 'Tfap2a', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4')))){
-  obj[[i]] <- plot_hexbin_gene(seurat_obj, i, action = 'mean', type = 'logcounts')
+  schex[[i]] <- plot_hexbin_gene(obj, i, action = 'mean', type = 'logcounts') + scale_fill_gradient(low = 'gray', high ='red')
 }
 
-cowplot::plot_grid(plotlist = obj)
+cowplot::plot_grid(plotlist = schex)
 
 #FeaturePlot(study_data_integrated, toupper(c('Rho','Opn1sw', 'Rbpms', 'Sfrp2', 'Olig2', 'Tfap2a', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4')), pt.size = 0.1, order= FALSE)
