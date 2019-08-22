@@ -5,40 +5,35 @@ library(Seurat)
 library(harmony)
 library(tidyverse)
 
-sc_data <- list()
-for (i in seq(1,length(rdata_files))){
-  file = rdata_files[i]
-  sample_accession = str_extract(file, '(SRS|iPSC_RPE_scRNA_)\\d+')
-  load(file)
-  colnames(res_matrix) <- make.unique(colnames(res_matrix))
-  colnames(res_matrix) <- paste0(colnames(res_matrix), "_", sample_accession)
-  row.names(res_matrix) <- make.unique(row.names(res_matrix))
-  sc_data[[sample_accession]] <- res_matrix
-}
+temp <- seurat_merged
+DefaultAssay(temp) <- 'RNA'
+harmony <- NormalizeData(temp) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA(verbose = FALSE)
+# crucial parameter is iterations. More iterations bring closer together, but can overfit?
+harmony <- RunHarmony(harmony, group.by.vars = "orig.ident",
+                      max.iter.harmony = 20, 
+                      epsilon.harmony = -Inf)
+harmony <- RunUMAP(harmony, 
+                   reduction = "harmony", 
+                   dims = 1:30)
+harmony <- RunUMAP(harmony, 
+                   n.components=3, 
+                   reduction.name = 'umap3D', 
+                   reduction = "harmony", 
+                   dims = 1:30)
+harmony <- FindNeighbors(harmony, reduction = "harmony", dims = 1:30) %>% 
+  FindClusters(resolution = c(0.1,0.3,0.6,0.8,1,2),
+               save.SNN = TRUE,
+               do.sparse = TRUE,
+               algorithm = 2,
+               random.seed = 23)
+# run clustree to pick resolution
+# clustree(harmony)
+# 0.8 looks good (which is the default....)
+harmony <- FindClusters(harmony, resolution = 0.8)
 
-one_giant_matrix <- do.call(cbind, sc_data)
-tx <- read_tsv('references/gencode.vM22.metadata.MGI_tx_mapping.tsv', col_names = FALSE) %>% select(2,3) %>% unique()
-colnames(tx) <- c('id', 'gene')
-row.names(one_giant_matrix) <- row.names(one_giant_matrix) %>% 
-  enframe(value = 'id') %>% 
-  left_join(., tx, by = 'id') %>% 
-  pull(gene)
+harmony_markers <- FindAllMarkers(harmony, 
+                                  logfc.threshold=0.5, 
+                                  max.cells.per.ident=3000, 
+                                  min.pct=0.25)
 
-mouse_retina <- CreateSeuratObject(counts = one_giant_matrix, project = "Mouse Retina", min.cells = 5) %>%
-  Seurat::NormalizeData(verbose = FALSE) %>%
-  FindVariableFeatures(selection.method = "vst", nfeatures = 2000) %>% 
-  ScaleData(verbose = FALSE) %>% 
-  RunPCA(pc.genes = mouse_retina@var.genes, npcs = 20, verbose = FALSE)
-
-mouse_retina@meta.data$SRS <- srs <- str_extract(row.names(mouse_retina@meta.data), "SRS\\d+")
-
-load('~/git/massive_integrated_eye_scRNA/data/sra_metadata_extended.Rdata')
-mouse_retina@meta.data$study_accession <- left_join(mouse_retina@meta.data$SRS %>% enframe(value = 'sample_accession'), sra_metadata_extended %>% select(study_accession, sample_accession) %>% unique()) %>% pull(study_accession)
-
-# https://stackoverflow.com/questions/21382681/kmeans-quick-transfer-stage-steps-exceeded-maximum
-gc()
-mouse_retina <- mouse_retina %>% RunHarmony("study_accession", max.iter.harmony = 20, epsilon.harmony = -Inf, verbose = TRUE)
-
-mouse_retina <- mouse_retina %>% RunUMAP(reduction = "harmony", dims = 1:20)
-
-save(mouse_retina, file = 'mouse_retina__harmony3.Rdata')
+save(harmony, harmony_markers, file = 'harmony_mouse.Rdata', compress = FALSE)
