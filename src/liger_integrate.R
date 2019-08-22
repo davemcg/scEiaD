@@ -2,12 +2,14 @@ library(Matrix)
 library(liger)
 library(tidyverse)
 setwd('/data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA/')
-tx <- read_tsv('references/gencode.vM22.metadata.MGI_tx_mapping.tsv', col_names = FALSE) %>% select(2,3) %>% unique()
+tx <- read_tsv(args[1]) %>% select(2,3) %>% unique()
+# tx <- read_tsv('references/gencode.vM22.metadata.MGI_tx_mapping.tsv', col_names = FALSE) %>% select(2,3) %>% unique()
 colnames(tx) <- c('id', 'gene')
 
 rdata_files <- c('quant/SRS866911/genecount/matrix.Rdata','quant/SRS866908/genecount/matrix.Rdata' ,'quant/SRS1467254/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS4363764/genecount/matrix.Rdata','quant/SRS1467251/genecount/matrix.Rdata','quant/SRS1467253/genecount/matrix.Rdata','quant/SRS3674976/genecount/matrix.Rdata','quant/SRS3674982/genecount/matrix.Rdata','quant/SRS3674983/genecount/matrix.Rdata','quant/SRS4363765/genecount/matrix.Rdata','quant/SRS3674974/genecount/matrix.Rdata','quant/SRS3674975/genecount/matrix.Rdata','quant/SRS3674985/genecount/matrix.Rdata','quant/SRS1467249/genecount/matrix.Rdata','quant/SRS3674980/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS4363763/genecount/matrix.Rdata','quant/SRS4386076/genecount/matrix.Rdata','quant/SRS1467250/genecount/matrix.Rdata','quant/SRS3674978/genecount/matrix.Rdata','quant/SRS3674977/genecount/matrix.Rdata','quant/SRS3674988/genecount/matrix.Rdata','quant/SRS3674979/genecount/matrix.Rdata','quant/SRS3674981/genecount/matrix.Rdata','quant/SRS3674984/genecount/matrix.Rdata','quant/SRS4386075/genecount/matrix.Rdata','quant/SRS1467252/genecount/matrix.Rdata','quant/SRS3674987/genecount/matrix.Rdata','quant/SRS866912/genecount/matrix.Rdata','quant/SRS866910/genecount/matrix.Rdata','quant/SRS866909/genecount/matrix.Rdata','quant/SRS866907/genecount/matrix.Rdata','quant/SRS4363762/genecount/matrix.Rdata','quant/SRS866906/genecount/matrix.Rdata')
 
-metadata <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv')
+metadata <- read_tsv(args[1])
+#metadata <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv')
 # load('~/git/massive_integrated_eye_scRNA/data/sra_metadata_extended.Rdata')
 sc_data <- list()
 droplet_samples <- list()
@@ -75,13 +77,13 @@ for (i in unique(study_sample %>% pull(study_accession))){
 
 
 # liger time
-ligerex = createLiger(study_data)
-ligerex = normalize(ligerex)
-ligerex = selectGenes(ligerex, var.thresh = 0.1, do.plot = FALSE)
+ligerex <- createLiger(study_data)
+ligerex <- normalize(ligerex)
+ligerex <- selectGenes(ligerex, var.thresh = 0.1, do.plot = FALSE)
 ligerex <- scaleNotCenter(ligerex)
 
 # suggestK(ligerex)
-ligerex <- optimizeALS(ligerex, k = 25)
+ligerex <- optimizeALS(ligerex, k = 20)
 ligerex <- quantileAlignSNF(ligerex)
 
 ligerex <- runUMAP(ligerex)
@@ -90,4 +92,4 @@ liger_seurat <- NormalizeData(liger_seurat)
 liger_seurat <- RunPCA(liger_seurat, npcs = 100)
 liger_seurat <- RunUMAP(liger_seurat, dims=1:20)
 
-save(liger_seurat, ligerex, file = 'liger_ligerex_and_ligerSeurat_2019_08_12.Rdata')
+save(liger_seurat, ligerex, file = 'liger_ligerex_and_ligerSeurat_2019_08_12_02.Rdata')
