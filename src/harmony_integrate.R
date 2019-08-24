@@ -1,12 +1,14 @@
-rdata_files <- c('quant/SRS866911/genecount/matrix.Rdata','quant/SRS866908/genecount/matrix.Rdata','quant/SRS1467254/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS4363764/genecount/matrix.Rdata','quant/SRS1467251/genecount/matrix.Rdata','quant/SRS1467253/genecount/matrix.Rdata','quant/SRS3674976/genecount/matrix.Rdata','quant/SRS3674982/genecount/matrix.Rdata','quant/SRS3674983/genecount/matrix.Rdata','quant/SRS4363765/genecount/matrix.Rdata','quant/SRS3674974/genecount/matrix.Rdata','quant/SRS3674975/genecount/matrix.Rdata','quant/SRS3674985/genecount/matrix.Rdata','quant/SRS1467249/genecount/matrix.Rdata','quant/SRS3674980/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS4363763/genecount/matrix.Rdata','quant/SRS4386076/genecount/matrix.Rdata','quant/SRS1467250/genecount/matrix.Rdata','quant/SRS3674978/genecount/matrix.Rdata','quant/SRS3674977/genecount/matrix.Rdata','quant/SRS3674988/genecount/matrix.Rdata','quant/SRS3674979/genecount/matrix.Rdata','quant/SRS3674981/genecount/matrix.Rdata','quant/SRS3674984/genecount/matrix.Rdata','quant/SRS4386075/genecount/matrix.Rdata','quant/SRS1467252/genecount/matrix.Rdata','quant/SRS3674987/genecount/matrix.Rdata','quant/SRS866912/genecount/matrix.Rdata','quant/SRS866910/genecount/matrix.Rdata','quant/SRS866909/genecount/matrix.Rdata','quant/SRS866907/genecount/matrix.Rdata','quant/SRS4363762/genecount/matrix.Rdata','quant/SRS866906/genecount/matrix.Rdata')
-
-setwd('/data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA')
+args <- commandArgs(trailingOnly = TRUE)
 library(Seurat)
 library(harmony)
 library(tidyverse)
 
+# load integrated Seurat object
+load(args[1])
 temp <- seurat_merged
+# reset defaultAssay to 'RNA' from 'integrated'
 DefaultAssay(temp) <- 'RNA'
+# normalize for Harmony
 harmony <- NormalizeData(temp) %>% FindVariableFeatures() %>% ScaleData() %>% RunPCA(verbose = FALSE)
 # crucial parameter is iterations. More iterations bring closer together, but can overfit?
 harmony <- RunHarmony(harmony, group.by.vars = "orig.ident",
@@ -15,25 +17,30 @@ harmony <- RunHarmony(harmony, group.by.vars = "orig.ident",
 harmony <- RunUMAP(harmony, 
                    reduction = "harmony", 
                    dims = 1:30)
+# 3D umap may be helpful
 harmony <- RunUMAP(harmony, 
                    n.components=3, 
                    reduction.name = 'umap3D', 
-                   reduction = "harmony", 
+                   reduction = "harmony", reduction.key = 'umap3D',
                    dims = 1:30)
+# run at many resolutions to pick best one (via clustree or cluster purity)
 harmony <- FindNeighbors(harmony, reduction = "harmony", dims = 1:30) %>% 
-  FindClusters(resolution = c(0.1,0.3,0.6,0.8,1,2),
+  FindClusters(resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
                save.SNN = TRUE,
                do.sparse = TRUE,
                algorithm = 2,
                random.seed = 23)
+
 # run clustree to pick resolution
-# clustree(harmony)
-# 0.8 looks good (which is the default....)
-harmony <- FindClusters(harmony, resolution = 0.8)
+pdf('harmony_clustree.pdf', width = 10, height = 15)
+clustree(harmony)
+dev.off()
+# 2 looks good?
+harmony <- FindClusters(harmony, resolution = 2)
 
 harmony_markers <- FindAllMarkers(harmony, 
                                   logfc.threshold=0.5, 
                                   max.cells.per.ident=3000, 
                                   min.pct=0.25)
 
-save(harmony, harmony_markers, file = 'harmony_mouse.Rdata', compress = FALSE)
+save(harmony, harmony_markers, file = args[2], compress = FALSE)
