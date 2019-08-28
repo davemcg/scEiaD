@@ -21,8 +21,13 @@ seurat_merged <- JackStraw(seurat_merged, num.replicate = 100, dims = 100)
 #seurat_merged <- ScoreJackStraw(seurat_merged, dims = 1:100)
 
 # clustering
-seurat_merged <- FindNeighbors(seurat_merged,  reduction = "pca", dims = 1:75, nn.eps = 0.5)
-seurat_merged <- FindClusters(seurat_merged, resolution = c(0.5), n.start = 50)
+seurat_merged <- FindNeighbors(seurat_merged, dims = 1:75, nn.eps = 0.5)
+seurat_merged <- FindClusters(seurat_merged, 
+                              resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
+                              save.SNN = TRUE,
+                              do.sparse = TRUE,
+                              algorithm = 2,
+                              random.seed = 23)
 
 # find all markers 
 markers <- FindAllMarkers(seurat_merged, min.pct = 0.5, max.cells.per.ident = 2000)
