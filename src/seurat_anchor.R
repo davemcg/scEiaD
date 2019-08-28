@@ -138,7 +138,6 @@ save(study_data_features, study_data, file = paste0(stamp, '__study_data__emerge
 
 # try clear some memory
 gc()
-# nope, trying rpca now, running out of memory with the "CCT" reduction method
 anchors <- FindIntegrationAnchors(object.list = study_data, 
                                   normalization.method = 'SCT', 
                                   #reference = grep('SRP158081__10xv2', names(study_data)),
