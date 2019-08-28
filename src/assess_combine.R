@@ -68,3 +68,20 @@ for (i in (toupper(c('Rho','Opn1sw', 'Rbpms', 'Sfrp2', 'Olig2', 'Tfap2a', 'Ccnd1
 cowplot::plot_grid(plotlist = schex)
 
 #FeaturePlot(study_data_integrated, toupper(c('Rho','Opn1sw', 'Rbpms', 'Sfrp2', 'Olig2', 'Tfap2a', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4')), pt.size = 0.1, order= FALSE)
+
+############ post integration 
+# cluster purity
+meta %>% as_tibble(rownames = 'Barcode') %>% left_join(.,anno, by = 'Barcode')  %>% 
+  ggplot(aes(x=`UMAP_1.x`, y = `UMAP_2.x`, colour = `ID`)) + 
+  geom_point(size=0.01) + 
+  theme_minimal()  + 
+  guides(colour = guide_legend(override.aes = list(size = 2)))
+
+meta %>% as_tibble(rownames = 'Barcode') %>% left_join(.,anno, by = 'Barcode')  %>% 
+  ggplot(aes(x=`UMAP_1.x`, y = `UMAP_2.x`, colour = as.factor(`Age.x`))) + 
+  geom_point(size=0.01) + scale_color_viridis_d() +
+  theme_minimal()  + facet_wrap(~ID) +
+  guides(colour = guide_legend(override.aes = list(size = 2)))
+
+# rough assessment of cluster purity
+meta %>% as_tibble(rownames = 'Barcode') %>% left_join(.,anno, by = 'Barcode') %>% group_by(seurat_clusters, ID) %>% summarise(Count = n()) %>% mutate(Perc = Count/sum(Count)) %>% filter(Perc > 0.1)
