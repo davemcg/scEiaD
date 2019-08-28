@@ -98,10 +98,17 @@ predictions <- TransferData(anchorset = anchors,
 
 anno <- left_join(nmeta, 
                   predictions %>% as_tibble(rownames = 'Barcode')) %>% 
-  mutate(ID = case_when(new_CellType == 'Missing' ~ `predicted.id`, TRUE ~ new_CellType)) %>% 
+  mutate(ID = case_when(new_CellType == 'Missing' ~ `predicted.id`, 
+                        TRUE ~ new_CellType)) %>% 
   pull(ID) 
+
+meta <- left_join(nmeta, 
+                  predictions %>% as_tibble(rownames = 'Barcode')) %>% 
+  mutate(ID = case_when(new_CellType == 'Missing' ~ `predicted.id`, 
+                        TRUE ~ new_CellType))
 
 seurat_merged@meta.data$new_CellType_transfer <- anno
 
 # save(seurat_merged, file = 'seurat_merged__transfer.Rdata', compress = FALSE)
-save(seurat_merged, predictions, file = args[4], compress = FALSE)
+save(seurat_merged, file = args[4], compress = FALSE)
+save(meta, file = args[5])
