@@ -18,7 +18,7 @@ temp <- FindClusters(temp, resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
                      random.seed = 23)
 mnn <- temp
 # run clustree to pick resolution
-pdf('mnn_clustree.pdf', width = 10, height = 15)
+pdf('mnn_clustree.pdf', width = 20, height = 15)
 clustree(mnn)
 dev.off()
 # 2 looks good?
