@@ -10,6 +10,7 @@ load(args[1])
 obj <- get(args[2])
 
 # load meta data (including inferred cell types)
+# meta_inferred_cell.Rdata
 load(args[3])
 orig_meta <- obj@meta.data %>% as_tibble(rownames = 'Barcode')
 umap <- Embeddings(obj[['umap']]) %>% as_tibble(rownames = 'Barcode') %>% 
