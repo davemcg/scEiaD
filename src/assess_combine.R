@@ -106,12 +106,12 @@ p3
 # plot facetted by seurat_cluster, colored by inferred ID
 ####################################
 p1 <- seurat %>% filter(!new_CellType_transfer %in% c('Doublets', 'Red Blood Cells')) %>% 
-  mutate(integrated_snn_res.1 = as.numeric(as.character(integrated_snn_res.1))) %>% 
+  mutate(seurat_clusters = as.numeric(as.character(seurat_clusters))) %>% 
   ggplot(aes(UMAP_1, y=UMAP_2, colour = new_CellType_transfer)) + 
   geom_point(alpha=0.4, size = 0.1) +  theme_black() + 
   scale_color_manual(values = unname(alphabet.colors())) +
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
-  facet_wrap(~integrated_snn_res.1)
+  facet_wrap(~seurat_clusters)
 p1
 
 p2 <- harmony %>% filter(!new_CellType_transfer %in% c('Doublets', 'Red Blood Cells')) %>% 
@@ -137,8 +137,8 @@ p3
 # rough assessment of cluster purity
 ##########################################
 seurat %>%
-  mutate(integrated_snn_res.1 = as.numeric(as.character(integrated_snn_res.1))) %>% 
-  group_by(integrated_snn_res.1, new_CellType_transfer) %>% summarise(Count = n()) %>% mutate(Perc = Count/sum(Count)) %>% filter(Perc > 0.1)
+  mutate(seurat_clusters = as.numeric(as.character(seurat_clusters))) %>% 
+  group_by(seurat_clusters, new_CellType_transfer) %>% summarise(Count = n()) %>% mutate(Perc = Count/sum(Count)) %>% filter(Perc > 0.1)
 
 harmony %>% 
   mutate(seurat_clusters = as.numeric(as.character(seurat_clusters))) %>% 
@@ -148,76 +148,57 @@ mnn %>%
   mutate(seurat_clusters = as.numeric(as.character(seurat_clusters))) %>% 
   group_by(seurat_clusters, new_CellType_transfer) %>% summarise(Count = n()) %>% mutate(Perc = Count/sum(Count)) %>% filter(Perc > 0.1)
 
-p1_mean <- seurat %>% group_by(integrated_snn_res.1, new_CellType_transfer) %>% 
-  summarise(Count = n()) %>% 
-  mutate(Perc = Count/sum(Count)) %>% 
-  filter(Perc > 0.1) %>% 
-  ungroup() %>% group_by(integrated_snn_res.1) %>% 
-  summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) %>% 
-  pull(Count) %>% mean() %>% round(., 3)
-p1 <- seurat %>% group_by(integrated_snn_res.1, new_CellType_transfer) %>% 
-  summarise(Count = n()) %>% 
-  mutate(Perc = Count/sum(Count)) %>% 
-  filter(Perc > 0.1) %>% 
-  ungroup() %>% group_by(integrated_snn_res.1) %>% 
-  summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) %>% 
-  ggplot(aes(x=paste('Seurat, mean =', p1_mean), y = Count)) +
-  geom_violin() +
-  ggbeeswarm::geom_quasirandom() + xlab('') 
+cluster_purity_plot <- function(obj, algorithm_name){
+  p1_mean <- obj %>% group_by(seurat_clusters, new_CellType_transfer) %>% 
+    summarise(Count = n()) %>% 
+    mutate(Perc = Count/sum(Count)) %>% 
+    filter(Perc > 0.1) %>% 
+    ungroup() %>% group_by(seurat_clusters) %>% 
+    summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) %>% 
+    pull(Count) %>% mean() %>% round(., 2)
+  p1_cluster_count <- obj %>% group_by(seurat_clusters, new_CellType_transfer) %>% 
+    summarise(Count = n()) %>% 
+    mutate(Perc = Count/sum(Count)) %>% 
+    filter(Perc > 0.1) %>% 
+    ungroup() %>% group_by(seurat_clusters) %>% 
+    summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) %>% 
+    pull(seurat_clusters) %>% unique() %>% length()
+  obj %>% group_by(seurat_clusters, new_CellType_transfer) %>% 
+    summarise(Count = n()) %>% 
+    mutate(Perc = Count/sum(Count)) %>% 
+    filter(Perc > 0.1) %>% 
+    ungroup() %>% group_by(seurat_clusters) %>% 
+    summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) %>% 
+    ggplot(aes(x=paste0(algorithm_name,' mean = ', p1_mean, ', Sum = ', p1_cluster_count), y = Count)) +
+    geom_violin() +
+    ggbeeswarm::geom_quasirandom() + xlab('') +
+    coord_cartesian(ylim = c(1,5))
+}
 
+p1 <- cluster_purity_plot(seurat,'Seurat')
+p2 <- cluster_purity_plot(harmony,'Harmony')
+p3 <- cluster_purity_plot(mnn,'MNN')
+p4 <- cluster_purity_plot(naive,'Naive')
 
-p2_mean <- harmony %>% group_by(seurat_clusters, new_CellType_transfer) %>% 
-  summarise(Count = n()) %>% 
-  mutate(Perc = Count/sum(Count)) %>% 
-  filter(Perc > 0.1) %>% 
-  ungroup() %>% group_by(seurat_clusters) %>% 
-  summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) %>% 
-  pull(Count) %>% mean() %>% round(., 3)
-p2 <- harmony %>% group_by(seurat_clusters, new_CellType_transfer) %>% 
-  summarise(Count = n()) %>% 
-  mutate(Perc = Count/sum(Count)) %>% 
-  filter(Perc > 0.1) %>% 
-  ungroup() %>% group_by(seurat_clusters) %>% 
-  summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) %>% 
-  ggplot(aes(x=paste('Harmony, mean =', p2_mean), y = Count)) +
-  geom_violin() +
-  ggbeeswarm::geom_quasirandom() + xlab('') 
-
-p3_mean <- mnn %>% group_by(seurat_clusters, new_CellType_transfer) %>% 
-  summarise(Count = n()) %>% 
-  mutate(Perc = Count/sum(Count)) %>% 
-  filter(Perc > 0.1) %>% 
-  ungroup() %>% group_by(seurat_clusters) %>% 
-  summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) %>% 
-  pull(Count) %>% mean() %>% round(., 3)
-p3 <- mnn %>% group_by(seurat_clusters, new_CellType_transfer) %>% 
-  summarise(Count = n()) %>% 
-  mutate(Perc = Count/sum(Count)) %>% 
-  filter(Perc > 0.1) %>% 
-  ungroup() %>% group_by(seurat_clusters) %>% 
-  summarise(Count = n()) %>% 
-  ggplot(aes(x=paste('MNN, mean =', p3_mean), y = Count)) +
-  geom_violin() +
-  ggbeeswarm::geom_quasirandom() + xlab('')
-
-plot_grid(p1, p2, p3, nrow = 1)  
+plot_grid(p4, p1, p2, p3, nrow = 1)  
 
 ########################
 # plot by markers
 # Rho for rods
 # Opn1sw for cones
 # Sfrp2 for early progenitors
-# Olig2 for neurogenic
+# Hes6 for neurogenic
 # Tfap2a for amacrine
 # Ccnd1 for late progenitors
 # Aqp4 for muller glia
 # Vsx1 to bipolar
 # Elavl4 for RGC
+
 ####################################
-obj <- make_hexbin(obj, nbins = 200)
+obj <- make_hexbin(obj, nbins = 150)
 markers <- list()
-for (i in (toupper(c('Rho','Opn1sw', 'Rbpms', 'Sfrp2', 'Olig2', 'Tfap2a', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4', 'Dct')))){
-  markers[[i]] <- plot_hexbin_gene(obj, i, action = 'mean', type = 'logcounts') + scale_fill_gradient(low = 'gray', high ='blue')
+for (i in (toupper(c('Rho','Opn1sw', 'Sfrp2', 'Hes6', 'Tfap2a', 'Isl1', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4', 'Best1')))){
+  markers[[i]] <- plot_hexbin_gene(obj, i, action = 'mean', type = 'logcounts') + scale_fill_gradient(low = 'lightgray', high ='blue')
 }
 
 cowplot::plot_grid(plotlist = markers)
