@@ -29,6 +29,19 @@ seurat_merged <- FindClusters(seurat_merged,
                               algorithm = 2,
                               random.seed = 23)
 
+# clustree
+library(clustree)
+pdf('clustree_seurat.pdf', width = 30, height = 20)
+clustree(seurat_merged)
+dev.off()
+
+seurat_merged <- FindClusters(seurat_merged, 
+                              resolution = 1,
+                              save.SNN = TRUE,
+                              do.sparse = TRUE,
+                              algorithm = 2,
+                              random.seed = 23)
+
 # find all markers 
 markers <- FindAllMarkers(seurat_merged, min.pct = 0.5, max.cells.per.ident = 2000)
 
