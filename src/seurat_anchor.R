@@ -92,6 +92,7 @@ for (i in unique(study_sample %>% pull(study_accession))){
     study_data[[i]] <- do.call(cbind, sc_data[samples])
   }
   else {
+    # well
     # remove samples that aren't in count (which means they failed upstream QC)
     samples <- samples[samples %in% well_samples]
     study_data[[i]] <- count[,samples]
