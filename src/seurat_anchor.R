@@ -20,6 +20,7 @@ colnames(tx) <- c('id', 'gene')
 
 # well data
 load(args[4])
+count <- tpm
 # remove cells with > 10000 or < 1000
 count <- count[,(diff(count@p) < 10000)]
 count <- count[,(diff(count@p) > 1000)]
@@ -36,7 +37,7 @@ droplet_samples <- list()
 for (i in seq(1,length(rdata_files))){
   file = rdata_files[i]
   sample_accession = str_extract(file, '(SRS|iPSC_RPE_scRNA_)\\d+')
-  droplet_samples <- c(droplet_samples, sample_accession)
+  samples <- c(droplet_samples, sample_accession)
   load(file)
   row.names(res_matrix) <- row.names(res_matrix) %>% 
     enframe(value = 'id') %>% 
@@ -54,12 +55,12 @@ for (i in seq(1,length(rdata_files))){
 # grab available well samples
 well_samples <- colnames(count)
 
-# merge by project
+# merge by project, platform, covariate, and integration_group
 study_sample <- metadata %>% 
   filter(sample_accession %in% c(droplet_samples, well_samples)) %>% 
-  select(study_accession, Platform, sample_accession, Covariate) %>% 
+  select(study_accession, Platform, sample_accession, Covariate, integration_group) %>% 
   unique() %>% 
-  mutate(study_accession = paste0(study_accession, '__', Platform, '__', Covariate)) %>%
+  mutate(study_accession = paste0(study_accession, '__', Platform, '__', Covariate, '__', integration_group)) %>%
   mutate(tech = case_when(sample_accession %in% droplet_samples ~ 'droplet',
                           TRUE ~ 'well')) %>% 
   arrange(study_accession)
@@ -128,22 +129,55 @@ if (length(low_n) > 0){
   study_data[low_n] <- NULL
 }
 
-study_data_features <- SelectIntegrationFeatures(object.list = study_data, nfeatures = 3000, verbose = FALSE)
-study_data <- PrepSCTIntegration(object.list = study_data, anchor.features = study_data_features, verbose = FALSE)
-
-# have to apply PCA after SelectIntegrationFeatures and PrepSCTIntegration
-study_data <- lapply(X = study_data, FUN = function(x) {
-  x <- RunPCA(x, features = study_data_features, verbose = FALSE)
-})
-save(study_data_features, study_data, file = paste0(stamp, '__study_data__emergency_02.Rdata'), compress = FALSE)
-
-# try clear some memory
-gc()
-anchors <- FindIntegrationAnchors(object.list = study_data, 
-                                  normalization.method = 'SCT', 
-                                  #reference = grep('SRP158081__10xv2', names(study_data)),
-                                  scale = FALSE, 
-                                  anchor.features = study_data_features, 
-                                  reduction = "cca")
+# split again, by "integration group"
+# for example, will integrate embryonic and postnatal separately for mouse
+groups <- names(study_data) %>% str_split(., '__') %>% map(., 4) %>% unlist() %>% unique()
+if (length(groups) == 1) {
+  study_data_features <- SelectIntegrationFeatures(object.list = study_data, nfeatures = 3000, verbose = FALSE)
+  study_data <- PrepSCTIntegration(object.list = study_data, anchor.features = study_data_features, verbose = FALSE)
+  
+  # have to apply PCA after SelectIntegrationFeatures and PrepSCTIntegration
+  study_data <- lapply(X = study_data, FUN = function(x) {
+    x <- RunPCA(x, features = study_data_features, verbose = FALSE)
+  })
+  save(study_data_features, study_data, file = paste0(stamp, '__study_data__emergency_02.Rdata'), compress = FALSE)
+  
+  # try clear some memory
+  gc()
+  anchors <- FindIntegrationAnchors(object.list = study_data, 
+                                    normalization.method = 'SCT', 
+                                    #reference = grep('SRP158081__10xv2', names(study_data)),
+                                    scale = FALSE, 
+                                    anchor.features = study_data_features, 
+                                    reduction = "cca")
+  
+} else {
+  anchors <- list()
+  for (i in groups){
+    study_names <- grep(i, names(study_data), value = T)
+    study_data_subset <- study_data[study_names]
+    study_data_features <- SelectIntegrationFeatures(object.list = study_data_subset, nfeatures = 3000, verbose = FALSE)
+    study_data_subset <- PrepSCTIntegration(object.list = study_data_subset, anchor.features = study_data_features, verbose = FALSE)
+    
+    # have to apply PCA after SelectIntegrationFeatures and PrepSCTIntegration
+    study_data_subset <- lapply(X = study_data_subset, FUN = function(x) {
+      x <- RunPCA(x, features = study_data_features, verbose = FALSE)
+    })
+    
+    
+    # try clear some memory
+    gc()
+    print(paste('Start Anchor Finding with', i ))
+    anchors[[i]] <- FindIntegrationAnchors(object.list = study_data_subset, 
+                                               normalization.method = 'SCT', 
+                                               scale = FALSE, 
+                                               anchor.features = study_data_features, 
+                                               reduction = "cca")
+    
+    
+  }
+}
 
 save(anchors, file = args[1], compress = FALSE)
+
+
