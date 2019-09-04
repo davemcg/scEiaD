@@ -90,7 +90,11 @@ seurat_merged@meta.data$new_CellType <- nmeta$new_CellType
 DefaultAssay(seurat_merged) <- 'integrated'
 missing <- subset(seurat_merged, subset = new_CellType == 'Missing')
 labelled <- subset(seurat_merged, subset = new_CellType != 'Missing')
-anchors <-  FindTransferAnchors(reference = labelled, query = missing, dims = 1:30)
+anchors <-  FindTransferAnchors(reference = labelled, 
+                                query = missing, 
+                                reference.assay = 'integrated',
+                                query.assay = 'integrated',
+                                dims = 1:30)
 
 predictions <- TransferData(anchorset = anchors, 
                             refdata = labelled@meta.data$new_CellType, 

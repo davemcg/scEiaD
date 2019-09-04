@@ -20,7 +20,6 @@ colnames(tx) <- c('id', 'gene')
 
 # well data
 load(args[4])
-count <- tpm
 # remove cells with > 10000 or < 1000
 count <- count[,(diff(count@p) < 10000)]
 count <- count[,(diff(count@p) > 1000)]
@@ -37,7 +36,7 @@ droplet_samples <- list()
 for (i in seq(1,length(rdata_files))){
   file = rdata_files[i]
   sample_accession = str_extract(file, '(SRS|iPSC_RPE_scRNA_)\\d+')
-  samples <- c(droplet_samples, sample_accession)
+  droplet_samples <- c(droplet_samples, sample_accession)
   load(file)
   row.names(res_matrix) <- row.names(res_matrix) %>% 
     enframe(value = 'id') %>% 
@@ -152,6 +151,7 @@ if (length(groups) == 1) {
                                     reduction = "cca")
   
 } else {
+  print('Running in list mode (>1 groups)')
   anchors <- list()
   for (i in groups){
     study_names <- grep(i, names(study_data), value = T)
