@@ -17,8 +17,8 @@ core_rpe = data.frame(sample_accession = c(rep('iPSC_RPE_scRNA_01', 24), rep('iP
 # remove BULK RNA-seq and SRP149898 which is missing the crucial paired end reads (need to contact author)
 write_tsv(bind_rows(sra_metadata_extended %>% 
                       select(sample_accession, run_accession, library_layout, organism, Platform, UMI, study_accession, Tissue, Covariate, Age) %>% 
-                      mutate(integration_group = case_when(Age < 0  ~ 'Embryonic',
-                                               TRUE ~ 'Postnatal')) %>% 
+                      mutate(integration_group = case_when(Age < 10  ~ 'Early',
+                                               TRUE ~ 'Late')) %>% 
                       filter(Platform != 'BULK', 
                              study_accession != 'SRP149898') %>% 
                       unique(), 
