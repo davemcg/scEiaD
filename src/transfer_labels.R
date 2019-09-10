@@ -111,8 +111,8 @@ meta <- left_join(nmeta,
   mutate(ID = case_when(new_CellType == 'Missing' ~ `predicted.id`, 
                         TRUE ~ new_CellType))
 
-seurat_merged@meta.data$new_CellType_transfer <- anno
+#seurat_merged@meta.data$new_CellType_transfer <- anno
 
 # save(seurat_merged, file = 'seurat_merged__transfer.Rdata', compress = FALSE)
-save(seurat_merged, file = args[4], compress = FALSE)
-save(meta, file = args[5])
+#save(seurat_merged, file = args[4], compress = FALSE)
+save(meta, file = args[4])

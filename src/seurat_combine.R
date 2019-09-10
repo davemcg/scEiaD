@@ -15,7 +15,9 @@ if (class(anchors) != 'list'){
 } else {
   seurat_merged <- list()
   for (i in names(anchors)){
-    seurat_merged[[i]] <- IntegrateData(anchorset = anchors[[i]], normalization.method = 'SCT', verbose = TRUE)
+    seurat_merged[[i]] <- IntegrateData(anchorset = anchors[[i]], 
+                                        normalization.method = 'SCT', 
+                                        verbose = TRUE)
   }
 }
 
@@ -24,7 +26,7 @@ seurat_merged <- RunPCA(seurat_merged, npcs = 100, ndims.print = 1:5, nfeatures.
 seurat_merged <- RunUMAP(seurat_merged, dims = 1:75, min.dist = 0.2)
 
 # jackstraw calc
-seurat_merged <- JackStraw(seurat_merged, num.replicate = 100, dims = 100)
+# seurat_merged <- JackStraw(seurat_merged, num.replicate = 100, dims = 100)
 #seurat_merged <- ScoreJackStraw(seurat_merged, dims = 1:100)
 
 # clustering
