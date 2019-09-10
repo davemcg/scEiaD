@@ -66,9 +66,6 @@ cell_info <- colnames(m) %>% enframe() %>%
   data.frame()
 row.names(cell_info) <- cell_info$value
 
-cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covariate, sep = '_'))
-cell_info <- cell_info %>% mutate(age2 = case_when(Age < 10 ~ 0, Age > 100 ~ 30, TRUE ~ Age))
-
 # find 2000 most variable genes
 ## skip mitochondrial
 ## for now use Seurat
@@ -78,23 +75,33 @@ seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, pattern = "^MT-")
 # remove cells with > 10% mito genes
 seurat_m <- subset(seurat_m, subset = percent.mt < 10)
 # find var features
-seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 5000)
 
 var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
 
 # scale data and regress
+seurat_m <- NormalizeData(seurat_m)
 seurat_m <- ScaleData(seurat_m, 
                       features = var_genes,
+                      do.center = TRUE,
+                      do.scale = TRUE,
                       vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
+seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 5000)
 
-#seurat_m <- NormalizeData(seurat_m)
+small_m <- seurat_m@assays$RNA@scale.data[var_genes, ] %>% as.matrix()
+small_m[is.na(small_m)] <- 0
 
-
-small_m <- log(seurat_m@assays$RNA@scale.data[var_genes, ] %>% as.matrix() + 1)
-
+# update cell_info to remove dropped cells
+cell_info2 <- cell_info %>% filter(value %in% colnames(small_m)) %>% 
+  mutate(age2 = case_when(Age < 10 ~ 0, Age >= 10 ~ 30, TRUE ~ Age),
+         batch = paste(study_accession, Platform, Covariate, sep = '_'))
 # combat
-mod = model.matrix(~as.factor(as.character(cell_info2$age2)), data=small_m)
-combat_edata = ComBat(dat=small_m, batch=cell_info2$batch, mod=mod, par.prior=TRUE, prior.plots=FALSE)
+mod = model.matrix(object = ~as.factor(as.character(age2)),  
+                   data = cell_info2)
+combat_edata = ComBat(dat = small_m, 
+                      batch=cell_info2$batch, 
+                      mod = mod, 
+                      par.prior=TRUE, 
+                      prior.plots=FALSE)
 
 # umap
 umap <- uwot::umap(t(combat_edata), n_threads=8)
