@@ -70,9 +70,9 @@ cell_info <- colnames(m) %>% enframe() %>%
 row.names(cell_info) <- cell_info$value
 
 cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covariate, sep = '_'))
-cell_info <- cell_info %>% mutate(age2 = case_when(Age < 10 ~ 0, Age > 100 ~ 30, TRUE ~ Age))
+cell_info <- cell_info %>% mutate(Age = case_when(Age > 100 ~ 30, TRUE ~ Age))
 
-# find 2000 most variable genes
+# find 3000 most variable genes
 ## skip mitochondrial
 ## for now use Seurat
 library(Seurat)
@@ -83,7 +83,7 @@ seurat_m <- subset(seurat_m, subset = percent.mt < 10)
 # scale data and regress
 seurat_m <- NormalizeData(seurat_m)
 # find var features
-seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 5000)
+seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 3000)
 var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
 seurat_m <- ScaleData(seurat_m, 
                       features = var_genes,
@@ -94,21 +94,43 @@ seurat_m <- ScaleData(seurat_m,
 seurat_m@meta.data$batch <- cell_info %>% 
   filter(value %in% row.names(seurat_m@meta.data)) %>% 
   pull(batch)
-s_data_list <- SplitObject(seurat_m, split.by = 'batch')
-d <- list()
-g <- list()
-for (i in seq(1, length(s_data_list))){
-  print(i);
-  d[[i]] <- t((s_data_list[[i]]@assays$RNA@scale.data)); 
-  d[[i]][is.na(d[[i]])] <- 0; 
-  g[[i]] <- colnames(d[[i]]) 
+seurat_m@meta.data$Age <- cell_info %>% 
+  filter(value %in% row.names(seurat_m@meta.data)) %>% 
+  pull(Age)
+
+# split into two groups:
+# < 10 days old (only one study)
+# >= 10 days old (actually have independent studies)
+
+# seurat_m <- subset(seurat_m, subset = percent.mt < 10)
+
+s_data_list__young <- SplitObject(subset(seurat_m, subset = Age < 10), split.by = 'batch')
+s_data_list__old <- SplitObject(subset(seurat_m, subset = Age > 10), split.by = 'batch')
+
+run_scanorama <- function(s_data_list){
+  d <- list()
+  g <- list()
+  for (i in seq(1, length(s_data_list))){
+    print(i);
+    d[[i]] <- t((s_data_list[[i]]@assays$RNA@scale.data)); 
+    d[[i]][is.na(d[[i]])] <- 0; 
+    g[[i]] <- colnames(d[[i]]) 
+  }
+  integrated.corrected.data <- 
+    scanorama$correct(d, g, return_dimred=FALSE, return_dense=TRUE)
+  
+  
+  scan_cor <- Reduce(rbind, integrated.corrected.data[[1]])
+  print('Running UMAP')
+  umap <- uwot::umap(scan_cor, pca = 30, n_threads = 8)
+  row.names(umap) <- 
+  list(d = d, 
+       g = g, 
+       corrected_matrix = scan_cor, 
+       umap_coordinates = umap)
 }
-integrated.corrected.data <- 
-  scanorama$correct(d, g, return_dimred=FALSE, return_dense=TRUE)
-
-scan_cor <- Reduce(rbind, integrated.corrected.data[[1]])
-
-
+young <- run_scanorama(s_data_list__young)
+old <- run_scanorama(s_data_list__old)
 
 
 
