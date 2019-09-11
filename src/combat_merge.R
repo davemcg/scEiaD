@@ -80,18 +80,19 @@ var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert
 
 # scale data and regress
 seurat_m <- NormalizeData(seurat_m)
+seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 5000)
+var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
 seurat_m <- ScaleData(seurat_m, 
                       features = var_genes,
                       do.center = TRUE,
                       do.scale = TRUE,
                       vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
-seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 5000)
 
 small_m <- seurat_m@assays$RNA@scale.data[var_genes, ] %>% as.matrix()
 small_m[is.na(small_m)] <- 0
 
 # update cell_info to remove dropped cells
-cell_info2 <- cell_info %>% filter(value %in% colnames(small_m)) %>% 
+cell_info2 <- cell_info %>% #filter(value %in% colnames(small_m)) %>% 
   mutate(age2 = case_when(Age < 10 ~ 0, Age >= 10 ~ 30, TRUE ~ Age),
          batch = paste(study_accession, Platform, Covariate, sep = '_'))
 # combat
