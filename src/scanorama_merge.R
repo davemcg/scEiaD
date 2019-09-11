@@ -9,6 +9,9 @@ args <- c('quant/Mus_musculus/scTransformRPCA_anchor.seuratV3.Rdata','/home/mcga
 library(Matrix)
 library(tidyverse)
 library(sva)
+library(reticulate)
+library(Seurat)
+scanorama <- import('scanorama')
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 500000 * 1024^2)
@@ -77,20 +80,17 @@ seurat_m <- CreateSeuratObject(m)
 seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, pattern = "^MT-")
 # remove cells with > 10% mito genes
 seurat_m <- subset(seurat_m, subset = percent.mt < 10)
+# scale data and regress
+seurat_m <- NormalizeData(seurat_m)
 # find var features
 seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 5000)
-
 var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
-
-# scale data and regress
 seurat_m <- ScaleData(seurat_m, 
                       features = var_genes,
+                      do.center = TRUE,
+                      do.scale = TRUE,
                       vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
 
-#seurat_m <- NormalizeData(seurat_m)
-
-
-small_m <- seurat_m@assays$RNA@scale.data[var_genes, ] %>% as.matrix()
 seurat_m@meta.data$batch <- cell_info %>% 
   filter(value %in% row.names(seurat_m@meta.data)) %>% 
   pull(batch)
@@ -99,58 +99,16 @@ d <- list()
 g <- list()
 for (i in seq(1, length(s_data_list))){
   print(i);
-  d[[i]] <- t(log(s_data_list[[i]]@assays$RNA@scale.data+1)); 
+  d[[i]] <- t((s_data_list[[i]]@assays$RNA@scale.data)); 
   d[[i]][is.na(d[[i]])] <- 0; 
   g[[i]] <- colnames(d[[i]]) 
 }
-
 integrated.corrected.data <- 
   scanorama$correct(d, g, return_dimred=FALSE, return_dense=TRUE)
 
-
-library(reticulate)
-scanorama <- import('scanorama')
-integrated.data <- scanorama$integrate(d, g)
+scan_cor <- Reduce(rbind, integrated.corrected.data[[1]])
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-# create naive fully merged for combat sva correction
-## make row names for count (well) upper case
-row.names(count) <- toupper(row.names(count))
-droplet <- Reduce(cbind, sc_data) 
-m <- Matrix.utils::merge.Matrix(count, droplet, by.x=row.names(count), by.y = row.names(droplet))
-m <- m[row.names(m) != 'fill.x', ] 
-# create sample table
-cell_info <- colnames(m) %>% enframe() %>% 
-  mutate(sample_accession = str_extract(value, 'SRS\\d+')) %>% 
-  left_join(metadata %>% select(-run_accession) %>% unique()) %>% 
-  data.frame()
-row.names(cell_info) <- cell_info$value
-
-cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covariate, sep = '_'))
-cell_info <- cell_info %>% mutate(age2 = case_)
-
-# find 2000 most variable genes
-## skip mitochondrial
-## for now use Seurat
-seurat_m <- CreateSeuratObject(m)
-seurat_m <- FindVariableFeatures(seurat_m)
-var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
-
-small_m <- m[var_genes, ] %>% as.matrix()
-
-# combat
-mod = model.matrix(~as.factor(as.character(cell_info$Age)), data=small_m)
-combat_edata = ComBat(dat=small_m, batch=cell_info$batch, mod=mod, par.prior=TRUE, prior.plots=FALSE)
