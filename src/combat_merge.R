@@ -1,6 +1,6 @@
 # combine datasets by species
 
-# Use SCTransform to normalize the data, then RPCA to integrate
+
 args <- commandArgs(trailingOnly = TRUE)
 
 args <- c('quant/Mus_musculus/scTransformRPCA_anchor.seuratV3.Rdata','/home/mcgaugheyd/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv','references/gencode.vM22.metadata.MGI_tx_mapping.tsv','quant/Mus_musculus/counts.Rdata','quant/SRS866911/genecount/matrix.Rdata','quant/SRS866908/genecount/matrix.Rdata','quant/SRS1467254/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS4363764/genecount/matrix.Rdata','quant/SRS1467251/genecount/matrix.Rdata','quant/SRS1467253/genecount/matrix.Rdata','quant/SRS3674976/genecount/matrix.Rdata','quant/SRS3674982/genecount/matrix.Rdata','quant/SRS3674983/genecount/matrix.Rdata','quant/SRS4363765/genecount/matrix.Rdata','quant/SRS3674974/genecount/matrix.Rdata','quant/SRS3674975/genecount/matrix.Rdata','quant/SRS3674985/genecount/matrix.Rdata','quant/SRS1467249/genecount/matrix.Rdata','quant/SRS3674980/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS4363763/genecount/matrix.Rdata','quant/SRS4386076/genecount/matrix.Rdata','quant/SRS1467250/genecount/matrix.Rdata','quant/SRS3674978/genecount/matrix.Rdata','quant/SRS3674977/genecount/matrix.Rdata','quant/SRS3674988/genecount/matrix.Rdata','quant/SRS3674979/genecount/matrix.Rdata','quant/SRS3674981/genecount/matrix.Rdata','quant/SRS3674984/genecount/matrix.Rdata','quant/SRS4386075/genecount/matrix.Rdata','quant/SRS1467252/genecount/matrix.Rdata','quant/SRS3674987/genecount/matrix.Rdata','quant/SRS866912/genecount/matrix.Rdata','quant/SRS866910/genecount/matrix.Rdata','quant/SRS866909/genecount/matrix.Rdata','quant/SRS866907/genecount/matrix.Rdata','quant/SRS4363762/genecount/matrix.Rdata','quant/SRS866906/genecount/matrix.Rdata')
@@ -92,7 +92,7 @@ small_m <- seurat_m@assays$RNA@scale.data[var_genes, ] %>% as.matrix()
 small_m[is.na(small_m)] <- 0
 
 # update cell_info to remove dropped cells
-cell_info2 <- cell_info %>% #filter(value %in% colnames(small_m)) %>% 
+cell_info2 <- cell_info %>% filter(value %in% colnames(small_m)) %>% 
   mutate(age2 = case_when(Age < 10 ~ 0, Age >= 10 ~ 30, TRUE ~ Age),
          batch = paste(study_accession, Platform, Covariate, sep = '_'))
 # combat
@@ -103,6 +103,20 @@ combat_edata = ComBat(dat = small_m,
                       mod = mod, 
                       par.prior=TRUE, 
                       prior.plots=FALSE)
+
+# bbkm
+library(reticulate)
+library(irlba)
+#anndata = import("anndata",convert=FALSE)
+bbknn = import("bbknn", convert=FALSE)
+#sc = import("scanpy.api",convert=FALSE)
+
+pca <- irlba(small_m, nv = 50)
+pca <- pca$v
+bem = bbknn$bbknn_pca_matrix(pca = pca, 
+                             batch_list = cell_info2$batch,  
+                             approx = TRUE, 
+                             use_faiss = FALSE)
 
 # umap
 umap <- uwot::umap(t(combat_edata), n_threads=8)

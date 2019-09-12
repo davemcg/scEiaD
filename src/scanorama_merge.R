@@ -107,6 +107,10 @@ seurat_m@meta.data$Age <- cell_info %>%
 s_data_list__young <- SplitObject(subset(seurat_m, subset = Age < 10), split.by = 'batch')
 s_data_list__old <- SplitObject(subset(seurat_m, subset = Age > 10), split.by = 'batch')
 
+
+
+
+
 run_scanorama <- function(s_data_list){
   d <- list()
   g <- list()
@@ -123,9 +127,10 @@ run_scanorama <- function(s_data_list){
   scan_cor <- Reduce(rbind, integrated.corrected.data[[1]])
   print('Running UMAP')
   umap <- uwot::umap(scan_cor, pca = 30, n_threads = 8)
-  row.names(umap) <- 
+  
   list(d = d, 
        g = g, 
+       scanorama = integrated.corrected.data,
        corrected_matrix = scan_cor, 
        umap_coordinates = umap)
 }
