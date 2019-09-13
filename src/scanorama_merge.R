@@ -121,7 +121,9 @@ seurat_m <- subset(seurat_m, subset = percent.mt < 10)
 #s_data_list__early <- SplitObject(make_seurat_obj(m_early), split.by = 'batch')
 s_data_list__late <- SplitObject(make_seurat_obj(m_late, normalize = TRUE), split.by = 'batch')
 
+
 run_scanorama <- function(s_data_list, assay = 'RNA'){
+
   d <- list()
   g <- list()
   for (i in seq(1, length(s_data_list))){
@@ -140,6 +142,7 @@ run_scanorama <- function(s_data_list, assay = 'RNA'){
   umap <- uwot::umap(scan_cor, pca = 30, n_threads = 8)
   list(d = d, 
        g = g, 
+       scanorama = integrated.corrected.data,
        corrected_matrix = scan_cor, 
        umap_coordinates = umap)
 }
