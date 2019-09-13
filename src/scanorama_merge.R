@@ -56,7 +56,7 @@ for (i in seq(1,length(rdata_files))){
   sc_data[[sample_accession]] <- res_matrix
 }
 
-# create naive fully merged for combat sva correction
+# create naive fully merged for 
 ## make row names for count (well) upper case
 row.names(count) <- toupper(row.names(count))
 droplet <- Reduce(cbind, sc_data) 
@@ -69,50 +69,65 @@ cell_info <- colnames(m) %>% enframe() %>%
   data.frame()
 row.names(cell_info) <- cell_info$value
 
-cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covariate, sep = '_'))
+cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covariate, sep = '_'),
+                                  batch2 = paste(study_accession, Covariate, sep = '_'),
+                                  batch3 = paste(Platform, Covariate, sep = '_'))
 cell_info <- cell_info %>% mutate(Age = case_when(Age > 100 ~ 30, TRUE ~ Age))
 
-# find 3000 most variable genes
-## skip mitochondrial
-## for now use Seurat
-library(Seurat)
-seurat_m <- CreateSeuratObject(m)
-seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, pattern = "^MT-")
-# remove cells with > 10% mito genes
-seurat_m <- subset(seurat_m, subset = percent.mt < 10)
-# scale data and regress
-seurat_m <- NormalizeData(seurat_m)
-# find var features
-seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 3000)
-var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
-seurat_m <- ScaleData(seurat_m, 
-                      features = var_genes,
-                      do.center = TRUE,
-                      do.scale = TRUE,
-                      vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
 
-seurat_m@meta.data$batch <- cell_info %>% 
-  filter(value %in% row.names(seurat_m@meta.data)) %>% 
-  pull(batch)
-seurat_m@meta.data$Age <- cell_info %>% 
-  filter(value %in% row.names(seurat_m@meta.data)) %>% 
-  pull(Age)
+# split by two groups
+# early (< 10 days) and late (>10 days)
+# Only one study (Clark ... Blackshaw is present for the early stage)
+m_early <- m[,cell_info %>% filter(Age < 10) %>% pull(value)]
+m_late <- m[,cell_info %>% filter(Age >= 10) %>% pull(value)]
+
+
+
+make_seurat_obj <- function(m, normalize = FALSE, scale = FALSE){
+  seurat_m <- CreateSeuratObject(m)
+  seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, pattern = "^MT-")
+  # remove cells with > 10% mito genes
+  seurat_m <- subset(seurat_m, subset = percent.mt < 10)
+  # scale data and regress
+  if (normalize){
+    seurat_m <- NormalizeData(seurat_m)
+  }
+  # find var features
+  seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 3000, selection.method = 'vst')
+  # var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
+  if (scale){
+    seurat_m <- ScaleData(seurat_m,
+                          features = var_genes,
+                          do.center = TRUE,
+                          do.scale = TRUE,
+                          vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
+  }
+  seurat_m@meta.data$batch <- cell_info %>% 
+    filter(value %in% row.names(seurat_m@meta.data)) %>% 
+    pull(batch)
+  seurat_m@meta.data$Age <- cell_info %>% 
+    filter(value %in% row.names(seurat_m@meta.data)) %>% 
+    pull(Age)
+  seurat_m
+}
+
 
 # split into two groups:
 # < 10 days old (only one study)
 # >= 10 days old (actually have independent studies)
 
-# seurat_m <- subset(seurat_m, subset = percent.mt < 10)
+seurat_m <- subset(seurat_m, subset = percent.mt < 10)
 
-s_data_list__young <- SplitObject(subset(seurat_m, subset = Age < 10), split.by = 'batch')
-s_data_list__old <- SplitObject(subset(seurat_m, subset = Age > 10), split.by = 'batch')
+#s_data_list__early <- SplitObject(make_seurat_obj(m_early), split.by = 'batch')
+s_data_list__late <- SplitObject(make_seurat_obj(m_late, normalize = TRUE), split.by = 'batch')
 
-run_scanorama <- function(s_data_list){
+run_scanorama <- function(s_data_list, assay = 'RNA'){
   d <- list()
   g <- list()
   for (i in seq(1, length(s_data_list))){
     print(i);
-    d[[i]] <- t((s_data_list[[i]]@assays$RNA@scale.data)); 
+    var_genes <- grep('^MT-', s_data_list[[i]]@assays$RNA@var.features, value = TRUE, invert = TRUE)
+    d[[i]] <- t((s_data_list[[i]]@assays[[assay]]@data[var_genes,])) %>% as.matrix(); 
     d[[i]][is.na(d[[i]])] <- 0; 
     g[[i]] <- colnames(d[[i]]) 
   }
@@ -123,14 +138,10 @@ run_scanorama <- function(s_data_list){
   scan_cor <- Reduce(rbind, integrated.corrected.data[[1]])
   print('Running UMAP')
   umap <- uwot::umap(scan_cor, pca = 30, n_threads = 8)
-  row.names(umap) <- 
   list(d = d, 
        g = g, 
        corrected_matrix = scan_cor, 
        umap_coordinates = umap)
 }
-young <- run_scanorama(s_data_list__young)
-old <- run_scanorama(s_data_list__old)
-
-
-
+#young <- run_scanorama(s_data_list__young)
+old <- run_scanorama(s_data_list__late)
