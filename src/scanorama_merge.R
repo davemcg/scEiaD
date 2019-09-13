@@ -12,11 +12,6 @@ library(sva)
 library(reticulate)
 library(Seurat)
 scanorama <- import('scanorama')
-# the first term is roughly the number of MB of RAM you expect to use
-# 40000 ~ 40GB
-options(future.globals.maxSize = 500000 * 1024^2)
-downsample <- FALSE
-stamp <- Sys.time() %>% gsub(' ', '__', .)
 
 # load in metadata for study project merging, UMI correction, and gene name changing
 metadata <- read_tsv(args[2])
@@ -94,7 +89,7 @@ make_seurat_obj <- function(m, normalize = FALSE, scale = FALSE){
   }
   # find var features
   seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 3000, selection.method = 'vst')
-  # var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
+  var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
   if (scale){
     seurat_m <- ScaleData(seurat_m,
                           features = var_genes,
@@ -116,40 +111,79 @@ make_seurat_obj <- function(m, normalize = FALSE, scale = FALSE){
 # < 10 days old (only one study)
 # >= 10 days old (actually have independent studies)
 
-seurat_m <- subset(seurat_m, subset = percent.mt < 10)
+# seurat_early <- make_seurat_obj(m_early, normalize = TRUE, scale = TRUE)
+# s_data_list__early <- SplitObject(seurat_early, split.by = 'batch')
+seurat_late <- make_seurat_obj(m_late, normalize = TRUE, scale = TRUE)
+s_data_list__late <- SplitObject(seurat_late, split.by = 'batch')
 
-#s_data_list__early <- SplitObject(make_seurat_obj(m_early), split.by = 'batch')
-s_data_list__late <- SplitObject(make_seurat_obj(m_late, normalize = TRUE), split.by = 'batch')
 
-
-run_scanorama <- function(s_data_list, assay = 'RNA'){
-
+run_scanorama <- function(s_data_list, assay = 'RNA', num_dims = 30, run_umap = FALSE){
+  # scanorama can return "integrated" and/or "corrected" data
+  # authors say that the "integrated" data is a low-dimension (100) representation
+  # of the integration, which is INTENDED FOR PCA/tSNE/UMAP!!!
+  # the corrected data returns all of the sample x gene matrix with batch
+  # corrected values
   d <- list()
   g <- list()
   for (i in seq(1, length(s_data_list))){
     print(i);
     var_genes <- grep('^MT-', s_data_list[[i]]@assays$RNA@var.features, value = TRUE, invert = TRUE)
-    d[[i]] <- t((s_data_list[[i]]@assays[[assay]]@data[var_genes,])) %>% as.matrix(); 
+    d[[i]] <- t((s_data_list[[i]]@assays[[assay]]@scale.data[var_genes,])) %>% as.matrix(); 
     d[[i]][is.na(d[[i]])] <- 0; 
     g[[i]] <- colnames(d[[i]]) 
   }
+
   integrated.corrected.data <- 
-    scanorama$correct(d, g, return_dimred=FALSE, return_dense=TRUE)
-  
-  
-  scan_cor <- Reduce(rbind, integrated.corrected.data[[1]])
+    scanorama$correct(d, g , return_dimred=TRUE, return_dense=TRUE)
+  # relabel values as reticulate/scanorama don't return the row or column names
+  for (i in seq(1, length(d))){
+    # first is in the integrated data (dim reduced for UMAP, etc)
+    row.names(integrated.corrected.data[[1]][[i]]) <- row.names(d[[i]])
+    # second is the corrected gene expression values
+    row.names(integrated.corrected.data[[2]][[i]]) <- row.names(d[[i]])
+    colnames(integrated.corrected.data[[2]][[i]]) <- colnames(d[[i]])
+  }
+
+  scanorama_int_matrix <- Reduce(rbind, integrated.corrected.data[[1]])
+  if (run_umap){
   print('Running UMAP')
-  umap <- uwot::umap(scan_cor, pca = 30, n_threads = 8)
+  umap <- uwot::umap(scanorama_int_matrix[,1:num_dims], n_threads = 8)
   names <- d %>% map(row.names) %>% flatten_chr()
   row.names(umap) <- names
   colnames(umap) <- c('UMAP_1', 'UMAP_2')
+  } else {umap = 'not run'}
   list(d = d, 
        g = g, 
        scanorama = integrated.corrected.data,
-       corrected_matrix = scan_cor, 
+       scanorama_integrated_matrix = scanorama_int_matrix, 
        umap_coordinates = umap)
   
 }
-#young <- run_scanorama(s_data_list__young)
-old <- run_scanorama(s_data_list__late)
+#early <- run_scanorama(s_data_list__young)
+late <- run_scanorama(s_data_list__late)
+
+
+# put scanorama low dim reduction into seurat obj
+scanorama_mnn <- late$scanorama_integrated_matrix
+colnames(scanorama_mnn) <- paste0("scanorama_", 1:ncol(scanorama_mnn))
+seurat_late[["scanorama"]] <- CreateDimReducObject(embeddings = scanorama_mnn, key = "scanorama_", assay = DefaultAssay(seurat_late))
+
+seurat_late <- RunUMAP(seurat_merged, dims = 1:20, min.dist = 0.2, reduction = 'scanorama', reduction.key = 'scanoramaUMAP_')
+
+
+
+
+
+# bbknn
+
+pca <- irlba(seurat_late@assays$RNA@scale.data %>% as.matrix(), nv = 50)
+pca <- pca$v
+batch <- seurat_late@meta.data$batch %>% as.character() %>% as.factor()
+
+adata = anndata$AnnData(X=pca, obs=batch)
+sc$tl$pca(adata)
+adata$obsm$X_pca = pca
+bbknn$bbknn(adata,batch_key=0)
+sc$tl$umap(adata)
+umap = py_to_r(adata$obsm$X_umap)
 
