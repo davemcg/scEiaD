@@ -169,7 +169,14 @@ colnames(scanorama_mnn) <- paste0("scanorama_", 1:ncol(scanorama_mnn))
 seurat_late[["scanorama"]] <- CreateDimReducObject(embeddings = scanorama_mnn, key = "scanorama_", assay = DefaultAssay(seurat_late))
 
 seurat_late <- RunUMAP(seurat_late, dims = 1:20, reduction = 'scanorama', reduction.key = 'scanoramaUMAP_')
-
+# clustering 
+seurat_late <- FindNeighbors(seurat_late, dims = 1:20, nn.eps = 0.5, reduction = 'scanorama')
+seurat_late <- FindClusters(seurat_late, 
+                              resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
+                              save.SNN = TRUE,
+                              do.sparse = TRUE,
+                              algorithm = 2,
+                              random.seed = 23)
 
 
 
