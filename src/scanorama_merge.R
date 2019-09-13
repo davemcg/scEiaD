@@ -140,11 +140,16 @@ run_scanorama <- function(s_data_list, assay = 'RNA'){
   scan_cor <- Reduce(rbind, integrated.corrected.data[[1]])
   print('Running UMAP')
   umap <- uwot::umap(scan_cor, pca = 30, n_threads = 8)
+  names <- d %>% map(row.names) %>% flatten_chr()
+  row.names(umap) <- names
+  colnames(umap) <- c('UMAP_1', 'UMAP_2')
   list(d = d, 
        g = g, 
        scanorama = integrated.corrected.data,
        corrected_matrix = scan_cor, 
        umap_coordinates = umap)
+  
 }
 #young <- run_scanorama(s_data_list__young)
 old <- run_scanorama(s_data_list__late)
+
