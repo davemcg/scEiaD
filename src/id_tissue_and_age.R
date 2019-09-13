@@ -16,6 +16,7 @@ sra_metadata_extended <- sra_metadata %>%
   mutate(SRP158081_age = str_extract(biosample_title,'^[E|P]\\d+')) %>% 
   mutate(SRP158081_age = case_when(grepl('^E', SRP158081_age) ~ substr(SRP158081_age, 2,6) %>% as.numeric() - 19,
                                    grepl('^P', SRP158081_age) ~ substr(SRP158081_age, 2,6) %>% as.numeric,
+                                   biosample_attribute_recs == 'Retinal Cells P14 Mixed CD1/C57Bl6' ~ 14,
                                    TRUE ~ 1000)) %>% 
   mutate(SRP161678_age = case_when(study_accession == 'SRP161678' ~ str_extract(biosample_attribute_recs, 'Day\\s\\d+') %>% gsub('Day ','',.) %>% as.numeric(),
                                    TRUE ~ 1000)) %>% 
@@ -56,11 +57,11 @@ sra_metadata_extended <- sra_metadata %>%
                                study_accession == 'SRP157927' & grepl('M2,', biosample_title) ~ 'Macaque2',
                                study_accession == 'SRP157927' & grepl('M3,', biosample_title) ~ 'Macaque3',
                                study_accession == 'SRP157927' & grepl('M4,', biosample_title) ~ 'Macaque4',
-                               #study_accession == 'SRP075719' & grepl('Batch 1', title) ~ 'Batch1',
-                               #study_accession == 'SRP075719' & grepl('Batch 2', title) ~ 'Batch2',
+                               study_accession == 'SRP075719' & grepl('Batch 1', title) ~ 'Batch1',
+                               study_accession == 'SRP075719' & grepl('Batch 2', title) ~ 'Batch2',
                                study_accession == 'SRP050054' ~ str_extract(title, 'retina\\s\\d') %>% gsub(' ', '', .),
-                               #study_accession == 'SRP075720' & grepl('P17 1', biosample_attribute_recs) ~ 'Batch1',
-                               #study_accession == 'SRP075720' & grepl('P17 2', biosample_attribute_recs) ~ 'Batch2',
+                               study_accession == 'SRP075720' & grepl('P17 1', biosample_attribute_recs) ~ 'Batch1',
+                               study_accession == 'SRP075720' & grepl('P17 2', biosample_attribute_recs) ~ 'Batch2',
                                study_accession == 'SRP194595' ~  gsub('\\s(Periphery|Fovea)\\sDonor\\s','',biosample_attribute_recs),
                                study_accession == 'SRP075719' ~ sample_accession,
                                study_accession == 'SRP158081' & grepl('rep2', biosample_title) ~ 'Rep2',
