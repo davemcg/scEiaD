@@ -168,7 +168,7 @@ scanorama_mnn <- late$scanorama_integrated_matrix
 colnames(scanorama_mnn) <- paste0("scanorama_", 1:ncol(scanorama_mnn))
 seurat_late[["scanorama"]] <- CreateDimReducObject(embeddings = scanorama_mnn, key = "scanorama_", assay = DefaultAssay(seurat_late))
 
-seurat_late <- RunUMAP(seurat_merged, dims = 1:20, min.dist = 0.2, reduction = 'scanorama', reduction.key = 'scanoramaUMAP_')
+seurat_late <- RunUMAP(seurat_late, dims = 1:20, reduction = 'scanorama', reduction.key = 'scanoramaUMAP_')
 
 
 
