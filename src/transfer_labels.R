@@ -65,7 +65,7 @@ meta_SRP158081 <- meta %>% mutate(core = gsub('_.*','', Barcode)) %>%
                             Age == 5 ~ 'P5',
                             Age == 8 & Covariate == 'Rep1' ~ 'P8_rep1',
                             Age == 8 & Covariate == 'Rep2' ~ 'P8_rep2',
-                            TRUE ~ 'UhOh'))
+                            TRUE ~ 'UhOh')) 
 
 union <- left_join(meta_SRP158081, clark_labels, 
                    by = c('core', 'sample')) %>% 
@@ -82,7 +82,7 @@ seurat_merged@meta.data$Platform <- meta$Platform
 seurat_merged@meta.data$study_accession <- meta$study_accession
 
 
-nmeta <- left_join(meta, union, by = 'Barcode')
+nmeta <- left_join(meta, union %>% select(Barcode, core:age), by = 'Barcode')
 # label the non clark blackshaw labels as missing
 nmeta$new_CellType[is.na(nmeta$new_CellType)] <- 'Missing'
 seurat_merged@meta.data$new_CellType <- nmeta$new_CellType
@@ -111,8 +111,8 @@ meta <- left_join(nmeta,
   mutate(ID = case_when(new_CellType == 'Missing' ~ `predicted.id`, 
                         TRUE ~ new_CellType))
 
-#seurat_merged@meta.data$new_CellType_transfer <- anno
+seurat_merged@meta.data$new_CellType_transfer <- anno
 
 # save(seurat_merged, file = 'seurat_merged__transfer.Rdata', compress = FALSE)
-#save(seurat_merged, file = args[4], compress = FALSE)
-save(meta, file = args[4])
+save(seurat_merged, file = args[4], compress = FALSE)
+save(meta, file = args[5])
