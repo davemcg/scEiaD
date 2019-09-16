@@ -14,7 +14,9 @@ options(future.globals.maxSize = 2400000 * 1024^2)
 
 # get labelled data from clark et all
 clark_labels <- read_csv('https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1')
-# load seurat seurat_merged
+# macosko et al
+macosko_labels <- read_tsv('http://mccarrolllab.org/wp-content/uploads/2015/05/retina_clusteridentities.txt', col_names = c('Cell','Cluster'))
+  # load seurat seurat_merged
 load(args[1])
 #load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/harmony_umap.Rdata')
 load(args[2])
