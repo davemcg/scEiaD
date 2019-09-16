@@ -8,7 +8,7 @@ args <- c('quant/Mus_musculus/scTransformRPCA_anchor.seuratV3.Rdata','/home/mcga
 
 library(Matrix)
 library(tidyverse)
-library(sva)
+#library(sva)
 library(reticulate)
 library(Seurat)
 scanorama <- import('scanorama')
@@ -78,10 +78,10 @@ m_late <- m[,cell_info %>% filter(Age >= 10) %>% pull(value)]
 
 
 
-make_seurat_obj <- function(m, normalize = FALSE, scale = FALSE){
+make_seurat_obj <- function(m, normalize = TRUE, scale = TRUE){
   seurat_m <- CreateSeuratObject(m)
   seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, pattern = "^MT-")
-  # remove cells with > 10% mito genes
+  # keep cells with < 10% mito genes
   seurat_m <- subset(seurat_m, subset = percent.mt < 10)
   # scale data and regress
   if (normalize){
@@ -100,6 +100,9 @@ make_seurat_obj <- function(m, normalize = FALSE, scale = FALSE){
   seurat_m@meta.data$batch <- cell_info %>% 
     filter(value %in% row.names(seurat_m@meta.data)) %>% 
     pull(batch)
+  seurat_m@meta.data$study_accession <- cell_info %>% 
+    filter(value %in% row.names(seurat_m@meta.data)) %>% 
+    pull(study_accession)
   seurat_m@meta.data$Age <- cell_info %>% 
     filter(value %in% row.names(seurat_m@meta.data)) %>% 
     pull(Age)
@@ -111,10 +114,10 @@ make_seurat_obj <- function(m, normalize = FALSE, scale = FALSE){
 # < 10 days old (only one study)
 # >= 10 days old (actually have independent studies)
 
-# seurat_early <- make_seurat_obj(m_early, normalize = TRUE, scale = TRUE)
-# s_data_list__early <- SplitObject(seurat_early, split.by = 'batch')
+seurat_early <- make_seurat_obj(m_early, normalize = TRUE, scale = TRUE)
+s_data_list__early <- SplitObject(seurat_early, split.by = 'batch')
 seurat_late <- make_seurat_obj(m_late, normalize = TRUE, scale = TRUE)
-s_data_list__late <- SplitObject(seurat_late, split.by = 'batch')
+s_data_list__late <- SplitObject(seurat_late, split.by = 'study_accession')
 
 
 run_scanorama <- function(s_data_list, assay = 'RNA', num_dims = 30, run_umap = FALSE){
@@ -132,10 +135,10 @@ run_scanorama <- function(s_data_list, assay = 'RNA', num_dims = 30, run_umap = 
     d[[i]][is.na(d[[i]])] <- 0; 
     g[[i]] <- colnames(d[[i]]) 
   }
-
+  print('Run scanorama')
   integrated.corrected.data <- 
     scanorama$correct(d, g , return_dimred=TRUE, return_dense=TRUE)
-  # relabel values as reticulate/scanorama don't return the row or column names
+  print('Scanorama done')
   for (i in seq(1, length(d))){
     # first is in the integrated data (dim reduced for UMAP, etc)
     row.names(integrated.corrected.data[[1]][[i]]) <- row.names(d[[i]])
@@ -172,7 +175,7 @@ seurat_late <- RunUMAP(seurat_late, dims = 1:20, reduction = 'scanorama', reduct
 # clustering 
 seurat_late <- FindNeighbors(seurat_late, dims = 1:20, nn.eps = 0.5, reduction = 'scanorama')
 seurat_late <- FindClusters(seurat_late, 
-                              resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
+                              #resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
                               save.SNN = TRUE,
                               do.sparse = TRUE,
                               algorithm = 2,
@@ -182,15 +185,29 @@ seurat_late <- FindClusters(seurat_late,
 
 
 # bbknn
+library(reticulate)
+library(irlba)
+library(tidyverse)
+anndata = import("anndata",convert=FALSE)
+bbknn = import("bbknn", convert=FALSE)
+sc = import("scanpy.api",convert=FALSE)
+
 
 pca <- irlba(seurat_late@assays$RNA@scale.data %>% as.matrix(), nv = 50)
 pca <- pca$v
 batch <- seurat_late@meta.data$batch %>% as.character() %>% as.factor()
 
-adata = anndata$AnnData(X=pca, obs=batch)
+
+
+adata = anndata$AnnData(X=pca, 
+                        obs = batch)
+
+
 sc$tl$pca(adata)
 adata$obsm$X_pca = pca
-bbknn$bbknn(adata,batch_key=0)
+
+#bbknn$bbknn(adata,batch_key=0, use_faiss = FALSE)
+bem = bbknn$bbknn_pca_matrix(pca = pca, batch_list = batch, approx = FALSE, use_faiss = FALSE)
 sc$tl$umap(adata)
 umap = py_to_r(adata$obsm$X_umap)
 
