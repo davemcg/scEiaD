@@ -14,8 +14,9 @@ run_merge <- function(seurat_obj, method, covariate = 'study_accession'){
   # e.g. DO NOT use 'batch' in build_seurat_obj.R then 'study_accession' here
   if (method == 'CCA'){
     seurat_list <- SplitObject(seurat_obj, split.by = covariate)
-    anchors <- pancreas.anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:30)
+    anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20)
     obj <- IntegrateData(anchorset = anchors, verbose = TRUE)
+    obj <- RunPCA(obj, npcs = 100)
   } else if (method == 'fastMNN'){
     ## uses list of seurat objects (each obj your "covariate")
     seurat_list <- SplitObject(seurat_obj, split.by = covariate)
@@ -84,6 +85,7 @@ run_merge <- function(seurat_obj, method, covariate = 'study_accession'){
     # glue reduced matrix values into seurat for later UMAP, etc
     scanorama_mnn <- Reduce(rbind, integrated.corrected.data[[1]])
     colnames(scanorama_mnn) <- paste0("scanorama_", 1:ncol(scanorama_mnn))
+    obj <- seurat_obj
     obj[["scanorama"]] <- CreateDimReducObject(embeddings = scanorama_mnn, key = "scanorama_", assay = DefaultAssay(obj))
     
   } else {
@@ -95,8 +97,8 @@ run_merge <- function(seurat_obj, method, covariate = 'study_accession'){
 
 create_umap_neighbors <- function(integrated_obj, 
                                   max_dims = 20, 
-                                  reduction_name = 'CCA', 
-                                  reduction_name_key = 'CCA_UMAP_'){
+                                  reduction_name = 'integrated', 
+                                  reduction_name_key = 'ccaUMAP_'){
   # UMAP
   integrated_obj <- RunUMAP(integrated_obj, 
                             dims = 1:max_dims, 
