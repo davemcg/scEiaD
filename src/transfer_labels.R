@@ -6,26 +6,23 @@ library(Seurat)
 library(schex)
 library(cowplot)
 library(future)
+library(data.table)
 
 plan(strategy = "multicore", workers = 12)
 options(future.globals.maxSize = 2400000 * 1024^2)
 #load('seurat_merged.Rdata')
 
-
-# get labelled data from clark et all
-clark_labels <- read_csv('https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1')
-# macosko et al
-macosko_labels <- read_tsv('http://mccarrolllab.org/wp-content/uploads/2015/05/retina_clusteridentities.txt', col_names = c('Cell','Cluster'))
-  # load seurat seurat_merged
+# load seurat obj
 load(args[1])
 #load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/harmony_umap.Rdata')
 load(args[2])
+obj <- seurat_late__standard
 #load('~/git/massive_integrated_eye_scRNA/data/sra_metadata_extended.Rdata')
 sample_table <- read_tsv(args[3])
 #sample_table <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv')
 
 
-meta <- seurat_merged@meta.data %>% as_tibble(rownames = 'Barcode')
+meta <- obj@meta.data %>% as_tibble(rownames = 'Barcode')
 # get samples from barcode
 samps <- str_extract(meta$Barcode, '(SRS|iPSC_RPE_scRNA_)\\d+')
 new <- samps %>% enframe(value = 'sample_accession') %>% 
@@ -42,12 +39,6 @@ meta <- meta %>%
   as_tibble()
 meta %>% as_tibble()
 
-# extract clark blackshaw fields we want
-clark_labels <- clark_labels %>% 
-  mutate(core = gsub('^.*\\.','', barcode) %>% gsub('-.*','',.)) %>% 
-  select(CellType, new_CellType, umap_CellType, umap_coord1, 
-         umap_coord2, umap_coord3, X1, barcode, sample, age, 
-         core)
 
 # convert our ages and replicate status to match clark blackshaw naming 
 # on their sheet
@@ -71,7 +62,11 @@ meta_SRP158081 <- meta %>% mutate(core = gsub('_.*','', Barcode)) %>%
 
 union <- left_join(meta_SRP158081, clark_labels, 
                    by = c('core', 'sample')) %>% 
-  filter(!is.na(CellType))                            
+  filter(!is.na(CellType))
+
+
+
+
 
 #save(union, file = '~/git/massive_integrated_eye_scRNA/data/clark_mcgaughey_label_union.Rdata')
 
