@@ -16,6 +16,7 @@ run_merge <- function(seurat_obj, method, covariate = 'study_accession'){
     seurat_list <- SplitObject(seurat_obj, split.by = covariate)
     anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20)
     obj <- IntegrateData(anchorset = anchors, verbose = TRUE)
+    obj <- ScaleData(obj)
     obj <- RunPCA(obj, npcs = 100)
   } else if (method == 'fastMNN'){
     ## uses list of seurat objects (each obj your "covariate")
@@ -97,7 +98,7 @@ run_merge <- function(seurat_obj, method, covariate = 'study_accession'){
 
 create_umap_neighbors <- function(integrated_obj, 
                                   max_dims = 20, 
-                                  reduction_name = 'integrated', 
+                                  reduction_name = 'pca', 
                                   reduction_name_key = 'ccaUMAP_'){
   # UMAP
   integrated_obj <- RunUMAP(integrated_obj, 
