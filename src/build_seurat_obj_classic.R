@@ -26,6 +26,9 @@ load(args[4])
 # count <- count[,(diff(count@p) < 10000)]
 # count <- count[,(diff(count@p) > 1000)]
 
+# extract species
+species <- str_split(args[4], '/')[[1]][2]
+
 # sparse matrix files
 rdata_files = args[5:length(args)]
 
@@ -70,7 +73,7 @@ cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covar
                                   batch2 = paste(study_accession, Covariate, sep = '_'),
                                   batch3 = paste(Platform, Covariate, sep = '_'))
 cell_info <- cell_info %>% mutate(Age = case_when(Age > 100 ~ 30, TRUE ~ Age))
-
+save(cell_info, file = paste0(species, '_cell_info.Rdata'))
 
 # split by two groups
 # early (< 10 days) and late (>10 days)
@@ -159,5 +162,5 @@ seurat_late__SCT <- seurat_sct(s_data_list__late)
 
 # save objects
 save(seurat_early__standard, seurat_late__standard, seurat_early__SCT, seurat_late__SCT,
-     file = paste0('seurat_obj/mouse_classic_and_SCT__', covariate, '.Rdata'), compress = FALSE)
+     file = paste0('seurat_obj/mouse_standard_and_SCT__', covariate, '.Rdata'), compress = FALSE)
 
