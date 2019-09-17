@@ -14,6 +14,7 @@ library(reticulate)
 library(Seurat)
 #scanorama <- import('scanorama')
 
+covariate = 'batch'
 # load in metadata for study project merging, UMI correction, and gene name changing
 metadata <- read_tsv(args[2])
 tx <- read_tsv(args[3], col_names = FALSE) %>% select(2,3) %>% unique()
@@ -21,9 +22,9 @@ colnames(tx) <- c('id', 'gene')
 
 # well data
 load(args[4])
-# remove cells with > 10000 or < 1000
-count <- count[,(diff(count@p) < 10000)]
-count <- count[,(diff(count@p) > 1000)]
+# # remove cells with > 10000 or < 1000 detected genes
+# count <- count[,(diff(count@p) < 10000)]
+# count <- count[,(diff(count@p) > 1000)]
 
 # sparse matrix files
 rdata_files = args[5:length(args)]
@@ -45,7 +46,7 @@ for (i in seq(1,length(rdata_files))){
     pull(gene) %>% 
     toupper()
   # remove cells which have more than 6000 quantified genes (likely doublets)
-  res_matrix <- res_matrix[,diff(res_matrix@p) < 6000]
+  #res_matrix <- res_matrix[,diff(res_matrix@p) < 6000]
   colnames(res_matrix) <- make.unique(colnames(res_matrix))
   colnames(res_matrix) <- paste0(colnames(res_matrix), "_", sample_accession)
   row.names(res_matrix) <- make.unique(row.names(res_matrix))
@@ -85,8 +86,9 @@ make_seurat_obj <- function(m,
                             scale = TRUE){
   seurat_m <- CreateSeuratObject(m)
   seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, pattern = "^MT-")
-  # keep cells with < 10% mito genes
-  seurat_m <- subset(seurat_m, subset = percent.mt < 10)
+  # FILTER STEP!!!!
+  # keep cells with < 10% mito genes, and more than 200 and less than 3000 detected genes
+  seurat_m <- subset(seurat_m, subset = percent.mt < 10 & nFeature_RNA > 200 & nFeature_RNA < 3000 )
   seurat_m@meta.data$batch <- cell_info %>% 
     filter(value %in% row.names(seurat_m@meta.data)) %>% 
     pull(batch)
@@ -121,10 +123,10 @@ make_seurat_obj <- function(m,
 # < 10 days old (only one study)
 # >= 10 days old (actually have independent studies)
 
-seurat_early__classic <- make_seurat_obj(m_early, normalize = TRUE, scale = TRUE, split.by = 'study_accession')
-#s_data_list__early <- SplitObject(seurat_early, split.by = 'study_accession')
-seurat_late__classic <- make_seurat_obj(m_late, normalize = TRUE, scale = TRUE, split.by = 'study_accession')
-#s_data_list__late <- SplitObject(seurat_late, split.by = 'study_accession')
+seurat_early__standard <- make_seurat_obj(m_early, normalize = TRUE, scale = TRUE, split.by = covariate)
+
+seurat_late__standard <- make_seurat_obj(m_late, normalize = TRUE, scale = TRUE, split.by = covariate)
+
 
 
 # build SCT based seurat obj
@@ -149,15 +151,13 @@ seurat_sct <- function(seurat_list){
   }
   seurat_list
 }
-s_data_list__early <- SplitObject(seurat_early__classic, split.by = 'study_accession')
+s_data_list__early <- SplitObject(seurat_early__standard, split.by = covariate)
 seurat_early__SCT <- seurat_sct(s_data_list__early)
 
-s_data_list__late <- SplitObject(seurat_late__classic, split.by = 'study_accession')
+s_data_list__late <- SplitObject(seurat_late__standard, split.by = covariate)
 seurat_late__SCT <- seurat_sct(s_data_list__late)
 
-
- 
 # save objects
-save(seurat_early__classic, seurat_late__classic, seurat_early__SCT, seurat_late__SCT,
-     file = 'seurat_obj/mouse_classic_and_SCT.Rdata', compress = FALSE)
+save(seurat_early__standard, seurat_late__standard, seurat_early__SCT, seurat_late__SCT,
+     file = paste0('seurat_obj/mouse_classic_and_SCT__', covariate, '.Rdata'), compress = FALSE)
 
