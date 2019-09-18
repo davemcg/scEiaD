@@ -4,7 +4,7 @@
 
 args <- commandArgs(trailingOnly = TRUE)
 
-# args <- c('quant/Mus_musculus/scTransformRPCA_anchor.seuratV3.Rdata','/home/mcgaugheyd/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv','references/gencode.vM22.metadata.MGI_tx_mapping.tsv','quant/Mus_musculus/counts.Rdata','quant/SRS866911/genecount/matrix.Rdata','quant/SRS866908/genecount/matrix.Rdata','quant/SRS1467254/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS4363764/genecount/matrix.Rdata','quant/SRS1467251/genecount/matrix.Rdata','quant/SRS1467253/genecount/matrix.Rdata','quant/SRS3674976/genecount/matrix.Rdata','quant/SRS3674982/genecount/matrix.Rdata','quant/SRS3674983/genecount/matrix.Rdata','quant/SRS4363765/genecount/matrix.Rdata','quant/SRS3674974/genecount/matrix.Rdata','quant/SRS3674975/genecount/matrix.Rdata','quant/SRS3674985/genecount/matrix.Rdata','quant/SRS1467249/genecount/matrix.Rdata','quant/SRS3674980/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS4363763/genecount/matrix.Rdata','quant/SRS4386076/genecount/matrix.Rdata','quant/SRS1467250/genecount/matrix.Rdata','quant/SRS3674978/genecount/matrix.Rdata','quant/SRS3674977/genecount/matrix.Rdata','quant/SRS3674988/genecount/matrix.Rdata','quant/SRS3674979/genecount/matrix.Rdata','quant/SRS3674981/genecount/matrix.Rdata','quant/SRS3674984/genecount/matrix.Rdata','quant/SRS4386075/genecount/matrix.Rdata','quant/SRS1467252/genecount/matrix.Rdata','quant/SRS3674987/genecount/matrix.Rdata','quant/SRS866912/genecount/matrix.Rdata','quant/SRS866910/genecount/matrix.Rdata','quant/SRS866909/genecount/matrix.Rdata','quant/SRS866907/genecount/matrix.Rdata','quant/SRS4363762/genecount/matrix.Rdata','quant/SRS866906/genecount/matrix.Rdata')
+#args <- c('quant/Mus_musculus/scTransformRPCA_anchor.seuratV3.Rdata','/home/mcgaugheyd/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv','references/gencode.vM22.metadata.MGI_tx_mapping.tsv','quant/Mus_musculus/counts.Rdata','quant/SRS866911/genecount/matrix.Rdata','quant/SRS866908/genecount/matrix.Rdata','quant/SRS1467254/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS4363764/genecount/matrix.Rdata','quant/SRS1467251/genecount/matrix.Rdata','quant/SRS1467253/genecount/matrix.Rdata','quant/SRS3674976/genecount/matrix.Rdata','quant/SRS3674982/genecount/matrix.Rdata','quant/SRS3674983/genecount/matrix.Rdata','quant/SRS4363765/genecount/matrix.Rdata','quant/SRS3674974/genecount/matrix.Rdata','quant/SRS3674975/genecount/matrix.Rdata','quant/SRS3674985/genecount/matrix.Rdata','quant/SRS1467249/genecount/matrix.Rdata','quant/SRS3674980/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS4363763/genecount/matrix.Rdata','quant/SRS4386076/genecount/matrix.Rdata','quant/SRS1467250/genecount/matrix.Rdata','quant/SRS3674978/genecount/matrix.Rdata','quant/SRS3674977/genecount/matrix.Rdata','quant/SRS3674988/genecount/matrix.Rdata','quant/SRS3674979/genecount/matrix.Rdata','quant/SRS3674981/genecount/matrix.Rdata','quant/SRS3674984/genecount/matrix.Rdata','quant/SRS4386075/genecount/matrix.Rdata','quant/SRS1467252/genecount/matrix.Rdata','quant/SRS3674987/genecount/matrix.Rdata','quant/SRS866912/genecount/matrix.Rdata','quant/SRS866910/genecount/matrix.Rdata','quant/SRS866909/genecount/matrix.Rdata','quant/SRS866907/genecount/matrix.Rdata','quant/SRS4363762/genecount/matrix.Rdata','quant/SRS866906/genecount/matrix.Rdata')
 
 
 library(Matrix)
@@ -13,24 +13,30 @@ library(tidyverse)
 library(reticulate)
 library(Seurat)
 #scanorama <- import('scanorama')
+library(future)
+plan(strategy = "multicore", workers = 8)
+# the first term is roughly the number of MB of RAM you expect to use
+# 40000 ~ 40GB
+options(future.globals.maxSize = 500000 * 1024^2)
 
-covariate = 'batch'
+set = args[2] # early, late, full
+covariate = args[3] # study_accession, batch, etc.
 # load in metadata for study project merging, UMI correction, and gene name changing
-metadata <- read_tsv(args[2])
-tx <- read_tsv(args[3], col_names = FALSE) %>% select(2,3) %>% unique()
+metadata <- read_tsv(args[4])
+tx <- read_tsv(args[5], col_names = FALSE) %>% select(2,3) %>% unique()
 colnames(tx) <- c('id', 'gene')
 
 # well data
-load(args[4])
+load(args[6])
 # # remove cells with > 10000 or < 1000 detected genes
 # count <- count[,(diff(count@p) < 10000)]
 # count <- count[,(diff(count@p) > 1000)]
 
 # extract species
-species <- str_split(args[4], '/')[[1]][2]
+species <- str_split(args[6], '/')[[1]][2]
 
 # sparse matrix files
-rdata_files = args[5:length(args)]
+rdata_files = args[7:length(args)]
 
 # roll through UMI data, 
 # correct gene names (upper case), force to be unique
@@ -126,11 +132,6 @@ make_seurat_obj <- function(m,
 # < 10 days old (only one study)
 # >= 10 days old (actually have independent studies)
 
-seurat_early__standard <- make_seurat_obj(m_early, normalize = TRUE, scale = TRUE, split.by = covariate)
-
-seurat_late__standard <- make_seurat_obj(m_late, normalize = TRUE, scale = TRUE, split.by = covariate)
-
-
 
 # build SCT based seurat obj
 seurat_sct <- function(seurat_list){
@@ -154,13 +155,22 @@ seurat_sct <- function(seurat_list){
   }
   seurat_list
 }
-s_data_list__early <- SplitObject(seurat_early__standard, split.by = covariate)
-seurat_early__SCT <- seurat_sct(s_data_list__early)
 
-s_data_list__late <- SplitObject(seurat_late__standard, split.by = covariate)
-seurat_late__SCT <- seurat_sct(s_data_list__late)
+
+if (set == 'early'){
+  seurat__standard <- make_seurat_obj(m_early, normalize = TRUE, scale = TRUE, split.by = covariate)
+  s_data_list<- SplitObject(seurat__standard, split.by = covariate)
+  seurat__SCT <- seurat_sct(s_data_list)
+} else if (set == 'late'){
+  seurat__standard <- make_seurat_obj(m_late, normalize = TRUE, scale = TRUE, split.by = covariate)
+  s_data_list<- SplitObject(seurat__standard, split.by = covariate)
+  seurat__SCT <- seurat_sct(s_data_list)
+} else {
+  seurat__standard <- make_seurat_obj(m, normalize = TRUE, scale = TRUE, split.by = covariate)
+  s_data_list<- SplitObject(seurat__standard, split.by = covariate)
+  seurat__SCT <- seurat_sct(s_data_list)
+}
 
 # save objects
-save(seurat_early__standard, seurat_late__standard, seurat_early__SCT, seurat_late__SCT,
-     file = paste0('seurat_obj/mouse_standard_and_SCT__', covariate, '.Rdata'), compress = FALSE)
-
+save(seurat__standard, seurat__SCT,
+     file = args[1], compress = FALSE)
