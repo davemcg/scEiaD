@@ -5,11 +5,15 @@ method = args[1]
 covariate = args[2]
 load(args[3])
 
+# crazy section to deal with that fact I have scanorama in a conda environment,
+# but many of the seurat wrapped integration tools can't be installed in conda
+# without crazy effort (e.g liger...as it needs to be compiled in C)
 library(tidyverse)
 library(Seurat)
 if (method != 'scanorama'){
   library(SeuratWrappers)
   library(harmony)
+  library(batchelor)
 } else {
   library(reticulate)
   scanorama <- import('scanorama')
@@ -145,6 +149,14 @@ create_umap_neighbors <- function(integrated_obj,
                                  algorithm = 2,
                                  random.seed = 23)
   integrated_obj
+}
+
+extract_umap_for_plotting <- function(integrated_obj){
+  load('Mus_musculus_cell_info_labelled.Rdata')
+  orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
+  umap <- Embeddings(integrated_obj[['umap']]) %>% as_tibble(rownames = 'Barcode') %>% 
+    left_join(., orig_meta) %>% 
+    left_join(., cell_info_labels %>% select(value:Paper) %>% rename(Barcode = value))
 }
 
 integrated_obj <- run_integration(seurat__standard, method, covariate)
