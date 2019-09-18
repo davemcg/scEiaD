@@ -1,13 +1,25 @@
 # run integration methods that support Seurat objects directly
+args <- commandArgs(trailingOnly = TRUE)
+
+method = args[1]
+covariate = args[2]
+load(args[3])
 
 library(tidyverse)
 library(Seurat)
-library(SeuratWrappers)
-library(harmony)
-library(reticulate)
-scanorama <- import('scanorama')
+if (method != 'scanorama'){
+  library(SeuratWrappers)
+  library(harmony)
+} else {
+  library(reticulate)
+  scanorama <- import('scanorama')
+}
 
-run_merge <- function(seurat_obj, method, covariate = 'study_accession'){
+
+args <- commandArgs(trailingOnly = TRUE)
+
+
+run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
   # covariate MUST MATCH what was used in build_seurat_obj.R
   # otherwise weird-ness may happen
   # the scaling happens at this level
@@ -96,6 +108,8 @@ run_merge <- function(seurat_obj, method, covariate = 'study_accession'){
   obj
 }
 
+
+
 create_umap_neighbors <- function(integrated_obj, 
                                   max_dims = 20, 
                                   reduction_name = 'pca', 
@@ -111,10 +125,13 @@ create_umap_neighbors <- function(integrated_obj,
                                   nn.eps = 0.5, 
                                   reduction = reduction_name)
   integrated_obj <- FindClusters(integrated_obj, 
-                              #resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
-                              save.SNN = TRUE,
-                              do.sparse = TRUE,
-                              algorithm = 2,
-                              random.seed = 23)
+                                 #resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
+                                 save.SNN = TRUE,
+                                 do.sparse = TRUE,
+                                 algorithm = 2,
+                                 random.seed = 23)
   integrated_obj
 }
+
+integrated_obj <- run_integration(seurat__standard, method, covariate)
+save(integrated_obj, file = args[4], compress = FALSE)

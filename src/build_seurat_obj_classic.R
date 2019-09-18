@@ -158,14 +158,17 @@ seurat_sct <- function(seurat_list){
 
 
 if (set == 'early'){
+  print("Running Early")
   seurat__standard <- make_seurat_obj(m_early, normalize = TRUE, scale = TRUE, split.by = covariate)
   s_data_list<- SplitObject(seurat__standard, split.by = covariate)
   seurat__SCT <- seurat_sct(s_data_list)
 } else if (set == 'late'){
+  print("Running Late")
   seurat__standard <- make_seurat_obj(m_late, normalize = TRUE, scale = TRUE, split.by = covariate)
   s_data_list<- SplitObject(seurat__standard, split.by = covariate)
   seurat__SCT <- seurat_sct(s_data_list)
 } else {
+  print("Running Full")
   seurat__standard <- make_seurat_obj(m, normalize = TRUE, scale = TRUE, split.by = covariate)
   s_data_list<- SplitObject(seurat__standard, split.by = covariate)
   seurat__SCT <- seurat_sct(s_data_list)

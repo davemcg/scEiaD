@@ -1,6 +1,7 @@
 library(tidyverse)
 # load labelled data from clark et all
-clark_labels <- read_csv('https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1')
+# https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1
+clark_labels <- read_csv('10x_mouse_retina_development_phenotype.csv')
 
 # extract clark blackshaw fields we want
 clark_labels <- clark_labels %>% 
@@ -75,7 +76,8 @@ meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054)
 
 cell_info_labels <- bind_rows(meta_SRP, 
                               cell_info %>% select(value:batch) %>% 
-                                filter(!value %in% meta_SRP$value))
+                                filter(!value %in% meta_SRP$value) %>% 
+                                mutate(Paper = NA))
 
 save(cell_info_labels, file = 'Mus_musculus_cell_info_labelled.Rdata')
 
