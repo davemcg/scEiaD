@@ -25,7 +25,16 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
   # the scaling happens at this level
   # e.g. DO NOT use 'batch' in build_seurat_obj.R then 'study_accession' here
   if (method == 'CCA'){
-    seurat_list <- SplitObject(seurat_obj, split.by = covariate)
+    # identify batches wiht really low cell counts (<100) to exclude
+    obj@meta.data$split_by <- obj@meta.data[,covariate]
+    splits_to_remove <- obj@meta.data %>% 
+      dplyr::group_by(split_by)%>% 
+      summarise(Count = n())  %>% 
+      filter(Count < 100) %>% 
+      pull(split_by) 
+    obj <- subset(obj, subset = split_by %in% splits_to_remove, invert = TRUE)
+    
+    seurat_list <- SplitObject(obj, split.by = covariate)
     anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20)
     obj <- IntegrateData(anchorset = anchors, verbose = TRUE)
     obj <- ScaleData(obj)
@@ -42,11 +51,18 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
   } else if (method == 'liger'){
     ## like harmony above, give one seurat obj
     ## NMF requires POSITIVE values
-    ## ScaleData can return negative values
-    ## so re-run with CENTER false (like the tutorial) 
-    ## and, UNLIKE the tutorial set the lowest value to 0.1 in the matrix
+    ## so, UNLIKE, the tutorial set the lowest value to 0.1 in the matrix
     var_genes <- grep('^MT-', seurat_obj@assays$RNA@var.features, value = TRUE, invert = TRUE)
-    obj <-  ScaleData(seurat_obj, split.by = covariate, vars.to.regress = var_genes, do.center = FALSE)
+    obj <- seurat_obj
+    # identify batches wiht really low cell coutns (<100) to exclude
+    obj@meta.data$split_by <- obj@meta.data[,covariate]
+    splits_to_remove <- obj@meta.data %>% 
+      dplyr::group_by(split_by)%>% 
+      summarise(Count = n())  %>% 
+      filter(Count < 100) %>% 
+      pull(split_by) 
+    obj <- subset(obj, subset = split_by %in% splits_to_remove, invert = TRUE)
+    #obj <-  ScaleData(seurat_obj, split.by = covariate, vars.to.regress = var_genes, do.center = FALSE)
     obj@assays$RNA@scale.data <- obj@assays$RNA@scale.data - min(obj@assays$RNA@scale.data) + 0.1 # <- yeah this is hacky but I think OK...
     # ...the alternative would be to re-run from scratch with raw counts, which would mean 
     # liger would be getting differently scaled values
@@ -107,8 +123,6 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
   }
   obj
 }
-
-
 
 create_umap_neighbors <- function(integrated_obj, 
                                   max_dims = 20, 
