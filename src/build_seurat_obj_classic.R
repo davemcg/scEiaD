@@ -199,6 +199,3 @@ if (transform == 'SCT'){
        file = args[1], compress = FALSE)
 }
 
-# save objects
-save(seurat__standard, 
-     file = args[1], compress = FALSE)
