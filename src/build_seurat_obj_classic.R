@@ -83,43 +83,44 @@ save(cell_info, file = paste0(species, '_cell_info.Rdata'))
 # Only one study (Clark ... Blackshaw is present for the early stage)
 m_early <- m[,cell_info %>% filter(Age < 10) %>% pull(value)]
 m_late <- m[,cell_info %>% filter(Age >= 10) %>% pull(value)]
-
+m_test <- m[,sample(1:ncol(m), 10000)]
 
 
 make_seurat_obj <- function(m, 
-                            split.by,
-                            normalize = TRUE, 
-                            scale = TRUE){
+                            split.by = 'study_accession'){
   seurat_m <- CreateSeuratObject(m)
   seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, pattern = "^MT-")
   # FILTER STEP!!!!
   # keep cells with < 10% mito genes, and more than 200 and less than 3000 detected genes
   seurat_m <- subset(seurat_m, subset = percent.mt < 10 & nFeature_RNA > 200 & nFeature_RNA < 3000 )
-  seurat_m@meta.data$batch <- cell_info %>% 
-    filter(value %in% row.names(seurat_m@meta.data)) %>% 
+  seurat_m@meta.data$batch <- left_join(seurat_m@meta.data %>% 
+                                          row.names() %>% enframe(), 
+                                        cell_info, by = 'value') %>% 
     pull(batch)
-  seurat_m@meta.data$study_accession <- cell_info %>% 
-    filter(value %in% row.names(seurat_m@meta.data)) %>% 
+  seurat_m@meta.data$study_accession <- left_join(seurat_m@meta.data %>% 
+                                                    row.names() %>% enframe(), 
+                                                  cell_info, by = 'value') %>% 
     pull(study_accession)
-  seurat_m@meta.data$Age <- cell_info %>% 
-    filter(value %in% row.names(seurat_m@meta.data)) %>% 
+  seurat_m@meta.data$Age <- left_join(seurat_m@meta.data %>% 
+                                        row.names() %>% enframe(), 
+                                      cell_info, by = 'value') %>% 
     pull(Age)
   # scale data and regress
-  if (normalize){
-    seurat_m <- NormalizeData(seurat_m)
-  }
+  seurat_m <- NormalizeData(seurat_m)
   # find var features
-  seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 3000, selection.method = 'vst')
+  seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 2000, selection.method = 'vst')
   # don't use mito genes
   var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
-  if (scale){
-    seurat_m <- ScaleData(seurat_m,
-                          features = var_genes,
-                          split.by = split.by,
-                          do.center = TRUE,
-                          do.scale = TRUE,
-                          vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
-  }
+  
+  print(paste0('Running scale, splitting by ', split.by))
+  seurat_m <- ScaleData(seurat_m,
+                        features = var_genes,
+                        split.by = split.by,
+                        do.center = TRUE,
+                        do.scale = TRUE,
+                        verbose = TRUE,
+                        vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
+  
   seurat_m <- RunPCA(seurat_m, npcs = 100)
   seurat_m
 }
@@ -156,17 +157,17 @@ seurat_sct <- function(seurat_list){
 
 if (set == 'early'){
   print("Running Early")
-  seurat__standard <- make_seurat_obj(m_early, normalize = TRUE, scale = TRUE, split.by = covariate)
+  seurat__standard <- make_seurat_obj(m_early, split.by = covariate)
   s_data_list<- SplitObject(seurat__standard, split.by = covariate)
   seurat__SCT <- seurat_sct(s_data_list)
 } else if (set == 'late'){
   print("Running Late")
-  seurat__standard <- make_seurat_obj(m_late, normalize = TRUE, scale = TRUE, split.by = covariate)
+  seurat__standard <- make_seurat_obj(m_late, split.by = covariate)
   s_data_list<- SplitObject(seurat__standard, split.by = covariate)
   seurat__SCT <- seurat_sct(s_data_list)
 } else {
   print("Running Full")
-  seurat__standard <- make_seurat_obj(m, normalize = TRUE, scale = TRUE, split.by = covariate)
+  seurat__standard <- make_seurat_obj(m, split.by = covariate)
   s_data_list<- SplitObject(seurat__standard, split.by = covariate)
   seurat__SCT <- seurat_sct(s_data_list)
 }
