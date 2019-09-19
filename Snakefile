@@ -108,15 +108,16 @@ for SRS in SRS_dict.keys():
 		SRS_nonUMI_samples.append(SRS)
 
 wildcard_constraints:
-	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples)
+	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
+	method = '|'.join(['CCA', 'scanorama', 'harmony', 'fastMNN'])
 
 rule all:
 	input:
-		expand('seurat_obj/{organism}__standard__{set}__{covariate}__{method}.seuratV3.Rdata', \
-				method = ['CCA', 'scanorama', 'liger', 'harmony', 'fastMNN'], \
+		expand('seurat_obj/{organism}__standard__{set}__{covariate}__{method}.umap.seuratV3.Rdata', \
+				method = ['CCA', 'scanorama', 'harmony', 'fastMNN'], \
 				organism = 'Mus_musculus', set = ['early', 'late', 'full'], \
 				covariate = ['study_accession', 'batch']),
-		expand('seurat_obj/{organism}__standard_and_SCT__{set}__{covariate}.seuratV3.Rdata', organism = 'Mus_musculus', set = ['early', 'late', 'full'], covariate = ['study_accession', 'batch'])
+		#expand('seurat_obj/{organism}__standard_and_SCT__{set}__{covariate}.seuratV3.Rdata', organism = 'Mus_musculus', set = ['early', 'late', 'full'], covariate = ['study_accession', 'batch'])
 		#'quant/Mus_musculus/scTransformCCA_merged_Embryonic.seuratV3.Rdata',
 		#'quant/Mus_musculus/scTransformCCA_merged_Postnatal.seuratV3.Rdata',
 		#expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
@@ -311,18 +312,21 @@ rule make_seurat_objs:
 		well = 'quant/{organism}/counts.Rdata',
 		droplet = lambda wildcards: expand('quant/{SRS}/genecount/matrix.Rdata', SRS = organism_droplet_dict[wildcards.organism])
 	output:
-		'seurat_obj/{organism}__standard_and_SCT__{set}__{covariate}.seuratV3.Rdata'
+		#cell_info = '{organism}_cell_info.Rdata',
+		seurat = 'seurat_obj/{organism}__standard_and_SCT__{set}__{covariate}.seuratV3.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_seurat_obj_classic.R {output} {wildcards.set} {wildcards.covariate} {input}	
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_seurat_obj_classic.R {output.seurat} {wildcards.set} {wildcards.covariate} {input}	
 		"""
+
+
 
 rule integrate:
 	input:
 		'seurat_obj/{organism}__standard_and_SCT__{set}__{covariate}.seuratV3.Rdata'
 	output:
-		'seurat_obj/{organism}__standard__{set}__{covariate}__{method}.seuratV3.Rdata'
+		temp('seurat_obj/{organism}__standard__{set}__{covariate}__{method}.seuratV3.Rdata')
 	run:
 		if wildcards.method != 'scanorama':
 			job = "module load R/3.6; \
@@ -339,6 +343,29 @@ rule integrate:
 																	output = output, input = input)
 		sp.run("echo " + job + '\n', shell = True)
 		sp.run(job, shell = True)
-		
 
-		
+#rule label_known_cells_with_type:
+#	input:
+#		'seurat_obj/{organism}__standard_and_SCT__{set}__{covariate}.seuratV3.Rdata'
+#	output:
+#		'{organism}_cell_info_labelled.Rdata'
+#	shell:
+#		"""
+#		module load R/3.6
+#		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/label_known_cells.R {wildcards.organism}_cell_info.Rdata {output}
+#		"""
+
+rule calculate_umap_and_cluster:
+	input:
+		'{organism}_cell_info_labelled.Rdata',
+		'seurat_obj/{organism}__standard__{set}__{covariate}__{method}.seuratV3.Rdata'
+	output:
+		'seurat_obj/{organism}__standard__{set}__{covariate}__{method}.umap.seuratV3.Rdata',
+		'umap/{organism}__standard__{set}__{covariate}__{method}.umap.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R {wildcards.method} {input} {output}
+		"""
+
+

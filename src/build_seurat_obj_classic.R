@@ -75,6 +75,7 @@ cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covar
                                   batch2 = paste(study_accession, Covariate, sep = '_'),
                                   batch3 = paste(Platform, Covariate, sep = '_'))
 cell_info <- cell_info %>% mutate(Age = case_when(Age > 100 ~ 30, TRUE ~ Age))
+# save barcodes for labelling with published cell type assignment 
 save(cell_info, file = paste0(species, '_cell_info.Rdata'))
 
 # split by two groups
