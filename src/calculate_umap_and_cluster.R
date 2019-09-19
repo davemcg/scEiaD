@@ -10,19 +10,21 @@ load(args[3])
 
 
 create_umap_and_cluster <- function(integrated_obj, 
-                                  max_dims = 20, 
-                                  reduction_name = 'pca', 
-                                  reduction_name_key = 'ccaUMAP_'){
+                                    max_dims = 20, 
+                                    reduction = 'pca',
+                                    reduction.name = 'ccaUMAP',
+                                    reduction.key = 'ccaUMAP_'){
   # UMAP
   integrated_obj <- RunUMAP(integrated_obj, 
                             dims = 1:max_dims, 
                             reduction = reduction_name, 
-                            reduction.key = reduction_name_key)
+                            reduction.name = reduction.name,
+                            reduction.key = reduction.key)
   # clustering 
   integrated_obj <- FindNeighbors(integrated_obj, 
                                   dims = 1:max_dims, 
                                   nn.eps = 0.5, 
-                                  reduction = reduction_name)
+                                  reduction = reduction.name)
   integrated_obj <- FindClusters(integrated_obj, 
                                  #resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
                                  save.SNN = TRUE,
@@ -33,38 +35,32 @@ create_umap_and_cluster <- function(integrated_obj,
 }
 
 if (method == 'CCA'){
-  reduction_name_key <- 'ccaUMAP_'
-  integrated_obj <- create_umap_and_cluster(integrated_obj, 
-                                          20,
-                                          'pca',
-                                          reduction_name_key = reduction_name_key)
+  reduction <- 'pca'
+  reduction.key <- 'ccaUMAP_'
 } else if (method == 'scanorama'){
-  reduction_name_key <- 'scanoramaUMAP_'
-  integrated_obj <- create_umap_and_cluster(integrated_obj, 
-                                          20,
-                                          'scanorama',
-                                          reduction_name_key = reduction_name_key)
+  reduction <- 'scanorama'
+  reduction.key <- 'scanoramaUMAP_'
 } else if (method == 'harmony'){
-  reduction_name_key <- 'harmonyUMAP_'
-  integrated_obj <- create_umap_and_cluster(integrated_obj, 
-                                          20,
-                                          'harmony',
-                                          reduction_name_key = reduction_name_key)
+  reduction <- 'harmony'
+  reduction.key <- 'harmonyUMAP_'
 } else if (method == 'fastMNN'){
-  reduction_name_key <- 'mnnUMAP_'
-  integrated_obj <- create_umap_and_cluster(integrated_obj, 
-                                          20,
-                                          'mnn',
-                                          reduction_name_key = reduction_name_key)
+  reduction <- 'mnn'
+  reduction.key <- 'mnnUMAP_'
 } else {
   print(paste0("Why did you pick ", method, "?"))
 }
+reduction.name <- gsub('_','', reduction.key)
+integrated_obj <- create_umap_and_cluster(integrated_obj, 
+                                          20,
+                                          reduction,
+                                          reduction.name = reduction.name,
+                                          reduction_name_key = reduction.key)
 
 save(integrated_obj, file = args[4], compress = FALSE )
 
 # left_join known cell labels
 orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
-umap <- Embeddings(integrated_obj[[reduction_name_key %>% gsub('_','',.)]]) %>% as_tibble(rownames = 'Barcode') %>% 
+umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'Barcode') %>% 
   left_join(., orig_meta) %>% 
   left_join(., meta %>% dplyr::rename(Barcode = value))
 umap$Method <- method
