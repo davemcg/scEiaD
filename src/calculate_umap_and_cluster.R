@@ -50,7 +50,7 @@ if (method == 'CCA'){
                                           20,
                                           'harmony',
                                           reduction_name_key = reduction_name_key)
-} else if (method = 'fastMNN'){
+} else if (method == 'fastMNN'){
   reduction_name_key <- 'mnnUMAP_'
   integrated_obj <- create_umap_and_cluster(integrated_obj, 
                                           20,
