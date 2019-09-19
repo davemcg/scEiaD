@@ -10,7 +10,7 @@ library(Matrix)
 library(tidyverse)
 library(Seurat)
 library(future)
-plan(strategy = "multicore", workers = 8)
+plan(strategy = "multicore", workers = 4)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 500000 * 1024^2)
@@ -18,21 +18,22 @@ options(future.globals.maxSize = 500000 * 1024^2)
 set = args[2] # early, late, full
 covariate = args[3] # study_accession, batch, etc.
 # load in metadata for study project merging, UMI correction, and gene name changing
-metadata <- read_tsv(args[4])
-tx <- read_tsv(args[5], col_names = FALSE) %>% select(2,3) %>% unique()
+transform = args[4]
+metadata <- read_tsv(args[5])
+tx <- read_tsv(args[6], col_names = FALSE) %>% select(2,3) %>% unique()
 colnames(tx) <- c('id', 'gene')
 
 # well data
-load(args[6])
+load(args[7])
 # # remove cells with > 10000 or < 1000 detected genes
 # count <- count[,(diff(count@p) < 10000)]
 # count <- count[,(diff(count@p) > 1000)]
 
 # extract species
-species <- str_split(args[6], '/')[[1]][2]
+species <- str_split(args[7], '/')[[1]][2]
 
 # sparse matrix files
-rdata_files = args[7:length(args)]
+rdata_files = args[8:length(args)]
 
 # roll through UMI data, 
 # correct gene names (upper case), force to be unique
@@ -151,27 +152,53 @@ seurat_sct <- function(seurat_list){
     DefaultAssay(seurat_list[[i]]) <- 'RNA'
     seurat_list[[i]] <- trySCTransform(seurat_list[[i]])
   }
-  seurat_list
+  
+  # remove sets with less than 200 cells, which will fail integration
+  low_n <- c()
+  for (i in names(seurat_list)){
+    if (ncol(seurat_list[[i]]) < 200){
+      low_n <- c(low_n, i)
+    }
+  }
+  if (length(low_n) > 0){
+    seurat_list[low_n] <- NULL
+  }
+  
+  study_data_features <- SelectIntegrationFeatures(object.list = seurat_list, nfeatures = 2000, verbose = FALSE)
+  seurat_list <- PrepSCTIntegration(object.list = seurat_list, anchor.features = study_data_features, verbose = FALSE)
+  
+  # have to apply PCA after SelectIntegrationFeatures and PrepSCTIntegration
+  seurat_list <- lapply(X = seurat_list, FUN = function(x) {
+    x <- RunPCA(x, features = study_data_features, verbose = FALSE)
+  })
+  
+  list(seurat_list = seurat_list, study_data_features = study_data_features)
+  
 }
 
 
 if (set == 'early'){
   print("Running Early")
   seurat__standard <- make_seurat_obj(m_early, split.by = covariate)
-  s_data_list<- SplitObject(seurat__standard, split.by = covariate)
-  seurat__SCT <- seurat_sct(s_data_list)
 } else if (set == 'late'){
   print("Running Late")
   seurat__standard <- make_seurat_obj(m_late, split.by = covariate)
-  s_data_list<- SplitObject(seurat__standard, split.by = covariate)
-  seurat__SCT <- seurat_sct(s_data_list)
 } else {
   print("Running Full")
   seurat__standard <- make_seurat_obj(m, split.by = covariate)
+}
+
+if (transform == 'SCT'){
   s_data_list<- SplitObject(seurat__standard, split.by = covariate)
   seurat__SCT <- seurat_sct(s_data_list)
+  save(seurat__SCT, 
+       file = args[1], compress = FALSE)
+} else {
+  # save objects
+  save(seurat__standard, 
+       file = args[1], compress = FALSE)
 }
 
 # save objects
-save(seurat__standard, seurat__SCT,
+save(seurat__standard, 
      file = args[1], compress = FALSE)
