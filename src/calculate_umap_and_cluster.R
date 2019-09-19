@@ -17,7 +17,7 @@ create_umap_and_cluster <- function(integrated_obj,
   # UMAP
   integrated_obj <- RunUMAP(integrated_obj, 
                             dims = 1:max_dims, 
-                            reduction = reduction_name, 
+                            reduction = reduction, 
                             reduction.name = reduction.name,
                             reduction.key = reduction.key)
   # clustering 
@@ -54,7 +54,7 @@ integrated_obj <- create_umap_and_cluster(integrated_obj,
                                           20,
                                           reduction,
                                           reduction.name = reduction.name,
-                                          reduction_name_key = reduction.key)
+                                          reduction.key = reduction.key)
 
 save(integrated_obj, file = args[4], compress = FALSE )
 
