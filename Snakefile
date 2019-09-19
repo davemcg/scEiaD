@@ -112,9 +112,15 @@ wildcard_constraints:
 
 rule all:
 	input:
-		expand('quant/{organism}/scTransformCCA_merged.seuratV3.Rdata', organism = organism_well_dict.keys()),
-		expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
-		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples) # non UMI data
+		expand('seurat_obj/{organism}__standard__{set}__{covariate}__{method}.seuratV3.Rdata', \
+				method = ['CCA', 'scanorama', 'liger', 'harmony', 'fastMNN'], \
+				organism = 'Mus_musculus', set = ['early', 'late', 'full'], \
+				covariate = ['study_accession', 'batch']),
+		expand('seurat_obj/{organism}__standard_and_SCT__{set}__{covariate}.seuratV3.Rdata', organism = 'Mus_musculus', set = ['early', 'late', 'full'], covariate = ['study_accession', 'batch'])
+		#'quant/Mus_musculus/scTransformCCA_merged_Embryonic.seuratV3.Rdata',
+		#'quant/Mus_musculus/scTransformCCA_merged_Postnatal.seuratV3.Rdata',
+		#expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
+		#expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples) # non UMI data
 		# expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
 
 # mouse, human, macaque fasta and gtf
@@ -298,48 +304,41 @@ rule merge_nonUMI_quant_by_organism:
 		"""
 
 
-rule seurat_sct_anchor:
+rule make_seurat_objs:
 	input:
 		srr_metadata = config['srr_sample_file'],		
 		tx_map = lambda wildcards: SRS_info(organism_well_dict[wildcards.organism][0], 'tx'),
 		well = 'quant/{organism}/counts.Rdata',
 		droplet = lambda wildcards: expand('quant/{SRS}/genecount/matrix.Rdata', SRS = organism_droplet_dict[wildcards.organism])
 	output:
-		'quant/{organism}/scTransformCCA_anchor.seuratV3.Rdata'
-	threads: 6
+		'seurat_obj/{organism}__standard_and_SCT__{set}__{covariate}.seuratV3.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_anchor.R {output} {input}	
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_seurat_obj_classic.R {output} {wildcards.set} {wildcards.covariate} {input}	
 		"""
 
-rule seurat_sct_combine:
+rule integrate:
 	input:
-		'quant/{organism}/scTransformCCA_anchor.seuratV3.Rdata'
+		'seurat_obj/{organism}__standard_and_SCT__{set}__{covariate}.seuratV3.Rdata'
 	output:
-		'quant/{organism}/scTransformCCA_merged.seuratV3.Rdata'
-	threads: 6
-	shell:
-		"""
-		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_combine.R {output} {input}
-		"""
+		'seurat_obj/{organism}__standard__{set}__{covariate}__{method}.seuratV3.Rdata'
+	run:
+		if wildcards.method != 'scanorama':
+			job = "module load R/3.6; \
+					Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
+					  {method} {covariate} {input} {output}".format(method = wildcards.method, \
+																    covariate = wildcards.covariate, \
+											                        output = output, input = input)
+		else:
+			job = "source /data/mcgaugheyd/conda/etc/profile.d/conda.sh; \
+					conda init bash; conda activate scanorama; \
+					Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
+					  {method} {covariate} {input} {output}".format(method = wildcards.method, \
+																	covariate = wildcards.covariate, \
+																	output = output, input = input)
+		sp.run("echo " + job + '\n', shell = True)
+		sp.run(job, shell = True)
 		
 
-
-rule liger_combine:
-	input:
-		
-	output:
-		'quant/{organism}/liger_merged.seuratV3.Rdata'
-rule harmony_combine:
-	input:
-	output:
-		'quant/{organims}/harmony_merged.seuratV3.Rdata'
-
-# visualize retina markers and sample age
-rule assess_combime:
-	input:
-		expand('quant/{{organism}}/{method}_merged.seuratV3.Rdata', method = ['scTransformCCA','liger','harmony'])
-	output:
 		

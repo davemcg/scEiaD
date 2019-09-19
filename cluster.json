@@ -35,17 +35,17 @@
 	{
 		"mem" : "64G"
 	},
-	"seurat_sct_anchor" :
+	"make_seurat_objs" :
 	{
-		"mem" : "1000G",
-		"partition" : "largemem",
-		"time" : "36:00:00",
+		"mem" : "240G",
+		"partition" : "norm",
+		"time" : "24:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
-	"seurat_sct_combine" :
+	"integrate" :
 	{
-		"mem" : "1000G",
-		"partition" : "largemem",
+		"mem" : "240G",
+		"partition" : "norm",
 		"time" : "12:00:00",
 		"extra" : " --gres=lscratch:100"
 	}
