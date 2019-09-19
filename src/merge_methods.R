@@ -48,7 +48,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
   } else if (method == 'harmony'){
     ## uses one seurat obj (give covariate in meta.data to group.by.vars)
     obj <- RunHarmony(seurat_obj, group.by.vars = covariate,
-                      max.iter.harmony = 15, 
+                      max.iter.harmony = 10, 
                       epsilon.harmony = -Inf)
   } else if (method == 'liger'){
     ## like harmony above, give one seurat obj
