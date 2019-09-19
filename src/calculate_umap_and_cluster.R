@@ -22,9 +22,9 @@ create_umap_and_cluster <- function(integrated_obj,
                             reduction.key = reduction.key)
   # clustering 
   integrated_obj <- FindNeighbors(integrated_obj, 
+                                  reduction = reduction,
                                   dims = 1:max_dims, 
-                                  nn.eps = 0.5, 
-                                  reduction = reduction.name)
+                                  nn.eps = 0.5)
   integrated_obj <- FindClusters(integrated_obj, 
                                  #resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
                                  save.SNN = TRUE,
