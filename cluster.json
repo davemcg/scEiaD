@@ -53,7 +53,7 @@
 	{
 		"mem" : "160G",
 		"partition" : "quick",
-		"time" : "12:00:00",
+		"time" : "4:00:00",
 		"extra" : " --gres=lscratch:100"
 	}
 }
