@@ -62,7 +62,7 @@ save(integrated_obj, file = args[4], compress = FALSE )
 orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
 umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'Barcode') %>% 
   left_join(., orig_meta) %>% 
-  left_join(., meta %>% dplyr::rename(Barcode = value))
+  left_join(., cell_info_labels %>% dplyr::rename(Barcode = value))
 umap$Method <- method
 colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 
