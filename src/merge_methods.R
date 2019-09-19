@@ -33,7 +33,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
       summarise(Count = n())  %>% 
       filter(Count < 100) %>% 
       pull(split_by)
-	if (length(splits_to_remove >= 1) { 
+	if (length(splits_to_remove >= 1)) { 
     	obj <- subset(obj, subset = split_by %in% splits_to_remove, invert = TRUE)
     }
     seurat_list <- SplitObject(obj, split.by = covariate)
@@ -63,7 +63,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
       summarise(Count = n())  %>% 
       filter(Count < 100) %>% 
       pull(split_by) 
-	if (length(splits_to_remove >= 1) { 
+	if (length(splits_to_remove >= 1)) { 
     	obj <- subset(obj, subset = split_by %in% splits_to_remove, invert = TRUE)
     }
     #obj <-  ScaleData(seurat_obj, split.by = covariate, vars.to.regress = var_genes, do.center = FALSE)
@@ -126,29 +126,6 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
     NULL
   }
   obj
-}
-
-create_umap_neighbors <- function(integrated_obj, 
-                                  max_dims = 20, 
-                                  reduction_name = 'pca', 
-                                  reduction_name_key = 'ccaUMAP_'){
-  # UMAP
-  integrated_obj <- RunUMAP(integrated_obj, 
-                            dims = 1:max_dims, 
-                            reduction = reduction_name, 
-                            reduction.key = reduction_name_key)
-  # clustering 
-  integrated_obj <- FindNeighbors(integrated_obj, 
-                                  dims = 1:max_dims, 
-                                  nn.eps = 0.5, 
-                                  reduction = reduction_name)
-  integrated_obj <- FindClusters(integrated_obj, 
-                                 #resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
-                                 save.SNN = TRUE,
-                                 do.sparse = TRUE,
-                                 algorithm = 2,
-                                 random.seed = 23)
-  integrated_obj
 }
 
 extract_umap_for_plotting <- function(integrated_obj){
