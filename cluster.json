@@ -48,5 +48,12 @@
 		"partition" : "norm",
 		"time" : "12:00:00",
 		"extra" : " --gres=lscratch:100"
+	},
+	"calculate_umap_and_cluster" :
+	{
+		"mem" : "160G",
+		"partition" : "quick",
+		"time" : "12:00:00",
+		"extra" : " --gres=lscratch:100"
 	}
 }
