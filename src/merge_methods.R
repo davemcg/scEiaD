@@ -27,15 +27,13 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
   if (method == 'CCA'){
     # identify batches wiht really low cell counts (<100) to exclude
     obj <- seurat_obj
-	obj@meta.data$split_by <- obj@meta.data[,covariate]
-    splits_to_remove <- obj@meta.data %>% 
-      dplyr::group_by(split_by)%>% 
-      summarise(Count = n())  %>% 
-      filter(Count < 100) %>% 
-      pull(split_by)
-	if (length(splits_to_remove >= 1)) { 
-    	obj <- subset(obj, subset = split_by %in% splits_to_remove, invert = TRUE)
-    }
+    obj@meta.data$split_by <- obj@meta.data[,covariate]
+    meta <- obj@meta.data
+    counts <- meta %>% group_by(split_by) %>% summarise(Count = n())
+    meta <- left_join(meta, counts)
+    obj@meta.data$CellCount <- meta$Count
+    obj <- subset(obj, subset = CellCount> 100)
+    
     seurat_list <- SplitObject(obj, split.by = covariate)
     anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20)
     obj <- IntegrateData(anchorset = anchors, verbose = TRUE)
@@ -63,8 +61,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
       summarise(Count = n())  %>% 
       filter(Count < 100) %>% 
       pull(split_by) 
-	if (length(splits_to_remove >= 1)) { 
-    	obj <- subset(obj, subset = split_by %in% splits_to_remove, invert = TRUE)
+    if (length(splits_to_remove >= 1)) { 
+      obj <- subset(obj, subset = split_by %in% splits_to_remove, invert = TRUE)
     }
     #obj <-  ScaleData(seurat_obj, split.by = covariate, vars.to.regress = var_genes, do.center = FALSE)
     obj@assays$RNA@scale.data <- obj@assays$RNA@scale.data - min(obj@assays$RNA@scale.data) + 0.1 # <- yeah this is hacky but I think OK...
