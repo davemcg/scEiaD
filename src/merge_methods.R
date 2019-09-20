@@ -2,8 +2,9 @@
 args <- commandArgs(trailingOnly = TRUE)
 
 method = args[1]
-covariate = args[2]
-load(args[3])
+transform = args[2]
+covariate = args[3]
+load(args[4])
 
 # crazy section to deal with that fact I have scanorama in a conda environment,
 # but many of the seurat wrapped integration tools can't be installed in conda
@@ -25,14 +26,14 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
   # the scaling happens at this level
   # e.g. DO NOT use 'batch' in build_seurat_obj.R then 'study_accession' here
   if (method == 'CCA'){
-    # identify batches wiht really low cell counts (<100) to exclude
+    # identify batches wiht  low cell counts (<200) to exclude
     obj <- seurat_obj
     obj@meta.data$split_by <- obj@meta.data[,covariate]
     meta <- obj@meta.data
     counts <- meta %>% group_by(split_by) %>% summarise(Count = n())
     meta <- left_join(meta, counts)
     obj@meta.data$CellCount <- meta$Count
-    obj <- subset(obj, subset = CellCount> 100)
+    obj <- subset(obj, subset = CellCount > 200)
     
     seurat_list <- SplitObject(obj, split.by = covariate)
     anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20)
@@ -126,13 +127,12 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
   obj
 }
 
-extract_umap_for_plotting <- function(integrated_obj){
-  load('Mus_musculus_cell_info_labelled.Rdata')
-  orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
-  umap <- Embeddings(integrated_obj[['umap']]) %>% as_tibble(rownames = 'Barcode') %>% 
-    left_join(., orig_meta) %>% 
-    left_join(., cell_info_labels %>% select(value:Paper) %>% rename(Barcode = value))
+if (transform == 'standard'){
+  integrated_obj <- run_integration(seurat__standard, method, covariate)
+} else{
+  seurat_list <- seurat__SCT$seurat_list
+  merged <- merge(x = seurat_list[[1]], y = seurat_list[2:length(x = seurat_list)])
+  merged@assays$SCT@var.features <- seurat__SCT$study_data_features
+  integrated_obj <- run_integration(merged, method, covariate)
 }
-
-integrated_obj <- run_integration(seurat__standard, method, covariate)
-save(integrated_obj, file = args[4], compress = FALSE)
+save(integrated_obj, file = args[5], compress = FALSE)
