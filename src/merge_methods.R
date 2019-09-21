@@ -131,7 +131,9 @@ if (transform == 'standard' & method != 'none'){
   integrated_obj <- run_integration(seurat__standard, method, covariate)
 } else if (transform == 'SCT' & method != 'none') {
   seurat_list <- seurat__SCT$seurat_list
-  merged <- merge(x = seurat_list[[1]], y = seurat_list[2:length(x = seurat_list)])
+  if (length(seurat_list > 1)){
+    merged <- merge(x = seurat_list[[1]], y = seurat_list[2:length(x = seurat_list)])
+  } else {merged <- seurat_list[[1]]}
   merged@assays$SCT@var.features <- seurat__SCT$study_data_features
   DefaultAssay(merged) <- 'SCT'
   merged <- RunPCA(merged, npcs = 100)
@@ -140,7 +142,9 @@ if (transform == 'standard' & method != 'none'){
   integrated_obj <- seurat__standard
 } else if (transform == 'SCT' & method == 'none'){
   seurat_list <- seurat__SCT$seurat_list
-  merged <- merge(x = seurat_list[[1]], y = seurat_list[2:length(x = seurat_list)])
+  if (length(seurat_list > 1)){
+    merged <- merge(x = seurat_list[[1]], y = seurat_list[2:length(x = seurat_list)])
+  } else {merged <- seurat_list[[1]]}
   merged@assays$SCT@var.features <- seurat__SCT$study_data_features
   DefaultAssay(merged) <- 'SCT'
   merged <- RunPCA(merged, npcs = 100)
