@@ -115,20 +115,11 @@ wildcard_constraints:
 
 rule all:
 	input:
-		expand('plots/{organism}__{transform}__{set}__{covariate}__{method}.color_study__facet_age.pdf', \
-				transform = ['standard'], \
-				method = ['CCA', 'scanorama', 'harmony', 'fastMNN'], \
-				organism = 'Mus_musculus', set = ['early', 'late', 'full'], \
-				covariate = ['study_accession', 'batch']),
-		expand('seurat_obj/{organism}__{transform}__{set}__{covariate}__{method}.umap.seuratV3.Rdata', \
-				transform = ['standard'], \
-				method = ['CCA', 'scanorama', 'harmony', 'fastMNN'], \
-				organism = 'Mus_musculus', set = ['early', 'late', 'full'], \
-				covariate = ['study_accession', 'batch']),
-		expand('seurat_obj/{organism}__{transform}__{set}__{covariate}.seuratV3.Rdata', \
-				transform = ['SCT', 'standard'], \
-				organism = 'Mus_musculus', \
-				set = ['early', 'late', 'full'], \
+		expand('plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_study__facet_age.pdf', \
+				transform = ['standard', 'SCT'], \
+				method = ['CCA', 'scanorama', 'harmony', 'fastMNN', 'none'], \
+				organism = 'Mus_musculus', \ 
+				partition = ['early', 'late', 'full'], \
 				covariate = ['study_accession', 'batch'])
 		#'quant/Mus_musculus/scTransformCCA_merged_Embryonic.seuratV3.Rdata',
 		#'quant/Mus_musculus/scTransformCCA_merged_Postnatal.seuratV3.Rdata',
@@ -325,20 +316,20 @@ rule make_seurat_objs:
 		droplet = lambda wildcards: expand('quant/{SRS}/genecount/matrix.Rdata', SRS = organism_droplet_dict[wildcards.organism])
 	output:
 		#cell_info = '{organism}_cell_info.Rdata',
-		seurat = 'seurat_obj/{organism}__{transform}__{set}__{covariate}.seuratV3.Rdata'
+		seurat = 'seurat_obj/{organism}__{transform}__{partition}__{covariate}.seuratV3.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_seurat_obj_classic.R {output.seurat} {wildcards.set} {wildcards.covariate} {wildcards.transform} {input}	
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_seurat_obj_classic.R {output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} {input}	
 		"""
 
 
 
 rule integrate:
 	input:
-		'seurat_obj/{organism}__{transform}__{set}__{covariate}.seuratV3.Rdata'
+		'seurat_obj/{organism}__{transform}__{partition}__{covariate}.seuratV3.Rdata'
 	output:
-		temp('seurat_obj/{organism}__{transform}__{set}__{covariate}__{method}.seuratV3.Rdata')
+		temp('seurat_obj/{organism}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata')
 	run:
 		if wildcards.method != 'scanorama':
 			job = "module load R/3.6; \
@@ -360,7 +351,7 @@ rule integrate:
 
 #rule label_known_cells_with_type:
 #	input:
-#		'seurat_obj/{organism}__standard_and_SCT__{set}__{covariate}.seuratV3.Rdata'
+#		'seurat_obj/{organism}__standard_and_SCT__{partition}__{covariate}.seuratV3.Rdata'
 #	output:
 #		'{organism}_cell_info_labelled.Rdata'
 #	shell:
@@ -372,10 +363,10 @@ rule integrate:
 rule calculate_umap_and_cluster:
 	input:
 		'{organism}_cell_info_labelled.Rdata',
-		'seurat_obj/{organism}__{transform}__{set}__{covariate}__{method}.seuratV3.Rdata'
+		'seurat_obj/{organism}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
 	output:
-		'seurat_obj/{organism}__{transform}__{set}__{covariate}__{method}.umap.seuratV3.Rdata',
-		'umap/{organism}__{transform}__{set}__{covariate}__{method}.umap.Rdata'
+		'seurat_obj/{organism}__{transform}__{partition}__{covariate}__{method}.umap.seuratV3.Rdata',
+		'umap/{organism}__{transform}__{partition}__{covariate}__{method}.umap.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -384,12 +375,12 @@ rule calculate_umap_and_cluster:
 
 rule plot_integration:
 	input:
-		'umap/{organism}__{transform}__{set}__{covariate}__{method}.umap.Rdata'
+		'umap/{organism}__{transform}__{partition}__{covariate}__{method}.umap.Rdata'
 	output:
-		'plots/{organism}__{transform}__{set}__{covariate}__{method}.color_study__facet_age.pdf',
-		'plots/{organism}__{transform}__{set}__{covariate}__{method}.color_study__facet_batch.pdf',
-		'plots/{organism}__{transform}__{set}__{covariate}__{method}.color_paper__facet_celltype.pdf',
-		'plots/{organism}__{transform}__{set}__{covariate}__{method}.color_celltype__facet_cluster.pdf'
+		'plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_study__facet_age.pdf',
+		'plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_study__facet_batch.pdf',
+		'plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_paper__facet_celltype.pdf',
+		'plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_celltype__facet_cluster.pdf'
 	shell:
 		"""
 		module load R/3.6
