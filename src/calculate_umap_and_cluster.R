@@ -46,6 +46,9 @@ if (method == 'CCA'){
 } else if (method == 'fastMNN'){
   reduction <- 'mnn'
   reduction.key <- 'mnnUMAP_'
+} else if (method == 'none'){
+  reduction <- 'pca'
+  reduction.key <- 'noneUMAP_'
 } else {
   print(paste0("Why did you pick ", method, "?"))
 }
