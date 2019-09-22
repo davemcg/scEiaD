@@ -20,7 +20,7 @@ if (method != 'scanorama'){
   scanorama <- import('scanorama')
 }
 
-run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
+run_integration <- function(seurat_obj, method, covariate = 'study_accession', transform = 'standard'){
   # covariate MUST MATCH what was used in build_seurat_obj.R
   # otherwise weird-ness may happen
   # the scaling happens at this level
@@ -46,9 +46,16 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession'){
     obj <- RunFastMNN(object.list = seurat_list)
   } else if (method == 'harmony'){
     ## uses one seurat obj (give covariate in meta.data to group.by.vars)
-    obj <- RunHarmony(seurat_obj, group.by.vars = covariate,
-                      max.iter.harmony = 10, 
-                      epsilon.harmony = -Inf)
+    if (transform == 'standard'){
+      obj <- RunHarmony(seurat_obj, group.by.vars = covariate,
+                        max.iter.harmony = 10, 
+                        epsilon.harmony = -Inf)
+    } else {
+      obj <- RunHarmony(seurat_obj, group.by.vars = covariate,
+                        max.iter.harmony = 10, 
+                        epsilon.harmony = -Inf,
+                        assay.use = 'SCT')
+    }
   } else if (method == 'liger'){
     ## like harmony above, give one seurat obj
     ## NMF requires POSITIVE values
