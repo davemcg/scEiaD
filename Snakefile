@@ -109,7 +109,7 @@ for SRS in SRS_dict.keys():
 
 wildcard_constraints:
 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
-	method = '|'.join(['CCA', 'scanorama', 'harmony', 'fastMNN']),
+	method = '|'.join(['CCA', 'scanorama', 'harmony', 'fastMNN', 'none']),
 	transform = '|'.join(['standard', 'SCT']),
 	covariate = '|'.join(['study_accession', 'batch'])
 
@@ -329,7 +329,7 @@ rule integrate:
 	input:
 		'seurat_obj/{organism}__{transform}__{partition}__{covariate}.seuratV3.Rdata'
 	output:
-		temp('seurat_obj/{organism}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata')
+		('seurat_obj/{organism}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata')
 	run:
 		if wildcards.method != 'scanorama':
 			job = "module load R/3.6; \
