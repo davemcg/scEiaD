@@ -95,7 +95,9 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     # of the integration, which is INTENDED FOR PCA/tSNE/UMAP!!!
     # the corrected data returns all of the sample x gene matrix with batch
     # corrected values
-    assay <- 'RNA'
+    if (transform == 'standard'){
+      assay <- 'RNA'
+    } else {assay <- 'SCT'}
     d <- list() # d is lists of scaled Data
     g <- list() # g is lists of gene names for each matrix in d
     seurat_list <- SplitObject(seurat_obj, split.by = covariate)
@@ -106,7 +108,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     # forever to figure out. stupid annoying. 
     for (i in seq(1, length(seurat_list))){
       # print(i);
-      var_genes <- grep('^MT-', seurat_list[[i]]@assays$RNA@var.features, value = TRUE, invert = TRUE)
+      var_genes <- grep('^MT-', seurat_list[[i]]@assays[[assay]]@var.features, value = TRUE, invert = TRUE)
       d[[i]] <- t((seurat_list[[i]]@assays[[assay]]@scale.data[var_genes,])) %>% as.matrix(); 
       d[[i]][is.na(d[[i]])] <- 0; 
       g[[i]] <- colnames(d[[i]]) 
