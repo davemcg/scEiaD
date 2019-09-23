@@ -107,20 +107,31 @@ for SRS in SRS_dict.keys():
 	elif SRS_dict[SRS]['tech'] != 'BULK':
 		SRS_nonUMI_samples.append(SRS)
 
+method = ['CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none']
+transform = ['standard', 'SCT']
+covariate = ['study_accession', 'batch']
+
 wildcard_constraints:
 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
-	method = '|'.join(['CCA', 'scanorama', 'harmony', 'fastMNN', 'none']),
-	transform = '|'.join(['standard', 'SCT']),
-	covariate = '|'.join(['study_accession', 'batch'])
+	method = '|'.join(method),
+	transform = '|'.join(transform),
+	covariate = '|'.join(covariate)
 
 rule all:
 	input:
+		# study_accession - early has only one covariate, so skip
 		expand('plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_study__facet_age.pdf', \
-				transform = ['standard', 'SCT'], \
-				method = ['CCA', 'scanorama', 'harmony', 'fastMNN', 'none'], \
-				organism = 'Mus_musculus', \ 
-				partition = ['early', 'late', 'full'], \
-				covariate = ['study_accession', 'batch'])
+				transform = transform, \
+				method = method, \
+				organism = 'Mus_musculus', \
+				partition = ['late', 'full'], \
+				covariate = covariate),
+		expand('plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_study__facet_age.pdf', \
+				transform = transform, \
+				method = method, \
+				organism = 'Mus_musculus', \
+				partition = ['early'], \
+				covariate = ['batch'])
 		#'quant/Mus_musculus/scTransformCCA_merged_Embryonic.seuratV3.Rdata',
 		#'quant/Mus_musculus/scTransformCCA_merged_Postnatal.seuratV3.Rdata',
 		#expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
