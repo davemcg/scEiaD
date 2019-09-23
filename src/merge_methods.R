@@ -130,7 +130,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     obj <- seurat_obj
     obj[["scanorama"]] <- CreateDimReducObject(embeddings = scanorama_mnn, key = "scanorama_", assay = DefaultAssay(obj))
     
-  } else if (method = 'combat') {
+  } else if (method == 'combat') {
     if (transform == 'standard'){
       assay <- 'RNA'
     } else {assay <- 'SCT'}
