@@ -15,6 +15,7 @@ if (method != 'scanorama'){
   library(SeuratWrappers)
   library(harmony)
   library(batchelor)
+  library(sva)
 } else {
   library(reticulate)
   scanorama <- import('scanorama')
@@ -129,7 +130,19 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     obj <- seurat_obj
     obj[["scanorama"]] <- CreateDimReducObject(embeddings = scanorama_mnn, key = "scanorama_", assay = DefaultAssay(obj))
     
-  } else {
+  } else if (method = 'combat') {
+    if (transform == 'standard'){
+      assay <- 'RNA'
+    } else {assay <- 'SCT'}
+    # gene by sample for ComBat
+    obj <- seurat_obj
+    var_genes <- grep('^MT-', obj@assays[[assay]]@var.features, value = TRUE, invert = TRUE)
+    matrix <- obj@assays[[assay]]@scale.data[var_genes,]
+    cor_data = ComBat(matrix, obj@meta.data[, covariate], prior.plots=FALSE, par.prior=TRUE)
+    obj <- CreateAssayObject(data = cor_data)
+    obj <- SetAssayData(obj, slot = 'scale.data', cor_data)
+    obj <- RunPCA(obj)
+    } else {
     print('Supply either CCA, fastMNN, harmony, liger, or scanorama as a method')
     NULL
   }
