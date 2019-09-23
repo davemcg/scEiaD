@@ -10,7 +10,6 @@ clark_labels <- clark_labels %>%
          umap_coord2, umap_coord3, X1, barcode, sample, age, 
          UMI)
 
-
 ## now get macosko labels
 # macosko et al
 macosko_labels <- read_tsv('http://mccarrolllab.org/wp-content/uploads/2015/05/retina_clusteridentities.txt', col_names = c('Cell','Cluster'))
@@ -31,6 +30,22 @@ macosko_labels <- macosko_labels %>%
   mutate(label = gsub('_.*','', Cell),
          UMI = gsub('\\w\\d_','', Cell))
 
+## rgc / bipolar cell labels from karthik shekhar sanes 
+# SRP075719
+karthik <- read_tsv('~/git/massive_integrated_eye_scRNA/data/shekhar_sanes_ClustAssignFile.txt')
+karthik <- karthik %>% 
+  # RBC == Rod Bipolar Cell
+  mutate(CellType = case_when(CLUSTER == 1 ~ 'RBC', 
+                              CLUSTER == 2 ~ 'Muller Glia',
+                              CLUSTER >= 17 | CLUSTER == 18 | CLUSTER == 19 | CLUSTER == 21 ~ 'Doublet',
+                              CLUSTER >= 23 ~ 'Unknown',
+                              CLUSTER == 16 ~ 'Amacrine Cells',
+                              CLUSTER == 20 ~ 'Rods',
+                              CLUSTER == 22 ~ 'Cones', 
+                              TRUE ~ 'BC')) %>% 
+  mutate(mouse = gsub('_.*', '', CELL_NAME),
+         UMI = gsub('.*_','', CELL_NAME)) 
+  
 ## load cell info
 load('Mus_musculus_cell_info.Rdata')
 # see below for how I got the labelling
@@ -72,6 +87,17 @@ meta_SRP050054 <- cell_info %>%
               select(label, UMI, CellType) , by = c('label', 'UMI' )) %>% 
   select(value:batch, CellType) %>% mutate(Paper = 'Macoko et al. 2015')
 
+meta_SRP075719 <- cell_info %>% 
+  filter(study_accession == 'SRP075719') %>% 
+  mutate(mouse = case_when(sample_accession == 'SRS1467254' ~ 'Bipolar6',
+                           sample_accession == 'SRS1467251' ~ 'Bipolar3',
+                           sample_accession == 'SRS1467253' ~ 'Bipolar5',
+                           sample_accession == 'SRS1467249' ~ 'Bipolar1',
+                           sample_accession == 'SRS1467250' ~ 'Bipolar2',
+                           sample_accession == 'SRS1467252' ~ 'Bipolar4',
+                           TRUE ~ 'X')) %>% 
+  left_join(., karthik %>% select(mouse, UMI, CellType), by = c('UMI', 'mouse'))
+  
 meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054)
 
 cell_info_labels <- bind_rows(meta_SRP, 
@@ -80,7 +106,6 @@ cell_info_labels <- bind_rows(meta_SRP,
                                 mutate(Paper = NA))
 
 save(cell_info_labels, file = 'Mus_musculus_cell_info_labelled.Rdata')
-
 
 
 # ## Figure out what the hell is going on as the above file lists p1, r1 through r6 and GEO lists the 7 samples as 1 - 7....
