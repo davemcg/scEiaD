@@ -139,7 +139,6 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     var_genes <- grep('^MT-', obj@assays[[assay]]@var.features, value = TRUE, invert = TRUE)
     matrix <- obj@assays[[assay]]@scale.data[var_genes,]
     cor_data = ComBat(matrix, obj@meta.data[, covariate], prior.plots=FALSE, par.prior=TRUE)
-    obj <- CreateAssayObject(data = cor_data)
     obj <- SetAssayData(obj, slot = 'scale.data', cor_data)
     obj <- RunPCA(obj)
     } else {
