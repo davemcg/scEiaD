@@ -35,14 +35,14 @@ macosko_labels <- macosko_labels %>%
 karthik <- read_tsv('~/git/massive_integrated_eye_scRNA/data/shekhar_sanes_ClustAssignFile.txt')
 karthik <- karthik %>% 
   # RBC == Rod Bipolar Cell
-  mutate(CellType = case_when(CLUSTER == 1 ~ 'RBC', 
+  mutate(CellType = case_when(CLUSTER == 1 ~ 'Rod Bipolar Cells', 
                               CLUSTER == 2 ~ 'Muller Glia',
                               CLUSTER >= 17 | CLUSTER == 18 | CLUSTER == 19 | CLUSTER == 21 ~ 'Doublet',
                               CLUSTER >= 23 ~ 'Unknown',
                               CLUSTER == 16 ~ 'Amacrine Cells',
                               CLUSTER == 20 ~ 'Rods',
                               CLUSTER == 22 ~ 'Cones', 
-                              TRUE ~ 'BC')) %>% 
+                              TRUE ~ 'Bipolar Cells')) %>% 
   mutate(mouse = gsub('_.*', '', CELL_NAME),
          UMI = gsub('.*_','', CELL_NAME)) 
   
