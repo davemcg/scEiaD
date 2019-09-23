@@ -72,4 +72,23 @@ umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'B
 umap$Method <- method
 colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 
-save(umap, file = args[5])
+# pull eye markers
+msig <- readxl::read_xls('~/git/massive_integrated_eye_scRNA/data/scsig.v1.0.metadata.xls')
+msig <- msig %>% filter(grepl('Visual', `Source Organ System`)) %>% select(`Gene Set Standard Name`, `Source Organism`, `Exact Source In Publication`, `PubMed ID`, `Additional Details`, `Raw Member IDs from Source Publication`) %>% mutate(Gene = str_split(`Raw Member IDs from Source Publication`, ',')) %>% unnest() 
+msig <- msig %>% mutate(Num = row.names(msig))
+# filter to genes that are in the scale.data slot in the DefaultAssay 
+assay <- DefaultAssay(integrated_obj)
+msig_present <- msig %>% filter(Gene %in% row.names(integrated_obj@assays[[assay]]@scale.data)) %>% 
+  filter(!grepl('MT', Gene)) # no mito genes
+top <- msig_present %>% group_by(`Additional Details`) %>% top_n(., 10, wt = Num)
+# hybrid expresions system where I average the top 10 genes in each marker group
+expression <- list()
+for (i in top$`Additional Details` %>% unique()){
+  expression[[i]] <- FetchData(integrated_obj, top %>% filter(`Additional Details` == i) %>% pull(Gene))
+}
+avg_marker <- expression %>% map(rowMeans) %>% map(enframe) %>% bind_rows(.id = 'id')
+colnames(avg_marker) <- c('CellType', 'Barcode', 'ScaleData')
+avg_marker <- avg_marker %>% spread(CellType, ScaleData)
+
+
+save(left_join(umap, avg_marker, by = 'Barcode'), file = args[5])
