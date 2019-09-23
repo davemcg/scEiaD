@@ -49,6 +49,9 @@ if (method == 'CCA'){
 } else if (method == 'none'){
   reduction <- 'pca'
   reduction.key <- 'noneUMAP_'
+} else if (method == 'combat'){
+  reduction <- 'pca'
+  reduction.key <- 'combatUMAP_'
 } else {
   print(paste0("Why did you pick ", method, "?"))
 }
