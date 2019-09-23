@@ -96,9 +96,10 @@ meta_SRP075719 <- cell_info %>%
                            sample_accession == 'SRS1467250' ~ 'Bipolar2',
                            sample_accession == 'SRS1467252' ~ 'Bipolar4',
                            TRUE ~ 'X')) %>% 
-  left_join(., karthik %>% select(mouse, UMI, CellType), by = c('UMI', 'mouse'))
+  left_join(., karthik %>% select(mouse, UMI, CellType), by = c('UMI', 'mouse')) %>% 
+  select(value:batch, CellType) %>% mutate(Paper = 'Shekhar et al. 2016')
   
-meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054)
+meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719)
 
 cell_info_labels <- bind_rows(meta_SRP, 
                               cell_info %>% select(value:batch) %>% 
