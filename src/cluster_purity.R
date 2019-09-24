@@ -16,10 +16,11 @@ for (i in umap_files){
   all_obj[[set]] <- umap
 }
 
-output_file <- args[2]
-
+output_file1 <- args[2]
+output_file2 <- args[3]
 
 cluster_purity_plot <- function(obj, algorithm_name){
+  obj <- obj %>% filter(!is.na(CellType))
   p1_mean <- obj %>% group_by(seurat_clusters, CellType) %>% 
     summarise(Count = n()) %>% 
     mutate(Perc = Count/sum(Count)) %>% 
@@ -34,24 +35,46 @@ cluster_purity_plot <- function(obj, algorithm_name){
     ungroup() %>% group_by(seurat_clusters) %>% 
     summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) %>% 
     pull(seurat_clusters) %>% unique() %>% length()
-  obj %>% group_by(seurat_clusters, CellType) %>% 
-    summarise(Count = n()) %>% 
+  obj <- obj %>% group_by(seurat_clusters, CellType) %>% 
+    summarise(Count = n(), CellTypes = list(unique(CellType))) %>% 
     mutate(Perc = Count/sum(Count)) %>% 
     filter(Perc > 0.1) %>% 
     ungroup() %>% group_by(seurat_clusters) %>% 
-    summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) %>% 
-    ggplot(aes(x=paste0(algorithm_name,' mean = ', p1_mean, ', Sum = ', p1_cluster_count), y = Count)) +
-    geom_violin() +
-    ggbeeswarm::geom_quasirandom() + xlab('') +
-    coord_cartesian(ylim = c(1,5))
+    summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) 
+  obj$Info <- algorithm_name
+  obj <- obj %>% 
+    separate(Info, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method'), sep = '__')
+  list(mean = p1_mean, cluster_count = p1_cluster_count, dist = obj)
 }
 
-purity_plots <- list()
-x <- all_obj %>% map(cluster_purity_plot, algorithm_name = 'bloo')
+purity_calcs <- all_obj %>% imap(cluster_purity_plot)
 
-p1 <- cluster_purity_plot(seurat,'Seurat')
-p2 <- cluster_purity_plot(harmony,'Harmony')
-p3 <- cluster_purity_plot(mnn,'MNN')
-p4 <- cluster_purity_plot(naive,'Naive')
 
-plot_grid(p4, p1, p2, p3, nrow = 1)  
+pdf(output_file1, width = 20, height = 4)
+#pdf('test.pdf', width = 20, height = 4)
+purity_calcs %>% 
+  map(3) %>% # third item in list is the purity distributions
+  bind_rows() %>% 
+  ggplot(aes(x=Method, y = Count, colour = Transform)) + 
+  geom_violin(draw_quantiles = c(0.5)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  facet_wrap(~Covariate + Set, nrow = 1)
+dev.off()
+
+pdf(output_file2, width = 20, height = 4)
+#pdf('test2.pdf', width = 20, height = 4)
+cbind(purity_calcs %>% 
+  map(1) %>% # third item in list is the purity distributions
+  enframe(value = 'Mean') %>% 
+    unnest(Mean),
+  purity_calcs %>% 
+    map(2) %>% # third item in list is the purity distributions
+    enframe(value = 'Count') %>% unnest(Count) %>% select(Count)) %>% 
+  separate(name, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method'), sep = '__') %>% 
+  as_tibble() %>% 
+  ggplot(aes(x=Method, y = Mean, colour = Transform, size = Count)) + 
+  geom_point() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  facet_wrap(~Covariate + Set, nrow = 1)
+dev.off()
+
