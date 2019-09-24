@@ -90,5 +90,6 @@ avg_marker <- expression %>% map(rowMeans) %>% map(enframe) %>% bind_rows(.id = 
 colnames(avg_marker) <- c('CellType', 'Barcode', 'ScaleData')
 avg_marker <- avg_marker %>% spread(CellType, ScaleData)
 
+umap <- left_join(umap, avg_marker, by = 'Barcode')
 
-save(left_join(umap, avg_marker, by = 'Barcode'), file = args[5])
+save(umap, file = args[5])
