@@ -105,7 +105,16 @@ cell_info_labels <- bind_rows(meta_SRP,
                               cell_info %>% select(value:batch) %>% 
                                 filter(!value %in% meta_SRP$value) %>% 
                                 mutate(Paper = NA))
-
+# this is crude, but SRP16660 has selected Muller Glia via FACS of R26R mouse line
+# SRP186407 uses Cx3cr1+ FACS to select Microglia
+cell_info_labels <- cell_info_labels %>% 
+  mutate(CellType = case_when(study_accession == 'SRP166660' ~ "Muller Glia",
+                              study_accession == 'SRP186407' ~ "Microglia",
+                              TRUE ~ CellType),
+         Paper = case_when(study_accession == 'SRP166660' ~ "Rueda et al. 2019",
+                           study_accession == 'SRP186407' ~ "O'Koren et al. 2019",
+                           TRUE ~ Paper))
+  
 save(cell_info_labels, file = 'Mus_musculus_cell_info_labelled.Rdata')
 
 
