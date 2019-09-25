@@ -3,10 +3,11 @@ library(Seurat)
 
 args <- commandArgs(trailingOnly = TRUE)
 method = args[1]
+max_dims = args[2] %>% as.numeric()
 # cell labels
-load(args[2])
-# integrated_obj
 load(args[3])
+# integrated_obj
+load(args[4])
 
 
 create_umap_and_cluster <- function(integrated_obj, 
@@ -26,7 +27,7 @@ create_umap_and_cluster <- function(integrated_obj,
                                   dims = 1:max_dims, 
                                   nn.eps = 0.5)
   integrated_obj <- FindClusters(integrated_obj, 
-                                 #resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
+                                 resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
                                  save.SNN = TRUE,
                                  do.sparse = TRUE,
                                  algorithm = 2,
@@ -57,12 +58,12 @@ if (method == 'CCA'){
 }
 reduction.name <- gsub('_','', reduction.key)
 integrated_obj <- create_umap_and_cluster(integrated_obj, 
-                                          20,
+                                          max_dims,
                                           reduction,
                                           reduction.name = reduction.name,
                                           reduction.key = reduction.key)
 
-save(integrated_obj, file = args[4], compress = FALSE )
+save(integrated_obj, file = args[5], compress = FALSE )
 
 # left_join known cell labels
 orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
@@ -90,6 +91,20 @@ avg_marker <- expression %>% map(rowMeans) %>% map(enframe) %>% bind_rows(.id = 
 colnames(avg_marker) <- c('CellType', 'Barcode', 'ScaleData')
 avg_marker <- avg_marker %>% spread(CellType, ScaleData)
 
-umap <- left_join(umap, avg_marker, by = 'Barcode')
+# add core markers
+# Rho for rods
+# Opn1sw for cones
+# Sfrp2 for early progenitors
+# Hes6 for neurogenic
+# Tfap2a for amacrine
+# Ccnd1 for late progenitors
+# Aqp4 for muller glia
+# Vsx1 to bipolar
+# Elavl4 for RGC
+core_markers <- c('Rho','Opn1sw', 'Sfrp2', 'Hes6', 'Tfap2a', 'Isl1', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4', 'Best1')
+core_expression <- FetchData(integrated_obj, toupper(core_markers)) %>% as_tibble(rownames = 'Barcode')
 
-save(umap, file = args[5])
+umap <- left_join(umap, avg_marker, by = 'Barcode') %>% 
+  left_join(., core_expression, by = 'Barcode')
+
+save(umap, file = args[6])
