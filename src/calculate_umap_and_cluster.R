@@ -1,5 +1,10 @@
 library(tidyverse)
 library(Seurat)
+library(future)
+plan(strategy = "multicore", workers = 4)
+# the first term is roughly the number of MB of RAM you expect to use
+# 40000 ~ 40GB
+options(future.globals.maxSize = 500000 * 1024^2)
 
 args <- commandArgs(trailingOnly = TRUE)
 method = args[1]
