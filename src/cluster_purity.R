@@ -43,7 +43,7 @@ cluster_purity_plot <- function(obj, algorithm_name){
     summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) 
   obj$Info <- algorithm_name
   obj <- obj %>% 
-    separate(Info, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method'), sep = '__')
+    separate(Info, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', 'Dims'), sep = '__')
   list(mean = p1_mean, cluster_count = p1_cluster_count, dist = obj)
 }
 
@@ -58,7 +58,7 @@ purity_calcs %>%
   ggplot(aes(x=Method, y = Count, colour = Transform)) + 
   geom_violin(draw_quantiles = c(0.5)) + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-  facet_wrap(~Covariate + Set, nrow = 1)
+  facet_wrap(~Covariate + Set + Dims, nrow = 1)
 dev.off()
 
 pdf(output_file2, width = 20, height = 4)
