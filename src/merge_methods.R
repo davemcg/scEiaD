@@ -45,6 +45,18 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     ## uses list of seurat objects (each obj your "covariate")
     seurat_list <- SplitObject(seurat_obj, split.by = covariate)
     obj <- RunFastMNN(object.list = seurat_list)
+    # re-run scaledata as it gets wiped
+    if (transform == 'standard'){
+      var_genes <- grep('^MT-', seurat_obj@assays$RNA@var.features, value = TRUE, invert = TRUE)
+      obj <- ScaleData(obj,
+                       features = var_genes,
+                       split.by = covariate,
+                       do.center = TRUE,
+                       do.scale = TRUE,
+                       verbose = TRUE,
+                       vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
+    }
+    
   } else if (method == 'harmony'){
     ## uses one seurat obj (give covariate in meta.data to group.by.vars)
     if (transform == 'standard'){
@@ -141,7 +153,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     cor_data = ComBat(matrix, obj@meta.data[, covariate], prior.plots=FALSE, par.prior=TRUE)
     obj <- SetAssayData(obj, slot = 'scale.data', cor_data)
     obj <- RunPCA(obj)
-    } else {
+  } else {
     print('Supply either CCA, fastMNN, harmony, liger, or scanorama as a method')
     NULL
   }
