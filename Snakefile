@@ -110,12 +110,14 @@ for SRS in SRS_dict.keys():
 method = ['CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none']
 transform = ['standard', 'SCT']
 covariate = ['study_accession', 'batch']
+organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 
 wildcard_constraints:
 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
 	method = '|'.join(method),
 	transform = '|'.join(transform),
-	covariate = '|'.join(covariate)
+	covariate = '|'.join(covariate),
+	organism = '|'.join(organism)
 
 rule all:
 	input:
@@ -134,7 +136,7 @@ rule all:
 				partition = ['early'], \
 				covariate = ['batch'], \
 				dims = [20,50]),
-		expand('plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf', \
+		expand('plots/well_supported_celltypes/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf', \
 				transform = transform, \
 				method = method, \
 				organism = 'Mus_musculus', \
@@ -411,7 +413,8 @@ rule plot_integration_with_well_supported_cell_types:
 	input:
 		'umap/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
 	output:
-		'plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf'
+		'plots/well_supported_celltypes/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf',
+		'plots/well_supported_celltypes/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_celltype.pdf',
 	shell:
 		"""
 		module load R/3.6
