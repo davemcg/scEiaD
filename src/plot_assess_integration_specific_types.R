@@ -21,4 +21,4 @@ umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipol
   theme_minimal() + 
   scale_color_brewer(palette = 'Set1') + 
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
-dev.odf()
+dev.off()

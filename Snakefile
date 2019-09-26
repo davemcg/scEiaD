@@ -120,18 +120,27 @@ wildcard_constraints:
 rule all:
 	input:
 		# study_accession - early has only one covariate, so skip
-		expand('plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_study__facet_age.pdf', \
+		expand('plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
 				transform = transform, \
 				method = method, \
 				organism = 'Mus_musculus', \
 				partition = ['late', 'full'], \
-				covariate = covariate),
-		expand('plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_study__facet_age.pdf', \
+				covariate = covariate, \
+				dims = [20,50]),
+		expand('plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
 				transform = transform, \
 				method = method, \
 				organism = 'Mus_musculus', \
 				partition = ['early'], \
-				covariate = ['batch'])
+				covariate = ['batch'], \
+				dims = [20,50]),
+		expand('plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf', \
+				transform = transform, \
+				method = method, \
+				organism = 'Mus_musculus', \
+				partition = ['full'], \
+				covariate = covariate, \
+				dims = [20,50])
 		#'quant/Mus_musculus/scTransformCCA_merged_Embryonic.seuratV3.Rdata',
 		#'quant/Mus_musculus/scTransformCCA_merged_Postnatal.seuratV3.Rdata',
 		#expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
@@ -376,24 +385,35 @@ rule calculate_umap_and_cluster:
 		'{organism}_cell_info_labelled.Rdata',
 		'seurat_obj/{organism}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
 	output:
-		'seurat_obj/{organism}__{transform}__{partition}__{covariate}__{method}.umap.seuratV3.Rdata',
-		'umap/{organism}__{transform}__{partition}__{covariate}__{method}.umap.Rdata'
+		'seurat_obj/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.seuratV3.Rdata',
+		'umap/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R {wildcards.method} {input} {output}
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R {wildcards.method} {wildcards.dims} {input} {output}
 		"""
 
 rule plot_integration:
 	input:
-		'umap/{organism}__{transform}__{partition}__{covariate}__{method}.umap.Rdata'
+		'umap/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
 	output:
-		'plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_study__facet_age.pdf',
-		'plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_study__facet_batch.pdf',
-		'plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_paper__facet_celltype.pdf',
-		'plots/{organism}__{transform}__{partition}__{covariate}__{method}.color_celltype__facet_cluster.pdf'
+		'plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf',
+		'plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_batch.pdf',
+		'plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_paper__facet_celltype.pdf',
+		'plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_celltype__facet_cluster.pdf'
 	shell:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/plot_assess_integration.R {input} {output}
+		"""
+
+rule plot_integration_with_well_supported_cell_types:
+	input:
+		'umap/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
+	output:
+		'plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/plot_assess_integration_specific_types.R {input} {output}
 		"""
