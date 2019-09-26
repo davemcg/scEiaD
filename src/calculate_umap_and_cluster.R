@@ -32,7 +32,7 @@ create_umap_and_cluster <- function(integrated_obj,
                                   dims = 1:max_dims, 
                                   nn.eps = 0.5)
   integrated_obj <- FindClusters(integrated_obj, 
-                                 resolution = c(0.1,0.3,0.6,0.8,1,2,3,4,5),
+                                 resolution = c(0.6,0.8,1,3),
                                  save.SNN = TRUE,
                                  do.sparse = TRUE,
                                  algorithm = 2,
@@ -104,9 +104,9 @@ avg_marker <- avg_marker %>% spread(CellType, ScaleData)
 # Tfap2a for amacrine
 # Ccnd1 for late progenitors
 # Aqp4 for muller glia
-# Vsx1 to bipolar
+# Vsx1, Grm6, Cabp5 for bipolar cells
 # Elavl4 for RGC
-core_markers <- c('Rho','Opn1sw', 'Sfrp2', 'Hes6', 'Tfap2a', 'Isl1', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4', 'Best1')
+core_markers <- c('Rho','Opn1sw', 'Sfrp2', 'Hes6', 'Tfap2a', 'Isl1', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4', 'Best1', 'Grm6', 'Cabp5')
 core_expression <- FetchData(integrated_obj, toupper(core_markers)) %>% as_tibble(rownames = 'Barcode')
 
 umap <- left_join(umap, avg_marker, by = 'Barcode') %>% 
