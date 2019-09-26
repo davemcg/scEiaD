@@ -23,7 +23,7 @@ umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipol
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
 dev.off()
 
-pdf(args[3], height = 4, width = 10)
+pdf(args[3], height = 4, width = 5)
 umap %>% filter(Age > 10) %>% 
   mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
          Labelling = case_when(is.na(Paper) ~ 'None',
