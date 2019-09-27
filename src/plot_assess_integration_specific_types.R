@@ -12,8 +12,8 @@ colnames(umap) <- gsub('^rna_', '', colnames(umap))
 # in other words sholud overlap wihtin each plot, but be in distinct space (x - y)
 # for each cell type plot facet
 pdf(args[2], height = 4, width = 10)
-umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), Labelling = case_when(is.na(Paper) ~ 'None',
-                                                                                                                            TRUE ~ Paper)) %>% 
+umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
+                                     Labelling = case_when(is.na(Paper) ~ 'None',                                                                                                                     TRUE ~ Paper)) %>% 
   filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods')) %>% 
   ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Labelling)) + 
   geom_point(size = 0.3, alpha = 0.1) + 
