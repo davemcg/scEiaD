@@ -5,7 +5,7 @@ library(cowplot)
 args <- commandArgs(trailingOnly = TRUE)
 
 load(args[1])
-
+colnames(umap) <- gsub('^rna_', '', colnames(umap))
 # specific plot with Bipolar Cells, Muller Glia, and Rods for >10 day old samples
 # these are three cell types with multiple studies (matched roughly by time)
 # would expect them to largely overlap (within each cell type)
