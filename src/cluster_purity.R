@@ -6,6 +6,8 @@ args <- commandArgs(trailingOnly = TRUE)
 
 library(cowplot)
 library(tidyverse)
+library(spancs)
+library(ggsci)
 
 umap_folder <- args[1]
 umap_files <- list.files(umap_folder, "*umap.Rdata", full.names = TRUE)
@@ -18,6 +20,7 @@ for (i in umap_files){
 
 output_file1 <- args[2]
 output_file2 <- args[3]
+output_file3 <- args[4]
 
 cluster_purity_plot <- function(obj, algorithm_name, 
                                 grouping_var_1 = 'seurat_clusters', 
@@ -49,17 +52,23 @@ cluster_purity_plot <- function(obj, algorithm_name,
   list(mean = p1_mean, cluster_count = p1_cluster_count, dist = obj)
 }
 
-purity_calcs_cluster_vs_celltype <- all_obj %>% imap(cluster_purity_plot, "seurat_clusters", "CellType")
-purity_calcs_cluster_vs_study <- all_obj %>% imap(cluster_purity_plot, "seurat_clusters", "study_accession")
-purity_calcs_cluster_vs_age <- all_obj %>% imap(cluster_purity_plot, "seurat_clusters", "Age")
+# only keep full 
+full <- grep('full', names(all_obj), value = TRUE)
+full_obj <- all_obj[full]
+bipolar_muller_rod <- full_obj %>% map(function(x) mutate(x, CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType) )) %>% 
+  map(function(x) filter(x, CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods'))) %>% 
+  map(function(x) filter(x, Age  > 10)) %>% 
+  map(function(x) mutate(x, celltype_study = paste0(CellType, '__', study_accession)))
 
 
-dist_plotter <- function(output_prefix, obj, title = "Distribution of Purity of Clusters by Cell Type"){
-  for (i in c("early", "late", "full")){
-    subset = grep(i, names(obj), value = TRUE)
-    pdf(paste0(output_prefix, '_', i, '.pdf'), width = 20, height = 4)
-    #pdf('test.pdf', width = 20, height = 4)
-    print(obj[subset] %>% 
+purity_calcs_cluster_vs_celltype <- bipolar_muller_rod %>% imap(cluster_purity_plot, "seurat_clusters", "CellType")
+purity_calcs_cluster_vs_study_and_cell_type <- bipolar_muller_rod %>% imap(cluster_purity_plot, "seurat_clusters", "celltype_study")
+#purity_calcs_cluster_vs_age <- bipolar_muller_rod %>% imap(cluster_purity_plot, "seurat_clusters", "Age")
+
+
+dist_plotter <- function(output_file, obj, title = "Distribution of Purity of Clusters by Cell Type"){
+    pdf(output_file, width = 20, height = 4)
+    print(obj %>% 
             map(3) %>% # third item in list is the purity distributions
             bind_rows() %>% 
             ggplot(aes(x=Method, y = Count, colour = Transform)) + 
@@ -69,19 +78,17 @@ dist_plotter <- function(output_prefix, obj, title = "Distribution of Purity of 
             ggtitle(title) 
     )
     dev.off()   
-  }
+#  }
   
 }
 
-mean_plotter <- function(output_prefix, obj, title = "Mean Purity of Clusters by Cell Type"){
-  for (i in c("early", "late", "full")){
-    subset = grep(i, names(obj), value = TRUE)
-    pdf(paste0(output_prefix, '_', i, '.pdf'), width = 20, height = 4)
-    print(cbind(obj[subset] %>% 
+mean_plotter <- function(output_file, obj, title = "Mean Purity of Clusters by Cell Type"){
+  pdf(output_file, width = 20, height = 4)
+    print(cbind(obj %>% 
                   map(1) %>% # first item is the mean
                   enframe(value = 'Mean') %>% 
                   unnest(Mean),
-                obj[subset] %>% 
+                obj %>% 
                   map(2) %>% # second is the number of clusters
                   enframe(value = 'Count') %>% unnest(Count) %>% select(Count)) %>% 
             separate(name, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__') %>% 
@@ -92,15 +99,44 @@ mean_plotter <- function(output_prefix, obj, title = "Mean Purity of Clusters by
             facet_wrap(~Covariate + Set + Dims, nrow = 1) +
             ggtitle(title))
     dev.off()
+  #}
+}
+
+# draw a convex hull around each seurat_cluster and plot size
+# ideally want each cluster to be "tight" (i.e. not a big ol blob)
+cluster_area <- function(obj, cluster_col = 'seurat_clusters'){
+  obj <- obj[,c('UMAP_1', 'UMAP_2', cluster_col)]
+  obj <- obj %>% mutate(col = as.numeric(as.character(!!sym(cluster_col))))
+  areas <- c()
+  for (i in obj %>% pull(col) %>% unique()){
+    
+    f_obj <- obj %>% filter(col == i)
+
+    outer_coords <- chull(f_obj$UMAP_1, f_obj$UMAP_2)
+    area <- splancs::areapl(f_obj[outer_coords,c('UMAP_1', 'UMAP_2')] %>% as.matrix()) 
+    areas <- c(areas, area)
   }
+  areas %>% enframe()
 }
 
 
-dist_plotter('test1', purity_calcs_cluster_vs_celltype, "Distribution of Purity of Clusters by Cell Type")
-dist_plotter('test2', purity_calcs_cluster_vs_study, "Distribution of Purity of Clusters by Study")
-dist_plotter('test3', purity_calcs_cluster_vs_age, "Distribution of Purity of Clusters by Age")
+#dist_plotter('test1', purity_calcs_cluster_vs_celltype, "Distribution of Purity of Clusters by Cell Type")
+#dist_plotter('test2', purity_calcs_cluster_vs_study_and_cell_type, "Distribution of Purity of Clusters by Study")
+#dist_plotter('test3', purity_calcs_cluster_vs_age, "Distribution of Purity of Clusters by Age")
 
-mean_plotter('test4', purity_calcs_cluster_vs_celltype, "Mean Purity of Clusters by Cell Type")
-mean_plotter('test5', purity_calcs_cluster_vs_study, "Mean Purity of Clusters by Study")
-mean_plotter('test6', purity_calcs_cluster_vs_age, "Mean Purity of Clusters by Age")
+mean_plotter(args[2], purity_calcs_cluster_vs_celltype, "Mean Purity of Clusters by Cell Type (Ideal is 1)")
+mean_plotter(args[3], purity_calcs_cluster_vs_study_and_cell_type, "Diversity of Cell Type Clusters by Study (Higher is Better)")
+#mean_plotter('test6', purity_calcs_cluster_vs_age, "Mean Purity of Clusters by Age")
 
+pdf(args[4], width = 6, height = 3)
+area_plot %>% 
+  group_by(Transform, Covariate, Method, Dims) %>% 
+  summarise(value = median(value)) %>% 
+  ggplot(aes(x=Method, y = value, colour = Transform)) + 
+  geom_point(stat = 'identity') + 
+  theme_minimal() + 
+  ggsci::scale_color_aaas() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  facet_wrap(~Covariate + Dims, nrow = 1) + 
+  ylab('Median Cluster Area') + ggtitle("fastMNN has the smallest median cluster size")
+dev.off()
