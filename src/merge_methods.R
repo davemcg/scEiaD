@@ -152,7 +152,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     matrix <- obj@assays[[assay]]@scale.data[var_genes,]
     cor_data = ComBat(matrix, obj@meta.data[, covariate], prior.plots=FALSE, par.prior=TRUE)
     obj <- SetAssayData(obj, slot = 'scale.data', cor_data)
-    obj <- RunPCA(obj)
+    obj <- RunPCA(obj, npcs = 100)
   } else {
     print('Supply either CCA, fastMNN, harmony, liger, or scanorama as a method')
     NULL
