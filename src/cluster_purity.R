@@ -6,7 +6,7 @@ args <- commandArgs(trailingOnly = TRUE)
 
 library(cowplot)
 library(tidyverse)
-library(spancs)
+library(splancs)
 library(ggsci)
 
 umap_folder <- args[1]
@@ -129,6 +129,7 @@ mean_plotter(args[3], purity_calcs_cluster_vs_study_and_cell_type, "Diversity of
 #mean_plotter('test6', purity_calcs_cluster_vs_age, "Mean Purity of Clusters by Age")
 
 pdf(args[4], width = 6, height = 3)
+area_plot <- full_obj %>% map(cluster_area) %>% bind_rows(.id='stuff') %>% separate(stuff, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__')
 area_plot %>% 
   group_by(Transform, Covariate, Method, Dims) %>% 
   summarise(value = median(value)) %>% 
