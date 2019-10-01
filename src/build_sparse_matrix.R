@@ -16,12 +16,12 @@ colnames(tx) <- c('id', 'gene')
 # well data
 print(species)
 if (species != "Macaca_fascicularis"){
-  load(args[5]) # well data
-  rdata_files = args[6:length(args)]
+  load(args[6]) # well data
+  rdata_files = args[7:length(args)]
   ## make row names for count (well) upper case
   row.names(count) <- toupper(row.names(count))
 } else {
-  rdata_files = args[5:length(args)]
+  rdata_files = args[6:length(args)]
 }
 
 # roll through UMI data, 
