@@ -19,65 +19,7 @@ set = args[2] # early, late, full
 covariate = args[3] # study_accession, batch, etc.
 # load in metadata for study project merging, UMI correction, and gene name changing
 transform = args[4]
-metadata <- read_tsv(args[5])
-tx <- read_tsv(args[6], col_names = FALSE) %>% select(2,3) %>% unique()
-colnames(tx) <- c('id', 'gene')
 
-# well data
-load(args[7])
-# # remove cells with > 10000 or < 1000 detected genes
-# count <- count[,(diff(count@p) < 10000)]
-# count <- count[,(diff(count@p) > 1000)]
-
-# extract species
-species <- str_split(args[7], '/')[[1]][2]
-
-# sparse matrix files
-rdata_files = args[8:length(args)]
-
-# roll through UMI data, 
-# correct gene names (upper case), force to be unique
-# add sample ID to UMI
-# e.g. AAATATAAAA_SRS2341234
-sc_data <- list()
-droplet_samples <- list()
-for (i in seq(1,length(rdata_files))){
-  file = rdata_files[i]
-  sample_accession = str_extract(file, '(SRS|iPSC_RPE_scRNA_)\\d+')
-  droplet_samples <- c(droplet_samples, sample_accession)
-  load(file)
-  row.names(res_matrix) <- row.names(res_matrix) %>% 
-    enframe(value = 'id') %>% 
-    left_join(., tx, by = 'id') %>% 
-    pull(gene) %>% 
-    toupper()
-  # remove cells which have more than 6000 quantified genes (likely doublets)
-  #res_matrix <- res_matrix[,diff(res_matrix@p) < 6000]
-  colnames(res_matrix) <- make.unique(colnames(res_matrix))
-  colnames(res_matrix) <- paste0(colnames(res_matrix), "_", sample_accession)
-  row.names(res_matrix) <- make.unique(row.names(res_matrix))
-  sc_data[[sample_accession]] <- res_matrix
-}
-
-# create naive fully merged for 
-## make row names for count (well) upper case
-row.names(count) <- toupper(row.names(count))
-droplet <- Reduce(cbind, sc_data) 
-m <- Matrix.utils::merge.Matrix(count, droplet, by.x=row.names(count), by.y = row.names(droplet))
-m <- m[row.names(m) != 'fill.x', ] 
-# create sample table
-cell_info <- colnames(m) %>% enframe() %>% 
-  mutate(sample_accession = str_extract(value, 'SRS\\d+')) %>% 
-  left_join(metadata %>% select(-run_accession) %>% unique()) %>% 
-  data.frame()
-row.names(cell_info) <- cell_info$value
-
-cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covariate, sep = '_'),
-                                  batch2 = paste(study_accession, Covariate, sep = '_'),
-                                  batch3 = paste(Platform, Covariate, sep = '_'))
-cell_info <- cell_info %>% mutate(Age = case_when(Age > 100 ~ 30, TRUE ~ Age))
-# save barcodes for labelling with published cell type assignment 
-save(cell_info, file = paste0(species, '_cell_info.Rdata'))
 
 # split by two groups
 # early (< 10 days) and late (>10 days)
