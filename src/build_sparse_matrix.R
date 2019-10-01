@@ -7,13 +7,14 @@ args <- commandArgs(trailingOnly = TRUE)
 library(Matrix)
 library(tidyverse)
 library(Seurat)
-species <- str_split(args[1], '/')[[1]][2]
+species <- args[1]
 
 metadata <- read_tsv(args[4])
 tx <- read_tsv(args[5], col_names = FALSE) %>% select(2,3) %>% unique()
 colnames(tx) <- c('id', 'gene')
 
 # well data
+print(species)
 if (species != "Macaca_fascicularis"){
   load(args[5]) # well data
   rdata_files = args[6:length(args)]
