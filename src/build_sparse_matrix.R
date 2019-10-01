@@ -69,5 +69,5 @@ cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covar
                                   batch3 = paste(Platform, Covariate, sep = '_'))
 #cell_info <- cell_info %>% mutate(Age = case_when(Age > 100 ~ 30, TRUE ~ Age))
 # save barcodes for labelling with published cell type assignment 
-save(cell_info, file = args[1])
-save(m, file = args[2], compress = FALSE)
+save(cell_info, file = args[2])
+save(m, file = args[3], compress = FALSE)
