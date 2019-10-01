@@ -35,11 +35,13 @@ for (i in seq(1,length(rdata_files))){
   sample_accession = str_extract(file, '(SRS|iPSC_RPE_scRNA_)\\d+')
   droplet_samples <- c(droplet_samples, sample_accession)
   load(file)
-  row.names(res_matrix) <- row.names(res_matrix) %>% 
-    enframe(value = 'id') %>% 
-    left_join(., tx, by = 'id') %>% 
-    pull(gene) %>% 
-    toupper()
+  if (species != "Macaca_fascicularis") {
+    row.names(res_matrix) <- row.names(res_matrix) %>% 
+      enframe(value = 'id') %>% 
+      left_join(., tx, by = 'id') %>% 
+      pull(gene) %>% 
+      toupper()
+  } 
   # remove cells which have more than 6000 quantified genes (likely doublets)
   #res_matrix <- res_matrix[,diff(res_matrix@p) < 6000]
   colnames(res_matrix) <- make.unique(colnames(res_matrix))
