@@ -49,7 +49,10 @@ cluster_purity_plot <- function(obj, algorithm_name,
   obj$Info <- algorithm_name
   obj <- obj %>% 
     separate(Info, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', 'Dims'), sep = '__')
-  list(mean = p1_mean, cluster_count = p1_cluster_count, dist = obj)
+  cells_per_group <- obj %>% 
+    group_by(Count) %>% 
+    summarise(Sum = sum(Total))
+  list(mean = p1_mean, cluster_count = p1_cluster_count, dist = obj, cells_per_group = cells_per_group)
 }
 
 # only keep full 
@@ -67,38 +70,40 @@ purity_calcs_cluster_vs_study_and_cell_type <- bipolar_muller_rod %>% imap(clust
 
 
 dist_plotter <- function(output_file, obj, title = "Distribution of Purity of Clusters by Cell Type"){
-    pdf(output_file, width = 20, height = 4)
-    print(obj %>% 
-            map(3) %>% # third item in list is the purity distributions
-            bind_rows() %>% 
-            ggplot(aes(x=Method, y = Count, colour = Transform)) + 
-            geom_violin(draw_quantiles = c(0.5)) + 
-            theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-            facet_wrap(~Covariate + Set + Dims, nrow = 1) +
-            ggtitle(title) 
-    )
-    dev.off()   
-#  }
+  pdf(output_file, width = 20, height = 4)
+  print(obj %>% 
+          map(3) %>% # third item in list is the purity distributions
+          bind_rows() %>% 
+          ggplot(aes(x=Method, y = Count, colour = Transform)) + 
+          geom_violin(draw_quantiles = c(0.5)) + 
+          theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+          facet_wrap(~Covariate + Set + Dims, nrow = 1) +
+          ggtitle(title) 
+  )
+  dev.off()   
+  #  }
   
 }
 
 mean_plotter <- function(output_file, obj, title = "Mean Purity of Clusters by Cell Type"){
-  pdf(output_file, width = 20, height = 4)
-    print(cbind(obj %>% 
-                  map(1) %>% # first item is the mean
-                  enframe(value = 'Mean') %>% 
-                  unnest(Mean),
-                obj %>% 
-                  map(2) %>% # second is the number of clusters
-                  enframe(value = 'Count') %>% unnest(Count) %>% select(Count)) %>% 
-            separate(name, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__') %>% 
-            as_tibble() %>% 
-            ggplot(aes(x=Method, y = Mean, colour = Transform, size = Count)) + 
-            geom_point() + 
-            theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-            facet_wrap(~Covariate + Set + Dims, nrow = 1) +
-            ggtitle(title))
-    dev.off()
+  pdf(output_file, width = 10, height = 8)
+  print(cbind(obj %>% 
+                map(1) %>% # first item is the mean
+                enframe(value = 'Mean') %>% 
+                unnest(Mean),
+              obj %>% 
+                map(2) %>% # second is the number of clusters
+                enframe(value = 'Count') %>% unnest(Count) %>% select(Count)) %>% 
+          separate(name, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__') %>% 
+          as_tibble() %>% 
+          ggplot(aes(x=Method, y = Mean, colour = Transform)) + 
+          geom_point() + 
+          theme_minimal() +
+          theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+          facet_wrap(~CellType, nrow = 2) +
+          ggsci::scale_color_aaas() +
+          ggtitle(title))
+  dev.off()
   #}
 }
 
@@ -107,14 +112,18 @@ mean_plotter <- function(output_file, obj, title = "Mean Purity of Clusters by C
 cluster_area <- function(obj, cluster_col = 'seurat_clusters'){
   obj <- obj[,c('UMAP_1', 'UMAP_2', cluster_col)]
   obj <- obj %>% mutate(col = as.numeric(as.character(!!sym(cluster_col))))
+  
   areas <- c()
   for (i in obj %>% pull(col) %>% unique()){
-    
     f_obj <- obj %>% filter(col == i)
-
-    outer_coords <- chull(f_obj$UMAP_1, f_obj$UMAP_2)
-    area <- splancs::areapl(f_obj[outer_coords,c('UMAP_1', 'UMAP_2')] %>% as.matrix()) 
-    areas <- c(areas, area)
+    # skip clustesr with < 500 cells
+    if (nrow(f_obj) >= 500) {
+      # convex hull
+      outer_coords <- chull(f_obj$UMAP_1, f_obj$UMAP_2)
+      # Calculate area in convex hull
+      area <- splancs::areapl(f_obj[outer_coords,c('UMAP_1', 'UMAP_2')] %>% as.matrix()) 
+      areas <- c(areas, area)
+    }
   }
   areas %>% enframe()
 }
@@ -128,7 +137,7 @@ mean_plotter(args[2], purity_calcs_cluster_vs_celltype, "Mean Purity of Clusters
 mean_plotter(args[3], purity_calcs_cluster_vs_study_and_cell_type, "Diversity of Cell Type Clusters by Study (Higher is Better)")
 #mean_plotter('test6', purity_calcs_cluster_vs_age, "Mean Purity of Clusters by Age")
 
-pdf(args[4], width = 6, height = 3)
+pdf(args[4], width = 6, height = 6)
 area_plot <- full_obj %>% map(cluster_area) %>% bind_rows(.id='stuff') %>% separate(stuff, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__')
 area_plot %>% 
   group_by(Transform, Covariate, Method, Dims) %>% 
@@ -137,7 +146,8 @@ area_plot %>%
   geom_point(stat = 'identity') + 
   theme_minimal() + 
   ggsci::scale_color_aaas() +
+  theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-  facet_wrap(~Covariate + Dims, nrow = 1) + 
+  facet_wrap(~Covariate + Dims, nrow = 2) + 
   ylab('Median Cluster Area') + ggtitle("fastMNN has the smallest median cluster size")
 dev.off()
