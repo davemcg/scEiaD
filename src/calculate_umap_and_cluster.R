@@ -10,7 +10,7 @@ args <- commandArgs(trailingOnly = TRUE)
 method = args[1]
 max_dims = args[2] %>% as.numeric()
 # cell labels
-load(args[3])
+cell_info_labels <- read_tsv(args[3])
 # integrated_obj
 load(args[4])
 
