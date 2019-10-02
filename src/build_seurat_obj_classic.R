@@ -17,8 +17,34 @@ options(future.globals.maxSize = 500000 * 1024^2)
 
 set = args[2] # early, late, full
 covariate = args[3] # study_accession, batch, etc.
-# load in metadata for study project merging, UMI correction, and gene name changing
-transform = args[4]
+transform = args[4] # SCT or standard seurat
+combination = args[5] # mouse, mouse and macaque, mouse and macaque and human
+cell_info <- read_tsv(args[6]) # cell_info.tsv
+rdata_files = args[7:length(args)]
+rdata <- list()
+for (i in rdata_files){
+  load(i)
+  rdata[[i]] <- m
+}
+if (combination == 'Mus_musculus'){
+  file <- grep('Mus_mus', names(rdata), value = TRUE)
+  m <- rdata[[file]]
+} else if (combination == 'Mus_musculus_Macaca_fascicularis'){
+  file  <- grep('Mus|Maca', names(rdata), value = TRUE)
+  shared_genes <- rdata[file] %>% map(row.names) %>% reduce(intersect)
+  file_cut_down <- list()
+  for (i in file){
+    file_cut_down[[i]] <- rdata[[i]][shared_genes,]
+  }
+  m <- file_cut_down %>% reduce(cbind)
+} else {
+  shared_genes <- rdata %>% map(row.names) %>% reduce(intersect)
+  file_cut_down <- list()
+  for (i in names(rdata)){
+    file_cut_down[[i]] <- rdata[[i]][shared_genes,]
+  }
+  m <- file_cut_down %>% reduce(cbind)
+}
 
 
 # split by two groups
@@ -69,11 +95,6 @@ make_seurat_obj <- function(m,
 }
 
 
-# split into two groups:
-# < 10 days old (only one study)
-# >= 10 days old (actually have independent studies)
-
-
 # build SCT based seurat obj
 seurat_sct <- function(seurat_list){
   ## tryCatch for SCT
@@ -117,7 +138,6 @@ seurat_sct <- function(seurat_list){
   list(seurat_list = seurat_list, study_data_features = study_data_features)
   
 }
-
 
 if (set == 'early'){
   print("Running Early")
