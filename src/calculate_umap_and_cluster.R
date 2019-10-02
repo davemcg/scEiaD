@@ -10,7 +10,7 @@ args <- commandArgs(trailingOnly = TRUE)
 method = args[1]
 max_dims = args[2] %>% as.numeric()
 # cell labels
-cell_info_labels <- read_tsv(args[3])
+load(args[3])
 # integrated_obj
 load(args[4])
 
@@ -59,9 +59,8 @@ if (method == 'CCA'){
   if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100){
     integrated_obj <- RunPCA(integrated_obj, npcs = 100)
   }
-}
-reduction <- 'pca'
-reduction.key <- 'combatUMAP_'
+  reduction <- 'pca'
+  reduction.key <- 'combatUMAP_'
 } else {
   print(paste0("Why did you pick ", method, "?"))
 }
