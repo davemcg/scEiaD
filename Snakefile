@@ -79,6 +79,15 @@ def lookup_run_from_SRS(SRS):
 			out.append('fastq/{}.fastq.gz'.format(SRR))
 	return(out)
 
+# return dummy well file for macaca ,as there is no well data at this time
+def well_and_droplet_input(organism):
+	if organism == 'Macaca_fascicularis':
+		out = ['quant/' + x + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
+	else:
+		out = ['quant/' + organism + '/counts.Rdata']	+ \
+				['quant/' + x + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
+	return(out)
+
 def SRS_info(SRS, data_to_return):
 	organism = SRS_dict[SRS]['organism']
 	if organism.lower() == 'mus_musculus':
@@ -111,38 +120,50 @@ method = ['CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none']
 transform = ['standard', 'SCT']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
+combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens']
+dims = [25,50,75,100]
 
 wildcard_constraints:
 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
 	method = '|'.join(method),
 	transform = '|'.join(transform),
 	covariate = '|'.join(covariate),
-	organism = '|'.join(organism)
+	organism = '|'.join(organism),
+	
 
 rule all:
 	input:
-		# study_accession - early has only one covariate, so skip
-		expand('plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
-				transform = transform, \
-				method = method, \
-				organism = 'Mus_musculus', \
-				partition = ['late', 'full'], \
-				covariate = covariate, \
-				dims = [20,50]),
-		expand('plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
-				transform = transform, \
-				method = method, \
-				organism = 'Mus_musculus', \
-				partition = ['early'], \
-				covariate = ['batch'], \
-				dims = [20,50]),
-		expand('plots/well_supported_celltypes/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf', \
-				transform = transform, \
-				method = method, \
-				organism = 'Mus_musculus', \
+		expand('quant/{organism}/full_sparse_matrix.Rdata', organism = organism),
+		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
+				transform = ['SCT'], \
+				method = ['fastMNN'], \
+				combination = ['Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
-				covariate = covariate, \
-				dims = [20,50])
+				covariate = ['batch'], \
+				dims = dims),
+		#expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
+		#		transform = transform, \
+		#		method = method, \
+		#		organism = 'Mus_musculus', \
+		#		partition = ['late', 'full'], \
+		#		covariate = covariate, \
+		#		dims = dims),
+		#expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
+		#		transform = transform, \
+		#		method = method, \
+		#		organism = 'Mus_musculus', \
+		#		partition = ['early'], \
+		#		covariate = ['batch'], \
+		#		dims = dims),
+		#expand('plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf', \
+		#		transform = transform, \
+		#		method = method, \
+		#		organism = 'Mus_musculus', \
+		#		partition = ['full'], \
+		#		covariate = covariate, \
+		#		dims = dims),
+		#expand('plots/well_supported_celltypes/{organism}.mean_cluster_purity_by_cell_type.pdf', \
+		#		organism = 'Mus_musculus')
 		#'quant/Mus_musculus/scTransformCCA_merged_Embryonic.seuratV3.Rdata',
 		#'quant/Mus_musculus/scTransformCCA_merged_Postnatal.seuratV3.Rdata',
 		#expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
@@ -329,34 +350,61 @@ rule merge_nonUMI_quant_by_organism:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.quant} 
 		"""
 
-
-rule make_seurat_objs:
+rule combine_well_and_umi:
 	input:
-		srr_metadata = config['srr_sample_file'],		
-		tx_map = lambda wildcards: SRS_info(organism_well_dict[wildcards.organism][0], 'tx'),
-		well = 'quant/{organism}/counts.Rdata',
-		droplet = lambda wildcards: expand('quant/{SRS}/genecount/matrix.Rdata', SRS = organism_droplet_dict[wildcards.organism])
+		srr_metadata = config['srr_sample_file'],
+		tx_map = lambda wildcards: SRS_info(organism_droplet_dict[wildcards.organism][0], 'tx'),
+		counts = lambda wildcards: well_and_droplet_input(wildcards.organism)
 	output:
-		#cell_info = '{organism}_cell_info.Rdata',
-		seurat = 'seurat_obj/{organism}__{transform}__{partition}__{covariate}.seuratV3.Rdata'
+		cell_info = '{organism}_cell_info.tsv',
+		matrix = 'quant/{organism}/full_sparse_matrix.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_seurat_obj_classic.R {output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} {input}	
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_sparse_matrix.R {wildcards.organism} {output} {input}
+		"""
+
+localrules: cat_cell_info
+rule cat_cell_info:
+	input:
+		expand('{organism}_cell_info.tsv', \
+			organism = organism)
+	output:
+		'cell_info.tsv'
+	shell:
+		"""
+		cat {input} | head -n 1 > header
+		cat header <( grep -v "^name" {input}) > {output}
+		"""
+		
+rule make_seurat_objs:
+	input:
+		'cell_info.tsv',
+		expand('quant/{organism}/full_sparse_matrix.Rdata', \
+			 organism = organism)
+	output:
+		seurat = 'seurat_obj/{combination}__{transform}__{partition}__{covariate}.seuratV3.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_seurat_obj_classic.R \
+			{output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} {wildcards.combination} {input}	
 		"""
 
 
 
 rule integrate:
 	input:
-		'seurat_obj/{organism}__{transform}__{partition}__{covariate}.seuratV3.Rdata'
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}.seuratV3.Rdata',
 	output:
-		('seurat_obj/{organism}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata')
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
 	run:
 		if wildcards.method != 'scanorama':
 			job = "module load R/3.6; \
 					Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
-					  {method} {transform} {covariate} {input} {output}".format(method = wildcards.method, \
+					  {combination} {method} {transform} {covariate} {input} {output}".format(\
+																	combination = wildcards.combination, \
+																	method = wildcards.method, \
 																	transform = wildcards.transform, \
 																    covariate = wildcards.covariate, \
 											                        output = output, input = input)
@@ -364,7 +412,9 @@ rule integrate:
 			job = "source /data/mcgaugheyd/conda/etc/profile.d/conda.sh; \
 					conda init bash; conda activate scanorama; \
 					Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
-					  {method} {transform} {covariate} {input} {output}".format(method = wildcards.method, \
+					  {combination} {method} {transform} {covariate} {input} {output}".format(\
+																	combination = wildcards.combination, \
+																	method = wildcards.method, \
 																	transform = wildcards.transform, \
 																	covariate = wildcards.covariate, \
 																	output = output, input = input)
@@ -384,11 +434,11 @@ rule integrate:
 
 rule calculate_umap_and_cluster:
 	input:
-		'{organism}_cell_info_labelled.Rdata',
-		'seurat_obj/{organism}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
+		'cell_info.tsv',
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
 	output:
-		'seurat_obj/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.seuratV3.Rdata',
-		'umap/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.seuratV3.Rdata',
+		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -397,12 +447,12 @@ rule calculate_umap_and_cluster:
 
 rule plot_integration:
 	input:
-		'umap/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
+		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
 	output:
-		'plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf',
-		'plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_batch.pdf',
-		'plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_paper__facet_celltype.pdf',
-		'plots/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_celltype__facet_cluster.pdf'
+		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf',
+		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_batch.pdf',
+		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_paper__facet_celltype.pdf',
+		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_celltype__facet_cluster.pdf'
 	shell:
 		"""
 		module load R/3.6
@@ -411,12 +461,31 @@ rule plot_integration:
 
 rule plot_integration_with_well_supported_cell_types:
 	input:
-		'umap/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
+		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
 	output:
-		'plots/well_supported_celltypes/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf',
-		'plots/well_supported_celltypes/{organism}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_celltype.pdf',
+		'plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf',
+		'plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_celltype.pdf',
 	shell:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/plot_assess_integration_specific_types.R {input} {output}
+		"""
+
+rule cluster_assessment:
+	input:
+		expand('umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata', \
+				transform = transform, \
+				method = method, \
+				combination = 'Mus_musculus', \
+				partition = ['full'], \
+				covariate = covariate, \
+				dims = dims)
+	output:
+		'plots/well_supported_celltypes/{organism}.mean_cluster_purity_by_cell_type.pdf',
+		'plots/well_supported_celltypes/{organism}.mean_cluster_purity_by_study_and_cell_type.pdf',
+		'plots/well_supported_celltypes/{organism}.median_cluster_area_chull.pdf'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/cluster_purity.R umap {output}
 		"""
