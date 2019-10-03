@@ -47,7 +47,7 @@ karthik <- karthik %>%
          UMI = gsub('.*_','', CELL_NAME)) 
   
 ## load cell info
-load('Mus_musculus_cell_info.Rdata')
+cell_info <- read_tsv('cell_info.tsv')
 # see below for how I got the labelling
 cell_info <- cell_info %>% mutate(UMI = gsub('_\\w+', '', value)) %>% 
   mutate(label = case_when(sample_accession == 'SRS866911' ~ 'r2',
@@ -114,7 +114,15 @@ cell_info_labels <- cell_info_labels %>%
          Paper = case_when(study_accession == 'SRP166660' ~ "Rueda et al. 2019",
                            study_accession == 'SRP186407' ~ "O'Koren et al. 2019",
                            TRUE ~ Paper))
-  
+
+## sanes macaque 
+sanes_files <- list.files('~/git/massive_integrated_eye_scRNA/data/', "Macaque*", full.names = TRUE)
+sanes <- list()
+sanes <- sanes_files %>% map(read_csv) %>% bind_rows() %>% filter(NAME != 'TYPE')
+
+
+
+
 save(cell_info_labels, file = 'Mus_musculus_cell_info_labelled.Rdata')
 
 
