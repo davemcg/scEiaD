@@ -1,5 +1,7 @@
 library(tidyverse)
-load('~/git/massive_integrated_eye_scRNA/data/sra_metadata_extended.Rdata')
+#meta
+
+meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv')
 # load labelled data from clark et all
 # https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1
 clark_labels <- read_csv('10x_mouse_retina_development_phenotype.csv')
@@ -113,7 +115,7 @@ sanes <- sanes_files %>%
   mutate(Type = gsub('.*_','', Type))
 
 meta_MacaqueSanes <- cell_info %>% filter(study_accession %in% c('SRP158528', 'SRP157927')) %>% 
-  left_join(sra_metadata_extended %>% 
+  left_join(meta %>% 
               select(sample_accession, TissueNote), by = 'sample_accession') %>% 
   mutate(Barcode = gsub("_.*","", value))
 meta_MacaqueSanes <- meta_MacaqueSanes %>% 
