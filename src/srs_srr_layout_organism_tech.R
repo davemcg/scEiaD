@@ -12,6 +12,7 @@ core_rpe = data.frame(sample_accession = c(rep('iPSC_RPE_scRNA_01', 24), rep('iP
                       Covariate = 'None',
                       Age = c(rep(0, 24), rep(42, 24), rep(60, 24)),
                       integration_group = c(rep('iPSC', 24), rep('RPE', 24), rep('RPE',24)),
+                      TissueNote = NA,
                       stringsAsFactors = FALSE)
 
 # remove BULK RNA-seq and SRP149898 which is missing the crucial paired end reads (need to contact author)
