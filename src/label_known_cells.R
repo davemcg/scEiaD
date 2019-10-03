@@ -1,4 +1,5 @@
 library(tidyverse)
+load('~/git/massive_integrated_eye_scRNA/data/sra_metadata_extended.Rdata')
 # load labelled data from clark et all
 # https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1
 clark_labels <- read_csv('10x_mouse_retina_development_phenotype.csv')
@@ -79,13 +80,13 @@ meta_SRP158081 <- cell_info %>%
               select(UMI, sample, new_CellType) %>% 
               dplyr::rename(CellType = new_CellType), 
             by = c('UMI', 'sample')) %>% 
-  select(value:batch,CellType) %>% mutate(Paper = 'Clark et al. 2019')
+  select(value:TissueNote,CellType) %>% mutate(Paper = 'Clark et al. 2019')
 
 meta_SRP050054 <- cell_info %>% 
   filter(study_accession == 'SRP050054') %>% 
   left_join(macosko_labels %>% 
               select(label, UMI, CellType) , by = c('label', 'UMI' )) %>% 
-  select(value:batch, CellType) %>% mutate(Paper = 'Macoko et al. 2015')
+  select(value:TissueNote, CellType) %>% mutate(Paper = 'Macoko et al. 2015')
 
 meta_SRP075719 <- cell_info %>% 
   filter(study_accession == 'SRP075719') %>% 
@@ -97,7 +98,8 @@ meta_SRP075719 <- cell_info %>%
                            sample_accession == 'SRS1467252' ~ 'Bipolar4',
                            TRUE ~ 'X')) %>% 
   left_join(., karthik %>% select(mouse, UMI, CellType), by = c('UMI', 'mouse')) %>% 
-  select(value:batch, CellType) %>% mutate(Paper = 'Shekhar et al. 2016')
+  select(value:TissueNote, CellType) %>% 
+  mutate(Paper = 'Shekhar et al. 2016')
 
 ## sanes macaque 
 sanes_files <- list.files('~/git/massive_integrated_eye_scRNA/data/', "Macaque*", full.names = TRUE)
@@ -118,12 +120,26 @@ meta_MacaqueSanes <- meta_MacaqueSanes %>%
   left_join(., sanes %>% 
               mutate(NAME = gsub('_S','S', NAME)) %>% 
               separate(NAME, sep = "_|-", 
-                       into = c('TissueNote','Barcode','Num'))) 
+                       into = c('TissueNote','Barcode','Num'))) %>% 
+  mutate(CellType = case_when(Type == 'AC' ~ 'Amacrine Cells',
+                              Type == 'BC' ~ 'Bipolar Cells',
+                              Type == 'HC' ~ 'Horizontal Cells',
+                              Subcluster == 'Endo' ~ 'Vascular Endothelium',
+                              Subcluster == 'MG' ~ 'Muller Glia',
+                              Subcluster == 'Mic' ~ 'Microglia',
+                              Subcluster == 'Pericytes' ~ 'Pericytes',
+                              grepl('Cones', Subcluster) ~ 'Cones',
+                              Subcluster == 'Rods' ~ 'Rods',
+                              Type == 'RGC' ~ 'Retinal Ganglion Cells')) %>% 
+  select(value:TissueNote, CellType) %>% 
+  mutate(Paper = 'Peng et al. 2019')
+  
 
-meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719)
+
+meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes)
 
 cell_info_labels <- bind_rows(meta_SRP, 
-                              cell_info %>% select(value:batch) %>% 
+                              cell_info %>% select(value:TissueNote) %>% 
                                 filter(!value %in% meta_SRP$value) %>% 
                                 mutate(Paper = NA))
 # this is crude, but SRP16660 has selected Muller Glia via FACS of R26R mouse line
