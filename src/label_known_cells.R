@@ -154,7 +154,7 @@ cell_info_labels <- cell_info_labels %>%
 
 
 
-save(cell_info_labels, file = 'Mus_musculus_cell_info_labelled.Rdata')
+save(cell_info_labels, file = 'cell_info_labelled.Rdata')
 
 
 # ## Figure out what the hell is going on as the above file lists p1, r1 through r6 and GEO lists the 7 samples as 1 - 7....
