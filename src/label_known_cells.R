@@ -98,7 +98,7 @@ meta_SRP075719 <- cell_info %>%
                            sample_accession == 'SRS1467252' ~ 'Bipolar4',
                            TRUE ~ 'X')) %>% 
   left_join(., karthik %>% select(mouse, UMI, CellType), by = c('UMI', 'mouse')) %>% 
-  select(value:batch,CellType,TissueNote) %>% 
+  select(value:batch,CellType) %>% 
   mutate(Paper = 'Shekhar et al. 2016')
 
 ## sanes macaque 
@@ -131,7 +131,7 @@ meta_MacaqueSanes <- meta_MacaqueSanes %>%
                               grepl('Cones', Subcluster) ~ 'Cones',
                               Subcluster == 'Rods' ~ 'Rods',
                               Type == 'RGC' ~ 'Retinal Ganglion Cells')) %>% 
-  select(value:TissueNote, CellType) %>% 
+  select(value:batch, CellType, TissueNote) %>% 
   mutate(Paper = 'Peng et al. 2019')
   
 
@@ -139,9 +139,9 @@ meta_MacaqueSanes <- meta_MacaqueSanes %>%
 meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes)
 
 cell_info_labels <- bind_rows(meta_SRP, 
-                              cell_info %>% select(value:TissueNote) %>% 
+                              cell_info %>% select(value:batch) %>% 
                                 filter(!value %in% meta_SRP$value) %>% 
-                                mutate(Paper = NA))
+                                mutate(Paper = NA, TissueNote = NA))
 # this is crude, but SRP16660 has selected Muller Glia via FACS of R26R mouse line
 # SRP186407 uses Cx3cr1+ FACS to select Microglia
 cell_info_labels <- cell_info_labels %>% 
