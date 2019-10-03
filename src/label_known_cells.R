@@ -45,7 +45,7 @@ karthik <- karthik %>%
                               TRUE ~ 'Bipolar Cells')) %>% 
   mutate(mouse = gsub('_.*', '', CELL_NAME),
          UMI = gsub('.*_','', CELL_NAME)) 
-  
+
 ## load cell info
 cell_info <- read_tsv('cell_info.tsv')
 # see below for how I got the labelling
@@ -98,7 +98,28 @@ meta_SRP075719 <- cell_info %>%
                            TRUE ~ 'X')) %>% 
   left_join(., karthik %>% select(mouse, UMI, CellType), by = c('UMI', 'mouse')) %>% 
   select(value:batch, CellType) %>% mutate(Paper = 'Shekhar et al. 2016')
-  
+
+## sanes macaque 
+sanes_files <- list.files('~/git/massive_integrated_eye_scRNA/data/', "Macaque*", full.names = TRUE)
+sanes <- list()
+sanes <- sanes_files %>% 
+  map(read_csv) %>% 
+  set_names(sanes_files) %>% 
+  bind_rows(.id = 'Type') %>% 
+  filter(NAME != 'TYPE') %>% 
+  mutate(Type = gsub('_combined.*','', Type)) %>% 
+  mutate(Type = gsub('.*_','', Type))
+
+meta_MacaqueSanes <- cell_info %>% filter(study_accession %in% c('SRP158528', 'SRP157927')) %>% 
+  left_join(sra_metadata_extended %>% 
+              select(sample_accession, TissueNote), by = 'sample_accession') %>% 
+  mutate(Barcode = gsub("_.*","", value))
+meta_MacaqueSanes <- meta_MacaqueSanes %>% 
+  left_join(., sanes %>% 
+              mutate(NAME = gsub('_S','S', NAME)) %>% 
+              separate(NAME, sep = "_|-", 
+                       into = c('TissueNote','Barcode','Num'))) 
+
 meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719)
 
 cell_info_labels <- bind_rows(meta_SRP, 
@@ -114,12 +135,6 @@ cell_info_labels <- cell_info_labels %>%
          Paper = case_when(study_accession == 'SRP166660' ~ "Rueda et al. 2019",
                            study_accession == 'SRP186407' ~ "O'Koren et al. 2019",
                            TRUE ~ Paper))
-
-## sanes macaque 
-sanes_files <- list.files('~/git/massive_integrated_eye_scRNA/data/', "Macaque*", full.names = TRUE)
-sanes <- list()
-sanes <- sanes_files %>% map(read_csv) %>% bind_rows() %>% filter(NAME != 'TYPE')
-
 
 
 
