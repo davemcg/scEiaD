@@ -80,13 +80,13 @@ meta_SRP158081 <- cell_info %>%
               select(UMI, sample, new_CellType) %>% 
               dplyr::rename(CellType = new_CellType), 
             by = c('UMI', 'sample')) %>% 
-  select(value:TissueNote,CellType) %>% mutate(Paper = 'Clark et al. 2019')
+  select(value:batch,CellType) %>% mutate(Paper = 'Clark et al. 2019')
 
 meta_SRP050054 <- cell_info %>% 
   filter(study_accession == 'SRP050054') %>% 
   left_join(macosko_labels %>% 
               select(label, UMI, CellType) , by = c('label', 'UMI' )) %>% 
-  select(value:TissueNote, CellType) %>% mutate(Paper = 'Macoko et al. 2015')
+  select(value:batch, CellType) %>% mutate(Paper = 'Macoko et al. 2015')
 
 meta_SRP075719 <- cell_info %>% 
   filter(study_accession == 'SRP075719') %>% 
@@ -98,7 +98,7 @@ meta_SRP075719 <- cell_info %>%
                            sample_accession == 'SRS1467252' ~ 'Bipolar4',
                            TRUE ~ 'X')) %>% 
   left_join(., karthik %>% select(mouse, UMI, CellType), by = c('UMI', 'mouse')) %>% 
-  select(value:TissueNote, CellType) %>% 
+  select(value:batch,CellType,TissueNote) %>% 
   mutate(Paper = 'Shekhar et al. 2016')
 
 ## sanes macaque 
