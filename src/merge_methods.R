@@ -61,11 +61,11 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     ## uses one seurat obj (give covariate in meta.data to group.by.vars)
     if (transform == 'standard'){
       obj <- RunHarmony(seurat_obj, group.by.vars = covariate,
-                        max.iter.harmony = 10, 
+                        max.iter.harmony = 5, 
                         epsilon.harmony = -Inf)
     } else {
       obj <- RunHarmony(seurat_obj, group.by.vars = covariate,
-                        max.iter.harmony = 10, 
+                        max.iter.harmony = 5, 
                         epsilon.harmony = -Inf,
                         assay.use = 'SCT')
     }
