@@ -154,6 +154,13 @@ cell_info_labels <- cell_info_labels %>%
                            study_accession == 'SRP186407' ~ "O'Koren et al. 2019",
                            TRUE ~ Paper))
 
+# label internal iPSC RPE data
+cell_info_labels <- cell_info_labels %>% 
+  mutate(CellType = case_when(grepl('iPSC_RPE_scRNA_01', value) ~ 'iPSC',
+                              grepl('iPSC_RPE_scRNA_02', value) ~ 'RPE',
+                              grepl('iPSC_RPE_scRNA_03', value) ~ 'RPE (Transwell)'),
+         Paper = case_when(grepl('iPSC_RPE_scRNA', value) ~ 'Hufnagel 2020'))
+
 
 
 save(cell_info_labels, file = 'cell_info_labelled.Rdata')
