@@ -42,6 +42,13 @@
 		"time" : "24:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
+	"combine_well_and_umi" :
+	{
+		"mem" : "240G",
+		"partition" : "quick",
+		"time" : "4:00:00",
+		"extra" : " --gres=lscratch:100"
+	},
 	"integrate" :
 	{
 		"mem" : "1000G",
@@ -51,9 +58,9 @@
 	},
 	"calculate_umap_and_cluster" :
 	{
-		"mem" : "140G",
+		"mem" : "240G",
 		"partition" : "norm",
-		"time" : "12:00:00",
+		"time" : "48:00:00",
 		"extra" : " --gres=lscratch:100"
 	}
 }

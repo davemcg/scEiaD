@@ -421,28 +421,42 @@ rule integrate:
 		sp.run("echo " + job + '\n', shell = True)
 		sp.run(job, shell = True)
 
-#rule label_known_cells_with_type:
-#	input:
-#		'seurat_obj/{organism}__standard_and_SCT__{partition}__{covariate}.seuratV3.Rdata'
-#	output:
-#		'{organism}_cell_info_labelled.Rdata'
-#	shell:
-#		"""
-#		module load R/3.6
-#		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/label_known_cells.R {wildcards.organism}_cell_info.Rdata {output}
-#		"""
+
+rule label_known_cells_with_type:
+	input:
+		'cell_info.tsv',
+		config['srr_sample_file']		
+	output:
+		'cell_info_labelled.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/label_known_cells.R 
+		"""
 
 rule calculate_umap_and_cluster:
 	input:
-		'cell_info.tsv',
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
+		obj = 'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
 	output:
 		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.seuratV3.Rdata',
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
+			{wildcards.method} {wildcards.dims} {input} {output}
+		"""
+
+rule extract_umap:
+	input:
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.seuratV3.Rdata',
+		'cell_info_labelled.Rdata',
+	output:
 		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R {wildcards.method} {wildcards.dims} {input} {output}
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_umap.R \
+			{input} {output}	
 		"""
 
 rule plot_integration:
