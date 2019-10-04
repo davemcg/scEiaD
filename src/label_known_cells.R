@@ -1,7 +1,6 @@
 library(tidyverse)
-#meta
 load('~/git/massive_integrated_eye_scRNA/data/sra_metadata_extended.Rdata')
-meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv')
+meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv') %>% select(-TissueNote)
 # load labelled data from clark et all
 # https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1
 clark_labels <- read_csv('10x_mouse_retina_development_phenotype.csv')
@@ -50,7 +49,7 @@ karthik <- karthik %>%
          UMI = gsub('.*_','', CELL_NAME)) 
 
 ## load cell info
-cell_info <- read_tsv('cell_info.tsv')
+cell_info <- read_tsv('cell_info.tsv') %>% select(-TissueNote)
 # see below for how I got the labelling
 cell_info <- cell_info %>% mutate(UMI = gsub('_\\w+', '', value)) %>% 
   mutate(label = case_when(sample_accession == 'SRS866911' ~ 'r2',
@@ -88,7 +87,7 @@ meta_SRP050054 <- cell_info %>%
   filter(study_accession == 'SRP050054') %>% 
   left_join(macosko_labels %>% 
               select(label, UMI, CellType) , by = c('label', 'UMI' )) %>% 
-  select(value:batch, CellType) %>% mutate(Paper = 'Macoko et al. 2015')
+  select(value:batch, CellType) %>% mutate(Paper = 'Macosko et al. 2015')
 
 meta_SRP075719 <- cell_info %>% 
   filter(study_accession == 'SRP075719') %>% 
@@ -105,7 +104,6 @@ meta_SRP075719 <- cell_info %>%
 
 ## sanes macaque 
 sanes_files <- list.files('~/git/massive_integrated_eye_scRNA/data/', "Macaque*", full.names = TRUE)
-sanes <- list()
 sanes <- sanes_files %>% 
   map(read_csv) %>% 
   set_names(sanes_files) %>% 
@@ -115,7 +113,7 @@ sanes <- sanes_files %>%
   mutate(Type = gsub('.*_','', Type))
 
 meta_MacaqueSanes <- cell_info %>% filter(study_accession %in% c('SRP158528', 'SRP157927')) %>% 
-  left_join(meta %>% 
+  left_join(sra_metadata_extended %>% 
               select(sample_accession, TissueNote), by = 'sample_accession') %>% 
   mutate(Barcode = gsub("_.*","", value))
 meta_MacaqueSanes <- meta_MacaqueSanes %>% 
@@ -164,7 +162,7 @@ meta_SRP194595 <- cell_info %>% filter(study_accession == 'SRP194595') %>%
 
 
 
-meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes)
+meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595)
 
 cell_info_labels <- bind_rows(meta_SRP, 
                               cell_info %>% select(value:batch) %>% 
@@ -184,8 +182,10 @@ cell_info_labels <- cell_info_labels %>%
 cell_info_labels <- cell_info_labels %>% 
   mutate(CellType = case_when(grepl('iPSC_RPE_scRNA_01', value) ~ 'iPSC',
                               grepl('iPSC_RPE_scRNA_02', value) ~ 'RPE',
-                              grepl('iPSC_RPE_scRNA_03', value) ~ 'RPE (Transwell)'),
-         Paper = case_when(grepl('iPSC_RPE_scRNA', value) ~ 'Hufnagel 2020'))
+                              grepl('iPSC_RPE_scRNA_03', value) ~ 'RPE (Transwell)',
+                              TRUE ~ CellType),
+         Paper = case_when(grepl('iPSC_RPE_scRNA', value) ~ 'Hufnagel 2020',
+                           TRUE ~ Paper))
 
 
 
