@@ -1,6 +1,6 @@
 library(tidyverse)
 #meta
-
+load('~/git/massive_integrated_eye_scRNA/data/sra_metadata_extended.Rdata')
 meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv')
 # load labelled data from clark et all
 # https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1
@@ -136,6 +136,32 @@ meta_MacaqueSanes <- meta_MacaqueSanes %>%
   select(value:batch, CellType, TissueNote) %>% 
   mutate(Paper = 'Peng et al. 2019')
   
+# scheetz human fovea
+scheetz_files <- list.files('~/git/massive_integrated_eye_scRNA/data/', pattern = 'GSM.*donor.*gz', full.names = TRUE)
+scheetz <- scheetz_files %>% 
+  map(read_tsv, col_types = cols_only(barcode = col_character(), cluster_label = col_character())) %>% 
+  set_names(scheetz_files) %>% 
+  bind_rows(.id = 'sample') %>% 
+  mutate(sample = gsub(".*GSM\\d+_|_expression.*","",sample),
+         barcode = gsub('-\\d+','', barcode))
+meta_SRP194595 <- cell_info %>% filter(study_accession == 'SRP194595') %>% 
+  left_join(., sra_metadata_extended %>% select(sample_accession, biosample_title)) %>% 
+  unique() %>% 
+  mutate(sample = gsub('\\s+', '_', biosample_title) %>% tolower(),
+         barcode = gsub('_.*','', value)) %>% 
+  left_join(scheetz) %>% 
+  mutate(CellType = case_when(cluster_label %in% c('1','2') ~ 'Rods',
+                              cluster_label %in% c('3','4') ~ 'Cones',
+                              cluster_label %in% c('5','6') ~ 'Bipolar Cells',
+                              cluster_label == '8A' ~ 'Horizontal Cells',
+                              cluster_label == '8B' ~ 'Amacrine Cells',
+                              cluster_label == '10' ~ 'Pericytes',
+                              cluster_label == '11' ~ 'Vascular Endothelium',
+                              cluster_label == '12' ~ 'Microglia',
+                              cluster_label %in% c('12','13','14','15','16','17') ~ 'Muller Glia')) %>% 
+  select(value:batch, CellType) %>% 
+  mutate(Paper = 'Voigt et al. 2019')
+
 
 
 meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes)
