@@ -1,7 +1,7 @@
 library(tidyverse)
 library(Seurat)
 library(future)
-plan(strategy = "multicore", workers = 6)
+plan(strategy = "multicore", workers = 2)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 500000 * 1024^2)
@@ -9,10 +9,8 @@ options(future.globals.maxSize = 500000 * 1024^2)
 args <- commandArgs(trailingOnly = TRUE)
 method = args[1]
 max_dims = args[2] %>% as.numeric()
-# cell labels
-cell_info_labels <- read_tsv(args[3])
-# integrated_obj
-load(args[4])
+# integrated seurat obj
+load(args[3])
 
 
 create_umap_and_cluster <- function(integrated_obj, 
@@ -21,22 +19,26 @@ create_umap_and_cluster <- function(integrated_obj,
                                     reduction.name = 'ccaUMAP',
                                     reduction.key = 'ccaUMAP_'){
   # UMAP
+  print("UMAP Starting")
   integrated_obj <- RunUMAP(integrated_obj, 
                             dims = 1:max_dims, 
                             reduction = reduction, 
                             reduction.name = reduction.name,
                             reduction.key = reduction.key)
   # clustering 
+  print("Find Neighbors starting")
   integrated_obj <- FindNeighbors(integrated_obj, 
                                   reduction = reduction,
                                   dims = 1:max_dims, 
                                   nn.eps = 0.5)
+  print("Find Clusters starting")
   integrated_obj <- FindClusters(integrated_obj, 
                                  #resolution = c(0.6,0.8,1,3),
                                  resolution = 1,
-                                 save.SNN = TRUE,
+                                 n.start = 10,
+                                 #save.SNN = TRUE,
                                  do.sparse = TRUE,
-                                 algorithm = 2,
+                                 algorithm = 1,
                                  random.seed = 23)
   integrated_obj
 }
@@ -72,5 +74,5 @@ integrated_obj <- create_umap_and_cluster(integrated_obj,
                                           reduction.name = reduction.name,
                                           reduction.key = reduction.key)
 
-save(integrated_obj, file = args[5], compress = FALSE )
+save(integrated_obj, file = args[4], compress = FALSE )
 
