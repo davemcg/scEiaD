@@ -6,6 +6,34 @@ library(tidyverse)
 load(args[1])
 # load cell data
 load(args[2])
+# method
+method <- args[3]
+
+if (method == 'CCA'){
+  reduction <- 'pca'
+  reduction.key <- 'ccaUMAP_'
+} else if (method == 'scanorama'){
+  reduction <- 'scanorama'
+  reduction.key <- 'scanoramaUMAP_'
+} else if (method == 'harmony'){
+  reduction <- 'harmony'
+  reduction.key <- 'harmonyUMAP_'
+} else if (method == 'fastMNN'){
+  reduction <- 'mnn'
+  reduction.key <- 'mnnUMAP_'
+} else if (method == 'none'){
+  reduction <- 'pca'
+  reduction.key <- 'noneUMAP_'
+} else if (method == 'combat'){
+  if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100){
+    integrated_obj <- RunPCA(integrated_obj, npcs = 100)
+  }
+  reduction <- 'pca'
+  reduction.key <- 'combatUMAP_'
+} else {
+  print(paste0("Why did you pick ", method, "?"))
+}
+reduction.name <- gsub('_','', reduction.key)
 
 
 # left_join known cell labels
