@@ -34,7 +34,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     counts <- meta %>% group_by(split_by) %>% summarise(Count = n())
     meta <- left_join(meta, counts)
     obj@meta.data$CellCount <- meta$Count
-    obj <- subset(obj, subset = CellCount > 200)
+    obj <- subset(obj, subset = CellCount > 500)
     
     seurat_list <- SplitObject(obj, split.by = covariate)
     anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20)
