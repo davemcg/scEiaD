@@ -1,5 +1,5 @@
 library(tidyverse)
-library(Polychrome)
+library(pals)
 library(cowplot)
 args <- commandArgs(trailingOnly = TRUE)
 

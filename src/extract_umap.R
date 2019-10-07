@@ -72,7 +72,8 @@ avg_marker <- avg_marker %>% spread(CellType, ScaleData)
 # Aqp4 for muller glia
 # Vsx1, Grm6, Cabp5 for bipolar cells
 # Elavl4 for RGC
-core_markers <- c('Rho','Opn1sw', 'Sfrp2', 'Hes6', 'Tfap2a', 'Isl1', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4', 'Best1', 'Grm6', 'Cabp5')
+# CX3CR1 for microglia
+core_markers <- c('Rho','Opn1sw', 'Sfrp2', 'Hes6', 'Tfap2a', 'Isl1', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4', 'Best1', 'Grm6', 'Cabp5', "Cx3cr1")
 core_expression <- FetchData(integrated_obj, toupper(core_markers)) %>% as_tibble(rownames = 'Barcode')
 
 umap <- left_join(umap, avg_marker, by = 'Barcode') %>% 

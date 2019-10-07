@@ -1,5 +1,5 @@
 library(tidyverse)
-library(Polychrome)
+library(pals)
 library(cowplot)
 
 args <- commandArgs(trailingOnly = TRUE)
@@ -12,16 +12,20 @@ colnames(umap) <- gsub('^rna_', '', colnames(umap))
 # in other words sholud overlap wihtin each plot, but be in distinct space (x - y)
 # for each cell type plot facet
 pdf(args[2], height = 4, width = 10)
-umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
-                                     Labelling = case_when(is.na(Paper) ~ 'None',  
-                                                           TRUE ~ Paper)) %>% 
-  filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods')) %>% 
+umap %>% filter(Age > 10) %>% 
+  mutate(Time = integration_group,
+         CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
+         Labelling = case_when(is.na(Paper) ~ 'None',
+                               Paper == 'Hufnagel 2020' ~ 'Homo sapiens (Stem) (Hufnagel 2020)',
+                               TRUE ~ paste0(organism, ' (', Paper, ')'))) %>% 
+  filter(!is.na(CellType), 
+                CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
   ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Labelling)) + 
-  geom_point(size = 0.3, alpha = 0.1) + 
+  geom_point(size = 0.1, alpha = 0.05) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
   facet_wrap(~CellType) + 
-  theme_minimal() + 
-  scale_color_brewer(palette = 'Set1') + 
+  theme_cowplot() + 
+  scale_color_manual(values = as.vector(pals::alphabet())) + 
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
 dev.off()
 
@@ -30,7 +34,8 @@ p1 <- umap %>% filter(Age > 10) %>%
   mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
          Labelling = case_when(is.na(Paper) ~ 'None',
                                TRUE ~ Paper)) %>% 
-  filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods')) %>% 
+  filter(!is.na(CellType), 
+         CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
   ggplot(aes(x=UMAP_1, y = UMAP_2, colour = CellType)) + 
   geom_point(size = 0.3, alpha = 0.1) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
@@ -40,25 +45,38 @@ p1 <- umap %>% filter(Age > 10) %>%
 p2 <- bind_rows(umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
                                                      Labelling = case_when(is.na(Paper) ~ 'None',
                                                                            TRUE ~ Paper)) %>% 
-                  filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods')) %>% 
+                  filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
                   filter(CABP5 > 1) %>% mutate(Expression = 'Cabp5 (Bipolar Cell)'),
-                
                 umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
                                                      Labelling = case_when(is.na(Paper) ~ 'None',
                                                                            TRUE ~ Paper)) %>% 
-                  filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods')) %>% 
+                  filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
+                  filter(CXCR1 > 2) %>% mutate(Expression = 'Cxcr1 (Microglia)'),  
+                umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
+                                                     Labelling = case_when(is.na(Paper) ~ 'None',
+                                                                           TRUE ~ Paper)) %>% 
+                  filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
                   filter(RHO > 2) %>% mutate(Expression = 'Rho (Rod Photoreceptor)'),
-                
                 umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
                                                      Labelling = case_when(is.na(Paper) ~ 'None',
                                                                            TRUE ~ Paper)) %>% 
-                  filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods')) %>% 
+                  filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
+                  filter(OPN1SW > 1) %>% mutate(Expression = 'OPN1SW (Cone Photoreceptor)'),
+                umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
+                                                     Labelling = case_when(is.na(Paper) ~ 'None',
+                                                                           TRUE ~ Paper)) %>% 
+                  filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
+                  filter(TFAP2A > 1) %>% mutate(Expression = 'TFAP2A (Amacrine Cells)'),
+                umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
+                                                     Labelling = case_when(is.na(Paper) ~ 'None',
+                                                                           TRUE ~ Paper)) %>% 
+                  filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
                   filter(AQP4 > 1) %>% mutate(Expression = 'Aqp4 (Muller Glia)')) %>% 
   ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Expression)) + 
   geom_point(size = 0.3, alpha = 0.1) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
-  scale_color_brewer(palette = 'Set2') + 
-  theme_minimal() + 
+  scale_color_manual(values = as.vector(pals::alphabet())) + 
+  theme_cowplot() + 
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
 plot_grid(p1, p2)
 dev.off()
