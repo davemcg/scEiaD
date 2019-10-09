@@ -30,7 +30,7 @@ gse_info_maker <- function(gse){
 }
 # web search to get info on GEO IDs
 base_url <- 'https://www.ncbi.nlm.nih.gov/gds/?term='
-GEO_ids <- scan('data/GEO_IDs.txt', what = 'character')
+GEO_ids <- read_tsv('data/GEO_IDs.txt', col_names = FALSE) %>% filter(!grepl('#', X1)) %>% pull(X1)
 search_url <- paste0(base_url, paste(GEO_ids, collapse = '+'))
 gse_prj <- data.frame(matrix(ncol = 4, nrow = 0))
 # extract GEO ID and SRA project ID from web page
@@ -96,7 +96,7 @@ con <- dbConnect(bigrquery::bigquery(),
 
 # build query
 sql_experiment <- paste0("SELECT study_accession, sample_accession, alias,
-                          experiment_accession, title, attributes, instrument_model, 
+                          title, attributes, instrument_model, 
                           library_layout, library_strategy, library_construction_protocol, 
                           library_layout_length, library_layout_sdev, library_source, platform
               FROM sra_experiment WHERE study_accession IN ('", 
@@ -107,7 +107,7 @@ sql_experiment <- paste0("SELECT study_accession, sample_accession, alias,
 # run query
 sra_experiment <- dbGetQuery(con, sql_experiment)
 
-sql_sample <- paste0("SELECT sample_accession, organism, taxon_id, BioSample
+sql_sample <- paste0("SELECT accession, study_accession, organism, taxon_id, BioSample
               FROM sra_sample WHERE accession IN ('", 
                      paste(sra_experiment$sample_accession, 
                            collapse = "','"), "')")
@@ -118,9 +118,9 @@ sql_biosample <- paste0("SELECT accession, attributes, attribute_recs, title, ta
                         paste(sra_sample$BioSample, 
                               collapse = "','"), "')")
 
-sql_run <- paste0("SELECT accession, experiment_accession
-              FROM sra_run WHERE experiment_accession IN ('", 
-                  paste(sra_experiment$experiment_accession, 
+sql_run <- paste0("SELECT accession, sample_accession
+              FROM sra_run WHERE sample_accession IN ('", 
+                  paste(sra_experiment$sample_accession, 
                         collapse = "','"), "')")
 
 sra_biosample <- dbGetQuery(con, sql_biosample)
@@ -129,12 +129,13 @@ sra_run <- dbGetQuery(con, sql_run)
 
 # join the 4 into 1
 sra_metadata <- sra_experiment %>% 
-  left_join(., sra_sample, by = 'sample_accession') %>% 
+  left_join(., sra_sample %>% rename(sample_accession = accession) %>% select(-study_accession), 
+            by = 'sample_accession') %>% 
   left_join(., sra_biosample %>% 
               rename(BioSample = accession, biosample_attributes = attributes, biosample_attribute_recs = attribute_recs, biosample_title = title),
             by = 'BioSample') %>% 
   left_join(., sra_run %>% rename(run_accession = accession),
-            by = 'experiment_accession')
+            by = 'sample_accession')
 
 # add in tech info about seq
 # have to custom correct SRP158081 as they use a blend of smart-seq and 10X....
@@ -143,8 +144,7 @@ sra_metadata <- left_join(sra_metadata, tech) %>%
   mutate(Platform = case_when(study_accession == 'SRP158081' & grepl('Cell', title) ~ 'SMARTSeq_v2',
                               TRUE ~ Platform),
          UMI = case_when(study_accession == 'SRP158081' & grepl('Cell', title) ~ 'NO',
-                              TRUE ~ UMI)
-         )
+                              TRUE ~ UMI))
 
 save(sra_metadata, file = 'data/sra_metadata.Rdata')
 write_tsv(gse_prj %>% rename(study_accession = 'SRA_PROJECT_ID'), path = 'data/GEO_Study_Level_Metadata.tsv')
