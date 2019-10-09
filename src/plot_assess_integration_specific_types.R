@@ -51,7 +51,7 @@ p2 <- bind_rows(umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipola
                                                      Labelling = case_when(is.na(Paper) ~ 'None',
                                                                            TRUE ~ Paper)) %>% 
                   filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
-                  filter(CXCR1 > 2) %>% mutate(Expression = 'Cxcr1 (Microglia)'),  
+                  filter(CX3CR1 > 2) %>% mutate(Expression = 'Cx3cr1 (Microglia)'),  
                 umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
                                                      Labelling = case_when(is.na(Paper) ~ 'None',
                                                                            TRUE ~ Paper)) %>% 
