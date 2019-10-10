@@ -136,7 +136,7 @@ rule all:
 		expand('quant/{organism}/full_sparse_matrix.Rdata', organism = organism),
 		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
 				transform = ['SCT'], \
-				method = ['fastMNN'], \
+				method = ['fastMNN', 'CCA'], \
 				combination = ['Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
 				covariate = ['batch'], \
@@ -402,8 +402,7 @@ rule integrate:
 		if wildcards.method != 'scanorama':
 			job = "module load R/3.6; \
 					Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
-					  {combination} {method} {transform} {covariate} {input} {output}".format(\
-																	combination = wildcards.combination, \
+					  {method} {transform} {covariate} {input} {output}".format(\
 																	method = wildcards.method, \
 																	transform = wildcards.transform, \
 																    covariate = wildcards.covariate, \
@@ -412,8 +411,7 @@ rule integrate:
 			job = "source /data/mcgaugheyd/conda/etc/profile.d/conda.sh; \
 					conda init bash; conda activate scanorama; \
 					Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
-					  {combination} {method} {transform} {covariate} {input} {output}".format(\
-																	combination = wildcards.combination, \
+					  {method} {transform} {covariate} {input} {output}".format(\
 																	method = wildcards.method, \
 																	transform = wildcards.transform, \
 																	covariate = wildcards.covariate, \
@@ -434,6 +432,18 @@ rule label_known_cells_with_type:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/label_known_cells.R 
 		"""
 
+rule predict_missing_cell_types:
+	input:
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata',
+		'cell_info_labelled.Rdata'
+	output:
+		'predictions/{combination}__{transform}__{partition}__{covariate}__{method}_cell_info_predictions.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels.R {input} {output}
+		"""
+		
 rule calculate_umap_and_cluster:
 	input:
 		obj = 'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
@@ -456,7 +466,7 @@ rule extract_umap:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_umap.R \
-			{input} {output}	
+			{input} {output} {wildcards.method}	
 		"""
 
 rule plot_integration:

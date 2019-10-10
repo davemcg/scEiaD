@@ -58,9 +58,18 @@
 	},
 	"calculate_umap_and_cluster" :
 	{
-		"mem" : "240G",
-		"partition" : "norm",
+		"mem" : "1000G",
+		"partition" : "largemem",
 		"time" : "48:00:00",
 		"extra" : " --gres=lscratch:100"
+	},
+	"extract_umap" :
+	{
+		"mem" : "400G",
+		"partition" : "largemem"
+	},
+	"predict_missing_cell_types" :
+	{
+		"mem" : "200G"
 	}
 }
