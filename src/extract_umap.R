@@ -7,7 +7,7 @@ load(args[1])
 # load cell data
 load(args[2])
 # method
-method <- args[3]
+method <- args[4]
 
 if (method == 'CCA'){
   reduction <- 'pca'
