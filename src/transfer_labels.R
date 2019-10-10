@@ -3,10 +3,7 @@ args <- commandArgs(trailingOnly = TRUE)
 # transfer clark ... blackshaw cell labels to all cells
 library(tidyverse)
 library(Seurat)
-library(schex)
-library(cowplot)
-library(future)
-library(data.table)
+
 
 plan(strategy = "multicore", workers = 12)
 options(future.globals.maxSize = 2400000 * 1024^2)
@@ -51,13 +48,13 @@ predictions <- TransferData(anchorset = anchors,
                             refdata = labelled@meta.data$CellType, 
                             dims = 1:30)
 
-meta <- left_join(nmeta, 
+transferred_labels <- left_join(nmeta, 
                   predictions %>% as_tibble(rownames = 'Barcode')) %>% 
   mutate(ID = case_when(CellType == 'Missing' ~ `predicted.id`, 
                         TRUE ~ CellType))
 
-integrated_obj@meta.data$CellType_transfer <- meta %>% pull(ID)
+#integrated_obj@meta.data$CellType_transfer <- meta %>% pull(ID)
 
 # save(integrated_obj, file = 'integrated_obj__transfer.Rdata', compress = FALSE)
-save(integrated_obj, file = args[4], compress = FALSE)
-save(meta, file = args[5])
+#save(integrated_obj, file = args[4], compress = FALSE)
+save(predictions, file = args[3])
