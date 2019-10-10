@@ -4,15 +4,29 @@ load('data/sra_metadata.Rdata')
 
 # age is in days, 0 is birth (so you can have negative if there are any prenatal)
 # unnest the biosample_attribute_recs for easier parsing later
-biosample_attribute_recs <- sra_metadata %>% 
-  select(run_accession, biosample_attribute_recs) %>% 
-  unnest() %>% 
-  group_by(run_accession) %>% 
-  summarise(biosample_attribute_recs = paste(value, collapse = ' ')) 
+attribute_info <- list()
+for (row in 1:nrow(sra_metadata)){
+  #print(row)
+  if (!is.null((sra_metadata[row,] %>% pull(biosample_attribute_recs))[[1]])){
+    attribute_info[[row]] <- (sra_metadata[row,] %>% 
+                                pull(biosample_attribute_recs))[[1]] %>% 
+      select(attribute_name, value) %>% 
+      spread(attribute_name, value)
+  } else {attribute_info[[row]] <- tibble(age = NA)}
+}
+biosample_attribute_recs <- attribute_info %>% bind_rows()
+# biosample_attribute_recs <- sra_metadata %>% 
+#   select(run_accession, biosample_attribute_recs) %>% 
+#   unnest() %>% 
+#   group_by(run_accession) %>% 
+#   summarise(biosample_attribute_recs = paste(value, collapse = ' ')) 
+
+sra_metadata_extended <- sra_metadata %>% select(-biosample_attribute_recs)
+sra_metadata_extended <- cbind(sra_metadata_extended, biosample_attribute_recs)
+
 sra_metadata_extended <- sra_metadata %>% 
   filter(Platform != 'BULK', study_accession != 'SRP149898') %>% 
-  select(-biosample_attribute_recs) %>% 
-  left_join(., biosample_attribute_recs) %>% 
+
   mutate(SRP158081_age = str_extract(biosample_title,'^[E|P]\\d+')) %>% 
   mutate(SRP158081_age = case_when(grepl('^E', SRP158081_age) ~ substr(SRP158081_age, 2,6) %>% as.numeric() - 19,
                                    grepl('^P', SRP158081_age) ~ substr(SRP158081_age, 2,6) %>% as.numeric,
@@ -69,7 +83,7 @@ sra_metadata_extended <- sra_metadata %>%
                                study_accession == 'SRP158081' ~ 'Rep1',
                                TRUE ~ 'None'),  
          TissueNote = case_when(study_accession == 'SRP158528' | study_accession == 'SRP157927' ~ biosample_title,
-           study_accession == 'SRP073242' ~ 'Vsx2-GFP FACS',
+                                study_accession == 'SRP073242' ~ 'Vsx2-GFP FACS',
                                 study_accession == 'SRP075720' ~ 'Kcng4-cre;stop-YFP X Thy1-stop-YFP Line#1',
                                 study_accession == 'SRP106476' ~ 'CRX+/tdTomato OVs and adult retinas were dissociated using papain',
                                 study_accession == 'SRP157927' & grepl('M1,', biosample_title) ~ 'Macaque 1, Fovea',

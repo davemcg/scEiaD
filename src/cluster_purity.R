@@ -51,7 +51,13 @@ cluster_purity_plot <- function(obj, algorithm_name,
     separate(Info, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', 'Dims'), sep = '__')
   cells_per_group <- obj %>% 
     group_by(Count) %>% 
-    summarise(Sum = sum(Total))
+    summarise(Sum = sum(Total)) %>% 
+    mutate(Count = case_when(Count >=2 ~ '2 or more',
+                             TRUE ~ '1')) %>% 
+    ungroup() %>% 
+    mutate(Total = sum(Sum)) %>% 
+    group_by(Count) %>% 
+    summarise(Ratio = sum(Sum) / max(Total))
   list(mean = p1_mean, cluster_count = p1_cluster_count, dist = obj, cells_per_group = cells_per_group)
 }
 
@@ -106,6 +112,49 @@ mean_plotter <- function(output_file, obj, title = "Mean Purity of Clusters by C
   dev.off()
   #}
 }
+
+ratio_plotter <- function(output_file, obj, title = "Purity of Clusters by Cell Type"){
+  pdf(output_file, width = 10, height = 8)
+  print(obj %>% 
+          map(4) %>% # second is the number of clusters
+          bind_rows(.id = 'name') %>% 
+          separate(name, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__') %>% 
+          as_tibble() %>% 
+          ggplot(aes(x=Method, y = Ratio, fill = Count)) + 
+          geom_bar(stat = 'identity') +
+          theme_minimal() +
+          theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+          facet_grid(vars(Method), vars(Dims)) +
+          ggsci::scale_color_aaas() +
+          ggtitle(title))
+  dev.off()
+  #}
+}
+
+extract <- function(obj1, obj2){
+  rbind(obj1 %>% 
+          map(4) %>% # second is the number of clusters
+          bind_rows(.id = 'name') %>% 
+          separate(name, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__') %>% 
+          as_tibble() %>% arrange(Ratio) %>% filter(Count == 1) %>% rename(Score = Ratio) %>% mutate(Type = 'CellType Purity'),
+        obj2 %>% map(4) %>% # second is the number of clusters
+          bind_rows(.id = 'name') %>% 
+          separate(name, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__') %>% 
+          as_tibble() %>% arrange(Ratio) %>% filter(Count != 1) %>% rename(Score = Ratio) %>% mutate(Type = 'Study Blending'))
+}
+
+extract(purity_calcs_cluster_vs_celltype, 
+        purity_calcs_cluster_vs_study_and_cell_type) %>% 
+  as_tibble() %>% 
+  mutate(Method = factor(Method, levels = c('fastMNN', 'CCA', 'harmony', 'scanorama', 'combat', 'none')),
+         Type = factor(Type, levels = c('Study Blending', 'CellType Purity')),
+         Dims = gsub('dims','', Dims) %>% as.numeric()) %>% 
+  ggplot(aes(x=Method, y = Score, fill = as.factor(Dims), color = Type)) + 
+  geom_bar(stat = 'identity', size = 2) + 
+  facet_grid(vars(Covariate), vars(Dims)) + 
+  theme_cowplot() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  ggsci::scale_fill_aaas() + scale_colour_manual(values = c("gray","yellow"))
 
 # draw a convex hull around each seurat_cluster and plot size
 # ideally want each cluster to be "tight" (i.e. not a big ol blob)
