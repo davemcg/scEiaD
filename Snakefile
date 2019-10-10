@@ -137,7 +137,7 @@ rule all:
 		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
 				transform = ['SCT'], \
 				method = ['fastMNN', 'CCA'], \
-				combination = ['Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
 				covariate = ['batch'], \
 				dims = dims),

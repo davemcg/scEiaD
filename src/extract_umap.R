@@ -4,10 +4,12 @@ library(Seurat)
 library(tidyverse)
 # load integrated seurat obj
 load(args[1])
-# load cell data
+# load labelled cell data
 load(args[2])
+# load predited cell data (+ labelled)
+load(args[3])
 # method
-method <- args[4]
+method <- args[5]
 
 if (method == 'CCA'){
   reduction <- 'pca'
@@ -40,7 +42,9 @@ reduction.name <- gsub('_','', reduction.key)
 orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
 umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'Barcode') %>% 
   left_join(., orig_meta) %>% 
-  left_join(., cell_info_labels %>% dplyr::rename(Barcode = value))
+  left_join(., cell_info_labels %>% dplyr::rename(Barcode = value),
+  left_join(., predictions %>% as_tibble(rownames = 'Barcode') %>% select(Barcode, CellType_predict = `predicted.id`))
+
 umap$Method <- method
 colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 
@@ -79,6 +83,6 @@ core_expression <- FetchData(integrated_obj, toupper(core_markers)) %>% as_tibbl
 umap <- left_join(umap, avg_marker, by = 'Barcode') %>% 
   left_join(., core_expression, by = 'Barcode')
 
-save(umap, file = args[3])
+save(umap, file = args[4])
 
 
