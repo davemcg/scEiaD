@@ -11,12 +11,13 @@ fastq_wanted <- meta %>%
          fastq2 = case_when(library_layout == 'PAIRED' ~ paste0(run_accession, '_2.fastq.gz'))) %>% 
   select(run_accession, fastqS, fastq1, fastq2) %>% 
   group_by(run_accession) %>% 
-  summarise(fastq = list(c(fastqS, fastq1, fastq1))) %>% 
+  summarise(fastq = list(c(fastqS, fastq1, fastq2))) %>% 
   unnest(fastq) %>% 
   pull(fastq) %>% 
   unique()
 
 fastq_wanted <- fastq_wanted[!is.na(fastq_wanted)]
+fastq_wanted <- fastq_wanted[grep('^NA', fastq_wanted, invert = TRUE)]
 
 (fastq_wanted %in% fastq_files_existing) %>% table()
 
@@ -25,5 +26,6 @@ srr <- fastq_missing %>% gsub('_2.fastq.gz|_1.fastq.gz|.fastq.gz', '', .) %>% un
 
 swarm <- srr %>% 
   enframe() %>% 
-  glue::glue_data('fasterq-dump --include-technical --split-files {value}; pigz -f -p 8 {value}*fastq; rm {value}*fastq')
-write(swarm, file = 'data/fasterq_dump_2019_10_10.swarm')
+  glue::glue_data('fasterq-dump --include-technical --split-files {value}; pigz -f -p 8 {value}*fastq;')
+write(swarm, file = 'data/fasterq_dump_2019_10_11.swarm')
+sra_metadata %>% filter(run_accession %in% srr)

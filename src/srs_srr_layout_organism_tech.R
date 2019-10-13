@@ -15,13 +15,17 @@ core_rpe = data.frame(sample_accession = c(rep('iPSC_RPE_scRNA_01', 24), rep('iP
                       TissueNote = NA,
                       stringsAsFactors = FALSE)
 
+# samples with very low mapped counts
+low_n <- c('SRS2728720','SRS2728715','SRS2728718','SRS2728715','SRS2728720','SRS2728718','SRS2728714','SRS2728719','SRS2728714','SRS2728719','SRS2728731','SRS2728694','SRS2728731','SRS2728694','SRS2728685','SRS2728716','SRS2728693','SRS2728685','SRS2728716','SRS2728693','SRS2728730','SRS2728730')
+
 # remove BULK RNA-seq and SRP149898 which is missing the crucial paired end reads (need to contact author)
 write_tsv(bind_rows(sra_metadata_extended %>% 
                       select(sample_accession, run_accession, library_layout, organism, Platform, UMI, study_accession, Tissue, Covariate, Age) %>% 
                       mutate(integration_group = case_when(Age < 10  ~ 'Early',
                                                TRUE ~ 'Late')) %>% 
                       filter(Platform != 'BULK', 
-                             study_accession != 'SRP149898') %>% 
+                             study_accession != 'SRP149898',
+                             !sample_accession %in% low_n) %>% 
                       unique(), 
                     core_rpe),
           path = 'data/sample_run_layout_organism_tech.tsv')
