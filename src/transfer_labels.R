@@ -26,7 +26,7 @@ nmeta$CellType[is.na(nmeta$CellType)] <- 'Missing'
 integrated_obj@meta.data$CellType <- nmeta$CellType
 
 # # var genes
-if (args == 'SCT'){
+if (transform == 'SCT'){
   integrated_obj@assays$SCT@var.features <- grep('^MT-', integrated_obj@assays$SCT@scale.data %>% row.names(), 
                                                  value = TRUE, invert = TRUE)
 } 
