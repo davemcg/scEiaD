@@ -72,7 +72,7 @@ umap %>%
   geom_point(size = 0.6, alpha = 0.1) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
   facet_wrap(~seurat_clusters) + 
-  scale_color_manual(values = unname(alphabet.colors())) +
+  scale_color_manual(values = unname(pals::alphabet())) +
   theme_minimal() + 
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
 dev.off()
