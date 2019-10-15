@@ -9,8 +9,6 @@ load(args[4])
 # crazy section to deal with that fact I have scanorama in a conda environment,
 # but many of the seurat wrapped integration tools can't be installed in conda
 # without crazy effort (e.g liger...as it needs to be compiled in C)
-library(tidyverse)
-library(Seurat)
 if (method != 'scanorama'){
   library(SeuratWrappers)
   library(harmony)
@@ -21,6 +19,9 @@ if (method != 'scanorama'){
   use_condaenv("scanorama")
   scanorama <- import('scanorama')
 }
+library(tidyverse)
+library(Seurat)
+
 
 run_integration <- function(seurat_obj, method, covariate = 'study_accession', transform = 'standard'){
   # covariate MUST MATCH what was used in build_seurat_obj.R
