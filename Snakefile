@@ -438,7 +438,7 @@ rule predict_missing_cell_types:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels.R {input} {output}
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels.R {input} {wildcards.transform} {output}
 		"""
 		
 rule calculate_umap_and_cluster:
