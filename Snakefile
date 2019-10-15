@@ -148,6 +148,13 @@ rule all:
 				partition = ['downsample'], \
 				covariate = ['batch'], \
 				dims = dims),
+		expand('plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_celltype.pdf', \
+				transform = transform, \
+				method = method, \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['downsample'], \
+				covariate = ['batch'], \
+				dims = dims),
 		#expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
 		#		transform = transform, \
 		#		method = method, \
