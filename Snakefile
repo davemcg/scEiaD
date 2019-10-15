@@ -141,6 +141,13 @@ rule all:
 				partition = ['full'], \
 				covariate = ['batch'], \
 				dims = dims),
+		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
+				transform = transform, \
+				method = method, \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['downsample'], \
+				covariate = ['batch'], \
+				dims = dims),
 		#expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
 		#		transform = transform, \
 		#		method = method, \
@@ -167,8 +174,8 @@ rule all:
 		#'quant/Mus_musculus/scTransformCCA_merged_Embryonic.seuratV3.Rdata',
 		#'quant/Mus_musculus/scTransformCCA_merged_Postnatal.seuratV3.Rdata',
 		#expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
-		#expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples) # non UMI data
-		# expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
+		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
+		expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
 
 # mouse, human, macaque fasta and gtf
 rule download_references:
@@ -399,23 +406,13 @@ rule integrate:
 	output:
 		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
 	run:
-		if wildcards.method != 'scanorama':
-			job = "module load R/3.6; \
-					Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
-					  {method} {transform} {covariate} {input} {output}".format(\
-																	method = wildcards.method, \
-																	transform = wildcards.transform, \
-																    covariate = wildcards.covariate, \
-											                        output = output, input = input)
-		else:
-			job = "source /data/mcgaugheyd/conda/etc/profile.d/conda.sh; \
-					conda init bash; conda activate scanorama; \
-					Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
-					  {method} {transform} {covariate} {input} {output}".format(\
-																	method = wildcards.method, \
-																	transform = wildcards.transform, \
-																	covariate = wildcards.covariate, \
-																	output = output, input = input)
+		job = "module load R/3.6; \
+				Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
+				  {method} {transform} {covariate} {input} {output}".format(\
+						method = wildcards.method, \
+						transform = wildcards.transform, \
+					    covariate = wildcards.covariate, \
+			            output = output, input = input)
 		sp.run("echo " + job + '\n', shell = True)
 		sp.run(job, shell = True)
 
@@ -460,6 +457,7 @@ rule extract_umap:
 	input:
 		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.seuratV3.Rdata',
 		'cell_info_labelled.Rdata',
+		'predictions/{combination}__{transform}__{partition}__{covariate}__{method}_cell_info_predictions.Rdata'
 	output:
 		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
 	shell:
