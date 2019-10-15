@@ -15,7 +15,7 @@ plan(strategy = "multicore", workers = 4)
 # 40000 ~ 40GB
 options(future.globals.maxSize = 500000 * 1024^2)
 
-set = args[2] # early, late, full
+set = args[2] # early, late, full, downsampled
 covariate = args[3] # study_accession, batch, etc.
 transform = args[4] # SCT or standard seurat
 combination = args[5] # mouse, mouse and macaque, mouse and macaque and human
@@ -53,6 +53,14 @@ if (combination == 'Mus_musculus'){
 m_early <- m[,cell_info %>% filter(Age < 10) %>% pull(value)]
 m_late <- m[,cell_info %>% filter(Age >= 10) %>% pull(value)]
 m_test <- m[,sample(1:ncol(m), 10000)]
+
+downsample_samples <- 
+  cell_info %>% 
+  group_by(batch) %>% 
+  sample_n(2000, replace = TRUE) %>% 
+  unique() %>% 
+  pull(value)
+m_downsample <- m[,downsample_samples]
 
 
 make_seurat_obj <- function(m, 
@@ -145,9 +153,12 @@ if (set == 'early'){
 } else if (set == 'late'){
   print("Running Late")
   seurat__standard <- make_seurat_obj(m_late, split.by = covariate)
-} else {
+} else if (set == 'full'){
   print("Running Full")
   seurat__standard <- make_seurat_obj(m, split.by = covariate)
+} else if (set == 'downsample'){
+  print("Running dowsample")
+  seurat__standard <- make_seurat_obj(m_downsample, split.by = covariate)
 }
 
 if (transform == 'SCT'){
