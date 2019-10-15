@@ -18,6 +18,7 @@ if (method != 'scanorama'){
   library(sva)
 } else {
   library(reticulate)
+  use_condaenv("scanorama")
   scanorama <- import('scanorama')
 }
 
