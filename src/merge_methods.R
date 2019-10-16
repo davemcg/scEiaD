@@ -39,11 +39,16 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     counts <- meta %>% group_by(split_by) %>% summarise(Count = n())
     meta <- left_join(meta, counts)
     obj@meta.data$CellCount <- meta$Count
-    obj <- subset(obj, subset = CellCount > 500)
+    obj <- subset(obj, subset = CellCount > 1000)
     
     seurat_list <- SplitObject(obj, split.by = covariate)
-    anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20)
-    obj <- IntegrateData(anchorset = anchors, verbose = TRUE)
+    anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20, 
+                                      anchor.features = obj[[obj@active.assay]]@var.features )
+    if (transform == 'SCT'){
+    obj <- IntegrateData(anchorset = anchors, verbose = TRUE, normalization.method = 'SCT')
+    } else {
+      obj <- IntegrateData(anchorset = anchors, verbose = TRUE)
+    }
     obj <- ScaleData(obj)
     obj <- RunPCA(obj, npcs = 100)
   } else if (method == 'fastMNN'){
