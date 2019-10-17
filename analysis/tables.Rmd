@@ -1,0 +1,29 @@
+---
+title: "Table 1"
+author: David McGaughey
+date: '`r format(Sys.Date(), "%Y-%m-%d")`'
+output: 
+  html_notebook:
+    theme: flatly
+    toc: true
+    code_folding: hide
+---
+
+```{r, message=F, warning=F, include=F}
+# Load Libraries without printing any warnings or messages
+library(tidyverse)
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_info_labelled.Rdata')
+study_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GEO_Study_Level_Metadata.tsv')
+
+```
+
+# Table 1
+Information on number/composition of studies
+```{r}
+cell_info_labels %>% group_by(study_accession, organism) %>% count()
+```
+
+# Session Info
+```{r}
+devtools::session_info()
+```
