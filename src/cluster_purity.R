@@ -10,7 +10,7 @@ library(splancs)
 library(ggsci)
 
 umap_folder <- args[1]
-umap_files <- list.files(umap_folder, "*umap.Rdata", full.names = TRUE)
+umap_files <- list.files(umap_folder, "*downsample*", full.names = TRUE)
 all_obj <- list()
 for (i in umap_files){
   load(i)
