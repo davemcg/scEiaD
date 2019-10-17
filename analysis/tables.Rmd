@@ -12,17 +12,70 @@ output:
 ```{r, message=F, warning=F, include=F}
 # Load Libraries without printing any warnings or messages
 library(tidyverse)
+library(formattable)
+library(webshot)
+library(htmltools)
+# all cells
 load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_info_labelled.Rdata')
+# cells after QC (high mito, low gene counts, high gene count)
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/fastMNN_umap_full.Rdata')
 study_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GEO_Study_Level_Metadata.tsv')
-
 ```
 
 # Table 1
 Information on number/composition of studies
-```{r}
-cell_info_labels %>% group_by(study_accession, organism) %>% count()
-```
 
+`r nrow(cell_info_labels)` cells enter the ring.
+
+`r cell_info_labels$study_accession %>% unique() %>% length()` SRA studies
+
+```{r}
+color_bar_factor <- formatter("span",
+                             style = function(x) style(
+                               display = "block",
+                               color = "white",
+                               border.radius = "4px",
+                               background = c("pink","darkseagreen","violet")[factor(as.character(x))]))
+
+export_formattable <- function(f, file, width = "100%", height = NULL, 
+                               background = "white", delay = 0.2)
+    {
+      w <- as.htmlwidget(f, width = width, height = height)
+      path <- html_print(w, background = background, viewer = NULL)
+      url <- paste0("file:///", gsub("\\\\", "/", normalizePath(path)))
+      webshot(url,zoom = 4,
+              file = file, 
+              selector = ".formattable_widget",
+              delay = delay)
+}
+
+
+table <- cell_info_labels %>% 
+  filter(!is.na(study_accession)) %>% 
+  left_join(study_meta) %>% 
+  mutate(PMID = as.character(PMID)) %>% 
+  mutate(Citation = case_when(is.na(Citation) ~ '',
+                              TRUE ~ paste0(substr(Citation, 1, 30), ' ...')),
+         PMID = case_when(is.na(PMID) ~ '',
+                          TRUE ~ PMID),
+         `SRA Accession` = study_accession) %>% 
+    group_by(Citation, PMID, `SRA Accession`, organism, Platform) %>% 
+    count(name = 'Count') %>% 
+  arrange(organism, -Count) %>% 
+  formattable(., list(Count = normalize_bar("lightblue"),
+                      organism = color_bar_factor,
+                      Platform = formatter("span", style = x ~ ifelse(!grepl('SMART|C1', x), 
+    style(font.weight = "bold"), NA))))
+table
+export_formattable(table, '01_table.png')
+```
+# Table 2
+Post QC filtering numbers
+
+Numbers of cell types
+```{r}
+
+```
 # Session Info
 ```{r}
 devtools::session_info()
