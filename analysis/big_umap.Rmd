@@ -1,0 +1,56 @@
+---
+title: "Figure 1"
+author: David McGaughey
+date: '`r format(Sys.Date(), "%Y-%m-%d")`'
+output: 
+  html_notebook:
+    theme: flatly
+    toc: true
+    code_folding: hide
+---
+```{r}
+cluster_labels <- umap %>% 
+  group_by(seurat_clusters, CellType) %>% 
+  filter(!is.na(CellType)) %>% 
+  summarise(Count = n()) %>% 
+  mutate(freq = Count / sum(Count)) %>% 
+  filter(freq > 0.3) %>% 
+  ungroup() %>% 
+  group_by(seurat_clusters) %>% 
+  summarise(seurat_cluster_CellType = paste0(CellType, collapse = ', ')) %>% 
+  mutate(seurat_cluster_CellType_num = paste0(seurat_clusters, ' (', seurat_cluster_CellType, ')'))
+
+
+
+umap %>% left_join(., cluster_labels) %>% 
+  mutate(Time = integration_group,
+         CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
+         Labelling = case_when(Paper == 'Hufnagel 2020' ~ 'Homo sapiens (Stem) (Hufnagel 2020)',
+                               TRUE ~ paste0(organism, ' (', study_accession, ')'))) %>% 
+  sample_n(10000) %>% 
+  ggplot(aes(x=mnnUMAP_1, y = mnnUMAP_2)) + 
+  geom_point(size = 0.1, alpha = 0.5) + 
+  guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
+  theme_cowplot() + 
+  geom_mark_hull(aes(color = seurat_cluster_CellType_num), concavity = 5) +
+  scale_color_manual(values = as.vector(pals::alphabet())) + 
+  scale_fill_manual(values = as.vector(pals::alphabet())) + 
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
+
+
+umap %>% left_join(., cluster_labels) %>% 
+    mutate(Time = integration_group,
+           CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
+           Labelling = case_when(Paper == 'Hufnagel 2020' ~ 'Homo sapiens (Stem) (Hufnagel 2020)',
+                                 TRUE ~ paste0(organism, ' (', study_accession, ')'))) %>% 
+    sample_n(10000) %>% 
+    ggplot(aes(x=mnnUMAP_1, y = mnnUMAP_2)) + 
+    geom_point(size = 0.1, alpha = 0.5) + 
+    guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
+    theme_cowplot() + 
+    geom_mark_hull(aes(label = seurat_cluster_CellType_num), concavity = 5) +
+    scale_color_manual(values = as.vector(pals::alphabet())) + 
+    scale_fill_manual(values = as.vector(pals::alphabet())) + 
+    theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
+```
+
