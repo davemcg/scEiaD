@@ -1,6 +1,7 @@
 # run integration methods that support Seurat objects directly
 args <- commandArgs(trailingOnly = TRUE)
 
+method = args[1]
 
 
 # crazy section to deal with that fact I have scanorama in a conda environment,
@@ -20,7 +21,6 @@ library(tidyverse)
 library(Seurat)
 
 
-method = args[1]
 transform = args[2]
 covariate = args[3]
 load(args[4])
