@@ -43,6 +43,10 @@ create_umap_and_cluster <- function(integrated_obj,
   integrated_obj
 }
 
+if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100){
+  integrated_obj <- RunPCA(integrated_obj, npcs = 100)
+}
+
 if (method == 'CCA'){
   reduction <- 'pca'
   reduction.key <- 'ccaUMAP_'
@@ -59,9 +63,6 @@ if (method == 'CCA'){
   reduction <- 'pca'
   reduction.key <- 'noneUMAP_'
 } else if (method == 'combat'){
-  if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100){
-    integrated_obj <- RunPCA(integrated_obj, npcs = 100)
-  }
   reduction <- 'pca'
   reduction.key <- 'combatUMAP_'
 } else {
