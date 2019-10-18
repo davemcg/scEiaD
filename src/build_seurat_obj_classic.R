@@ -20,6 +20,7 @@ covariate = args[3] # study_accession, batch, etc.
 transform = args[4] # SCT or standard seurat
 combination = args[5] # mouse, mouse and macaque, mouse and macaque and human
 cell_info <- read_tsv(args[6]) # cell_info.tsv
+cell_info$batch <- gsub(' ', '', cell_info$batch)
 rdata_files = args[7:length(args)]
 rdata <- list()
 for (i in rdata_files){
@@ -31,19 +32,36 @@ if (combination == 'Mus_musculus'){
   m <- rdata[[file]]
 } else if (combination == 'Mus_musculus_Macaca_fascicularis'){
   file  <- grep('Mus|Maca', names(rdata), value = TRUE)
-  shared_genes <- rdata[file] %>% map(row.names) %>% reduce(intersect)
+  shared_genes <- rdata[file] %>% 
+    map(row.names) %>% 
+    map(toupper()) %>% 
+    reduce(intersect)
+  # add mito (missing from macaque?)
+  mito <- c('MT-ATP6','MT-ATP8','MT-CO1','MT-CO2','MT-CO3','MT-ND1','MT-ND2','MT-ND3','MT-ND4','MT-ND4L','MT-ND5','MT-ND6')
   file_cut_down <- list()
+  mito_list <- list()
   for (i in file){
     file_cut_down[[i]] <- rdata[[i]][shared_genes,]
+    try({mito_list[[i]] <- rdata[[i]][mito,]})
   }
   m <- file_cut_down %>% reduce(cbind)
 } else {
   shared_genes <- rdata %>% map(row.names) %>% reduce(intersect)
+  # add mito (missing from macaque?)
+  mito <- c('MT-ATP6','MT-ATP8','MT-CO1','MT-CO2','MT-CO3','MT-ND1','MT-ND2','MT-ND3','MT-ND4','MT-ND4L','MT-ND5','MT-ND6')
   file_cut_down <- list()
+  mito_list <- list()
   for (i in names(rdata)){
     file_cut_down[[i]] <- rdata[[i]][shared_genes,]
+    if (!mito %in% row.names(rdata[[i]])){
+      mito_list[[i]] <- matrix(0, nrow = length(mito), ncol = ncol(rdata[[i]])) %>% as.sparse()
+      row.names(mito_list[[i]]) <- mito
+      colnames(mito_list[[i]]) <- colnames(rdata[[i]])
+    } else {mito_list[[i]] <- rdata[[i]][mito,] }
   }
   m <- file_cut_down %>% reduce(cbind)
+  mito_m <- mito_list %>% reduce(cbind)
+  m <- rbind(m, mito_m)
 }
 
 
@@ -65,11 +83,24 @@ m_downsample <- m[,downsample_samples]
 
 make_seurat_obj <- function(m, 
                             split.by = 'study_accession'){
-  seurat_m <- CreateSeuratObject(m)
-  seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, pattern = "^MT-")
+  umi_m <- m[,cell_info %>% filter(UMI == 'NO') %>% pull(value)]
+  droplet_m <- m[,cell_info %>% filter(UMI == 'YES') %>% pull(value)]
+  seurat_umi <- CreateSeuratObject(umi_m)
+  seurat_droplet <- CreateSeuratObject(droplet_m)
+  
   # FILTER STEP!!!!
-  # keep cells with < 10% mito genes, and more than 200 and less than 3000 detected genes
-  seurat_m <- subset(seurat_m, subset = percent.mt < 10 & nFeature_RNA > 200 & nFeature_RNA < 3000 )
+  # keep cells with < 10% mito genes, and more than 200 and less than 3000 detected genes for UMI
+  # for well, drop the 3000 gene top end filterr as there shouldn't be any droplets
+  seurat_umi <- subset(seurat_umi, subset = nFeature_RNA > 200)
+  seurat_droplet <- subset(seurat_droplet, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 )
+  # cells to keep
+  cells_to_keep <- c(row.names(seurat_umi@meta.data), row.names(seurat_droplet@meta.data))
+  m_filter <- m[,cells_to_keep]
+  
+  seurat_m <- CreateSeuratObject(m_filter)
+  seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, pattern = "^MT-")
+  seurat_m <- subset(seurat_m, subset = percent.mt < 10)
+  
   seurat_m@meta.data$batch <- left_join(seurat_m@meta.data %>% 
                                           row.names() %>% enframe(), 
                                         cell_info, by = 'value') %>% 
@@ -127,7 +158,7 @@ seurat_sct <- function(seurat_list){
   # remove sets with less than 200 cells, which will fail integration
   low_n <- c()
   for (i in names(seurat_list)){
-    if (ncol(seurat_list[[i]]) < 200){
+    if (ncol(seurat_list[[i]]) < 0){
       low_n <- c(low_n, i)
     }
   }
