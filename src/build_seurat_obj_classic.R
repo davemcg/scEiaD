@@ -83,8 +83,8 @@ m_downsample <- m[,downsample_samples]
 
 make_seurat_obj <- function(m, 
                             split.by = 'study_accession'){
-  umi_m <- m[,cell_info %>% filter(UMI == 'NO') %>% pull(value)]
-  droplet_m <- m[,cell_info %>% filter(UMI == 'YES') %>% pull(value)]
+  umi_m <- m[,cell_info %>% filter(value %in% colnames(m), UMI == 'NO') %>% pull(value)]
+  droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), UMI == 'YES') %>% pull(value)]
   seurat_umi <- CreateSeuratObject(umi_m)
   seurat_droplet <- CreateSeuratObject(droplet_m)
   
@@ -155,17 +155,17 @@ seurat_sct <- function(seurat_list){
     seurat_list[[i]] <- trySCTransform(seurat_list[[i]])
   }
   
-  # remove sets with less than 200 cells, which will fail integration
-  low_n <- c()
-  for (i in names(seurat_list)){
-    if (ncol(seurat_list[[i]]) < 0){
-      low_n <- c(low_n, i)
-    }
-  }
-  if (length(low_n) > 0){
-    seurat_list[low_n] <- NULL
-  }
-  
+  # # remove sets with less than 200 cells, which will fail integration
+  # low_n <- c()
+  # for (i in names(seurat_list)){
+  #   if (ncol(seurat_list[[i]]) < 0){
+  #     low_n <- c(low_n, i)
+  #   }
+  # }
+  # if (length(low_n) > 0){
+  #   seurat_list[low_n] <- NULL
+  # }
+  # 
   study_data_features <- SelectIntegrationFeatures(object.list = seurat_list, nfeatures = 2000, verbose = FALSE)
   seurat_list <- PrepSCTIntegration(object.list = seurat_list, anchor.features = study_data_features, verbose = FALSE)
   
@@ -188,7 +188,7 @@ if (set == 'early'){
   print("Running Full")
   seurat__standard <- make_seurat_obj(m, split.by = covariate)
 } else if (set == 'downsample'){
-  print("Running dowsample")
+  print("Running downsample")
   seurat__standard <- make_seurat_obj(m_downsample, split.by = covariate)
 }
 
