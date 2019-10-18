@@ -21,6 +21,9 @@ transform = args[4] # SCT or standard seurat
 combination = args[5] # mouse, mouse and macaque, mouse and macaque and human
 cell_info <- read_tsv(args[6]) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
+# set batch covariate for well data to NA, as any splits risks making the set too small
+cell_info <- mutate(batch = case_when(UMI == 'NO') ~ 'NA',
+                    TRUE ~ batch)
 rdata_files = args[7:length(args)]
 rdata <- list()
 for (i in rdata_files){
@@ -155,17 +158,17 @@ seurat_sct <- function(seurat_list){
     seurat_list[[i]] <- trySCTransform(seurat_list[[i]])
   }
   
-  # # remove sets with less than 200 cells, which will fail integration
-  # low_n <- c()
-  # for (i in names(seurat_list)){
-  #   if (ncol(seurat_list[[i]]) < 0){
-  #     low_n <- c(low_n, i)
-  #   }
-  # }
-  # if (length(low_n) > 0){
-  #   seurat_list[low_n] <- NULL
-  # }
-  # 
+  # remove sets with less than 50 cells, which will fail PCA
+  low_n <- c()
+  for (i in names(seurat_list)){
+    if (ncol(seurat_list[[i]]) < 50){
+      low_n <- c(low_n, i)
+    }
+  }
+  if (length(low_n) > 0){
+    seurat_list[low_n] <- NULL
+  }
+
   study_data_features <- SelectIntegrationFeatures(object.list = seurat_list, nfeatures = 2000, verbose = FALSE)
   seurat_list <- PrepSCTIntegration(object.list = seurat_list, anchor.features = study_data_features, verbose = FALSE)
   
@@ -173,9 +176,7 @@ seurat_sct <- function(seurat_list){
   seurat_list <- lapply(X = seurat_list, FUN = function(x) {
     x <- RunPCA(x, features = study_data_features, verbose = FALSE)
   })
-  
   list(seurat_list = seurat_list, study_data_features = study_data_features)
-  
 }
 
 if (set == 'early'){
