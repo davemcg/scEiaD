@@ -22,8 +22,8 @@ combination = args[5] # mouse, mouse and macaque, mouse and macaque and human
 cell_info <- read_tsv(args[6]) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
-cell_info <- mutate(batch = case_when(UMI == 'NO') ~ 'NA',
-                    TRUE ~ batch)
+cell_info <- mutate(batch = case_when(UMI == 'NO' ~ 'NA',
+                    TRUE ~ batch))
 rdata_files = args[7:length(args)]
 rdata <- list()
 for (i in rdata_files){
