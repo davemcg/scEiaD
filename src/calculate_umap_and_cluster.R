@@ -43,14 +43,11 @@ create_umap_and_cluster <- function(integrated_obj,
   integrated_obj
 }
 
-if (is.null(integrated_obj@reductions$pca)){
-  integrated_obj <- RunPCA(integrated_obj, npcs = 100)
-}
-if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100){
-  integrated_obj <- RunPCA(integrated_obj, npcs = 100)
-}
 
 if (method == 'CCA'){
+  if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100){
+    integrated_obj <- RunPCA(integrated_obj, npcs = 100)
+  }
   reduction <- 'pca'
   reduction.key <- 'ccaUMAP_'
 } else if (method == 'scanorama'){
@@ -63,9 +60,15 @@ if (method == 'CCA'){
   reduction <- 'mnn'
   reduction.key <- 'mnnUMAP_'
 } else if (method == 'none'){
+  if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100){
+    integrated_obj <- RunPCA(integrated_obj, npcs = 100)
+  }
   reduction <- 'pca'
   reduction.key <- 'noneUMAP_'
 } else if (method == 'combat'){
+  if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100){
+    integrated_obj <- RunPCA(integrated_obj, npcs = 100)
+  }
   reduction <- 'pca'
   reduction.key <- 'combatUMAP_'
 } else {
