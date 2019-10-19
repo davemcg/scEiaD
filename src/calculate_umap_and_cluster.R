@@ -43,8 +43,10 @@ create_umap_and_cluster <- function(integrated_obj,
   integrated_obj
 }
 
-if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100 |
-    is.null(integrated_obj@reductions$pca)){
+if (is.null(integrated_obj@reductions$pca)){
+  integrated_obj <- RunPCA(integrated_obj, npcs = 100)
+}
+if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100){
   integrated_obj <- RunPCA(integrated_obj, npcs = 100)
 }
 
