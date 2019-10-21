@@ -24,6 +24,7 @@ cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
 cell_info <- cell_info %>% 
   mutate(batch = case_when(UMI == 'NO' ~ paste0(organism, '_Well_NA'),
+                           study_accession == 'SRP125998' ~ paste0(study_accession, "_", Platform, '_NA'),
                            TRUE ~ batch))
 rdata_files = args[7:length(args)]
 rdata <- list()
@@ -161,10 +162,10 @@ seurat_sct <- function(seurat_list){
     seurat_list[[i]] <- trySCTransform(seurat_list[[i]])
   }
   
-  # remove sets with less than 50 cells, which will fail PCA
+  # remove sets with less than 500 cells, which will somehow(?) destory SCT - based integration performance
   low_n <- c()
   for (i in names(seurat_list)){
-    if (ncol(seurat_list[[i]]) < 50){
+    if (ncol(seurat_list[[i]]) < 500){
       low_n <- c(low_n, i)
     }
   }
