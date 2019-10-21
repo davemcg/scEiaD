@@ -42,11 +42,13 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     obj <- subset(obj, subset = CellCount > 1000)
     
     seurat_list <- SplitObject(obj, split.by = covariate)
-    anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20, 
-                                      anchor.features = obj[[obj@active.assay]]@var.features )
     if (transform == 'SCT'){
-    obj <- IntegrateData(anchorset = anchors, verbose = TRUE, normalization.method = 'SCT')
+      anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20, normalization.method = 'SCT',
+                                        anchor.features = obj[[obj@active.assay]]@var.features )
+      obj <- IntegrateData(anchorset = anchors, verbose = TRUE, normalization.method = 'SCT')
     } else {
+      anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20, 
+                                        anchor.features = obj[[obj@active.assay]]@var.features )
       obj <- IntegrateData(anchorset = anchors, verbose = TRUE)
     }
     obj <- ScaleData(obj)
