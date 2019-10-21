@@ -46,32 +46,32 @@ p2 <- bind_rows(umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipola
                                                      Labelling = case_when(is.na(Paper) ~ 'None',
                                                                            TRUE ~ Paper)) %>% 
                   filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
-                  filter(CABP5 > 1) %>% mutate(Expression = 'Cabp5 (Bipolar Cell)'),
+                  filter(CABP5 > 0.5) %>% mutate(Expression = 'Cabp5 (Bipolar Cell)'),
                 umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
                                                      Labelling = case_when(is.na(Paper) ~ 'None',
                                                                            TRUE ~ Paper)) %>% 
                   filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
-                  filter(CX3CR1 > 2) %>% mutate(Expression = 'Cx3cr1 (Microglia)'),  
+                  filter(AIF1 > 0.5) %>% mutate(Expression = 'Aif1 (Microglia)'),  
                 umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
                                                      Labelling = case_when(is.na(Paper) ~ 'None',
                                                                            TRUE ~ Paper)) %>% 
                   filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
-                  filter(RHO > 2) %>% mutate(Expression = 'Rho (Rod Photoreceptor)'),
+                  filter(RHO > 0.5) %>% mutate(Expression = 'Rho (Rod Photoreceptor)'),
                 umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
                                                      Labelling = case_when(is.na(Paper) ~ 'None',
                                                                            TRUE ~ Paper)) %>% 
                   filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
-                  filter(OPN1SW > 1) %>% mutate(Expression = 'OPN1SW (Cone Photoreceptor)'),
+                  filter(OPN1SW > 0.5) %>% mutate(Expression = 'Opn1sw (Cone Photoreceptor)'),
                 umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
                                                      Labelling = case_when(is.na(Paper) ~ 'None',
                                                                            TRUE ~ Paper)) %>% 
                   filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
-                  filter(TFAP2A > 1) %>% mutate(Expression = 'TFAP2A (Amacrine Cells)'),
+                  filter(TFAP2A > 0.5) %>% mutate(Expression = 'TFAP2A (Amacrine Cells)'),
                 umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
                                                      Labelling = case_when(is.na(Paper) ~ 'None',
                                                                            TRUE ~ Paper)) %>% 
                   filter(CellType %in% c('Amacrine Cells', 'Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia')) %>% 
-                  filter(AQP4 > 1) %>% mutate(Expression = 'Aqp4 (Muller Glia)')) %>% 
+                  filter(AQP4 > 0.5) %>% mutate(Expression = 'Aqp4 (Muller Glia)')) %>% 
   ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Expression)) + 
   geom_point(size = 0.3, alpha = 0.1) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
