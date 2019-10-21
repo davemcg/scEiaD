@@ -78,7 +78,7 @@ p2 <- bind_rows(umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipola
   scale_color_manual(values = as.vector(pals::alphabet())) + 
   theme_cowplot() + 
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
-plot_grid(p1, p2)
+plot_grid(p1, p2, rel_widths = c(0.4,0.6))
 dev.off()
 
 
