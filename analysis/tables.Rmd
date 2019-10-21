@@ -106,6 +106,8 @@ export_formattable(formattable_01, '01_table.png')
 ```
 `r table01 %>% filter(Labels == 'Yes') %>% nrow()` studies pre(labelled).
 
+`r sum(table01$"Post QC Count")` cells after QC.
+
 # Table 2
 Pre-labelled cells I've extracted so far
 ```{r}
