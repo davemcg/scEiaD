@@ -63,9 +63,9 @@ cluster_purity_plot <- function(obj, algorithm_name,
 
 # only keep full 
 full <- grep('full', names(all_obj), value = TRUE)
-full_obj <- all_obj[full]
+full_obj <- all_obj
 bipolar_muller_rod <- full_obj %>% map(function(x) mutate(x, CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType) )) %>% 
-  map(function(x) filter(x, CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods'))) %>% 
+  map(function(x) filter(x, CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Microglia', 'Amacrine Cells', 'Horizontal'))) %>% 
   map(function(x) filter(x, Age  > 10)) %>% 
   map(function(x) mutate(x, celltype_study = paste0(CellType, '__', study_accession)))
 
@@ -149,6 +149,7 @@ extract(purity_calcs_cluster_vs_celltype,
   mutate(Method = factor(Method, levels = c('fastMNN', 'CCA', 'harmony', 'scanorama', 'combat', 'none')),
          Type = factor(Type, levels = c('Study Blending', 'CellType Purity')),
          Dims = gsub('dims','', Dims) %>% as.numeric()) %>% 
+  filter(Transform == 'standard') %>% 
   ggplot(aes(x=Method, y = Score, fill = as.factor(Dims), color = Type)) + 
   geom_bar(stat = 'identity', size = 2) + 
   facet_grid(vars(Covariate), vars(Dims)) + 
