@@ -55,21 +55,15 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     ## uses list of seurat objects (each obj your "covariate")
     seurat_list <- SplitObject(seurat_obj, split.by = covariate)
     obj <- RunFastMNN(object.list = seurat_list, d = 100)
-    # re-run scaledata as it gets wiped
-    if (transform == 'standard'){
+    # put back scaledata as it gets wiped
+    if (transform != 'SCT'){
       var_genes <- grep('^MT-', seurat_obj@assays$RNA@var.features, value = TRUE, invert = TRUE)
-      obj <- ScaleData(obj,
-                       features = var_genes,
-                       split.by = covariate,
-                       do.center = TRUE,
-                       do.scale = TRUE,
-                       verbose = TRUE,
-                       vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
+      obj@assays$RNA@scale.data <- seurat_obj@assays$RNA@scale.data
     }
     
   } else if (method == 'harmony'){
     ## uses one seurat obj (give covariate in meta.data to group.by.vars)
-    if (transform == 'standard'){
+    if (transform != 'SCT'){
       obj <- RunHarmony(seurat_obj, group.by.vars = covariate,
                         max.iter.harmony = 5, 
                         epsilon.harmony = -Inf)
@@ -118,7 +112,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     # of the integration, which is INTENDED FOR PCA/tSNE/UMAP!!!
     # the corrected data returns all of the sample x gene matrix with batch
     # corrected values
-    if (transform == 'standard'){
+    if (transform != 'SCT'){
       assay <- 'RNA'
     } else {assay <- 'SCT'}
     d <- list() # d is lists of scaled Data
@@ -153,7 +147,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     obj[["scanorama"]] <- CreateDimReducObject(embeddings = scanorama_mnn, key = "scanorama_", assay = DefaultAssay(obj))
     
   } else if (method == 'combat') {
-    if (transform == 'standard'){
+    if (transform != 'SCT'){
       assay <- 'RNA'
     } else {assay <- 'SCT'}
     # gene by sample for ComBat
@@ -170,7 +164,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
   obj
 }
 
-if (transform == 'standard' & method != 'none'){
+if (transform != 'SCT' & method != 'none'){
   integrated_obj <- run_integration(seurat__standard, method, covariate)
 } else if (transform == 'SCT' & method != 'none') {
   seurat_list <- seurat__SCT$seurat_list
@@ -181,7 +175,7 @@ if (transform == 'standard' & method != 'none'){
   DefaultAssay(merged) <- 'SCT'
   merged <- RunPCA(merged, npcs = 100)
   integrated_obj <- run_integration(merged, method, covariate, transform = 'SCT')
-} else if (transform == 'standard' & method == 'none'){
+} else if (transform != 'SCT' & method == 'none'){
   integrated_obj <- seurat__standard
 } else if (transform == 'SCT' & method == 'none'){
   seurat_list <- seurat__SCT$seurat_list

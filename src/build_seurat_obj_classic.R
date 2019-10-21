@@ -9,6 +9,7 @@ args <- commandArgs(trailingOnly = TRUE)
 library(Matrix)
 library(tidyverse)
 library(Seurat)
+library(scran)
 library(future)
 plan(strategy = "multicore", workers = 4)
 # the first term is roughly the number of MB of RAM you expect to use
@@ -25,7 +26,8 @@ cell_info$batch <- gsub(' ', '', cell_info$batch)
 cell_info <- cell_info %>% 
   mutate(batch = case_when(UMI == 'NO' ~ paste0(organism, '_Well_NA'),
                            study_accession == 'SRP125998' ~ paste0(study_accession, "_", Platform, '_NA'),
-                           TRUE ~ batch))
+                           TRUE ~ batch)) %>% 
+  mutate(batch = gsub(' ', '_', batch))
 rdata_files = args[7:length(args)]
 rdata <- list()
 for (i in rdata_files){
@@ -183,6 +185,34 @@ seurat_sct <- function(seurat_list){
   list(seurat_list = seurat_list, study_data_features = study_data_features)
 }
 
+# scran normalization
+scran_norm <- function(seurat_obj = seurat__standard, split.by = 'batch'){
+  var_features <- seurat_obj@assays$RNA@var.features
+  seurat_list <- SplitObject(seurat_obj, split.by = covariate)
+  print('Beginning scran norm')
+  # list of seurat objects
+  sce_list <- list()
+  for (obj in names(seurat_list)){
+    print(obj)
+    print(seurat_list[[obj]] %>% dim())
+    if (ncol(seurat_list[[obj]]) > 50){
+      sce_list[[obj]] <- SingleCellExperiment(assays = list(counts = as.matrix(x = seurat_list[[obj]]$RNA@data)))
+      clusters = quickCluster(sce_list[[obj]], min.size=50)
+      sce_list[[obj]] = computeSumFactors(sce_list[[obj]], cluster=clusters)
+      sce_list[[obj]] = normalize(sce_list[[obj]], return_log = FALSE)
+      print(summary(sizeFactors(sce_list[[obj]])))
+      seurat_list[[obj]]$RNA@data = as.sparse(log(x = assay(sce_list[[obj]], "normcounts") + 1))
+    } else {seurat_list[[obj]] <- NULL} # remove obj with less than 50 cells
+  }
+  # merge back into one seurat obj
+  merged <- merge(x = seurat_list[[1]], y = seurat_list[2:length(x = seurat_list)])
+  merged$RNA@scale.data = merged$RNA@data[var_features,] %>% as.matrix()
+  merged@assays$RNA@var.features <- var_features
+  # re do PCA
+  merged <- RunPCA(merged, npcs = 100, features = var_features)
+  merged
+}
+
 if (set == 'early'){
   print("Running Early")
   seurat__standard <- make_seurat_obj(m_early, split.by = covariate)
@@ -201,6 +231,10 @@ if (transform == 'SCT'){
   s_data_list<- SplitObject(seurat__standard, split.by = covariate)
   seurat__SCT <- seurat_sct(s_data_list)
   save(seurat__SCT, 
+       file = args[1], compress = FALSE)
+} else if (transform == 'scran'){
+  seurat__standard <- scran_norm(seurat__standard, split.by = covariate )
+  save(seurat__standard, 
        file = args[1], compress = FALSE)
 } else {
   # save objects
