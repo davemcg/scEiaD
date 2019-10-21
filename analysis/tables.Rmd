@@ -70,6 +70,10 @@ export_formattable <- function(f, file, width = "100%", height = NULL,
           delay = delay)
 }
 
+post <- stats %>% rename(`Post QC Count` = value) %>% 
+              select(study_accession, Platform, `Post QC Count`) %>% 
+              group_by(study_accession, Platform) %>% 
+              summarise(`Post QC Count` = sum(`Post QC Count`))
 
 table01 <- cell_info_labels %>% 
   filter(!is.na(study_accession)) %>% 
@@ -84,10 +88,15 @@ table01 <- cell_info_labels %>%
                               TRUE ~ 'No')) %>% 
   group_by(Citation, PMID, `SRA Accession`, organism, Platform) %>% 
   summarise(Count = n(), Labels = unique(Labels) %>% sort() %>% tail(1)) %>% 
-  arrange(organism, -Count) 
+  arrange(organism, -Count) %>% 
+  left_join(., post %>% 
+              rename(`SRA Accession` = study_accession)) %>% 
+  select(Citation:Count, `Post QC Count`, Labels)
 
+table01$`Post QC Count`[is.na(table01$`Post QC Count`)] <- 0
 formattable_01 <- table01 %>% 
   formattable(., list(Count = normalize_bar("lightblue"),
+                      `Post QC Count` = normalize_bar("lightblue"),
                       organism = color_bar_factor,
                       Labels = color_bar_factor2,
                       Platform = formatter("span", style = x ~ ifelse(!grepl('SMART|C1', x), 
@@ -116,38 +125,6 @@ table02
 export_formattable(table02, '02_table.png')
 ```
 
-# Table 3
-Post QC filtering numbers
-
-Numbers of cell types
-```{r}
-pre <- cell_info_labels %>% 
-  filter(!is.na(sample_accession)) %>% 
-  left_join(study_meta) %>% 
-  left_join(umap) %>% 
-  mutate(PMID = as.character(PMID)) %>% 
-  mutate(Citation = case_when(is.na(Citation) ~ '',
-                              TRUE ~ paste0(substr(Citation, 1, 30), ' ...')),
-         PMID = case_when(is.na(PMID) ~ '',
-                          TRUE ~ PMID)) %>% 
-  group_by(Citation, PMID, study_accession, sample_accession, organism, Platform) %>% 
-  summarise(Count = n()) 
-
-post <- umap %>% 
-  filter(!is.na(sample_accession)) %>% 
-  group_by(study_accession, sample_accession) %>% 
-  summarise(`Post QC Count` = n())
-
-pre %>% 
-  ungroup() %>% 
-  group_by(study_accession, organism, Platform) %>% 
-  summarise(Count = sum(Count)) %>% 
-  left_join(., stats %>% rename(`Post QC Count` = value) %>% 
-              select(study_accession, Platform, `Post QC Count`) %>% 
-              group_by(study_accession, Platform) %>% 
-              summarise(`Post QC Count` = sum(`Post QC Count`))) %>% 
-  arrange(organism, -`Post QC Count`)
-```
 # Session Info
 ```{r}
 devtools::session_info()
