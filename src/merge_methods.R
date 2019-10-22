@@ -54,6 +54,12 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                                         anchor.features = seurat_obj$study_data_features )
       obj <- IntegrateData(anchorset = anchors, verbose = TRUE, normalization.method = 'SCT')
     } else {
+      seurat_list[seurat_list %>% 
+                    map(ncol) %>% 
+                    map(enframe) %>%
+                    bind_rows(.id = 'ID') %>% 
+                    filter(value < 1000) %>% 
+                    pull(ID)] <- NULL
       anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20, 
                                         anchor.features = obj[[obj@active.assay]]@var.features )
       obj <- IntegrateData(anchorset = anchors, verbose = TRUE)
