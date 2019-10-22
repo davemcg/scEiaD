@@ -14,7 +14,7 @@ method <- args[5]
 if (method == 'CCA'){
   reduction <- 'pca'
   reduction.key <- 'ccaUMAP_'
-  DefaultAssay(integrated_obj) <- 'SCT'
+  #DefaultAssay(integrated_obj) <- 'SCT'
 } else if (method == 'scanorama'){
   reduction <- 'scanorama'
   reduction.key <- 'scanoramaUMAP_'
