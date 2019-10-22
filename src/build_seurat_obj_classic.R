@@ -42,7 +42,7 @@ if (combination == 'Mus_musculus'){
   shared_genes <- rdata[file] %>% 
     map(row.names) %>% 
     map(toupper()) %>% 
-    reduce(intersect)
+    purrr::reduce(intersect)
   # add mito (missing from macaque?)
   mito <- c('MT-ATP6','MT-ATP8','MT-CO1','MT-CO2','MT-CO3','MT-ND1','MT-ND2','MT-ND3','MT-ND4','MT-ND4L','MT-ND5','MT-ND6')
   file_cut_down <- list()
@@ -51,9 +51,9 @@ if (combination == 'Mus_musculus'){
     file_cut_down[[i]] <- rdata[[i]][shared_genes,]
     try({mito_list[[i]] <- rdata[[i]][mito,]})
   }
-  m <- file_cut_down %>% reduce(cbind)
+  m <- file_cut_down %>% purrr::reduce(cbind)
 } else {
-  shared_genes <- rdata %>% map(row.names) %>% reduce(intersect)
+  shared_genes <- rdata %>% map(row.names) %>% purrr::reduce(intersect)
   # add mito (missing from macaque?)
   mito <- c('MT-ATP6','MT-ATP8','MT-CO1','MT-CO2','MT-CO3','MT-ND1','MT-ND2','MT-ND3','MT-ND4','MT-ND4L','MT-ND5','MT-ND6')
   file_cut_down <- list()
@@ -66,8 +66,8 @@ if (combination == 'Mus_musculus'){
       colnames(mito_list[[i]]) <- colnames(rdata[[i]])
     } else {mito_list[[i]] <- rdata[[i]][mito,] }
   }
-  m <- file_cut_down %>% reduce(cbind)
-  mito_m <- mito_list %>% reduce(cbind)
+  m <- file_cut_down %>% purrr::reduce(cbind)
+  mito_m <- mito_list %>% purrr::reduce(cbind)
   m <- rbind(m, mito_m)
 }
 
