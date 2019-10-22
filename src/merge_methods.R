@@ -34,17 +34,24 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
   if (method == 'CCA'){
     # identify batches wiht  low cell counts (<200) to exclude
     obj <- seurat_obj
-    obj@meta.data$split_by <- obj@meta.data[,covariate]
-    meta <- obj@meta.data
-    counts <- meta %>% group_by(split_by) %>% summarise(Count = n())
-    meta <- left_join(meta, counts)
-    obj@meta.data$CellCount <- meta$Count
-    obj <- subset(obj, subset = CellCount > 1000)
+    # obj@meta.data$split_by <- obj@meta.data[,covariate]
+    # meta <- obj@meta.data
+    # counts <- meta %>% group_by(split_by) %>% summarise(Count = n())
+    # meta <- left_join(meta, counts)
+    # obj@meta.data$CellCount <- meta$Count
+    # obj <- subset(obj, subset = CellCount > 1000)
     
     seurat_list <- SplitObject(obj, split.by = covariate)
     if (transform == 'SCT'){
-      anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20, normalization.method = 'SCT',
-                                        anchor.features = obj[[obj@active.assay]]@var.features )
+      # remove sets with fewre than 1000 cells
+      seurat_obj$seurat_list[seurat_obj$seurat_list %>% 
+                               map(ncol) %>% 
+                               map(enframe) %>%
+                               bind_rows(.id = 'ID') %>% 
+                               filter(value < 1000) %>% 
+                               pull(ID)] <- NULL
+      anchors <- FindIntegrationAnchors(object.list = seurat_obj$seurat_list, dims = 1:20, normalization.method = 'SCT',
+                                        anchor.features = seurat_obj$study_data_features )
       obj <- IntegrateData(anchorset = anchors, verbose = TRUE, normalization.method = 'SCT')
     } else {
       anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20, 
@@ -168,6 +175,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 
 if (transform != 'SCT' & method != 'none'){
   integrated_obj <- run_integration(seurat__standard, method, covariate)
+} else if (transform == 'SCT' & method == 'CCA') {
+  integrated_obj <- run_integration(seurat__SCT, 'CCA', covariate, transform = 'SCT')
 } else if (transform == 'SCT' & method != 'none') {
   seurat_list <- seurat__SCT$seurat_list
   if (length(seurat_list) > 1){
