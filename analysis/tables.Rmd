@@ -70,10 +70,10 @@ export_formattable <- function(f, file, width = "100%", height = NULL,
           delay = delay)
 }
 
-post <- stats %>% rename(`Post QC Count` = value) %>% 
-              select(study_accession, Platform, `Post QC Count`) %>% 
+post <- stats %>% rename(`Post QC<br/>Count` = value) %>% 
+              select(study_accession, Platform, `Post QC<br/>Count`) %>% 
               group_by(study_accession, Platform) %>% 
-              summarise(`Post QC Count` = sum(`Post QC Count`))
+              summarise(`Post QC<br/>Count` = sum(`Post QC<br/>Count`))
 
 table01 <- cell_info_labels %>% 
   filter(!is.na(study_accession)) %>% 
@@ -91,12 +91,12 @@ table01 <- cell_info_labels %>%
   arrange(organism, -Count) %>% 
   left_join(., post %>% 
               rename(`SRA Accession` = study_accession)) %>% 
-  select(Citation:Count, `Post QC Count`, Labels)
+  select(Citation:Count, `Post QC<br/>Count`, Labels)
 
-table01$`Post QC Count`[is.na(table01$`Post QC Count`)] <- 0
+table01$`Post QC<br/>Count`[is.na(table01$`Post QC<br/>Count`)] <- 0
 formattable_01 <- table01 %>% 
   formattable(., list(Count = normalize_bar("lightblue"),
-                      `Post QC Count` = normalize_bar("lightblue"),
+                      `Post QC<br/>Count` = normalize_bar("lightblue"),
                       organism = color_bar_factor,
                       Labels = color_bar_factor2,
                       Platform = formatter("span", style = x ~ ifelse(!grepl('SMART|C1', x), 
@@ -106,7 +106,7 @@ export_formattable(formattable_01, '01_table.png')
 ```
 `r table01 %>% filter(Labels == 'Yes') %>% nrow()` studies pre(labelled).
 
-`r sum(table01$"Post QC Count")` cells after QC.
+`r sum(table01$"Post QC<br/>Count")` cells after QC.
 
 # Table 2
 Pre-labelled cells I've extracted so far
