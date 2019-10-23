@@ -24,8 +24,10 @@ output_file3 <- args[4]
 
 cluster_purity_plot <- function(obj, algorithm_name, 
                                 grouping_var_1 = 'seurat_clusters', 
-                                grouping_var_2 = 'CellType'){
+                                grouping_var_2 = 'CellType',
+                                cutoff_num = 2){
   obj <- obj %>% filter(!is.na(!!(sym(grouping_var_2))))
+  # mean of number of grouping_var_2 per grouping_var_1
   p1_mean <- obj %>% group_by(!!(sym(grouping_var_1)), !!(sym(grouping_var_2))) %>% 
     summarise(Count = n()) %>% 
     mutate(Perc = Count/sum(Count)) %>% 
@@ -33,6 +35,8 @@ cluster_purity_plot <- function(obj, algorithm_name,
     ungroup() %>% group_by(!!(sym(grouping_var_1))) %>% 
     summarise(Total = sum(Count), Count = n()) %>% filter(Total > 500) %>% 
     pull(Count) %>% mean() %>% round(., 2)
+  # number of grouping_var_1 that pass the filter applied above
+  # only want to consider clusters 
   p1_cluster_count <- obj %>% group_by(!!(sym(grouping_var_1)), !!(sym(grouping_var_2))) %>% 
     summarise(Count = n()) %>% 
     mutate(Perc = Count/sum(Count)) %>% 
@@ -52,7 +56,7 @@ cluster_purity_plot <- function(obj, algorithm_name,
   cells_per_group <- obj %>% 
     group_by(Count) %>% 
     summarise(Sum = sum(Total)) %>% 
-    mutate(Count = case_when(Count >=2 ~ '2 or more',
+    mutate(Count = case_when(Count >= cutoff_num ~ paste0(cutoff_num, ' or more'),
                              TRUE ~ '1')) %>% 
     ungroup() %>% 
     mutate(Total = sum(Sum)) %>% 
@@ -62,16 +66,16 @@ cluster_purity_plot <- function(obj, algorithm_name,
 }
 
 # only keep full 
-full <- grep('full', names(all_obj), value = TRUE)
-full_obj <- all_obj[full]
+# full <- grep('full', names(all_obj), value = TRUE)
+full_obj <- all_obj
 bipolar_muller_rod <- full_obj %>% map(function(x) mutate(x, CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType) )) %>% 
-  map(function(x) filter(x, CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods'))) %>% 
+  map(function(x) filter(x, CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Amacrine Cells', 'Microglia', 'Pericytes'))) %>% 
   map(function(x) filter(x, Age  > 10)) %>% 
   map(function(x) mutate(x, celltype_study = paste0(CellType, '__', study_accession)))
 
 
-purity_calcs_cluster_vs_celltype <- bipolar_muller_rod %>% imap(cluster_purity_plot, "seurat_clusters", "CellType")
-purity_calcs_cluster_vs_study_and_cell_type <- bipolar_muller_rod %>% imap(cluster_purity_plot, "seurat_clusters", "celltype_study")
+purity_calcs_cluster_vs_celltype <- bipolar_muller_rod %>% imap(cluster_purity_plot, "seurat_clusters", "CellType", 2)
+purity_calcs_cluster_vs_study_and_cell_type <- bipolar_muller_rod %>% imap(cluster_purity_plot, "seurat_clusters", "celltype_study", 3)
 #purity_calcs_cluster_vs_age <- bipolar_muller_rod %>% imap(cluster_purity_plot, "seurat_clusters", "Age")
 
 
@@ -131,31 +135,6 @@ ratio_plotter <- function(output_file, obj, title = "Purity of Clusters by Cell 
   #}
 }
 
-extract <- function(obj1, obj2){
-  rbind(obj1 %>% 
-          map(4) %>% # second is the number of clusters
-          bind_rows(.id = 'name') %>% 
-          separate(name, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__') %>% 
-          as_tibble() %>% arrange(Ratio) %>% filter(Count == 1) %>% rename(Score = Ratio) %>% mutate(Type = 'CellType Purity'),
-        obj2 %>% map(4) %>% # second is the number of clusters
-          bind_rows(.id = 'name') %>% 
-          separate(name, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__') %>% 
-          as_tibble() %>% arrange(Ratio) %>% filter(Count != 1) %>% rename(Score = Ratio) %>% mutate(Type = 'Study Blending'))
-}
-
-extract(purity_calcs_cluster_vs_celltype, 
-        purity_calcs_cluster_vs_study_and_cell_type) %>% 
-  as_tibble() %>% 
-  mutate(Method = factor(Method, levels = c('fastMNN', 'CCA', 'harmony', 'scanorama', 'combat', 'none')),
-         Type = factor(Type, levels = c('Study Blending', 'CellType Purity')),
-         Dims = gsub('dims','', Dims) %>% as.numeric()) %>% 
-  ggplot(aes(x=Method, y = Score, fill = as.factor(Dims), color = Type)) + 
-  geom_bar(stat = 'identity', size = 2) + 
-  facet_grid(vars(Transform), vars(Dims)) + 
-  theme_cowplot() + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-  ggsci::scale_fill_aaas() + scale_colour_manual(values = c("gray","yellow"))
-
 # draw a convex hull around each seurat_cluster and plot size
 # ideally want each cluster to be "tight" (i.e. not a big ol blob)
 cluster_area <- function(obj, cluster_col = 'seurat_clusters'){
@@ -176,6 +155,38 @@ cluster_area <- function(obj, cluster_col = 'seurat_clusters'){
   }
   areas %>% enframe()
 }
+
+
+extract <- function(obj1, obj2){
+  rbind(obj1 %>% 
+          map(4) %>% # second is the number of clusters
+          bind_rows(.id = 'name') %>% 
+          separate(name, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__') %>% 
+          as_tibble() %>% arrange(Ratio) %>% filter(Count == 1) %>% rename(Score = Ratio) %>% mutate(Type = 'CellType Purity'),
+        obj2 %>% map(4) %>% # second is the number of clusters
+          bind_rows(.id = 'name') %>% 
+          separate(name, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__') %>% 
+          as_tibble() %>% arrange(Ratio) %>% filter(Count != 1) %>% rename(Score = Ratio) %>% mutate(Type = 'Study Blending'))
+}
+
+pdf('')
+extract(purity_calcs_cluster_vs_celltype, 
+        purity_calcs_cluster_vs_study_and_cell_type) %>% 
+  as_tibble() %>% 
+  mutate(Method = factor(Method, levels = c('fastMNN', 'CCA', 'harmony', 'scanorama', 'combat', 'none')),
+         Type = factor(Type, levels = c('Study Blending', 'CellType Purity')),
+         Dims = gsub('dims','', Dims) %>% as.numeric()) %>% 
+  ggplot(aes(x=Method, y = Score, fill = as.factor(Dims), color = Type)) + 
+  geom_bar(stat = 'identity', size = 2) + 
+  geom_text(aes(label = round(Score,2)), 
+            position = position_stack(vjust = 0.5),
+            show.legend = FALSE) + 
+  facet_grid(vars(Transform), vars(Dims)) + 
+  theme_cowplot() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  ggsci::scale_fill_aaas(name = 'Number of\nDimensions') + 
+  scale_colour_manual(values = c("gray","yellow"), name = 'Scoring')
+
 
 
 #dist_plotter('test1', purity_calcs_cluster_vs_celltype, "Distribution of Purity of Clusters by Cell Type")
