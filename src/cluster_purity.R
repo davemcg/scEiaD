@@ -22,6 +22,9 @@ output_file1 <- args[2]
 output_file2 <- args[3]
 output_file3 <- args[4]
 
+# LOADS OF FUNCTIONS
+# filters out weak cell type assignment to clusters
+# removes clusters with low counts
 cluster_purity_plot <- function(obj, algorithm_name, 
                                 grouping_var_1 = 'seurat_clusters', 
                                 grouping_var_2 = 'CellType',
@@ -65,20 +68,7 @@ cluster_purity_plot <- function(obj, algorithm_name,
   list(mean = p1_mean, cluster_count = p1_cluster_count, dist = obj, cells_per_group = cells_per_group)
 }
 
-# only keep full 
-# full <- grep('full', names(all_obj), value = TRUE)
-full_obj <- all_obj
-bipolar_muller_rod <- full_obj %>% map(function(x) mutate(x, CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType) )) %>% 
-  map(function(x) filter(x, CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Amacrine Cells', 'Microglia', 'Pericytes'))) %>% 
-  map(function(x) filter(x, Age  > 10)) %>% 
-  map(function(x) mutate(x, celltype_study = paste0(CellType, '__', study_accession)))
-
-
-purity_calcs_cluster_vs_celltype <- bipolar_muller_rod %>% imap(cluster_purity_plot, "seurat_clusters", "CellType", 2)
-purity_calcs_cluster_vs_study_and_cell_type <- bipolar_muller_rod %>% imap(cluster_purity_plot, "seurat_clusters", "celltype_study", 3)
-#purity_calcs_cluster_vs_age <- bipolar_muller_rod %>% imap(cluster_purity_plot, "seurat_clusters", "Age")
-
-
+# plotting function
 dist_plotter <- function(output_file, obj, title = "Distribution of Purity of Clusters by Cell Type"){
   pdf(output_file, width = 20, height = 4)
   print(obj %>% 
@@ -95,6 +85,7 @@ dist_plotter <- function(output_file, obj, title = "Distribution of Purity of Cl
   
 }
 
+# plotting function
 mean_plotter <- function(output_file, obj, title = "Mean Purity of Clusters by Cell Type"){
   pdf(output_file, width = 10, height = 8)
   print(cbind(obj %>% 
@@ -117,6 +108,7 @@ mean_plotter <- function(output_file, obj, title = "Mean Purity of Clusters by C
   #}
 }
 
+# plotting function
 ratio_plotter <- function(output_file, obj, title = "Purity of Clusters by Cell Type"){
   pdf(output_file, width = 10, height = 8)
   print(obj %>% 
@@ -132,7 +124,6 @@ ratio_plotter <- function(output_file, obj, title = "Purity of Clusters by Cell 
           ggsci::scale_color_aaas() +
           ggtitle(title))
   dev.off()
-  #}
 }
 
 # draw a convex hull around each seurat_cluster and plot size
@@ -156,7 +147,7 @@ cluster_area <- function(obj, cluster_col = 'seurat_clusters'){
   areas %>% enframe()
 }
 
-
+# pulls out values for scoring bar plot
 extract <- function(obj1, obj2){
   rbind(obj1 %>% 
           map(4) %>% # second is the number of clusters
@@ -169,7 +160,19 @@ extract <- function(obj1, obj2){
           as_tibble() %>% arrange(Ratio) %>% filter(Count != 1) %>% rename(Score = Ratio) %>% mutate(Type = 'Study Blending'))
 }
 
-pdf('')
+well_represented_cells <- all_obj %>% map(function(x) mutate(x, CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType) )) %>% 
+  map(function(x) filter(x, CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 'Cones', 'Amacrine Cells', 'Microglia', 'Pericytes'))) %>% 
+  map(function(x) filter(x, Age  > 10)) %>% 
+  map(function(x) mutate(x, celltype_study = paste0(CellType, '__', study_accession)))
+
+
+purity_calcs_cluster_vs_celltype <- well_represented_cells %>% imap(cluster_purity_plot, "seurat_clusters", "CellType", 2)
+purity_calcs_cluster_vs_study_and_cell_type <- well_represented_cells %>% imap(cluster_purity_plot, "seurat_clusters", "celltype_study", 3)
+#purity_calcs_cluster_vs_age <- well_represented_cells %>% imap(cluster_purity_plot, "seurat_clusters", "Age")
+
+
+# scoring bar plot faceted by dims used and transformtion
+pdf(width = 12, height = 6, 'table03.pdf')
 extract(purity_calcs_cluster_vs_celltype, 
         purity_calcs_cluster_vs_study_and_cell_type) %>% 
   as_tibble() %>% 
@@ -186,28 +189,28 @@ extract(purity_calcs_cluster_vs_celltype,
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
   ggsci::scale_fill_aaas(name = 'Number of\nDimensions') + 
   scale_colour_manual(values = c("gray","yellow"), name = 'Scoring')
-
+dev.off()
 
 
 #dist_plotter('test1', purity_calcs_cluster_vs_celltype, "Distribution of Purity of Clusters by Cell Type")
 #dist_plotter('test2', purity_calcs_cluster_vs_study_and_cell_type, "Distribution of Purity of Clusters by Study")
 #dist_plotter('test3', purity_calcs_cluster_vs_age, "Distribution of Purity of Clusters by Age")
-
-mean_plotter(args[2], purity_calcs_cluster_vs_celltype, "Mean Purity of Clusters by Cell Type (Ideal is 1)")
-mean_plotter(args[3], purity_calcs_cluster_vs_study_and_cell_type, "Diversity of Cell Type Clusters by Study (Higher is Better)")
+# 
+# mean_plotter(args[2], purity_calcs_cluster_vs_celltype, "Mean Purity of Clusters by Cell Type (Ideal is 1)")
+# mean_plotter(args[3], purity_calcs_cluster_vs_study_and_cell_type, "Diversity of Cell Type Clusters by Study (Higher is Better)")
 #mean_plotter('test6', purity_calcs_cluster_vs_age, "Mean Purity of Clusters by Age")
-
-pdf(args[4], width = 6, height = 6)
-area_plot <- full_obj %>% map(cluster_area) %>% bind_rows(.id='stuff') %>% separate(stuff, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__')
-area_plot %>% 
-  group_by(Transform, Covariate, Method, Dims) %>% 
-  summarise(value = median(value)) %>% 
-  ggplot(aes(x=Method, y = value, colour = Transform)) + 
-  geom_point(stat = 'identity') + 
-  theme_minimal() + 
-  ggsci::scale_color_aaas() +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-  facet_wrap(~Covariate + Dims, nrow = 2) + 
-  ylab('Median Cluster Area') + ggtitle("fastMNN has the smallest median cluster size")
-dev.off()
+# 
+# pdf(args[4], width = 6, height = 6)
+# area_plot <- full_obj %>% map(cluster_area) %>% bind_rows(.id='stuff') %>% separate(stuff, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__')
+# area_plot %>% 
+#   group_by(Transform, Covariate, Method, Dims) %>% 
+#   summarise(value = median(value)) %>% 
+#   ggplot(aes(x=Method, y = value, colour = Transform)) + 
+#   geom_point(stat = 'identity') + 
+#   theme_minimal() + 
+#   ggsci::scale_color_aaas() +
+#   theme_minimal() +
+#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+#   facet_wrap(~Covariate + Dims, nrow = 2) + 
+#   ylab('Median Cluster Area') + ggtitle("fastMNN has the smallest median cluster size")
+# dev.off()

@@ -39,7 +39,7 @@ p1 <- umap %>% filter(Age > 10) %>%
   ggplot(aes(x=UMAP_1, y = UMAP_2, colour = CellType)) + 
   geom_point(size = 0.3, alpha = 0.1) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
-  theme_minimal() + 
+  theme_cowplot() + 
   scale_color_brewer(palette = 'Set1') + 
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
 p2 <- bind_rows(umap %>% filter(Age > 10) %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
