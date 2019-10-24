@@ -48,7 +48,9 @@ umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'B
             by = 'Barcode') %>% 
   left_join(., predictions %>% 
               as_tibble(rownames = 'Barcode') %>% 
-              select(Barcode, CellType_predict = `predicted.id`))
+              select(Barcode, CellType_predict = `predicted.id`)) %>% 
+  mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
+                                      TRUE ~ CellType_predict))
 
 umap$Method <- method
 colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
