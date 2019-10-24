@@ -43,8 +43,12 @@ reduction.name <- gsub('_','', reduction.key)
 orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
 umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'Barcode') %>% 
   left_join(., orig_meta) %>% 
-  left_join(., cell_info_labels %>% dplyr::rename(Barcode = value), by = 'Barcode'  ) %>% 
-  left_join(., predictions %>% as_tibble(rownames = 'Barcode') %>% select(Barcode, CellType_predict = `predicted.id`))
+  left_join(., cell_info_labels %>% 
+              dplyr::rename(Barcode = value) %>% select(-study_accession, -Age, -batch),
+            by = 'Barcode') %>% 
+  left_join(., predictions %>% 
+              as_tibble(rownames = 'Barcode') %>% 
+              select(Barcode, CellType_predict = `predicted.id`))
 
 umap$Method <- method
 colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
