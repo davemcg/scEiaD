@@ -31,7 +31,7 @@ cluster_labels <- umap %>%
 ```
 
 # UMAP of known cells
-```{r}
+```{r, fig.width=6, fig.height=4}
 plot1 <- umap %>% 
   mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
   filter(!is.na(CellType), 
@@ -39,8 +39,8 @@ plot1 <- umap %>%
          !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
          !grepl('RPE|Vascul', CellType)) %>%
   ggplot() + 
-  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType), size = 0.01, alpha = 0.1) + 
-  guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType), size = 0.05, alpha = 0.1) + 
+  guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
   theme_cowplot() + 
   #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
   scale_color_manual(values = as.vector(pals::alphabet())) + 
@@ -48,27 +48,61 @@ plot1 <- umap %>%
   coord_cartesian(xlim = c(-5,5)) +
   xlab('UMAP 1') + ylab('UMAP 2')
 plot1
-pdf('big_umap_fig2.pdf', width = 12, height = 9)
-plot1
-dev.off()
+# pdf('big_umap_fig2.pdf', width = 12, height = 9)
+# plot1
+# dev.off()
+```
+
+# UMAP of Age
+```{r, fig.width=4, fig.height=4}
+plot2 <- umap %>% 
+  rename(Stage = integration_group) %>% 
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+  filter(!is.na(CellType), 
+         !is.na(study_accession), 
+         !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType)) %>%
+  ggplot() + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = Stage), size = 0.01, alpha = 0.1) + 
+  guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
+  theme_cowplot() + 
+  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
+  scale_color_manual(values = as.vector(pals::alphabet()) %>% tail(2)) + 
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+  coord_cartesian(xlim = c(-5,5)) +
+  xlab('UMAP 1') + ylab('UMAP 2')
+plot2
 ```
 
 # UMAP of inferred cells, split by organism
-```{r}
-umap %>% 
+```{r, fig.width=9, fig.height=4}
+plot3 <- umap %>% 
   mutate(CellType_predict = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
   filter(!is.na(study_accession), !is.na(CellType_predict),
          !CellType_predict %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
          !grepl('RPE|Vascul', CellType_predict)) %>%
+  mutate(Size = case_when(organism == 'Homo sapiens' ~ 0.015,
+                          TRUE ~ 0.01)) %>% 
   ggplot() + 
-  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType_predict), size = 0.01, alpha = 0.1) + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType_predict, size = Size), alpha = 0.1) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
   theme_cowplot() + 
+  scale_size(guide = 'none') +
+  scale_alpha(guide = 'none') +
   #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
-  scale_color_manual(values = as.vector(pals::alphabet())) + 
+  scale_color_manual(values = as.vector(pals::alphabet()), name = 'Cell Type\n(Inferred)') + 
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
   coord_cartesian(xlim = c(-5,5)) + 
-  facet_wrap(~organism)
+  facet_wrap(~organism) +
+  xlab('UMAP 1') + ylab('UMAP 2')
+plot3
+```
+
+```{r}
+plot_grid(plot1, plot_grid(plot3 + theme(legend.position = "none"), plot2, 
+                           rel_widths = c(0.6,0.4)), 
+          nrow = 2, 
+          rel_heights = c(0.6,0.4))
 ```
 
 umap %>% left_join(., cluster_labels) %>% 
