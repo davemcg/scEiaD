@@ -99,10 +99,12 @@ plot3
 ```
 
 ```{r}
+# pdf('big_umap.pdf', height = 10, width = 12)
 plot_grid(plot1, plot_grid(plot3 + theme(legend.position = "none"), plot2, 
                            rel_widths = c(0.6,0.4)), 
           nrow = 2, 
           rel_heights = c(0.6,0.4))
+# dev.off()
 ```
 
 umap %>% left_join(., cluster_labels) %>% 
