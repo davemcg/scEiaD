@@ -12,43 +12,115 @@ output:
 library(tidyverse)
 library(ggforce)
 library(ggrepel)
+library(cowplot)
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap_fastMNN_mindist0_pc100.Rdata')
+
 cluster_labels <- umap %>% 
-  group_by(seurat_clusters, CellType_predict) %>% 
-  filter(!is.na(CellType_predict)) %>% 
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+  group_by(seurat_clusters, CellType) %>% 
+  filter(!is.na(CellType)) %>% 
   summarise(Count = n(), x = mean(UMAP_1), y = mean(UMAP_2)) %>% 
   mutate(freq = Count / sum(Count)) %>% 
-  filter(freq > 0.3) %>% 
+  filter(freq > 0.2) %>% 
   ungroup() %>% 
   group_by(seurat_clusters) %>% 
-  summarise(seurat_cluster_CellType_predict = paste0(CellType_predict, collapse = ', '),
+  top_n(1, -freq) %>% 
+  filter(Count > 100) %>% 
+  summarise(seurat_cluster_CellType = paste0(CellType, collapse = ', '),
             x = mean(x), y = mean(y)) %>% 
-  mutate(seurat_cluster_CellType_predict_num = paste0(seurat_clusters, ' (', seurat_cluster_CellType_predict, ')'))
+  mutate(seurat_cluster_CellType_num = paste0(seurat_clusters, ' (', seurat_cluster_CellType, ')'))
+```
 
-
-
-umap %>% left_join(., cluster_labels) %>% 
+# UMAP of known cells
+```{r, fig.width=6, fig.height=4}
+plot1 <- umap %>% 
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+  filter(!is.na(CellType), 
+         !is.na(study_accession), 
+         !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType)) %>%
   ggplot() + 
-  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType_predict), size = 0.1, alpha = 0.5) + 
-  #guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType), size = 0.05, alpha = 0.1) + 
+  guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
   theme_cowplot() + 
-  geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_predict_num )) +
+  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
   scale_color_manual(values = as.vector(pals::alphabet())) + 
-  theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+  coord_cartesian(xlim = c(-5,5)) +
+  xlab('UMAP 1') + ylab('UMAP 2')
+plot1  #+ facet_wrap(~CellType)
+# pdf('big_umap_fig2.pdf', width = 12, height = 9)
+# plot1
+# dev.off()
+```
 
+# UMAP of Age
+```{r, fig.width=4, fig.height=4}
+plot2 <- umap %>% 
+  rename(Stage = integration_group) %>% 
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+  filter(!is.na(CellType), 
+         !is.na(study_accession), 
+         !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType)) %>%
+  ggplot() + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = Stage), size = 0.01, alpha = 0.01) + 
+  guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
+  theme_cowplot() + 
+  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
+  scale_color_manual(values = as.vector(pals::alphabet()) %>% tail(2)) + 
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+  coord_cartesian(xlim = c(-5,5)) +
+  xlab('UMAP 1') + ylab('UMAP 2')
+plot2
+```
+
+# UMAP of inferred cells, split by organism
+```{r, fig.width=9, fig.height=4}
+plot3 <- umap %>% 
+  mutate(CellType_predict = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+  filter(!is.na(study_accession), !is.na(CellType_predict),
+         !CellType_predict %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType_predict)) %>%
+  mutate(Size = case_when(organism == 'Homo sapiens' ~ 0.015,
+                          TRUE ~ 0.01)) %>% 
+  ggplot() + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType_predict, size = Size), alpha = 0.1) + 
+  guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
+  theme_cowplot() + 
+  scale_size(guide = 'none') +
+  scale_alpha(guide = 'none') +
+  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
+  scale_color_manual(values = as.vector(pals::alphabet()), name = 'Cell Type\n(Inferred)') + 
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+  coord_cartesian(xlim = c(-5,5)) + 
+  facet_wrap(~organism) +
+  xlab('UMAP 1') + ylab('UMAP 2')
+plot3
+```
+
+```{r}
+pdf('big_umap.pdf', height = 10, width = 12)
+plot_grid(plot1, plot_grid(plot3 + theme(legend.position = "none"), plot2, 
+                           rel_widths = c(0.6,0.4)), 
+          nrow = 2, 
+          rel_heights = c(0.6,0.4))
+dev.off()
+```
 
 umap %>% left_join(., cluster_labels) %>% 
-    mutate(Time = integration_group,
-           CellType_predict = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType_predict), 
-           Labelling = case_when(Paper == 'Hufnagel 2020' ~ 'Homo sapiens (Stem) (Hufnagel 2020)',
-                                 TRUE ~ paste0(organism, ' (', study_accession, ')'))) %>% 
-    sample_n(10000) %>% 
-    ggplot(aes(x=mnnUMAP_1, y = mnnUMAP_2)) + 
-    geom_point(size = 0.1, alpha = 0.5) + 
-    guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
-    theme_cowplot() + 
-    geom_mark_hull(aes(label = seurat_cluster_CellType_predict_num), concavity = 5) +
-    scale_color_manual(values = as.vector(pals::alphabet())) + 
-    scale_fill_manual(values = as.vector(pals::alphabet())) + 
-    theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
+  mutate(Time = integration_group,
+         CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
+         Labelling = case_when(Paper == 'Hufnagel 2020' ~ 'Homo sapiens (Stem) (Hufnagel 2020)',
+                               TRUE ~ paste0(organism, ' (', study_accession, ')'))) %>% 
+  sample_n(10000) %>% 
+  ggplot(aes(x=mnnUMAP_1, y = mnnUMAP_2)) + 
+  geom_point(size = 0.1, alpha = 0.5) + 
+  guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
+  theme_cowplot() + 
+  geom_mark_hull(aes(label = seurat_cluster_CellType_num), concavity = 5) +
+  scale_color_manual(values = as.vector(pals::alphabet())) + 
+  scale_fill_manual(values = as.vector(pals::alphabet())) + 
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
 ```
 

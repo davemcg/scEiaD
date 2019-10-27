@@ -41,7 +41,6 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     # obj@meta.data$CellCount <- meta$Count
     # obj <- subset(obj, subset = CellCount > 1000)
     
-    seurat_list <- SplitObject(obj, split.by = covariate)
     if (transform == 'SCT'){
       # remove sets with fewre than 1000 cells
       seurat_obj$seurat_list[seurat_obj$seurat_list %>% 
@@ -54,6 +53,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                                         anchor.features = seurat_obj$study_data_features )
       obj <- IntegrateData(anchorset = anchors, verbose = TRUE, normalization.method = 'SCT')
     } else {
+      seurat_list <- SplitObject(obj, split.by = covariate)
       seurat_list[seurat_list %>% 
                     map(ncol) %>% 
                     map(enframe) %>%
