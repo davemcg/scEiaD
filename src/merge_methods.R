@@ -69,7 +69,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
   } else if (method == 'fastMNN'){
     ## uses list of seurat objects (each obj your "covariate")
     seurat_list <- SplitObject(seurat_obj, split.by = covariate)
-    obj <- RunFastMNN(object.list = seurat_list, d = 100)
+    obj <- RunFastMNN(object.list = seurat_list, d = 200)
     # put back scaledata as it gets wiped
     if (transform != 'SCT'){
       var_genes <- grep('^MT-', seurat_obj@assays$RNA@var.features, value = TRUE, invert = TRUE)
