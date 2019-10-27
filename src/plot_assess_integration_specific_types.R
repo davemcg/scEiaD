@@ -12,7 +12,7 @@ colnames(umap) <- gsub('^rna_', '', colnames(umap))
 # in other words sholud overlap wihtin each plot, but be in distinct space (x - y)
 # for each cell type plot facet
 pdf(args[2], height = 4, width = 10)
-umap %>% filter(Age > 10) %>% 
+umap %>% filter(Age.x > 10) %>% 
   mutate(Time = integration_group,
          CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
          Labelling = case_when(is.na(Paper) ~ 'None',

@@ -1,7 +1,7 @@
 library(tidyverse)
 library(Seurat)
 library(future)
-plan(strategy = "multicore", workers = 2)
+plan(strategy = "multicore", workers = 4)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 500000 * 1024^2)
@@ -22,6 +22,7 @@ create_umap_and_cluster <- function(integrated_obj,
   print("UMAP Starting")
   integrated_obj <- RunUMAP(integrated_obj, 
                             dims = 1:max_dims, 
+                            min.dist = 0.01,
                             reduction = reduction, 
                             reduction.name = reduction.name,
                             reduction.key = reduction.key)

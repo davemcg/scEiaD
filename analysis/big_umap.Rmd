@@ -12,6 +12,7 @@ output:
 library(tidyverse)
 library(ggforce)
 library(ggrepel)
+library(cowplot)
 load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap_fastMNN_mindist0_pc100.Rdata')
 
 cluster_labels <- umap %>% 
@@ -47,7 +48,7 @@ plot1 <- umap %>%
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
   coord_cartesian(xlim = c(-5,5)) +
   xlab('UMAP 1') + ylab('UMAP 2')
-plot1
+plot1  #+ facet_wrap(~CellType)
 # pdf('big_umap_fig2.pdf', width = 12, height = 9)
 # plot1
 # dev.off()
@@ -63,7 +64,7 @@ plot2 <- umap %>%
          !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
          !grepl('RPE|Vascul', CellType)) %>%
   ggplot() + 
-  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = Stage), size = 0.01, alpha = 0.1) + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = Stage), size = 0.01, alpha = 0.01) + 
   guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
   theme_cowplot() + 
   #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
@@ -99,12 +100,12 @@ plot3
 ```
 
 ```{r}
-# pdf('big_umap.pdf', height = 10, width = 12)
+pdf('big_umap.pdf', height = 10, width = 12)
 plot_grid(plot1, plot_grid(plot3 + theme(legend.position = "none"), plot2, 
                            rel_widths = c(0.6,0.4)), 
           nrow = 2, 
           rel_heights = c(0.6,0.4))
-# dev.off()
+dev.off()
 ```
 
 umap %>% left_join(., cluster_labels) %>% 
