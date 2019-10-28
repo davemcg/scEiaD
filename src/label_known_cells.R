@@ -133,7 +133,7 @@ meta_MacaqueSanes <- meta_MacaqueSanes %>%
                               Type == 'RGC' ~ 'Retinal Ganglion Cells')) %>% 
   select(value:batch, CellType, TissueNote) %>% 
   mutate(Paper = 'Peng et al. 2019')
-  
+
 # scheetz human fovea
 scheetz_files <- list.files('~/git/massive_integrated_eye_scRNA/data/', pattern = 'GSM.*donor.*gz', full.names = TRUE)
 scheetz <- scheetz_files %>% 
@@ -160,9 +160,45 @@ meta_SRP194595 <- cell_info %>% filter(study_accession == 'SRP194595') %>%
   select(value:batch, CellType) %>% 
   mutate(Paper = 'Voigt et al. 2019')
 
+# mennon et al. 
+# SRP222001, SRP222958
+mennon_seqwell <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GSE137846_Seq-Well_sample_annotations.txt.gz', 
+                           col_names = FALSE, skip = 1) %>% 
+  dplyr::select(barcode = X1, Labels = X49)
+mennon_drop <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GSE137537_sample_annotations.tsv.gz') %>% 
+  dplyr::select(barcode = Barcode, tissue, Labels)
+mennon <- bind_rows(mennon_seqwell, mennon_drop) %>% 
+  mutate(CellType = case_when(Labels == 'ACs' ~ 'Amacrine Cells',
+                              Labels == 'BPs' ~ 'Bipolar Cells',
+                              Labels == 'Endo' ~ 'Vascular Endothelium',
+                              Labels == 'HCs' ~ 'Horizontal Cells',
+                              Labels == 'Macroglia' ~ 'Muller Glia',
+                              Labels == 'RGCs' ~ 'Retinal Ganglion Cells',
+                              TRUE ~ Labels),
+         Paper = 'Mennon et al. 2019') %>% 
+  dplyr::select(-Labels) 
+meta_mennon <- cell_info %>% filter(study_accession %in% c('SRP222001','SRP222958')) %>% 
+  left_join(., sra_metadata_extended %>% select(sample_accession, biosample_title)) %>% 
+  unique() %>% 
+  mutate(sample = sample_accession,
+         barcode = gsub('_.*','', value)) %>% 
+  left_join(., mennon %>% 
+              separate(barcode, into = c('barcode','sample'), sep = '_|-') %>% 
+              mutate(sample = case_when(sample == 'PR8hrs' ~ 'SRS5421628',
+                                        sample == 'MR6hrs' ~ 'SRS5421625',
+                                        sample == 'MR28hrs' ~ 'SRS5421629',
+                                        sample == 'MR8hrs' ~ 'SRS5421627',
+                                        sample == 'PR6hrs' ~ 'SRS5421626',
+                                        tissue == 'MR' ~ 'SRS5396944',
+                                        tissue == 'MR2' ~ 'SRS5396946',
+                                        tissue == 'MR3' ~ 'SRS5396948',
+                                        tissue == 'PR' ~ 'SRS5396945',
+                                        tissue == 'PR2' ~ 'SRS5396947',
+                                        tissue == 'PR3' ~ 'SRS5396949')) %>% 
+              mutate(Paper = 'Voigt et al. 2019'))
 
 
-meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595)
+meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, meta_mennon)
 
 cell_info_labels <- bind_rows(meta_SRP, 
                               cell_info %>% select(value:batch) %>% 
@@ -186,8 +222,6 @@ cell_info_labels <- cell_info_labels %>%
                               TRUE ~ CellType),
          Paper = case_when(grepl('iPSC_RPE_scRNA', value) ~ 'Hufnagel 2020',
                            TRUE ~ Paper))
-
-
 
 save(cell_info_labels, file = 'cell_info_labelled.Rdata')
 
