@@ -195,7 +195,7 @@ meta_mennon <- cell_info %>% filter(study_accession %in% c('SRP222001','SRP22295
                                         tissue == 'PR' ~ 'SRS5396945',
                                         tissue == 'PR2' ~ 'SRS5396947',
                                         tissue == 'PR3' ~ 'SRS5396949')) %>% 
-              mutate(Paper = 'Voigt et al. 2019'))
+              mutate(Paper = 'Mennon et al. 2019'))
 
 
 meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, meta_mennon)
