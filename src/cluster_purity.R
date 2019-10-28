@@ -201,16 +201,16 @@ dev.off()
 #mean_plotter('test6', purity_calcs_cluster_vs_age, "Mean Purity of Clusters by Age")
 # 
 # pdf(args[4], width = 6, height = 6)
-# area_plot <- full_obj %>% map(cluster_area) %>% bind_rows(.id='stuff') %>% separate(stuff, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__')
-# area_plot %>% 
-#   group_by(Transform, Covariate, Method, Dims) %>% 
-#   summarise(value = median(value)) %>% 
-#   ggplot(aes(x=Method, y = value, colour = Transform)) + 
-#   geom_point(stat = 'identity') + 
-#   theme_minimal() + 
-#   ggsci::scale_color_aaas() +
-#   theme_minimal() +
-#   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-#   facet_wrap(~Covariate + Dims, nrow = 2) + 
-#   ylab('Median Cluster Area') + ggtitle("fastMNN has the smallest median cluster size")
+area_plot <- all_obj %>% map(cluster_area) %>% bind_rows(.id='stuff') %>% separate(stuff, into = c('Species', 'Transform', 'Set', 'Covariate', 'Method', "Dims"), sep = '__')
+area_plot %>%
+  group_by(Transform, Covariate, Method, Dims) %>%
+  summarise(value = median(value)) %>%
+  ggplot(aes(x=Method, y = value, colour = Transform)) +
+  geom_point(stat = 'identity') +
+  theme_minimal() +
+  ggsci::scale_color_aaas() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  facet_wrap(~Covariate + Dims, nrow = 2) +
+  ylab('Median Cluster Area') + ggtitle("fastMNN has the smallest median cluster size")
 # dev.off()
