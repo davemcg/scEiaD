@@ -43,6 +43,8 @@ Information on number/composition of studies
 
 `r cell_info_labels$study_accession %>% unique() %>% length()` SRA studies
 
+`r table01$Citation %>% unique() %>% length() + table01 %>% filter(Citation == '') %>% nrow()` unique studies
+
 ```{r}
 color_bar_factor <- formatter("span",
                               style = function(x) style(
