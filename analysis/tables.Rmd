@@ -18,7 +18,7 @@ library(htmltools)
 # all cells
 load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_info_labelled.Rdata')
 # cells after QC (high mito, low gene counts, high gene count)
-# load('seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__SCT__full__batch.seuratV3.Rdata')
+# load('seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__scran__full__batch.seuratV3.Rdata')
 
 # stats <- seurat__SCT$seurat_list %>% 
 #   map(ncol) %>% 
@@ -115,7 +115,10 @@ Pre-labelled cells I've extracted so far
 ```{r}
 table02 <- cell_info_labels %>% 
   mutate(CellType = gsub("Rod Bipolar Cells", "Bipolar Cells", CellType)) %>% 
-  filter(!is.na(CellType), !is.na(study_accession), !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells')) %>% 
+  filter(!is.na(CellType), 
+         !is.na(study_accession), 
+         !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType)) %>% 
   mutate(organism = case_when(grepl('Homo', organism) ~ 'HS',
                              grepl('Mus', organism) ~ 'MM',
                              TRUE ~ 'MF')) %>% 
