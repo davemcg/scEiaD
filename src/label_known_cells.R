@@ -176,7 +176,9 @@ mennon <- bind_rows(mennon_seqwell, mennon_drop) %>%
                               Labels == 'RGCs' ~ 'Retinal Ganglion Cells',
                               TRUE ~ Labels),
          Paper = 'Mennon et al. 2019') %>% 
-  dplyr::select(-Labels) 
+  dplyr::select(-Labels) %>% 
+  unique()
+
 meta_mennon <- cell_info %>% filter(study_accession %in% c('SRP222001','SRP222958')) %>% 
   left_join(., sra_metadata_extended %>% select(sample_accession, biosample_title)) %>% 
   unique() %>% 
@@ -195,7 +197,11 @@ meta_mennon <- cell_info %>% filter(study_accession %in% c('SRP222001','SRP22295
                                         tissue == 'PR' ~ 'SRS5396945',
                                         tissue == 'PR2' ~ 'SRS5396947',
                                         tissue == 'PR3' ~ 'SRS5396949')) %>% 
-              mutate(Paper = 'Mennon et al. 2019'))
+              unique() %>% 
+              group_by(barcode, sample) %>% 
+              summarise(CellType = paste(CellType, collapse = ',')) %>% 
+              filter(!grepl(',', CellType))) %>% 
+  mutate(Paper = 'Mennon et al. 2019')
 
 
 meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, meta_mennon)
