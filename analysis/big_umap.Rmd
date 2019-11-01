@@ -14,6 +14,8 @@ library(ggforce)
 library(ggrepel)
 library(cowplot)
 load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap_fastMNN__mindist001__pc200_2.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__standard__full__batch__fastMNN__dims50.umap.Rdata')
+
 # attach colors to cell types
 cell_types <- umap %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
   filter(!is.na(CellType), 
@@ -25,20 +27,20 @@ type_val <- setNames(pals::alphabet(n = cell_types %>% length()), cell_types)
 type_col <- scale_colour_manual(values = type_val)
 type_fill <- scale_fill_manual(values = type_val)
 # 
-# cluster_labels <- umap %>% 
-#   mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
-#   group_by(seurat_clusters, CellType) %>% 
-#   filter(!is.na(CellType)) %>% 
-#   summarise(Count = n(), x = mean(UMAP_1), y = mean(UMAP_2)) %>% 
-#   mutate(freq = Count / sum(Count)) %>% 
-#   filter(freq > 0.2) %>% 
-#   ungroup() %>% 
-#   group_by(seurat_clusters) %>% 
-#   top_n(1, -freq) %>% 
-#   filter(Count > 100) %>% 
-#   summarise(seurat_cluster_CellType = paste0(CellType, collapse = ', '),
-#             x = mean(x), y = mean(y)) %>% 
-#   mutate(seurat_cluster_CellType_num = paste0(seurat_clusters, ' (', seurat_cluster_CellType, ')'))
+cluster_labels <- umap %>%
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>%
+  group_by(seurat_clusters, CellType) %>%
+  filter(!is.na(CellType)) %>%
+  summarise(Count = n(), x = mean(UMAP_1), y = mean(UMAP_2)) %>%
+  mutate(freq = Count / sum(Count)) %>%
+  filter(freq > 0.2) %>%
+  ungroup() %>%
+  group_by(seurat_clusters) %>%
+  top_n(2, -freq) %>%
+  filter(Count > 100) %>%
+  summarise(seurat_cluster_CellType = paste0(CellType, collapse = ', '),
+            x = mean(x), y = mean(y)) %>%
+  mutate(seurat_cluster_CellType_num = paste0(seurat_clusters, ' (', seurat_cluster_CellType, ')'))
 ```
 
 # UMAP of known cells
@@ -53,7 +55,7 @@ plot1 <- umap %>%
   geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType), size = 0.05, alpha = 0.1) + 
   guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
   theme_cowplot() + 
-  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
+  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num ), alpha = 0.8, size = 2) +
   type_col + 
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
   coord_cartesian(xlim = c(-5,5)) +
@@ -158,19 +160,69 @@ umap %>%
   xlab('UMAP 1') + ylab('UMAP 2')
 ```
 
-umap %>% left_join(., cluster_labels) %>% 
-  mutate(Time = integration_group,
-         CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType), 
-         Labelling = case_when(Paper == 'Hufnagel 2020' ~ 'Homo sapiens (Stem) (Hufnagel 2020)',
-                               TRUE ~ paste0(organism, ' (', study_accession, ')'))) %>% 
-  sample_n(10000) %>% 
-  ggplot(aes(x=mnnUMAP_1, y = mnnUMAP_2)) + 
-  geom_point(size = 0.1, alpha = 0.5) + 
-  guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
-  theme_cowplot() + 
-  geom_mark_hull(aes(label = seurat_cluster_CellType_num), concavity = 5) +
-  scale_color_manual(values = as.vector(pals::alphabet())) + 
-  scale_fill_manual(values = as.vector(pals::alphabet())) + 
-  theme(axis.text.x=element_text(angle = 90, vjust = 0.5))
+# Bipolar Cell Analysis
+```{r}
+# bc <- FindMarkers(integrated_obj, ident.1 = c(10,43,33), ident.2 = c(27,97))
+plotX <- umap %>% 
+  left_join(., cluster_labels, by = 'seurat_clusters') %>% 
+  filter(seurat_cluster_CellType == 'Bipolar Cells') %>% 
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+  filter(!is.na(CellType), 
+         !is.na(study_accession), 
+         !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType)) %>%
+  ggplot() + 
+  guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
+  theme_cowplot()  +
+  #type_col + 
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+  #coord_cartesian(xlim = c(-5,5)) +
+  xlab('UMAP 1') + ylab('UMAP 2')
+
+plot_grid(plotX + geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType), size = 0.5, alpha = 0.1) + type_col + theme(legend.position = "none"), 
+          plotX + geom_point(aes(x=UMAP_1, y = UMAP_2, colour = seurat_clusters), size = 0.5, alpha = 0.1) +
+            geom_label_repel(data = cluster_labels %>% 
+                               filter(seurat_cluster_CellType == 'Bipolar Cells'), 
+                             aes(x=x, y=y, label = seurat_clusters), alpha = 0.8, size = 4) +
+            theme(legend.position = "none") , 
+          align = 'v',
+          ncol = 1)
+
+# violin plot of rod bc vs cone bc markers
+# cabp5 is a general bc marker
+umap %>% 
+    left_join(., cluster_labels, by = 'seurat_clusters') %>% 
+    filter(seurat_cluster_CellType == 'Bipolar Cells') %>% 
+    mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+    filter(!is.na(CellType), 
+           !is.na(study_accession), 
+           !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+           !grepl('RPE|Vascul', CellType)) %>% 
+    mutate(Group = case_when(seurat_clusters %in% c(10,43,33) ~ 'BC1 (10, 43, 33)',
+                             seurat_clusters %in% c(27, 97) ~ 'BC2 (27, 97)')) %>% gather(Gene, Expression, RHO:SCGN) %>% 
+  filter(!is.na(Group), Gene %in% c('CABP5', 'VSX2', 'PRKCA')) %>% 
+  ggplot() + geom_violin(aes(x=Group, y = Expression, colour = Gene))
+
+
+
+
+# SCNG expression
+# scng is amarine/RGC marker?????
+# plot is filtered down only to labelled Bipolar Cells
+umap %>% 
+    left_join(., cluster_labels, by = 'seurat_clusters') %>% 
+    filter(seurat_cluster_CellType == 'Bipolar Cells') %>% 
+    mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+    filter(!is.na(CellType), CellType == 'Bipolar Cells',
+           !is.na(study_accession), 
+           !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+           !grepl('RPE|Vascul', CellType)) %>%
+    ggplot() + 
+    guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
+    theme_cowplot()  +
+    #type_col + 
+    theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+    #coord_cartesian(xlim = c(-5,5)) +
+    xlab('UMAP 1') + ylab('UMAP 2') + geom_point(aes(x=UMAP_1, y = UMAP_2, colour = SNCG), size = 0.5, alpha = 0.1) + scale_color_viridis_c() 
 ```
 
