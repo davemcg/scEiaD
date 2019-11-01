@@ -97,7 +97,7 @@ avg_marker <- avg_marker %>% spread(CellType, ScaleData)
 # endothelial cells, mural cells and fibroblasts: ACTA2, COL1A2, EGFL7, PDGFRB, PROCR, VWF; 
 # immune cells: AIF1, CD2, CD48, CX3CR1, HBB, IL32, JCHAIN, LST1.
 core_markers <- c(c('Rho','Opn1sw', 'Sfrp2', 'Hes6', 'Tfap2a', 'Isl1', 'Ccnd1','Aqp4', 'Vsx1', 'Elavl4', 'Best1', 'Grm6', 'Cabp5', "Cx3cr1"),
-                  c('GNGT1','NRL','PDE6G','RHO','ARR3','CNGA3','OPN1LW','OPN1MW','OPN1SW','PDE6H','LHX1','LNP1','ONECUT1','VAT1L','GRIK1','IRX6','LRTM1','PCP2','PRKCA','TRPM1','VSX1','VSX2','GAD1','SLC6A9','TFAP2A','TFAP2B','POU4F2','NEFL','NEFM','RBPMS','SLC17A6','SNCG','THY1','BEST1','MITF','MLANA','TJP1','RPE65','CRABP1','GFAP','GLUL','ACTA2','COL1A2','EGFL7','PDGFRB','PROCR','VWF','AIF1','CD2','CD48','CX3CR1','HBB','IL32','JCHAIN','LST1')) %>% 
+                  c('GNGT1','NRL','PDE6G','RHO','ARR3','CNGA3','OPN1LW','OPN1MW','OPN1SW','PDE6H','LHX1','LNP1','ONECUT1','VAT1L','GRIK1','IRX6','LRTM1','PCP2','PRKCA','TRPM1','VSX1','VSX2','GAD1','SLC6A9','TFAP2A','TFAP2B','POU4F2','NEFL','NEFM','RBPMS','SLC17A6','SNCG','THY1','BEST1','MITF','MLANA','TJP1','RPE65','CRABP1','GFAP','GLUL','ACTA2','COL1A2','EGFL7','PDGFRB','PROCR','VWF','AIF1','CD2','CD48','CX3CR1','HBB','IL32','JCHAIN','LST1', 'PRKCA', 'SCGN', 'NTNG1')) %>% 
   toupper() %>% unique()
 core_expression <- FetchData(integrated_obj, core_markers) %>% as_tibble(rownames = 'Barcode')
 
