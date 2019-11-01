@@ -31,15 +31,12 @@ create_umap_and_cluster <- function(integrated_obj,
   integrated_obj <- FindNeighbors(integrated_obj, 
                                   reduction = reduction,
                                   dims = 1:max_dims, 
-                                  nn.eps = 0.5)
+                                  nn.eps = 1)
   print("Find Clusters starting")
   integrated_obj <- FindClusters(integrated_obj, 
                                  #resolution = c(0.6,0.8,1,3),
-                                 resolution = 1,
+                                 resolution = 4,
                                  n.start = 10,
-                                 #save.SNN = TRUE,
-                                 do.sparse = TRUE,
-                                 algorithm = 1,
                                  random.seed = 23)
   integrated_obj
 }
