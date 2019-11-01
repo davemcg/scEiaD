@@ -17,17 +17,38 @@ create_umap_and_cluster <- function(integrated_obj,
                                     max_dims = 20, 
                                     reduction = 'pca',
                                     reduction.name = 'ccaUMAP',
-                                    reduction.key = 'ccaUMAP_'){
+                                    reduction.key = 'ccaUMAP_',
+                                    resolution = 4,
+                                    louvain = TRUE){
+
   # UMAP
   print("UMAP Starting")
   integrated_obj <- RunUMAP(integrated_obj, 
                             dims = 1:max_dims, 
                             min.dist = 0.01,
+                            n.components = 3, 
+                            reduction = reduction, 
+                            reduction.name = paste0(reduction.name, '3D'),
+                            reduction.key = paste0(reduction.key, '3D'))
+  
+  integrated_obj <- RunUMAP(integrated_obj, 
+                            dims = 1:max_dims, 
+                            min.dist = 0.01,
+                            n.components = 2, 
                             reduction = reduction, 
                             reduction.name = reduction.name,
                             reduction.key = reduction.key)
   # clustering 
   print("Find Neighbors starting")
+  # optional cluster on UMAP3D space
+  # WAAAAY faster and clusters directly on what you see
+  # but also potentially not so valid
+  # if you use, drop resolution MUCH lower 0.6-1 or so
+  if (!louvain){
+    reduction = paste0(reduction.name, '3D')
+    max_dims = 3
+  }
+  
   integrated_obj <- FindNeighbors(integrated_obj, 
                                   reduction = reduction,
                                   dims = 1:max_dims, 
@@ -35,7 +56,7 @@ create_umap_and_cluster <- function(integrated_obj,
   print("Find Clusters starting")
   integrated_obj <- FindClusters(integrated_obj, 
                                  #resolution = c(0.6,0.8,1,3),
-                                 resolution = 4,
+                                 resolution = resolution,
                                  n.start = 10,
                                  random.seed = 23)
   integrated_obj
