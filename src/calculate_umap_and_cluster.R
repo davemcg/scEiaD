@@ -15,6 +15,7 @@ load(args[3])
 
 create_umap_and_cluster <- function(integrated_obj, 
                                     max_dims = 20, 
+                                    min_dist = 0.3,
                                     reduction = 'pca',
                                     reduction.name = 'ccaUMAP',
                                     reduction.key = 'ccaUMAP_',
@@ -22,18 +23,18 @@ create_umap_and_cluster <- function(integrated_obj,
                                     louvain = TRUE){
 
   # UMAP
-  print("UMAP Starting")
+  print("UMAP 3D Starting")
   integrated_obj <- RunUMAP(integrated_obj, 
                             dims = 1:max_dims, 
                             min.dist = 0.01,
                             n.components = 3, 
                             reduction = reduction, 
                             reduction.name = paste0(reduction.name, '3D'),
-                            reduction.key = paste0(reduction.key, '3D'))
-  
+                            reduction.key = gsub('_','3D_', reduction.key))
+  print("UMAP Starting")
   integrated_obj <- RunUMAP(integrated_obj, 
                             dims = 1:max_dims, 
-                            min.dist = 0.01,
+                            min.dist = min_dist,
                             n.components = 2, 
                             reduction = reduction, 
                             reduction.name = reduction.name,
@@ -94,11 +95,14 @@ if (method == 'CCA'){
   print(paste0("Why did you pick ", method, "?"))
 }
 reduction.name <- gsub('_','', reduction.key)
-integrated_obj <- create_umap_and_cluster(integrated_obj, 
-                                          max_dims,
-                                          reduction,
+integrated_obj <- create_umap_and_cluster(integrated_obj = integrated_obj, 
+                                          max_dims = max_dims,
+                                          reduction = reduction,
+                                          min_dist = 0.01,
                                           reduction.name = reduction.name,
-                                          reduction.key = reduction.key)
+                                          reduction.key = reduction.key,
+                                          resolution = 1.5,
+                                          louvain = FALSE)
 
 save(integrated_obj, file = args[4], compress = FALSE )
 
