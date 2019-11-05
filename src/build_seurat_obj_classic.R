@@ -57,15 +57,8 @@ if (combination == 'Mus_musculus'){
   mito_list <- list()
   for (i in names(rdata)){
     file_cut_down[[i]] <- rdata[[i]][shared_genes,]
-    if (!mito %in% row.names(rdata[[i]])){
-      mito_list[[i]] <- matrix(0, nrow = length(mito), ncol = ncol(rdata[[i]])) %>% as.sparse()
-      row.names(mito_list[[i]]) <- mito
-      colnames(mito_list[[i]]) <- colnames(rdata[[i]])
-    } else {mito_list[[i]] <- rdata[[i]][mito,] }
   }
   m <- file_cut_down %>% purrr::reduce(cbind)
-  mito_m <- mito_list %>% purrr::reduce(cbind)
-  m <- rbind(m, mito_m)
 }
 
 
