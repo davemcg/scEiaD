@@ -37,25 +37,22 @@ for (i in rdata_files){
 if (combination == 'Mus_musculus'){
   file <- grep('Mus_mus', names(rdata), value = TRUE)
   m <- rdata[[file]]
-} else if (combination == 'Mus_musculus_Macaca_fascicularis'){
-  file  <- grep('Mus|Maca', names(rdata), value = TRUE)
-  shared_genes <- rdata[file] %>% 
-    map(row.names) %>% 
-    map(toupper()) %>% 
-    purrr::reduce(intersect)
-  # add mito (missing from macaque?)
-  mito <- c('MT-ATP6','MT-ATP8','MT-CO1','MT-CO2','MT-CO3','MT-ND1','MT-ND2','MT-ND3','MT-ND4','MT-ND4L','MT-ND5','MT-ND6')
-  file_cut_down <- list()
-  mito_list <- list()
-  for (i in file){
-    file_cut_down[[i]] <- rdata[[i]][shared_genes,]
-    try({mito_list[[i]] <- rdata[[i]][mito,]})
-  }
-  m <- file_cut_down %>% purrr::reduce(cbind)
 } else {
+ 
+  #  mito naming in macaque missing the 'MT-' part....
+  # also call CO1 and CO2 -> COX1 and COX2
+  # sigh
+  mf_gene <- rdata[["quant/Macaca_fascicularis/full_sparse_matrix.Rdata"]] %>% row.names()
+  mf_gene <- mf_gene %>% enframe() %>% mutate(value = case_when(grepl('^ND\\d', value) ~ paste0('MT-', value),
+                                                     value == 'COX1' ~ 'MT-CO1',
+                                                     value == 'COX2' ~ 'MT-CO2',
+                                                     value == 'COX3' ~ 'MT-CO3',
+                                                     value == 'ATP6' ~ 'MT-ATP6',
+                                                     value == 'ATP8' ~ 'MT-ATP8',
+                                                     TRUE ~ value ))
+  row.names(rdata[["quant/Macaca_fascicularis/full_sparse_matrix.Rdata"]]) <- mf_gene$value
+
   shared_genes <- rdata %>% map(row.names) %>% purrr::reduce(intersect)
-  # add mito (missing from macaque?)
-  mito <- c('MT-ATP6','MT-ATP8','MT-CO1','MT-CO2','MT-CO3','MT-ND1','MT-ND2','MT-ND3','MT-ND4','MT-ND4L','MT-ND5','MT-ND6')
   file_cut_down <- list()
   mito_list <- list()
   for (i in names(rdata)){
