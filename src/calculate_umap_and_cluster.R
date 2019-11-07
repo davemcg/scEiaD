@@ -14,6 +14,10 @@ neighbors = args[4] %>% as.numeric()
 # integrated seurat obj
 load(args[5])
 
+print(paste('Method', method))
+print(paste('Max Dims', max_dims))
+print(paste('Min Dist', dist))
+print(paste('N Neighbors', neighbors))
 
 create_umap_and_cluster <- function(integrated_obj, 
                                     max_dims = 20, 
@@ -29,7 +33,7 @@ create_umap_and_cluster <- function(integrated_obj,
   print("UMAP 3D Starting")
   integrated_obj <- RunUMAP(integrated_obj, 
                             dims = 1:max_dims, 
-                            min.dist = 0.01,
+                            min.dist = min_dist,
                             n.components = 3, 
                             n.neighbors = n.neighbors,
                             reduction = reduction, 
@@ -40,7 +44,7 @@ create_umap_and_cluster <- function(integrated_obj,
                             dims = 1:max_dims, 
                             min.dist = min_dist,
                             n.components = 2, 
-                            n.neighbors = n.neighbors
+                            n.neighbors = n.neighbors,
                             reduction = reduction, 
                             reduction.name = reduction.name,
                             reduction.key = reduction.key)

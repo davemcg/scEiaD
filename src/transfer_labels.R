@@ -45,14 +45,14 @@ labelled <- subset(integrated_obj, subset = CellType != 'Missing')
 
 
 anchors <-  FindTransferAnchors(reference = labelled, 
-                                query = missing, 
+                                query = missing) 
                                 # reference.assay = 'SCT',
                                 # query.assay = 'SCT',
-                                dims = 1:30)
+                                #dims = 1:30)
 
 predictions <- TransferData(anchorset = anchors, 
-                            refdata = labelled@meta.data$CellType, 
-                            dims = 1:30)
+                            refdata = labelled@meta.data$CellType)
+                            #dims = 1:30)
 
 transferred_labels <- left_join(nmeta, 
                                 predictions %>% as_tibble(rownames = 'Barcode')) %>% 

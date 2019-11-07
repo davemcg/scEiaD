@@ -468,16 +468,16 @@ rule calculate_umap_and_cluster:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
-			{wildcards.method} {wildcards.dims} {wildcards.dims} {wildcards.neighbors} {input} {output}
+			{wildcards.method} {wildcards.dims} {wildcards.dist} {wildcards.neighbors} {input} {output}
 		"""
 
 rule extract_umap:
 	input:
 		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.seuratV3.Rdata',
 		'cell_info_labelled.Rdata',
-		'predictions/{combination}__{transform}__{partition}__{covariate}__{method}__mindist{dist}__nneighbors{neighbors}_cell_info_predictions.Rdata'
+		'predictions/{combination}__{transform}__{partition}__{covariate}__{method}_cell_info_predictions.Rdata'
 	output:
-		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
+		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -519,6 +519,8 @@ rule cluster_assessment:
 				combination = 'Mus_musculus', \
 				partition = ['full'], \
 				covariate = covariate, \
+				dist = [0.001, 0.3, 0.5], \
+				neighbors = [5, 30, 50],\
 				dims = dims)
 	output:
 		'plots/well_supported_celltypes/{organism}.mean_cluster_purity_by_cell_type.pdf',
