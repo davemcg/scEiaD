@@ -97,8 +97,8 @@ def SRS_info(SRS, data_to_return):
 		idx = 'references/kallisto_idx/gencode.v31.pc_transcripts.fa.gz.idx'
 		txnames = 'references/gencode.v31.metadata.HGNC_tx_mapping.tsv'
 	elif organism.lower() == 'macaca_fascicularis':
-		idx = 'references/kallisto_idx/GCF_000364345.1_Macaca_fascicularis_5.0_rna.fna.gz.idx'
-		txnames = 'references/GCF_000364345.1_Macaca_fascicularis_5.0_tx_mapping.tsv'
+		idx = 'references/kallisto_idx/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz.idx'
+		txnames = 'references/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all_tx_mapping.tsv'
 	else:
 		print(SRS + ' ' + organism + " NO SPECIES MATCH!")
 	if data_to_return == 'idx':
@@ -117,7 +117,7 @@ for SRS in SRS_dict.keys():
 		SRS_nonUMI_samples.append(SRS)
 
 method = ['CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none']
-transform = ['standard', 'SCT']
+transform = ['standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens']
@@ -133,28 +133,35 @@ wildcard_constraints:
 
 rule all:
 	input:
+		'references/kallisto_idx/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz.idx',
+		'quant/Macaca_fascicularis/full_sparse_matrix.Rdata',
+		'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__scran__full__batch.seuratV3.Rdata',
+		'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__SCT__full__batch.seuratV3.Rdata',
+		'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__standard__full__batch.seuratV3.Rdata',
 		expand('quant/{organism}/full_sparse_matrix.Rdata', organism = organism),
-		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
-				transform = ['SCT'], \
-				method = ['fastMNN', 'CCA'], \
+		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_study__facet_age.pdf', \
+				transform = ['SCT', 'scran', 'standard'], \
+				method = ['fastMNN'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
 				covariate = ['batch'], \
-				dims = dims),
-		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
-				transform = transform, \
-				method = method, \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['downsample'], \
-				covariate = ['batch'], \
-				dims = dims),
-		expand('plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_celltype.pdf', \
-				transform = transform, \
-				method = method, \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['downsample'], \
-				covariate = ['batch'], \
-				dims = dims),
+				dims = [25,50,100,200],
+				dist = [0.001, 0.3, 0.5],
+				neighbors = [5, 30, 50]),
+	#	expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
+	#			transform = transform, \
+	#			method = method, \
+	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+	#			partition = ['downsample'], \
+	#			covariate = ['batch'], \
+	#			dims = dims),
+	#	expand('plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_celltype.pdf', \
+	#			transform = transform, \
+	#			method = method, \
+	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+	#			partition = ['downsample'], \
+	#			covariate = ['batch'], \
+	#			dims = dims),
 		#expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
 		#		transform = transform, \
 		#		method = method, \
@@ -188,13 +195,14 @@ rule all:
 rule download_references:
 	output:
 		mouse_fasta = 'references/gencode.vM22.pc_transcripts.fa.gz',
-		macaque_fasta = 'references/GCF_000364345.1_Macaca_fascicularis_5.0_rna.fna.gz',
+		macaque_fasta = 'references/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz',
 		human_fasta = 'references/gencode.v31.pc_transcripts.fa.gz'
 	shell:
 		"""
 		mkdir -p references
 		wget ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M22/gencode.vM22.pc_transcripts.fa.gz  
-		wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/364/345/GCF_000364345.1_Macaca_fascicularis_5.0/GCF_000364345.1_Macaca_fascicularis_5.0_rna.fna.gz
+		#wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/364/345/GCF_000364345.1_Macaca_fascicularis_5.0/GCF_000364345.1_Macaca_fascicularis_5.0_rna.fna.gz
+		wget ftp://ftp.ensembl.org/pub/release-98/fasta/macaca_fascicularis/cdna/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz
 		wget ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_31/gencode.v31.pc_transcripts.fa.gz
 		mv *fa*gz references/
 		"""
@@ -218,7 +226,7 @@ rule tx_gene_mapping:
 	input:
 		'references/gencode.vM22.pc_transcripts.fa.gz'
 	output:
-		mf = 'references/GCF_000364345.1_Macaca_fascicularis_5.0_tx_mapping.tsv',
+		mf = 'references/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all_tx_mapping.tsv',
 		hs = 'references/gencode.v31.metadata.HGNC_tx_mapping.tsv',
 		mm = 'references/gencode.vM22.metadata.MGI_tx_mapping.tsv'
 	shell:
@@ -227,11 +235,16 @@ rule tx_gene_mapping:
 			sed 's/>//g' | \
 			awk 'BEGIN {{OFS = "\t"; FS = "|"}}; {{print $0, $2, $6}}' > {output.mm}
 
-		wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/364/345/GCF_000364345.1_Macaca_fascicularis_5.0/GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz
-		zcat GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz | \
-			grep "^mRNA" | \
-			awk -v OFS="\t" 'BEGIN {{FS="\t"}}; {{print $11,$15,$14}}' > {output.mf}
-		rm GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz
+		zgrep "^>" references/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz | \
+			sed 's/>//g' > mf.header
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/macaque_ensembl_fasta_header.R mf.header {output.mf}
+		rm mf.header
+		#wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/364/345/GCF_000364345.1_Macaca_fascicularis_5.0/GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz
+		#zcat GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz | \
+		#	grep "^mRNA" | \
+		#	awk -v OFS="\t" 'BEGIN {{FS="\t"}}; {{print $11,$15,$14}}' > {output.mf}
+		#rm GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz
 
 		zgrep "^>" references/gencode.v31.pc_transcripts.fa.gz | \
 			sed 's/>//g' | \
@@ -405,8 +418,6 @@ rule make_seurat_objs:
 			{output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} {wildcards.combination} {input}	
 		"""
 
-
-
 rule integrate:
 	input:
 		'seurat_obj/{combination}__{transform}__{partition}__{covariate}.seuratV3.Rdata',
@@ -452,19 +463,19 @@ rule calculate_umap_and_cluster:
 	input:
 		obj = 'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
 	output:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.seuratV3.Rdata',
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.seuratV3.Rdata',
 	shell:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
-			{wildcards.method} {wildcards.dims} {input} {output}
+			{wildcards.method} {wildcards.dims} {wildcards.dims} {wildcards.neighbors} {input} {output}
 		"""
 
 rule extract_umap:
 	input:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.seuratV3.Rdata',
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.seuratV3.Rdata',
 		'cell_info_labelled.Rdata',
-		'predictions/{combination}__{transform}__{partition}__{covariate}__{method}_cell_info_predictions.Rdata'
+		'predictions/{combination}__{transform}__{partition}__{covariate}__{method}__mindist{dist}__nneighbors{neighbors}_cell_info_predictions.Rdata'
 	output:
 		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
 	shell:
@@ -476,12 +487,12 @@ rule extract_umap:
 
 rule plot_integration:
 	input:
-		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
+		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	output:
-		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf',
-		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_batch.pdf',
-		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_paper__facet_celltype.pdf',
-		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_celltype__facet_cluster.pdf'
+		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_study__facet_age.pdf',
+		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_study__facet_batch.pdf',
+		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_paper__facet_celltype.pdf',
+		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_celltype__facet_cluster.pdf'
 	shell:
 		"""
 		module load R/3.6
@@ -490,10 +501,10 @@ rule plot_integration:
 
 rule plot_integration_with_well_supported_cell_types:
 	input:
-		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata'
+		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	output:
-		'plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf',
-		'plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_celltype.pdf',
+		'plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.WellSupportedCells.color_study__facet_celltype.pdf',
+		'plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.WellSupportedCells.color_celltype.pdf',
 	shell:
 		"""
 		module load R/3.6
@@ -502,7 +513,7 @@ rule plot_integration_with_well_supported_cell_types:
 
 rule cluster_assessment:
 	input:
-		expand('umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.umap.Rdata', \
+		expand('umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata', \
 				transform = transform, \
 				method = method, \
 				combination = 'Mus_musculus', \

@@ -9,13 +9,16 @@ options(future.globals.maxSize = 500000 * 1024^2)
 args <- commandArgs(trailingOnly = TRUE)
 method = args[1]
 max_dims = args[2] %>% as.numeric()
+dist = args[3] %>% as.numeric()
+neighbors = args[4] %>% as.numeric()
 # integrated seurat obj
-load(args[3])
+load(args[5])
 
 
 create_umap_and_cluster <- function(integrated_obj, 
                                     max_dims = 20, 
                                     min_dist = 0.3,
+							        n.neighbors = 30,
                                     reduction = 'pca',
                                     reduction.name = 'ccaUMAP',
                                     reduction.key = 'ccaUMAP_',
@@ -28,14 +31,16 @@ create_umap_and_cluster <- function(integrated_obj,
                             dims = 1:max_dims, 
                             min.dist = 0.01,
                             n.components = 3, 
+                            n.neighbors = n.neighbors,
                             reduction = reduction, 
                             reduction.name = paste0(reduction.name, '3D'),
                             reduction.key = gsub('_','3D_', reduction.key))
-  print("UMAP Starting")
+  print("UMAP 2D Starting")
   integrated_obj <- RunUMAP(integrated_obj, 
                             dims = 1:max_dims, 
                             min.dist = min_dist,
                             n.components = 2, 
+                            n.neighbors = n.neighbors
                             reduction = reduction, 
                             reduction.name = reduction.name,
                             reduction.key = reduction.key)
@@ -98,11 +103,12 @@ reduction.name <- gsub('_','', reduction.key)
 integrated_obj <- create_umap_and_cluster(integrated_obj = integrated_obj, 
                                           max_dims = max_dims,
                                           reduction = reduction,
-                                          min_dist = 0.01,
+                                          min_dist = dist,
+										  n.neighbors = neighbors,
                                           reduction.name = reduction.name,
                                           reduction.key = reduction.key,
                                           resolution = 1.5,
                                           louvain = FALSE)
 
-save(integrated_obj, file = args[4], compress = FALSE )
+save(integrated_obj, file = args[6], compress = FALSE )
 
