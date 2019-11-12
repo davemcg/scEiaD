@@ -13,7 +13,7 @@ library(tidyverse)
 library(ggforce)
 library(ggrepel)
 library(cowplot)
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap_fastMNN__mindist001__pc200_2.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap_integrated_obj_scran_fastMNN_200_res15.Rdata')
 load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__standard__full__batch__fastMNN__dims50.umap.Rdata')
 
 # attach colors to cell types
@@ -43,7 +43,7 @@ cluster_labels <- umap %>%
   summarise(seurat_cluster_CellType = paste0(CellType, collapse = ', '),
             x = mean(x), y = mean(y),
             Count = sum(Count),
-            OrganismCouht = unlist(Organism) %>% unique() %>% sort() %>% paste(., collapse = ', '),
+            OrganismCount = unlist(Organism) %>% unique() %>% sort() %>% paste(., collapse = ', '),
             StudyCount = unlist(study_accession) %>% length()) %>%
   mutate(seurat_cluster_CellType_num = paste0(seurat_clusters, ' (', seurat_cluster_CellType, ')'))
 ```
@@ -263,3 +263,28 @@ plot_grid(plotX + geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType), size 
           ncol = 1)
 ```
 
+Clustering Cell Type Analysis
+` r umap %>% filter(!is.na(CellType), !CellType %in% c('Neurogenic Cells', 'Photoreceptor Precursors', 'Late RPCs', 'Early RPCs'), integration_group == 'Late') %>% nrow()` total cells excluding the Clark et al. specific cell types and early development cells.
+
+
+```{r}
+umap %>%
+   filter(!is.na(CellType), 
+         !is.na(study_accession), 
+         !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType)) %>% 
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>%
+  group_by(seurat_clusters, CellType) %>%
+  filter(!is.na(CellType), !is.na(seurat_clusters)) %>%
+  summarise(Count = n(), x = mean(UMAP_1), y = mean(UMAP_2), 
+            Organism = list(unique(organism)), 
+            StudyCount = length(unique(study_accession))) %>%
+  mutate(freq = Count / sum(Count)) %>%
+  filter(freq > 0.25, Count > 100) %>% 
+  ggplot(aes(x=CellType, y = StudyCount)) + 
+  coord_flip() + 
+  geom_boxplot(outlier.colour = NA) + 
+  ggbeeswarm::geom_quasirandom(alpha = 0.3) +
+  ylab('Study Count') + xlab('Cell Type') +
+  theme_cowplot()
+```
