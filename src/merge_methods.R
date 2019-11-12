@@ -11,28 +11,13 @@ if (method == 'scanorama'){
   library(reticulate)
   use_condaenv("scanorama")
   scanorama <- import('scanorama')
-} else if (method == 'scVI') {
-  library(loomR)
-  library(reticulate)
-  use_condaenv("scVI")
-  scvi <- import('scvi')
-  mp <- import('matplotlib'); mp$use('agg')
-  torch <- import('torch')
-  os <- import('os')
-  np <- import('numpy')
-  pd <- import('pandas')
-  #plt <- matplotlib.pyplot as plt
-  
-  # from scvi.dataset import GeneExpressionDataset
-  import('scvi.models') #import VAE, LDVAE
-  import('scvi.inference') # import UnsupervisedTrainer
-  import('scvi.inference.posterior') #import Posterior
-  import('from scvi.dataset') #import LoomDataset
 } else {
+  library(loomR)
   library(SeuratWrappers)
   library(harmony)
   library(batchelor)
   library(sva)
+  library(Matrix)
 }
 library(tidyverse)
 library(Seurat)
@@ -85,33 +70,56 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
       obj@assays$RNA@scale.data <- seurat_obj@assays$RNA@scale.data
     }
   } else if (method == 'scVI') {
+    # scVI ----
+    assay <- 'RNA'
     vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
     if (transform == 'counts'){
-      out <- paste0(method, '_', 'transform', '.loom')
-      create(filename= out, 
-             data = seurat_obj@assays$RNA@counts[vfeatures, ], 
-             cell.attrs = list(batch = seurat_obj@meta.data[,covariate],
-                               batch_indices = seurat_obj@meta.data[,covariate] %>% 
-                                 as.factor() %>% 
-                                 as.numeric()))
-      loom_dataset = scvi$dataset$LoomDataset(out, save_path = '')
-      n_epochs =  3 # use 1e6/# cells of epochs
-      lr = 1e-3
-      use_batches = True
-      use_cuda = False
-      
-      vae = scvi$models$VAE(loom_dataset$nb_genes, n_batch=loom_dataset$n_batches, n_hidden=128, n_latent=200, n_layers=2, dispersion='gene-batch')
-      
-      trainer = UnsupervisedTrainer(vae, loom_dataset, train_size=1.0, use_cuda=use_cuda)
-      #n_epochs = 5
-      trainer.train(n_epochs=n_epochs)
-      
-      
-    } else if (transform == 'standard') {
-    } else if (transform == 'scran') {
-    } else if (transform == 'SCT') {
-      
+      matrix = seurat_obj@assays$RNA@counts[vfeatures, ]
+    } else (transform == 'SCT'){
+      assay <- 'SCT'
+      vfeatures <- grep('^MT-', seurat_obj@assays$SCT@var.features, invert =TRUE, value = TRUE)
+      matrix = seurat_obj@assays$SCT@scale.data[vfeatures, ] %>% Matrix(., sparse = TRUE)
+    } else {
+      matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
     }
+    out <- paste0(method, '_', transform, '.loom')
+    create(filename= out, 
+           overwrite = TRUE,
+           data = matrix, 
+           cell.attrs = list(batch = seurat_obj@meta.data[,covariate],
+                             batch_indices = seurat_obj@meta.data[,covariate] %>% 
+                               as.factor() %>% 
+                               as.numeric()))
+    # connect to new loom file, then disconnect...otherwise python call gets borked for 
+    # as we are connected into the file on create
+    loom <- connect(out, mode = 'r')
+    loom$close_all() 
+    n_epochs =  3 # use 1e6/# cells of epochs
+    lr = 1e-3
+    use_batches = 'True'
+    use_cuda = 'True'
+    n_hidden = 128
+    n_latent = 200
+    n_layers = 2
+    
+    scVI_command = paste('/home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scVI.py',
+                         out,
+                         n_epochs,
+                         lr,
+                         use_cuda,
+                         n_hidden,
+                         n_latent,
+                         n_layers)
+    # run scVI      
+    system(scVI_command)
+    # import reduced dim (latent)
+    latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
+    row.names(latent_dims) <- colnames(seurat_obj)
+    colnames(latent_dims) <- paste0("scVI_", 1:ncol(latent_dims))
+    
+    seurat_obj[["scVI"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "scVI_", assay = DefaultAssay(seurat_obj))
+    
+    
   } else if (method == 'harmony'){
     ## uses one seurat obj (give covariate in meta.data to group.by.vars)
     if (transform != 'SCT'){
@@ -158,6 +166,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                      do.scale = TRUE,
                      vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
   } else if (method == 'scanorama'){
+    # scanorama ----
     # scanorama can return "integrated" and/or "corrected" data
     # authors say that the "integrated" data is a low-dimension (100) representation
     # of the integration, which is INTENDED FOR PCA/tSNE/UMAP!!!
@@ -208,10 +217,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     cor_data = ComBat(matrix, obj@meta.data[, covariate], prior.plots=FALSE, par.prior=TRUE)
     obj <- SetAssayData(obj, slot = 'scale.data', cor_data)
     obj <- RunPCA(obj, npcs = 100)
-  } else if (method == 'scVI') {
-    
-  }
-  else {
+  } else {
     print('Supply either CCA, fastMNN, harmony, liger, scanorama, or scVI as a method')
     NULL
   }
