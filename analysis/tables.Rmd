@@ -60,6 +60,13 @@ color_bar_factor2 <- formatter("span",
                                 border.radius = "4px",
                                 background = c("red","green")[factor(as.character(x))]))
 
+color_bar_factor3 <- formatter("span", width = "5px",
+                              style = function(x) style(
+                                display = "block",
+                                color = "white",
+                                border.radius = "4px",
+                                background = type_val[factor(as.character(x))]))
+
 export_formattable <- function(f, file, width = "100%", height = NULL, 
                                background = "white", delay = 0.2)
 {
@@ -127,9 +134,9 @@ table02 <- cell_info_labels %>%
   summarise(Studies = length(study_accession), Count = sum(Count)) %>% 
   summarise(Species = paste(organism, collapse = ', '), Studies = sum(Studies), Count = sum(Count)) %>% 
   arrange(-Count) %>% 
-  formattable(., list(Count = normalize_bar("lightblue")))
+  formattable(., list(Count = normalize_bar("lightblue"), CellType = color_bar_factor3), width = "1")
 table02
-export_formattable(table02, '02_table.png')
+export_formattable(table02, '02_table.png', width = '40%')
 ```
 
 # Session Info
