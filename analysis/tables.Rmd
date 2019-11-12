@@ -18,19 +18,14 @@ library(htmltools)
 # all cells
 load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_info_labelled.Rdata')
 # cells after QC (high mito, low gene counts, high gene count)
-# load('seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__scran__full__batch.seuratV3.Rdata')
-
-# stats <- seurat__SCT$seurat_list %>% 
-#   map(ncol) %>% 
-#   map(enframe) %>% 
-#   bind_rows(.id='ID') %>% 
-#   mutate(ID = gsub('SMARTSeq_v', 'SMARTSeqv', ID)) %>% 
-#   mutate(ID = gsub('SMARTerSeq_v', 'SMARTerSeqv', ID)) %>% 
-#   separate(ID, c('study_accession', 'Platform', 'Covariate')) %>% 
-#   mutate(Platform = gsub('Seqv', 'Seq_v', Platform))
-
+# do on b2:
+# load('cell_info_labelled.Rdata')
+# load('seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__standard__full__batch.seuratV3.Rdata')
+# stats <- seurat__standard@meta.data %>%
+#   as_tibble(rownames = 'value') %>%
+#   left_join(cell_info_labels %>% select(-batch, -study_accession, -Age), by = 'value')
 # save(stats, file = 'post_filtering_stats.Rdata')
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/post_filtering_stats.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/post_filtering_stats_2019_11_06.Rdata')
 
 # load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/fastMNN_umap_full.Rdata')
 study_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GEO_Study_Level_Metadata.tsv')
@@ -72,10 +67,9 @@ export_formattable <- function(f, file, width = "100%", height = NULL,
           delay = delay)
 }
 
-post <- stats %>% rename(`Post QC<br/>Count` = value) %>% 
-              select(study_accession, Platform, `Post QC<br/>Count`) %>% 
+post <- stats %>% 
               group_by(study_accession, Platform) %>% 
-              summarise(`Post QC<br/>Count` = sum(`Post QC<br/>Count`))
+              summarise(`Post QC<br/>Count` = n())
 
 table01 <- cell_info_labels %>% 
   filter(!is.na(study_accession)) %>% 

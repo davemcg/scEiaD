@@ -7,15 +7,32 @@ method = args[1]
 # crazy section to deal with that fact I have scanorama in a conda environment,
 # but many of the seurat wrapped integration tools can't be installed in conda
 # without crazy effort (e.g liger...as it needs to be compiled in C)
-if (method != 'scanorama'){
+if (method == 'scanorama'){
+  library(reticulate)
+  use_condaenv("scanorama")
+  scanorama <- import('scanorama')
+} else if (method == 'scVI') {
+  library(loomR)
+  library(reticulate)
+  use_condaenv("scVI")
+  scvi <- import('scvi')
+  mp <- import('matplotlib'); mp$use('agg')
+  torch <- import('torch')
+  os <- import('os')
+  np <- import('numpy')
+  pd <- import('pandas')
+  #plt <- matplotlib.pyplot as plt
+  
+  # from scvi.dataset import GeneExpressionDataset
+  import('scvi.models') #import VAE, LDVAE
+  import('scvi.inference') # import UnsupervisedTrainer
+  import('scvi.inference.posterior') #import Posterior
+  import('from scvi.dataset') #import LoomDataset
+} else {
   library(SeuratWrappers)
   library(harmony)
   library(batchelor)
   library(sva)
-} else {
-  library(reticulate)
-  use_condaenv("scanorama")
-  scanorama <- import('scanorama')
 }
 library(tidyverse)
 library(Seurat)
@@ -32,15 +49,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
   # the scaling happens at this level
   # e.g. DO NOT use 'batch' in build_seurat_obj.R then 'study_accession' here
   if (method == 'CCA'){
-    # identify batches wiht  low cell counts (<200) to exclude
     obj <- seurat_obj
-    # obj@meta.data$split_by <- obj@meta.data[,covariate]
-    # meta <- obj@meta.data
-    # counts <- meta %>% group_by(split_by) %>% summarise(Count = n())
-    # meta <- left_join(meta, counts)
-    # obj@meta.data$CellCount <- meta$Count
-    # obj <- subset(obj, subset = CellCount > 1000)
-    
     if (transform == 'SCT'){
       # remove sets with fewre than 1000 cells
       seurat_obj$seurat_list[seurat_obj$seurat_list %>% 
@@ -75,7 +84,34 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
       var_genes <- grep('^MT-', seurat_obj@assays$RNA@var.features, value = TRUE, invert = TRUE)
       obj@assays$RNA@scale.data <- seurat_obj@assays$RNA@scale.data
     }
-    
+  } else if (method == 'scVI') {
+    vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
+    if (transform == 'counts'){
+      out <- paste0(method, '_', 'transform', '.loom')
+      create(filename= out, 
+             data = seurat_obj@assays$RNA@counts[vfeatures, ], 
+             cell.attrs = list(batch = seurat_obj@meta.data[,covariate],
+                               batch_indices = seurat_obj@meta.data[,covariate] %>% 
+                                 as.factor() %>% 
+                                 as.numeric()))
+      loom_dataset = scvi$dataset$LoomDataset(out, save_path = '')
+      n_epochs =  3 # use 1e6/# cells of epochs
+      lr = 1e-3
+      use_batches = True
+      use_cuda = False
+      
+      vae = scvi$models$VAE(loom_dataset$nb_genes, n_batch=loom_dataset$n_batches, n_hidden=128, n_latent=200, n_layers=2, dispersion='gene-batch')
+      
+      trainer = UnsupervisedTrainer(vae, loom_dataset, train_size=1.0, use_cuda=use_cuda)
+      #n_epochs = 5
+      trainer.train(n_epochs=n_epochs)
+      
+      
+    } else if (transform == 'standard') {
+    } else if (transform == 'scran') {
+    } else if (transform == 'SCT') {
+      
+    }
   } else if (method == 'harmony'){
     ## uses one seurat obj (give covariate in meta.data to group.by.vars)
     if (transform != 'SCT'){
@@ -172,8 +208,11 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     cor_data = ComBat(matrix, obj@meta.data[, covariate], prior.plots=FALSE, par.prior=TRUE)
     obj <- SetAssayData(obj, slot = 'scale.data', cor_data)
     obj <- RunPCA(obj, npcs = 100)
-  } else {
-    print('Supply either CCA, fastMNN, harmony, liger, or scanorama as a method')
+  } else if (method == 'scVI') {
+    
+  }
+  else {
+    print('Supply either CCA, fastMNN, harmony, liger, scanorama, or scVI as a method')
     NULL
   }
   obj

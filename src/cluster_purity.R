@@ -167,7 +167,7 @@ well_represented_cells <- all_obj %>% map(function(x) mutate(x, CellType = gsub(
 
 
 purity_calcs_cluster_vs_celltype <- well_represented_cells %>% imap(cluster_purity_plot, "seurat_clusters", "CellType", 2)
-purity_calcs_cluster_vs_study_and_cell_type <- well_represented_cells %>% imap(cluster_purity_plot, "seurat_clusters", "celltype_study", 3)
+purity_calcs_cluster_vs_study_and_cell_type <- well_represented_cells %>% imap(cluster_purity_plot, "seurat_clusters", "celltype_study", 2)
 #purity_calcs_cluster_vs_age <- well_represented_cells %>% imap(cluster_purity_plot, "seurat_clusters", "Age")
 
 
