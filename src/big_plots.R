@@ -4,8 +4,21 @@ library(ggrepel)
 library(cowplot)
 
 args <- commandArgs(trailingOnly = TRUE)
+type_fill <- scale_fill_manual(values = type_val)
 
 load(args[1])
+
+# attach colors to cell types
+cell_types <- umap %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+  filter(!is.na(CellType), 
+         !is.na(study_accession), 
+         !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType)) %>% 
+  pull(CellType) %>% unique() %>% sort()
+type_val <- setNames(pals::alphabet(n = cell_types %>% length()), cell_types)
+type_col <- scale_colour_manual(values = type_val)
+
+
 # cell type known
 plot1 <- umap %>% 
   mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
