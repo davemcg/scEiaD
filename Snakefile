@@ -140,7 +140,7 @@ rule all:
 		'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__standard__full__batch.seuratV3.Rdata',
 		expand('quant/{organism}/full_sparse_matrix.Rdata', organism = organism),
 		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.pdf', \
-				transform = ['SCT', 'scran', 'standard'], \
+				transform = ['scran', 'standard'], \
 				method = ['fastMNN'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
@@ -149,7 +149,7 @@ rule all:
 				dist = [0.001, 0.3, 0.5],
 				neighbors = [5, 30, 50]),
 		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.pdf', \
-				transform = ['counts', 'scran', 'standard'], \
+				transform = ['counts', 'scran'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \

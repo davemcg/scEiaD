@@ -4,7 +4,6 @@ library(ggrepel)
 library(cowplot)
 
 args <- commandArgs(trailingOnly = TRUE)
-type_fill <- scale_fill_manual(values = type_val)
 
 load(args[1])
 
@@ -17,6 +16,7 @@ cell_types <- umap %>% mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cell
   pull(CellType) %>% unique() %>% sort()
 type_val <- setNames(pals::alphabet(n = cell_types %>% length()), cell_types)
 type_col <- scale_colour_manual(values = type_val)
+type_fill <- scale_fill_manual(values = type_val)
 
 
 # cell type known
@@ -74,5 +74,5 @@ plot3 <- umap %>%
   xlab('UMAP 1') + ylab('UMAP 2')
 
 pdf(args[2], width = 11, height = 26)
-plot_grid(plot1, plot2, plot, ncol = 1)
+plot_grid(plot1, plot2, plot3, ncol = 1)
 dev.off()

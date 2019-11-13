@@ -118,7 +118,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     colnames(latent_dims) <- paste0("scVI_", 1:ncol(latent_dims))
     
     seurat_obj[["scVI"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "scVI_", assay = DefaultAssay(seurat_obj))
-    
+   	obj <- seurat_obj 
     
   } else if (method == 'harmony'){
     ## uses one seurat obj (give covariate in meta.data to group.by.vars)
@@ -225,7 +225,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 }
 
 if (transform != 'SCT' & method != 'none'){
-  integrated_obj <- run_integration(seurat__standard, method, covariate)
+  integrated_obj <- run_integration(seurat__standard, method, covariate, transform)
 } else if (transform == 'SCT' & method == 'CCA') {
   integrated_obj <- run_integration(seurat__SCT, 'CCA', covariate, transform = 'SCT')
 } else if (transform == 'SCT' & method != 'none') {
