@@ -100,6 +100,9 @@ if (method == 'CCA'){
   }
   reduction <- 'pca'
   reduction.key <- 'combatUMAP_'
+} else if (method == 'scVI'){
+  reduction <- 'scVI'
+  reduction.key <- 'scVI_'
 } else {
   print(paste0("Why did you pick ", method, "?"))
 }

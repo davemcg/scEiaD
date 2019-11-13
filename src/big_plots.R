@@ -73,6 +73,6 @@ plot3 <- umap %>%
   facet_wrap(~organism) +
   xlab('UMAP 1') + ylab('UMAP 2')
 
-pdf(args[2], width = 11, height = 26)
-plot_grid(plot1, plot2, plot3, ncol = 1)
+pdf(args[2], width = 10, height = 10)
+plot_grid(plot1, ncol = 1)
 dev.off()
