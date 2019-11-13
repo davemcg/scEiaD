@@ -5,6 +5,7 @@ library(cowplot)
 
 args <- commandArgs(trailingOnly = TRUE)
 
+load(args[1])
 # cell type known
 plot1 <- umap %>% 
   mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 

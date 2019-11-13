@@ -75,7 +75,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
     if (transform == 'counts'){
       matrix = seurat_obj@assays$RNA@counts[vfeatures, ]
-    } else (transform == 'SCT'){
+    } else if (transform == 'SCT'){
       assay <- 'SCT'
       vfeatures <- grep('^MT-', seurat_obj@assays$SCT@var.features, invert =TRUE, value = TRUE)
       matrix = seurat_obj@assays$SCT@scale.data[vfeatures, ] %>% Matrix(., sparse = TRUE)
@@ -97,7 +97,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     n_epochs =  3 # use 1e6/# cells of epochs
     lr = 1e-3
     use_batches = 'True'
-    use_cuda = 'True'
+    use_cuda = 'False'
     n_hidden = 128
     n_latent = 200
     n_layers = 2
