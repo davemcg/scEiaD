@@ -121,7 +121,7 @@ transform = ['counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens']
-dims = [25,50,75,100]
+dims = [25,30,50,75,100,200]
 
 wildcard_constraints:
 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
@@ -129,6 +129,7 @@ wildcard_constraints:
 	transform = '|'.join(transform),
 	covariate = '|'.join(covariate),
 	organism = '|'.join(organism),
+	dims = '|'.join([str(x) for x in dims])
 	
 
 rule all:
@@ -145,17 +146,17 @@ rule all:
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
 				covariate = ['batch'], \
-				dims = [25,50,100,200],
-				dist = [0.001, 0.3, 0.5],
+				dims = [30,50,100,200],
+				dist = [0.001,0,1, 0.3],
 				neighbors = [5, 30, 50]),
 		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.pdf', \
-				transform = ['counts', 'scran'], \
+				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
 				covariate = ['batch'], \
-				dims = [25,50,100,200],
-				dist = [0.001, 0.3, 0.5],
+				dims = [30,50,100,200],
+				dist = [0.001,0.1, 0.3],
 				neighbors = [5, 30, 50]),
 	#	expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
 	#			transform = transform, \
@@ -431,16 +432,17 @@ rule integrate:
 	input:
 		'seurat_obj/{combination}__{transform}__{partition}__{covariate}.seuratV3.Rdata',
 	output:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
 	run:
 		job = "module load R/3.6; \
 				Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
-				  {method} {transform} {covariate} {input} {output}".format(\
+				  {method} {transform} {covariate} {dims} {input} {output}".format(\
 						method = wildcards.method, \
 						transform = wildcards.transform, \
 					    covariate = wildcards.covariate, \
+						dims = wildcards.dims, \
 			            output = output, input = input)
-		sp.run("echo " + job + '\n', shell = True)
+		sp.run("echo \"" +  job + "\"\n", shell = True)
 		sp.run(job, shell = True)
 
 
@@ -458,27 +460,40 @@ rule label_known_cells_with_type:
 
 rule predict_missing_cell_types:
 	input:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata',
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata',
 		'cell_info_labelled.Rdata'
 	output:
-		'predictions/{combination}__{transform}__{partition}__{covariate}__{method}_cell_info_predictions.Rdata'
+		'predictions/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}_cell_info_predictions.Rdata'
 	shell:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels.R {input} {wildcards.transform} {output}
 		"""
 		
-rule calculate_umap_and_cluster:
+rule calculate_umap:
 	input:
-		obj = 'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}.seuratV3.Rdata'
+		obj = 'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
 	output:
 		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.seuratV3.Rdata',
 	shell:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
-			{wildcards.method} {wildcards.dims} {wildcards.dist} {wildcards.neighbors} {input} {output}
+			{wildcards.method} {wildcards.dims} {wildcards.dist} {wildcards.neighbors} FALSE TRUE {input} {output}
 		"""
+
+rule calculate_cluster:
+	input:
+		obj = 'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
+	output:
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.cluster.seuratV3.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
+			{wildcards.method} {wildcards.dims} 1 1 TRUE FALSE {input} {output}
+		"""
+
 
 rule extract_umap:
 	input:

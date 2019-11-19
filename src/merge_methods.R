@@ -25,10 +25,12 @@ library(Seurat)
 
 transform = args[2]
 covariate = args[3]
-load(args[4])
+latent = args[4] %>% as.numeric()
+args[5] <- gsub('counts', 'standard', args[5])
+load(args[5])
 
 
-run_integration <- function(seurat_obj, method, covariate = 'study_accession', transform = 'standard'){
+run_integration <- function(seurat_obj, method, covariate = 'study_accession', transform = 'standard', latent = 50){
   # covariate MUST MATCH what was used in build_seurat_obj.R
   # otherwise weird-ness may happen
   # the scaling happens at this level
@@ -63,7 +65,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
   } else if (method == 'fastMNN'){
     ## uses list of seurat objects (each obj your "covariate")
     seurat_list <- SplitObject(seurat_obj, split.by = covariate)
-    obj <- RunFastMNN(object.list = seurat_list, d = 200)
+    obj <- RunFastMNN(object.list = seurat_list, d = latent)
     # put back scaledata as it gets wiped
     if (transform != 'SCT'){
       var_genes <- grep('^MT-', seurat_obj@assays$RNA@var.features, value = TRUE, invert = TRUE)
@@ -82,8 +84,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     } else {
       matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
     }
-    out <- paste0(method, '_', transform, '.loom')
-    create(filename= out, 
+    out <- paste0(method, '_', covariate, '_', transform, '_', latent, '.loom')
+	create(filename= out, 
            overwrite = TRUE,
            data = matrix, 
            cell.attrs = list(batch = seurat_obj@meta.data[,covariate],
@@ -94,15 +96,15 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     # as we are connected into the file on create
     loom <- connect(out, mode = 'r')
     loom$close_all() 
-    n_epochs =  3 # use 1e6/# cells of epochs
-    lr = 1e-3
-    use_batches = 'True'
+    n_epochs = 4 # use 1e6/# cells of epochs
+    lr = 0.001 
+    #use_batches = 'True'
     use_cuda = 'False'
-    n_hidden = 128
-    n_latent = 200
-    n_layers = 2
+    n_hidden = 128 
+    n_latent = latent
+    n_layers = 2 
     
-    scVI_command = paste('/home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scVI.py',
+    scVI_command = paste('/data/mcgaugheyd/conda/envs/scVI/bin/./python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scVI.py',
                          out,
                          n_epochs,
                          lr,
@@ -114,6 +116,11 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     system(scVI_command)
     # import reduced dim (latent)
     latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
+	if (latent_dims[1,1] == 'NaN'){
+		print('scVI fail')
+		stop()
+	}
+
     row.names(latent_dims) <- colnames(seurat_obj)
     colnames(latent_dims) <- paste0("scVI_", 1:ncol(latent_dims))
     
@@ -225,9 +232,9 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 }
 
 if (transform != 'SCT' & method != 'none'){
-  integrated_obj <- run_integration(seurat__standard, method, covariate, transform)
+  integrated_obj <- run_integration(seurat__standard, method, covariate, transform, latent = latent)
 } else if (transform == 'SCT' & method == 'CCA') {
-  integrated_obj <- run_integration(seurat__SCT, 'CCA', covariate, transform = 'SCT')
+  integrated_obj <- run_integration(seurat__SCT, 'CCA', covariate, transform = 'SCT', latent = latent)
 } else if (transform == 'SCT' & method != 'none') {
   seurat_list <- seurat__SCT$seurat_list
   if (length(seurat_list) > 1){
@@ -236,7 +243,7 @@ if (transform != 'SCT' & method != 'none'){
   merged@assays$SCT@var.features <- seurat__SCT$study_data_features
   DefaultAssay(merged) <- 'SCT'
   merged <- RunPCA(merged, npcs = 100)
-  integrated_obj <- run_integration(merged, method, covariate, transform = 'SCT')
+  integrated_obj <- run_integration(merged, method, covariate, transform = 'SCT', latent = latent)
 } else if (transform != 'SCT' & method == 'none'){
   integrated_obj <- seurat__standard
 } else if (transform == 'SCT' & method == 'none'){
@@ -249,4 +256,4 @@ if (transform != 'SCT' & method != 'none'){
   merged <- RunPCA(merged, npcs = 100)
   integrated_obj <- merged
 }
-save(integrated_obj, file = args[5], compress = FALSE)
+save(integrated_obj, file = args[6], compress = FALSE)

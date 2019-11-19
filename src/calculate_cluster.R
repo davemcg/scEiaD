@@ -12,15 +12,8 @@ method = args[1]
 max_dims = args[2] %>% as.numeric()
 dist = args[3] %>% as.numeric()
 neighbors = args[4] %>% as.numeric()
-if (args[5] == 'TRUE'){
-	cluster = TRUE
-} else {cluster = FALSE}
-if (args[6] == 'TRUE'){
-    umap = TRUE
-} else {umap = FALSE}
-
 # integrated seurat obj
-load(args[7])
+load(args[5])
 
 print(paste('Method', method))
 print(paste('Max Dims', max_dims))
@@ -35,10 +28,8 @@ create_umap_and_cluster <- function(integrated_obj,
                                     reduction.name = 'ccaUMAP',
                                     reduction.key = 'ccaUMAP_',
                                     resolution = 4,
-                                    cluster = FALSE,
-                                    umap = FALSE){
+                                    cluster = TRUE){
 
-  if (umap) {
   # UMAP
   print("UMAP 3D Starting")
   integrated_obj <- RunUMAP(integrated_obj, 
@@ -58,13 +49,12 @@ create_umap_and_cluster <- function(integrated_obj,
                             reduction = reduction, 
                             reduction.name = reduction.name,
                             reduction.key = reduction.key)
-  }
   # clustering 
   # optional cluster on UMAP3D space
   # WAAAAY faster and clusters directly on what you see
   # but also potentially not so valid
   # if you use, drop resolution MUCH lower 0.6-1 or so
-  if (cluster){
+  if (!cluster){
     print("Find Neighbors starting")
     #reduction = paste0(reduction.name, '3D')
     #max_dims = 3
@@ -123,8 +113,7 @@ integrated_obj <- create_umap_and_cluster(integrated_obj = integrated_obj,
                                           reduction.name = reduction.name,
                                           reduction.key = reduction.key,
                                           resolution = 1.5,
-                                          cluster = cluster,
-										  umap = umap)
+                                          cluster = FALSE)
 
-save(integrated_obj, file = args[8], compress = FALSE )
+save(integrated_obj, file = args[6], compress = FALSE )
 

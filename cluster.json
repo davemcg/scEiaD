@@ -51,16 +51,23 @@
 	},
 	"integrate" :
 	{
-		"mem" : "600G",
-		"partition" : "largemem",
+		"mem" : "120G",
+		"partition" : "norm",
 		"time" : "12:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
-	"calculate_umap_and_cluster" :
+	"calculate_umap" : 
 	{
-		"mem" : "200G",
-		"partition" : "largemem",
+		"mem" : "100G",
+		"partition" : "norm",
 		"time" : "8:00:00",
+		"extra" : " --gres=lscratch:100"
+	},
+	"calculate_cluster" :
+	{
+		"mem" : "300G",
+		"partition" : "largemem",
+		"time" : "24:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
 	"extract_umap" :
