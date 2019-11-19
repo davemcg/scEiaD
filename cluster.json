@@ -72,8 +72,8 @@
 	},
 	"extract_umap" :
 	{
-		"mem" : "300G",
-		"partition" : "largemem"
+		"mem" : "100G",
+		"time" : "00:30:00"
 	},
 	"predict_missing_cell_types" :
 	{

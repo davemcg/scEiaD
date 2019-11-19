@@ -96,7 +96,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     # as we are connected into the file on create
     loom <- connect(out, mode = 'r')
     loom$close_all() 
-    n_epochs = 4 # use 1e6/# cells of epochs
+    n_epochs = 5 # use 1e6/# cells of epochs
     lr = 0.001 
     #use_batches = 'True'
     use_cuda = 'False'

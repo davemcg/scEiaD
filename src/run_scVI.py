@@ -39,7 +39,7 @@ print(str(n_layers) + " layers")
 
 #vae = VAE(loom_dataset.nb_genes, n_batch=loom_dataset.n_batches, dropout_rate = 0.5, n_hidden = n_hidden, n_latent = n_latent, n_layers = n_layers, dispersion='gene-batch')
 #vae = VAE(loom_dataset.nb_genes, n_batch=loom_dataset.n_batches, n_latent = n_latent, dropout_rate = 0.1, dispersion='gene-batch')
-vae = VAE(loom_dataset.nb_genes, n_batch=loom_dataset.n_batches * True, n_layers = n_layers, n_hidden = n_hidden, dispersion='gene-batch')
+vae = VAE(loom_dataset.nb_genes, n_batch=loom_dataset.n_batches * True, n_latent = n_latent, n_layers = n_layers, n_hidden = n_hidden, dispersion='gene-batch')
 trainer = UnsupervisedTrainer(vae, loom_dataset, use_cuda=use_cuda, n_epochs_kl_warmup=None, data_loader_kwargs={"batch_size":256})
 #n_epochs = 5
 trainer.train(n_epochs = n_epochs, lr = lr)

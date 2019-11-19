@@ -121,7 +121,7 @@ transform = ['counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens']
-dims = [25,30,50,75,100,200]
+dims = [8,10,20,25,30,50,75,100,200]
 
 wildcard_constraints:
 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
@@ -140,7 +140,7 @@ rule all:
 		'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__SCT__full__batch.seuratV3.Rdata',
 		'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__standard__full__batch.seuratV3.Rdata',
 		expand('quant/{organism}/full_sparse_matrix.Rdata', organism = organism),
-		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.pdf', \
+		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['scran', 'standard'], \
 				method = ['fastMNN'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
@@ -149,55 +149,15 @@ rule all:
 				dims = [30,50,100,200],
 				dist = [0.001,0,1, 0.3],
 				neighbors = [5, 30, 50]),
-		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.pdf', \
+		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
 				covariate = ['batch'], \
-				dims = [30,50,100,200],
+				dims = [8,10,20,30,50,100,200],
 				dist = [0.001,0.1, 0.3],
-				neighbors = [5, 30, 50]),
-	#	expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
-	#			transform = transform, \
-	#			method = method, \
-	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-	#			partition = ['downsample'], \
-	#			covariate = ['batch'], \
-	#			dims = dims),
-	#	expand('plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_celltype.pdf', \
-	#			transform = transform, \
-	#			method = method, \
-	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-	#			partition = ['downsample'], \
-	#			covariate = ['batch'], \
-	#			dims = dims),
-		#expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
-		#		transform = transform, \
-		#		method = method, \
-		#		organism = 'Mus_musculus', \
-		#		partition = ['late', 'full'], \
-		#		covariate = covariate, \
-		#		dims = dims),
-		#expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.color_study__facet_age.pdf', \
-		#		transform = transform, \
-		#		method = method, \
-		#		organism = 'Mus_musculus', \
-		#		partition = ['early'], \
-		#		covariate = ['batch'], \
-		#		dims = dims),
-		#expand('plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.WellSupportedCells.color_study__facet_celltype.pdf', \
-		#		transform = transform, \
-		#		method = method, \
-		#		organism = 'Mus_musculus', \
-		#		partition = ['full'], \
-		#		covariate = covariate, \
-		#		dims = dims),
-		#expand('plots/well_supported_celltypes/{organism}.mean_cluster_purity_by_cell_type.pdf', \
-		#		organism = 'Mus_musculus')
-		#'quant/Mus_musculus/scTransformCCA_merged_Embryonic.seuratV3.Rdata',
-		#'quant/Mus_musculus/scTransformCCA_merged_Postnatal.seuratV3.Rdata',
-		#expand('quant/{SRS}/genecount/matrix.Rdata', SRS = SRS_UMI_samples), # UMI data
+				neighbors = [5, 30, 50, 100]),
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
 		expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
 
@@ -513,7 +473,7 @@ rule plot_integration:
 	input:
 		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	output:
-		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.pdf'
+		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png'
 		#'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_study__facet_age.pdf',
 		#'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_study__facet_batch.pdf',
 		#'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_paper__facet_celltype.pdf',
