@@ -45,7 +45,7 @@ plot2 <- umap %>%
          !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
          !grepl('RPE|Vascul', CellType)) %>%
   ggplot() + 
-  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = Stage), size = 0.01, alpha = 0.01) + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = Stage), size = 0.2, alpha = 0.1) + 
   guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
   theme_cowplot() + 
   #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
@@ -73,6 +73,46 @@ plot3 <- umap %>%
   facet_wrap(~organism) +
   xlab('UMAP 1') + ylab('UMAP 2')
 
-png(args[2], width = 2000, height = 1500, res = 150)
-plot_grid(plot1, ncol = 1)
+
+# facet by celltype, color by organism
+plot4 <- umap %>% 
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+  filter(!is.na(study_accession), !is.na(CellType),
+         !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType)) %>%
+  mutate(Size = case_when(organism == 'Homo sapiens' ~ 0.015,
+                          TRUE ~ 0.01)) %>% 
+  ggplot() + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = organism, size = Size), alpha = 0.05) + 
+  guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
+  theme_cowplot() + 
+  scale_size(guide = 'none') +
+  scale_alpha(guide = 'none') +
+  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+  facet_wrap(~CellType) +
+  xlab('UMAP 1') + ylab('UMAP 2')
+
+# facet by cluster, color by CellType
+plot5 <- umap %>% 
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+  filter(!is.na(study_accession), !is.na(CellType),
+         !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType)) %>%
+  mutate(Size = case_when(organism == 'Homo sapiens' ~ 0.015,
+                          TRUE ~ 0.01)) %>% 
+  ggplot() + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType, size = Size), alpha = 0.05) + 
+  guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
+  theme_cowplot() + 
+  type_col + 
+  scale_size(guide = 'none') +
+  scale_alpha(guide = 'none') +
+  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+  facet_wrap(~cluster) +
+  xlab('UMAP 1') + ylab('UMAP 2')
+
+png(args[2], width = 1500, height = 3000, res = 150)
+plot_grid(plot1, plot4, plot5, ncol = 1)
 dev.off()
