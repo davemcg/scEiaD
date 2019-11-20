@@ -87,7 +87,7 @@ make_seurat_obj <- function(m,
   
   # FILTER STEP!!!!
   # keep cells with < 10% mito genes, and more than 200 and less than 3000 detected genes for UMI
-  # for well, drop the 3000 gene top end filterr as there shouldn't be any droplets
+  # for well, drop the 3000 gene top end filter as there shouldn't be any droplets
   seurat_umi <- subset(seurat_umi, subset = nFeature_RNA > 200)
   seurat_droplet <- subset(seurat_droplet, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 )
   # cells to keep
