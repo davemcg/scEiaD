@@ -2,14 +2,18 @@
 args <- commandArgs(trailingOnly = TRUE)
 library(Seurat)
 library(tidyverse)
+# load cluster data
+load(args[2])
+cluster <- integrated_obj@meta.data$cluster
 # load integrated seurat obj
 load(args[1])
+integrated_obj@meta.data$cluster <- cluster
 # load labelled cell data
-load(args[2])
-# load predicted cell data (+ labelled)
 load(args[3])
+# load predicted cell data (+ labelled)
+load(args[4])
 # method
-method <- args[5]
+method <- args[6]
 
 if (method == 'CCA'){
   reduction <- 'pca'
@@ -88,6 +92,6 @@ core_expression <- FetchData(integrated_obj, core_markers) %>% as_tibble(rowname
 
 umap <-   left_join(umap, core_expression, by = 'Barcode')
 
-save(umap, file = args[4])
+save(umap, file = args[5])
 
 

@@ -157,7 +157,24 @@ rule all:
 				covariate = ['batch'], \
 				dims = [8,10,20,30,50,100,200],
 				dist = [0.001,0.1, 0.3],
-				neighbors = [5, 30, 50, 100]),
+				neighbors = [5, 15, 30, 50, 100]),
+		expand('cluster/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
+				transform = ['scran', 'standard'], \
+				method = ['fastMNN'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['full'], \
+				covariate = ['batch'], \
+				knn = [5, 7, 10], \
+				dims = [30,50,100,200]),
+		expand('cluster/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
+				transform = ['counts'], \
+				method = ['scVI'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['full'], \
+				covariate = ['batch'], \
+				knn = [5, 7, 10], \
+				dims = [8,10,20,30,50,100,200]),
+	
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
 		expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
 
@@ -439,25 +456,26 @@ rule calculate_umap:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
-			{wildcards.method} {wildcards.dims} {wildcards.dist} {wildcards.neighbors} FALSE TRUE {input} {output}
+			{wildcards.method} {wildcards.dims} {wildcards.dist} {wildcards.neighbors} 1 FALSE TRUE {input} {output}
 		"""
 
 rule calculate_cluster:
 	input:
 		obj = 'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
 	output:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.cluster.seuratV3.Rdata'
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.seuratV3.Rdata'
 	shell:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
-			{wildcards.method} {wildcards.dims} 1 1 TRUE FALSE {input} {output}
+			{wildcards.method} {wildcards.dims} 1 1 {wildcards.knn} TRUE FALSE {input} {output}
 		"""
 
 
 rule extract_umap:
 	input:
 		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.seuratV3.Rdata',
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn5.cluster.seuratV3.Rdata',
 		'cell_info_labelled.Rdata',
 		'predictions/{combination}__{transform}__{partition}__{covariate}__{method}_cell_info_predictions.Rdata'
 	output:
@@ -467,6 +485,19 @@ rule extract_umap:
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_umap.R \
 			{input} {output} {wildcards.method}	
+		"""
+
+rule extract_cluster:
+	input:
+		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.seuratV3.Rdata'
+	output:
+		'cluster/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata',
+		'cluster/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.graph.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_cluster.R \
+			{input} {output}
 		"""
 
 rule plot_integration:

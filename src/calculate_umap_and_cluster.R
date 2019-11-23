@@ -12,15 +12,16 @@ method = args[1]
 max_dims = args[2] %>% as.numeric()
 dist = args[3] %>% as.numeric()
 neighbors = args[4] %>% as.numeric()
-if (args[5] == 'TRUE'){
+knn = args[5] %>% as.numeric()
+if (args[6] == 'TRUE'){
 	cluster = TRUE
 } else {cluster = FALSE}
-if (args[6] == 'TRUE'){
+if (args[7] == 'TRUE'){
     umap = TRUE
 } else {umap = FALSE}
 
 # integrated seurat obj
-load(args[7])
+load(args[8])
 
 print(paste('Method', method))
 print(paste('Max Dims', max_dims))
@@ -34,7 +35,7 @@ create_umap_and_cluster <- function(integrated_obj,
                                     reduction = 'pca',
                                     reduction.name = 'ccaUMAP',
                                     reduction.key = 'ccaUMAP_',
-                                    resolution = 4,
+                                    knn = 4,
                                     cluster = FALSE,
                                     umap = FALSE){
 
@@ -58,23 +59,27 @@ create_umap_and_cluster <- function(integrated_obj,
                             reduction = reduction, 
                             reduction.name = reduction.name,
                             reduction.key = reduction.key)
-  }
+  } else {print("Skip UMAP")}
   # clustering 
   # optional cluster on UMAP3D space
   # WAAAAY faster and clusters directly on what you see
   # but also potentially not so valid
-  # if you use, drop resolution MUCH lower 0.6-1 or so
+  # if you use, drop knn MUCH lower 0.6-1 or so
   if (cluster){
-    print("Find Neighbors starting")
+    print("Clustering begining!")
     #reduction = paste0(reduction.name, '3D')
     #max_dims = 3
     # switch to scran / igraph method as it is about 5X faster
-    graph <- buildSNNGraph(Embeddings(integrated_obj, reduction = reduction), transposed = TRUE, d = max_dims)
-    cluster <- igraph::cluster_walktrap(graph)$membership
-    integrated_obj@meta.data$cluster <- cluster
+	for (k in knn){
+      graph <- buildSNNGraph(Embeddings(integrated_obj, reduction = reduction), 
+		transposed = TRUE, k = k, d = max_dims)
+      cluster <- igraph::cluster_walktrap(graph)$membership
+      integrated_obj@meta.data[,paste0('cluster_knn', k)] <- cluster
+	  integrated_obj@misc[[paste0("Graph_knn", k)]] <- graph
+	}
 } else {
 	print("Skip clustering")
-    integrated_obj@meta.data$cluster <- NA
+    #integrated_obj@meta.data$cluster <- NA
 }
 	
   integrated_obj
@@ -122,9 +127,9 @@ integrated_obj <- create_umap_and_cluster(integrated_obj = integrated_obj,
 										  n.neighbors = neighbors,
                                           reduction.name = reduction.name,
                                           reduction.key = reduction.key,
-                                          resolution = 1.5,
+                                          knn = knn,
                                           cluster = cluster,
 										  umap = umap)
 
-save(integrated_obj, file = args[8], compress = FALSE )
+save(integrated_obj, file = args[9], compress = FALSE )
 
