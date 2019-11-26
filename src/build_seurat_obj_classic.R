@@ -20,7 +20,8 @@ set = args[2] # early, late, full, downsampled
 covariate = args[3] # study_accession, batch, etc.
 transform = args[4] # SCT or standard seurat
 combination = args[5] # mouse, mouse and macaque, mouse and macaque and human
-cell_info <- read_tsv(args[6]) # cell_info.tsv
+n_features = args[6] %>% as.numeric()
+cell_info <- read_tsv(args[7]) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
 cell_info <- cell_info %>% 
@@ -28,7 +29,7 @@ cell_info <- cell_info %>%
                            study_accession == 'SRP125998' ~ paste0(study_accession, "_", Platform, '_NA'),
                            TRUE ~ batch)) %>% 
   mutate(batch = gsub(' ', '_', batch))
-rdata_files = args[7:length(args)]
+rdata_files = args[8:length(args)]
 rdata <- list()
 for (i in rdata_files){
   load(i)
@@ -113,7 +114,7 @@ make_seurat_obj <- function(m,
   # scale data and regress
   seurat_m <- NormalizeData(seurat_m)
   # find var features
-  seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 2000, selection.method = 'vst')
+  seurat_m <- FindVariableFeatures(seurat_m, nfeatures = n_features, selection.method = 'vst')
   # don't use mito genes
   var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
   
@@ -165,7 +166,7 @@ seurat_sct <- function(seurat_list){
     seurat_list[low_n] <- NULL
   }
   
-  study_data_features <- SelectIntegrationFeatures(object.list = seurat_list, nfeatures = 2000, verbose = FALSE)
+  study_data_features <- SelectIntegrationFeatures(object.list = seurat_list, nfeatures = n_features, verbose = FALSE)
   seurat_list <- PrepSCTIntegration(object.list = seurat_list, anchor.features = study_data_features, verbose = FALSE)
   
   # have to apply PCA after SelectIntegrationFeatures and PrepSCTIntegration

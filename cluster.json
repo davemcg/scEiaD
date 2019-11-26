@@ -65,9 +65,9 @@
 	},
 	"calculate_cluster" :
 	{
-		"mem" : "500G",
-		"partition" : "largemem",
-		"time" : "80:00:00",
+		"mem" : "100G",
+		"partition" : "norm",
+		"time" : "24:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
 	"extract_umap" :
