@@ -156,7 +156,7 @@ rule all:
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
-				n_features = [2000, 5000], \
+				n_features = [1000,2000, 5000, 10000], \
 				covariate = ['batch'], \
 				dims = [8,10,20,30,50,100,200],
 				dist = [0.001,0.1, 0.3],
@@ -173,7 +173,7 @@ rule all:
 		expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
 				transform = ['counts'], \
 				method = ['scVI'], \
-				n_features = [2000,5000], \
+				n_features = [1000,2000,5000,10000], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
 				covariate = ['batch'], \
@@ -479,7 +479,7 @@ rule calculate_cluster:
 rule extract_umap:
 	input:
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn5.cluster.Rdata',
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn5.cluster.seuratV3.Rdata',
 		'cell_info_labelled.Rdata',
 		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}_cell_info_predictions.Rdata'
 	output:
