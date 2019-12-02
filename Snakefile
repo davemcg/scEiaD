@@ -129,6 +129,7 @@ wildcard_constraints:
 	transform = '|'.join(transform),
 	covariate = '|'.join(covariate),
 	organism = '|'.join(organism),
+	nfeatures = '|'.join([str(x) for x in [2000,5000]]),
 	dims = '|'.join([str(x) for x in dims])
 	
 
@@ -140,41 +141,44 @@ rule all:
 		'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__SCT__full__batch.seuratV3.Rdata',
 		'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__standard__full__batch.seuratV3.Rdata',
 		expand('quant/{organism}/full_sparse_matrix.Rdata', organism = organism),
-		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-				transform = ['scran', 'standard'], \
-				method = ['fastMNN'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
-				covariate = ['batch'], \
-				dims = [30,50,100,200],
-				dist = [0.001,0,1, 0.3],
-				neighbors = [5, 30, 50]),
-		expand('plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
+		#expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
+		#		transform = ['scran', 'standard'], \
+		#		method = ['fastMNN'], \
+		#		combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+		#		partition = ['full'], \
+		#		n_features = [2000], \
+		#		covariate = ['batch'], \
+		#		dims = [30,50,100,200],
+		#		dist = [0.001,0,1, 0.3],
+		#		neighbors = [5, 30, 50]),
+		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
+				n_features = [1000,2000, 5000, 10000], \
 				covariate = ['batch'], \
 				dims = [8,10,20,30,50,100,200],
 				dist = [0.001,0.1, 0.3],
 				neighbors = [5, 15, 30, 50, 100]),
-		expand('cluster/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
-				transform = ['scran', 'standard'], \
-				method = ['fastMNN'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
-				covariate = ['batch'], \
-				knn = [5, 7, 10], \
-				dims = [30,50,100,200]),
-		expand('cluster/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
+		#expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
+		#		transform = ['scran', 'standard'], \
+		#		method = ['fastMNN'], \
+		#		combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+		#		partition = ['full'], \
+		#		n_features = [2000], \
+		#		covariate = ['batch'], \
+		#		knn = [5, 7, 10], \
+		#		dims = [30,50,100,200]),
+		expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
 				transform = ['counts'], \
 				method = ['scVI'], \
+				n_features = [1000,2000,5000,10000], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
 				covariate = ['batch'], \
-				knn = [5, 7, 10], \
+				knn = [4, 5, 7, 10], \
 				dims = [8,10,20,30,50,100,200]),
-	
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
 		expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
 
@@ -397,19 +401,20 @@ rule make_seurat_objs:
 		expand('quant/{organism}/full_sparse_matrix.Rdata', \
 			 organism = organism)
 	output:
-		seurat = 'seurat_obj/{combination}__{transform}__{partition}__{covariate}.seuratV3.Rdata'
+		seurat = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}.seuratV3.Rdata'
 	shell:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_seurat_obj_classic.R \
-			{output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} {wildcards.combination} {input}	
+			{output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} \
+			{wildcards.combination} {wildcards.n_features} {input}	
 		"""
 
 rule integrate:
 	input:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}.seuratV3.Rdata',
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}.seuratV3.Rdata',
 	output:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
 	run:
 		job = "module load R/3.6; \
 				Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
@@ -437,10 +442,10 @@ rule label_known_cells_with_type:
 
 rule predict_missing_cell_types:
 	input:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata',
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata',
 		'cell_info_labelled.Rdata'
 	output:
-		'predictions/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}_cell_info_predictions.Rdata'
+		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}_cell_info_predictions.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -449,9 +454,9 @@ rule predict_missing_cell_types:
 		
 rule calculate_umap:
 	input:
-		obj = 'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
+		obj = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
 	output:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.seuratV3.Rdata',
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -461,9 +466,9 @@ rule calculate_umap:
 
 rule calculate_cluster:
 	input:
-		obj = 'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
+		obj = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
 	output:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.seuratV3.Rdata'
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.seuratV3.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -471,15 +476,14 @@ rule calculate_cluster:
 			{wildcards.method} {wildcards.dims} 1 1 {wildcards.knn} TRUE FALSE {input} {output}
 		"""
 
-
 rule extract_umap:
 	input:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.seuratV3.Rdata',
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn5.cluster.seuratV3.Rdata',
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn5.cluster.seuratV3.Rdata',
 		'cell_info_labelled.Rdata',
-		'predictions/{combination}__{transform}__{partition}__{covariate}__{method}_cell_info_predictions.Rdata'
+		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}_cell_info_predictions.Rdata'
 	output:
-		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -489,10 +493,10 @@ rule extract_umap:
 
 rule extract_cluster:
 	input:
-		'seurat_obj/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.seuratV3.Rdata'
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.seuratV3.Rdata'
 	output:
-		'cluster/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata',
-		'cluster/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.graph.Rdata'
+		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata',
+		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.graph.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -500,15 +504,18 @@ rule extract_cluster:
 			{input} {output}
 		"""
 
+
+
+
 rule plot_integration:
 	input:
-		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	output:
-		'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png'
-		#'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_study__facet_age.pdf',
-		#'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_study__facet_batch.pdf',
-		#'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_paper__facet_celltype.pdf',
-		#'plots/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_celltype__facet_cluster.pdf'
+		'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png'
+		#'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_study__facet_age.pdf',
+		#'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_study__facet_batch.pdf',
+		#'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_paper__facet_celltype.pdf',
+		#'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_celltype__facet_cluster.pdf'
 	shell:
 		"""
 		module load R/3.6
@@ -517,10 +524,10 @@ rule plot_integration:
 
 rule plot_integration_with_well_supported_cell_types:
 	input:
-		'umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	output:
-		'plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.WellSupportedCells.color_study__facet_celltype.pdf',
-		'plots/well_supported_celltypes/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.WellSupportedCells.color_celltype.pdf',
+		'plots/well_supported_celltypes/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.WellSupportedCells.color_study__facet_celltype.pdf',
+		'plots/well_supported_celltypes/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.WellSupportedCells.color_celltype.pdf',
 	shell:
 		"""
 		module load R/3.6
@@ -529,11 +536,12 @@ rule plot_integration_with_well_supported_cell_types:
 
 rule cluster_assessment:
 	input:
-		expand('umap/{combination}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata', \
+		expand('umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata', \
 				transform = transform, \
 				method = method, \
 				combination = 'Mus_musculus', \
 				partition = ['full'], \
+				n_features = [2000], \
 				covariate = covariate, \
 				dist = [0.001, 0.3, 0.5], \
 				neighbors = [5, 30, 50],\

@@ -26,7 +26,7 @@ library(Seurat)
 transform = args[2]
 covariate = args[3]
 latent = args[4] %>% as.numeric()
-args[5] <- gsub('counts', 'standard', args[5])
+#args[5] <- gsub('counts', 'standard', args[5])
 load(args[5])
 
 
@@ -84,7 +84,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     } else {
       matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
     }
-    out <- paste0(method, '_', covariate, '_', transform, '_', latent, '.loom')
+    out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', latent, '.loom')
 	create(filename= out, 
            overwrite = TRUE,
            data = matrix, 

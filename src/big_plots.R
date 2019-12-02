@@ -83,7 +83,7 @@ plot4 <- umap %>%
   mutate(Size = case_when(organism == 'Homo sapiens' ~ 0.015,
                           TRUE ~ 0.01)) %>% 
   ggplot() + 
-  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = organism, size = Size), alpha = 0.05) + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = organism), size = 0.2,  alpha = 0.05) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
   theme_cowplot() + 
   scale_size(guide = 'none') +
@@ -102,7 +102,7 @@ plot5 <- umap %>%
   mutate(Size = case_when(organism == 'Homo sapiens' ~ 0.015,
                           TRUE ~ 0.01)) %>% 
   ggplot() + 
-  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType, size = Size), alpha = 0.05) + 
+  geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType), size = 0.2, alpha = 0.05) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
   theme_cowplot() + 
   type_col + 
@@ -113,6 +113,6 @@ plot5 <- umap %>%
   facet_wrap(~cluster) +
   xlab('UMAP 1') + ylab('UMAP 2')
 
-png(args[2], width = 1500, height = 3000, res = 150)
-plot_grid(plot1, plot4, plot5, ncol = 1)
+png(args[2], width = 1800, height = 3500, res = 150)
+plot_grid(plot1, plot4, plot5, ncol = 1, rel_heights = c(0.5,0.5,1))
 dev.off()
