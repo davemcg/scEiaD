@@ -28,7 +28,8 @@ cell_info <- cell_info %>%
                            study_accession == 'SRP125998' ~ paste0(study_accession, "_", Platform, '_NA'),
                            TRUE ~ batch)) %>% 
   mutate(batch = gsub(' ', '_', batch))
-rdata_files = args[7:length(args)]
+nfeatures = args[7] %>% as.numeric()
+rdata_files = args[8:length(args)]
 rdata <- list()
 for (i in rdata_files){
   load(i)
@@ -79,7 +80,8 @@ m_downsample <- m[,downsample_samples]
 
 
 make_seurat_obj <- function(m, 
-                            split.by = 'study_accession'){
+                            split.by = 'study_accession',
+                            nfeatures = nfeatures){
   umi_m <- m[,cell_info %>% filter(value %in% colnames(m), UMI == 'NO') %>% pull(value)]
   droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), UMI == 'YES') %>% pull(value)]
   seurat_umi <- CreateSeuratObject(umi_m)
@@ -113,7 +115,7 @@ make_seurat_obj <- function(m,
   # scale data and regress
   seurat_m <- NormalizeData(seurat_m)
   # find var features
-  seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 2000, selection.method = 'vst')
+  seurat_m <- FindVariableFeatures(seurat_m, nfeatures = nfeatures, selection.method = 'vst')
   # don't use mito genes
   var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
   
