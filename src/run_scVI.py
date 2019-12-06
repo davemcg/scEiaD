@@ -47,9 +47,13 @@ trainer.train(n_epochs = n_epochs, lr = lr)
 # extract
 full = trainer.create_posterior(trainer.model, loom_dataset, indices=np.arange(len(loom_dataset)))
 latent, batch_indices, labels = full.sequential().get_latent()
+imputed_values = full.sequential().imputation()
+normalized_values = full.sequential().get_sample_scale()
 batch_indices = batch_indices.ravel()
 
 print(latent[1:10,1:10]) 
 np.savetxt(args[1] + ".csv", latent, delimiter=",")
+np.savetxt(args[1] + ".imputed.csv", imputed_values, delimiter=",")
+np.savetxt(args[1] + ".normalized.csv", batch_indices, delimiter=",")
  
 
