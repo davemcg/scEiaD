@@ -54,6 +54,6 @@ batch_indices = batch_indices.ravel()
 print(latent[1:10,1:10]) 
 np.savetxt(args[1] + ".csv", latent, delimiter=",")
 np.savetxt(args[1] + ".imputed.csv.gz", imputed_values, delimiter=",")
-np.savetxt(args[1] + ".normalized.csv.gz", batch_indices, delimiter=",")
+np.savetxt(args[1] + ".normalized.csv.gz", normalized_values, delimiter=",")
  
 
