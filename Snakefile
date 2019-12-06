@@ -156,7 +156,7 @@ rule all:
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
-				n_features = [1000,2000, 5000, 10000], \
+				n_features = [2000, 5000, 10000], \
 				covariate = ['batch'], \
 				dims = [8,10,20,30,50,100,200],
 				dist = [0.001,0.1, 0.3],
@@ -173,7 +173,7 @@ rule all:
 		expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
 				transform = ['counts'], \
 				method = ['scVI'], \
-				n_features = [1000,2000,5000,10000], \
+				n_features = [2000,5000,10000], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
 				covariate = ['batch'], \
@@ -427,7 +427,6 @@ rule integrate:
 		sp.run("echo \"" +  job + "\"\n", shell = True)
 		sp.run(job, shell = True)
 
-
 rule label_known_cells_with_type:
 	input:
 		'cell_info.tsv',
@@ -503,9 +502,6 @@ rule extract_cluster:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_cluster.R \
 			{input} {output}
 		"""
-
-
-
 
 rule plot_integration:
 	input:
