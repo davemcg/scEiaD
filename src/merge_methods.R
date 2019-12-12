@@ -19,6 +19,7 @@ if (method == 'scanorama'){
   library(sva)
   library(Matrix)
 }
+library(data.table)
 library(tidyverse)
 library(Seurat)
 
@@ -99,7 +100,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     n_epochs = 5 # use 1e6/# cells of epochs
     lr = 0.001 
     #use_batches = 'True'
-    use_cuda = 'True'
+    use_cuda = 'False'
     n_hidden = 128 
     n_latent = latent
     n_layers = 2 
@@ -117,6 +118,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     system(scVI_command)
     # import reduced dim (latent)
     latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
+	normalized_values <- fread(paste0(out, '.normalized.csv'), header = FALSE) %>% 
+	  as.matrix()  
 	if (latent_dims[1,1] == 'NaN'){
 		print('scVI fail, rerunning with fewer hidden dims')
 		    scVI_command = paste('/data/mcgaugheyd/conda/envs/scVI/bin/./python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scVI.py',
@@ -132,13 +135,18 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 	    system(scVI_command)
 		latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
 		if (latent_dims[1,1] == 'NaN'){print("scVI fail again!"); stop()}
+	    normalized_values <- fread(paste0(out, '.normalized.csv'), header = FALSE) %>% 
+			as.matrix() 
 	}
 
     row.names(latent_dims) <- colnames(seurat_obj)
     colnames(latent_dims) <- paste0("scVI_", 1:ncol(latent_dims))
     
     seurat_obj[["scVI"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "scVI_", assay = DefaultAssay(seurat_obj))
-   	obj <- seurat_obj 
+   	#seurat_obj <- SetAssayData(object = seurat_obj, slot = 'scale.data', new.data = normalized_values)
+	save(normalized_values, file = gsub('.seuratV3.Rdata', '.scVI_scaled.Rdata', args[6]), compress = FALSE)
+	system(paste0('rm ', out, '.normalized.csv'))
+	obj <- seurat_obj 
     
   } else if (method == 'harmony'){
     ## uses one seurat obj (give covariate in meta.data to group.by.vars)
