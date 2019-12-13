@@ -45,6 +45,10 @@ if (method == 'CCA'){
 }
 reduction.name <- gsub('_','', reduction.key)
 
+if (args[7] == 'TSNE'){
+  reduction.key <- gsub('UMAP','TSNE', reduction.key)
+  reduction.name <- gsub('UMAP','TSNE', reduction.name)
+}
 
 # left_join known cell labels
 orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
@@ -60,7 +64,11 @@ umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'B
                                       TRUE ~ CellType_predict))
 
 umap$Method <- method
+if (args[7] == 'UMAP'){
 colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
+} else {
+  colnames(umap)[2:3] <- c('TSNE_1', 'TSNE_2')
+}
 
 # add core markers
 # Rho for rods
