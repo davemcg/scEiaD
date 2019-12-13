@@ -63,9 +63,16 @@
 		"time" : "8:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
+	"calculate_tsne" : 
+	{
+		"mem" : "100G",
+		"partition" : "norm",
+		"time" : "24:00:00",
+		"extra" : " --gres=lscratch:100"
+	},
 	"calculate_cluster" :
 	{
-		"mem" : "200G",
+		"mem" : "400G",
 		"partition" : "largemem",
 		"time" : "24:00:00",
 		"extra" : " --gres=lscratch:100"
@@ -78,6 +85,11 @@
 		"extra" : " --gres=lscratch:100"
 	},
 	"extract_umap" :
+	{
+		"mem" : "80G",
+		"time" : "00:30:00"
+	},
+	"extract_tsne" :
 	{
 		"mem" : "80G",
 		"time" : "00:30:00"

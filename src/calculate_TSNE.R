@@ -23,12 +23,12 @@ create_TSNE_and_cluster <- function(integrated_obj,
                                          perplexity = 200,
                                          reduction = 'pca',
                                          reduction.name = 'ccaTSNE',
-                                         reduction.key = 'ccaTSNE_',
-                                         ...){
+                                         reduction.key = 'ccaTSNE_'){
     # TSNE
     print("TSNE 3D Starting")
     integrated_obj <- RunTSNE(integrated_obj, 
                               dims = 1:max_dims, 
+							  check_duplicates = FALSE,
                               dim.embed = 3, 
                               perplexity = perplexity,
                               reduction = reduction, 
@@ -37,7 +37,8 @@ create_TSNE_and_cluster <- function(integrated_obj,
     print("TSNE 2D Starting")
     integrated_obj <- RunTSNE(integrated_obj, 
                               dims = 1:max_dims, 
-                              dim.embed = 3, 
+							  check_duplicates = FALSE,
+                              dim.embed = 2, 
                               perplexity = perplexity,
                               reduction = reduction, 
                               reduction.name = reduction.name,
@@ -80,11 +81,12 @@ if (method == 'CCA'){
   print(paste0("Why did you pick ", method, "?"))
 }
 reduction.name <- gsub('_','', reduction.key)
-integrated_obj <- create_reduction_and_cluster(integrated_obj = integrated_obj, 
+
+the_reduction = reduction
+integrated_obj <- create_TSNE_and_cluster(integrated_obj = integrated_obj, 
                                                max_dims = max_dims,
-                                               reduction = reduction,
+                                               reduction = the_reduction,
                                                perplexity = perplexity,
                                                reduction.name = reduction.name,
-                                               reduction.key = reduction.key,
-                                               reduction = reduction)
+                                               reduction.key = reduction.key)
 save(integrated_obj, file = args[5], compress = FALSE )

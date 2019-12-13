@@ -159,6 +159,17 @@ rule all:
 				dims = [30,50,100,200],
 				dist = [0.001,0,1, 0.3],
 				neighbors = [5, 30, 50]),
+		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__perplexity{perplexity}.big_tsne_plot.png', \
+				transform = ['scran', 'standard'], \
+				method = ['fastMNN'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['full'], \
+				n_features = [2000], \
+				covariate = ['batch'], \
+				dims = [30,50,100,200],
+				dist = [0.001,0,1, 0.3],
+				neighbors = [5, 30, 50],
+				perplexity = [50,100,300]),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['counts'], \
 				method = ['scVI'], \
@@ -169,6 +180,17 @@ rule all:
 				dims = [8,10,20,30,50,100,200],
 				dist = [0.001,0.1, 0.3],
 				neighbors = [5, 15, 30, 50, 100]),
+		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__perplexity{perplexity}.big_tsne_plot.png', \
+				transform = ['counts'], \
+				method = ['scVI'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['full'], \
+				n_features = [2000, 5000, 10000], \
+				covariate = ['batch'], \
+				dims = [8,10,20,30,50,100,200],
+				dist = [0.001,0.1, 0.3],
+				neighbors = [5, 15, 30, 50, 100],
+				perplexity = [50,100,300]),
 		expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
 				transform = ['scran', 'standard'], \
 				method = ['fastMNN'], \
@@ -471,6 +493,19 @@ rule calculate_umap:
 			{wildcards.method} {wildcards.dims} {wildcards.dist} {wildcards.neighbors} 1 FALSE TRUE {input} {output}
 		"""
 
+
+rule calculate_tsne:
+	input:
+		obj = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
+	output:
+		temp('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__perplexity{perplexity}.tsne.Rdata')
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_TSNE.R \
+			{wildcards.method} {wildcards.dims} {wildcards.perplexity} {input} {output}
+		"""
+
 rule calculate_cluster:
 	input:
 		obj = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
@@ -510,7 +545,22 @@ rule extract_umap:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_umap.R \
-			{input} {output} {wildcards.method}	
+			{input} {output} {wildcards.method}	UMAP
+		"""
+
+rule extract_tsne:
+	input:
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__perplexity{perplexity}.tsne.Rdata',
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn5.cluster.seuratV3.Rdata',
+		'cell_info_labelled.Rdata',
+		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}_cell_info_predictions.Rdata'
+	output:
+		'tsne/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__perplexity{perplexity}.tsne.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_umap.R \
+			{input} {output} {wildcards.method} TSNE
 		"""
 
 rule extract_cluster:
@@ -531,14 +581,21 @@ rule plot_integration:
 		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	output:
 		'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png'
-		#'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_study__facet_age.pdf',
-		#'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_study__facet_batch.pdf',
-		#'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_paper__facet_celltype.pdf',
-		#'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.color_celltype__facet_cluster.pdf'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R {input} {output}
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R UMAP {input} {output}
+		"""
+
+rule plot_integration_tsne:
+	input:
+		'tsne/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__perplexity{perplexity}.tsne.Rdata'
+	output:
+		'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__perplexity{perplexity}.big_tsne_plot.png'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R TSNE {input} {output}
 		"""
 
 rule plot_integration_with_well_supported_cell_types:
