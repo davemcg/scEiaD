@@ -18,14 +18,19 @@ library(htmltools)
 # all cells
 load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_info_labelled.Rdata')
 # cells after QC (high mito, low gene counts, high gene count)
-# do on b2:
-# load('cell_info_labelled.Rdata')
-# load('seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__standard__full__batch.seuratV3.Rdata')
-# stats <- seurat__standard@meta.data %>%
-#   as_tibble(rownames = 'value') %>%
-#   left_join(cell_info_labels %>% select(-batch, -study_accession, -Age), by = 'value')
+# load('seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__scran__full__batch.seuratV3.Rdata')
+
+# stats <- seurat__SCT$seurat_list %>% 
+#   map(ncol) %>% 
+#   map(enframe) %>% 
+#   bind_rows(.id='ID') %>% 
+#   mutate(ID = gsub('SMARTSeq_v', 'SMARTSeqv', ID)) %>% 
+#   mutate(ID = gsub('SMARTerSeq_v', 'SMARTerSeqv', ID)) %>% 
+#   separate(ID, c('study_accession', 'Platform', 'Covariate')) %>% 
+#   mutate(Platform = gsub('Seqv', 'Seq_v', Platform))
+
 # save(stats, file = 'post_filtering_stats.Rdata')
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/post_filtering_stats_2019_11_06.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/post_filtering_stats.Rdata')
 
 # load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/fastMNN_umap_full.Rdata')
 study_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GEO_Study_Level_Metadata.tsv')
@@ -55,6 +60,13 @@ color_bar_factor2 <- formatter("span",
                                 border.radius = "4px",
                                 background = c("red","green")[factor(as.character(x))]))
 
+color_bar_factor3 <- formatter("span", width = "5px",
+                              style = function(x) style(
+                                display = "block",
+                                color = "white",
+                                border.radius = "4px",
+                                background = type_val[factor(as.character(x))]))
+
 export_formattable <- function(f, file, width = "100%", height = NULL, 
                                background = "white", delay = 0.2)
 {
@@ -67,9 +79,10 @@ export_formattable <- function(f, file, width = "100%", height = NULL,
           delay = delay)
 }
 
-post <- stats %>% 
+post <- stats %>% rename(`Post QC<br/>Count` = value) %>% 
+              select(study_accession, Platform, `Post QC<br/>Count`) %>% 
               group_by(study_accession, Platform) %>% 
-              summarise(`Post QC<br/>Count` = n())
+              summarise(`Post QC<br/>Count` = sum(`Post QC<br/>Count`))
 
 table01 <- cell_info_labels %>% 
   filter(!is.na(study_accession)) %>% 
@@ -121,11 +134,45 @@ table02 <- cell_info_labels %>%
   summarise(Studies = length(study_accession), Count = sum(Count)) %>% 
   summarise(Species = paste(organism, collapse = ', '), Studies = sum(Studies), Count = sum(Count)) %>% 
   arrange(-Count) %>% 
-  formattable(., list(Count = normalize_bar("lightblue")))
+  formattable(., list(Count = normalize_bar("lightblue"), CellType = color_bar_factor3), width = "1")
 table02
-export_formattable(table02, '02_table.png')
+export_formattable(table02, '02_table.png', width = '40%')
 ```
 
+# Table 3 
+Number of annotated cells in well supported clusters
+```{r}
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__full__batch__scVI__dims30__mindist0.3__nneighbors50.umap.Rdata')
+umap %>%
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>%
+  mutate(CellType = CellType_predict) %>% 
+  group_by(cluster, CellType) %>%
+  filter(!is.na(CellType), !is.na(cluster)) %>%
+  summarise(Count = n(), x = mean(UMAP_1), y = mean(UMAP_2), 
+            Organism = list(unique(organism)), 
+            study_accession = list(unique(study_accession))) %>%
+  mutate(freq = Count / sum(Count)) %>%
+  filter(freq > 0.25) %>%
+  ungroup() %>%
+  group_by(cluster) %>%
+  top_n(3, -freq) %>%
+  #filter(Count > 100) %>%
+  summarise(seurat_cluster_CellType = paste0(CellType, collapse = ', '),
+            x = mean(x), y = mean(y),
+            Count = sum(Count),
+            OrganismCount = unlist(Organism) %>% unique() %>% sort() %>% paste(., collapse = ', '),
+            StudyCount = unlist(study_accession) %>% length()) %>%
+  mutate(seurat_cluster_CellType_num = paste0(cluster, ' (', seurat_cluster_CellType, ')')) %>% 
+  select(seurat_cluster_CellType_num, OrganismCount, StudyCount, Count) %>% 
+  mutate(OrganismCount = gsub('Homo sapiens', 'HS', OrganismCount)) %>% 
+  mutate(OrganismCount = gsub('Macaca fascicularis', 'MF', OrganismCount)) %>% 
+  mutate(OrganismCount = gsub('Mus musculus', 'MM', OrganismCount)) %>% 
+  dplyr::rename(Cluster = seurat_cluster_CellType_num, Species = OrganismCount, `Study Count`  = StudyCount) %>% 
+  #filter(`StudyCount` > 4) %>% 
+  arrange(-Count) %>% 
+  formattable(., list(Count = normalize_bar("lightblue")), width = "0.5")
+
+```
 # Session Info
 ```{r}
 devtools::session_info()
