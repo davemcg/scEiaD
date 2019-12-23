@@ -17,7 +17,7 @@ x2cs = '.*n_features2000.*count.*scVI'
 x5 = '.*n_features5000.*count.*scVI'
 x10 = '.*n_features10000.*count.*scVI'
 umap_mega <- list()
-for (x in c(x2scf,x2stf , x2cs, x5, x10)){
+for (x in c(x2cs, x5, x10)){
   print(x)
   # load all clustering params -----
   files <- list.files('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cluster/', 
@@ -45,7 +45,7 @@ for (x in c(x2scf,x2stf , x2cs, x5, x10)){
   
   # load umap file with one cluster param -----
   files <- list.files('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap/', 
-                      pattern =  paste0(x, '.*mindist0.3.*nneighbors50.*'), 
+                      pattern =  paste0(x, '.*mindist0.3.*nneighbors50..*'), 
                       full.names = TRUE)
   umap_all <- list()
   count = 1
@@ -264,7 +264,7 @@ patchwork::plot_layout(p4 + p7 + p5 + p6, ncol = 6)
 celltype <- umap_one %>% 
   filter(Count > 100) %>% 
   mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% group_by(knn, nfeatures, dims, method) %>% 
+           as.numeric()) %>% group_by(knn, nfeatures, nneighbors, dims, method) %>% 
   summarise(celltype_mean = mean(freq), 
             celltype_median = median(freq)) %>% 
   ungroup() %>% 
@@ -273,7 +273,7 @@ celltype <- umap_one %>%
 study <- umap_one %>% 
   filter(Count > 100) %>% 
   mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% group_by(knn, nfeatures, dims, method) %>% 
+           as.numeric()) %>% group_by(knn, nfeatures,  nneighbors, dims, method) %>% 
   summarise(study_mean = mean(study_count), 
             study_median = median(study_count)) %>% 
   ungroup() %>% 
@@ -281,7 +281,7 @@ study <- umap_one %>%
 org <-  umap_one %>% 
   filter(Count > 100) %>% 
   mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% group_by(knn, nfeatures, dims, method) %>% 
+           as.numeric()) %>% group_by(knn, nfeatures,  nneighbors,dims, method) %>% 
   summarise(org_mean = mean(organism_count), 
             org_median = median(organism_count)) %>% 
   ungroup() %>% 
@@ -291,7 +291,7 @@ area <-  umap_one %>%
   filter(Count > 100) %>% 
   mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
            as.numeric()) %>% 
-  group_by(knn, nfeatures, dims, method) %>% 
+  group_by(knn, nfeatures,  nneighbors,dims, method) %>% 
   summarise(area_mean = mean(area), 
             area_median = median(area),
             area_sum = sum(area)) %>% 
@@ -315,7 +315,7 @@ tab_overall <- left_join(celltype, org) %>%
          area_sum = min(area_sum)/area_sum) %>% 
   arrange(-Sum_mean)
 
-tab_overall %>% DT::datatable()
+tab_overall %>% filter(nneighbors == 50) %>%  DT::datatable()
 
 
 
