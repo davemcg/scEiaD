@@ -45,7 +45,7 @@ for (x in c(x2cs, x5, x10)){
   
   # load umap file with one cluster param -----
   files <- list.files('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap/', 
-                      pattern =  paste0(x, '.*mindist0.3.*nneighbors50..*'), 
+                      pattern =  paste0(x, '.*mindist0.3.*nneighbors50\\..*'), 
                       full.names = TRUE)
   umap_all <- list()
   count = 1
@@ -315,7 +315,7 @@ tab_overall <- left_join(celltype, org) %>%
          area_sum = min(area_sum)/area_sum) %>% 
   arrange(-Sum_mean)
 
-tab_overall %>% filter(nneighbors == 50) %>%  DT::datatable()
+tab_overall  %>%  DT::datatable()
 
 
 
