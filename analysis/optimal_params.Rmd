@@ -1,0 +1,388 @@
+---
+title: "Optimal Params"
+output: html_notebook
+---
+
+Pick optimal knn, nfeatures, nneighbors, dims based upon:
+
+- UMAP area of clusters (smaller is better)
+- cell type purity by cluster
+- study diversity by cluster
+- organism diversity by cluster
+
+Two (simple) ways to use these scores:
+
+- Rank of each, summed (lower overall is better)
+- Scaled by best score (higher is better)
+
+By the rank (`rank_sum`) method the best params:
+
+knn | nfeatures | nneighbors | dims
+--- | --------- | ---------- | ----
+5 | 2000 | 50 | 10 
+
+
+By the scaled sum score (`Sum_mean`)
+
+knn | nfeatures | nneighbors | dims
+--- | --------- | ---------- | ----
+4 | 10000 | 50 | 10 
+
+Current thinking is to use the later (`Sum_mean`)
+
+```{r}
+library(tidyverse)
+library(cowplot)
+library(splancs)
+# load annotations
+# load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_info_labelled.Rdata')
+
+# calculate of matrix of points
+area_chull <- function(x,y){
+  matrix <- cbind(x,y) %>% as.matrix()
+  ch = chull(matrix)
+  coords <- matrix[c(ch, ch[1]),]
+  Polygon(coords)@area
+}
+# regex to pick projection types
+x2scf = '.*n_features2000.*scran.*fast'
+x2stf = '.*n_features2000.*standard.*fast'
+x2cs = '.*n_features2000.*count.*scVI'
+x5 = '.*n_features5000.*count.*scVI'
+x10 = '.*n_features10000.*count.*scVI'
+```
+
+# Grab all UMAP projections for the param options
+```{r}
+umap_mega <- list()
+for (x in c(x2cs, x5, x10)){
+  print(x)
+  # load all clustering params -----
+  files <- list.files('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cluster/', 
+                      pattern = paste0(x, '.*.cluster.Rdata'), 
+                      full.names = TRUE)
+  cluster_all <- list()
+  for (i in files){
+    load(i)
+    colnames(meta) <- c('Barcode', 'cluster')
+    cluster_all[[i]] <- meta
+    nf = str_extract(i, 'n_features\\d+') %>% gsub('n_features', '', .) %>% as.numeric()
+    dims = str_extract(i, 'dims\\d+') %>% gsub('dims', '', .) %>% as.numeric()
+    knn = str_extract(i, 'knn\\d+') %>% gsub('knn', '', .) %>% as.numeric()
+    method = str_extract(i, 'batch__[^\\W_]+') %>% gsub('batch__','',.)
+    cluster_all[[i]]$dims = dims
+    cluster_all[[i]]$knn = knn
+    cluster_all[[i]]$nf = nf
+    cluster_all[[i]]$cluster_sum = max(meta$cluster)
+    cluster_all[[i]]$median_cluster_n = max(meta$cluster)
+    cluster_all[[i]]$method <- method
+  }
+  cluster_all <- cluster_all %>% bind_rows()
+  
+  
+  
+  # load umap file with one cluster param -----
+  files <- list.files('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap/', 
+                      pattern =  paste0(x, '.*mindist0.3.*nneighbors50\\..*'), 
+                      full.names = TRUE)
+  umap_all <- list()
+  count = 1
+  for (i in files){
+    print(count)
+    count = count + 1
+    load(i)
+    nn = str_extract(i, 'nneighbors\\d+') %>% gsub('nneighbors', '', .) %>% as.numeric()
+    dims = str_extract(i, 'dims\\d+') %>% gsub('dims', '', .) %>% as.numeric()
+    dist = str_extract(i, 'mindist0.\\d+') %>% gsub('mindist', '', .) %>% as.numeric()
+    method = str_extract(i, 'batch__[^\\W_]+') %>% gsub('batch__','',.)
+    norm = str_extract(i, 'n_features\\d+__[^\\W_]+') %>% gsub('n_features\\d+__','',.)
+    umap_all[[i]] <- umap
+    umap_all[[i]]$mindist = dist
+    umap_all[[i]]$nneighbors = nn
+    umap_all[[i]]$dims = dims
+    umap_all[[i]]$method = method
+    umap_all[[i]]$normalization = norm
+    d <- dims
+    for (k in c(cluster_all$knn %>% unique())){
+      umap_all[[paste0(i,'_', k)]] <- umap_all[[i]] %>% 
+        select(-cluster) %>% 
+        left_join(., cluster_all %>% filter(dims == d, knn == k), by = 'Barcode') %>% 
+        filter(!is.na(CellType), !is.na(cluster)) %>%
+        mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>%
+        group_by(cluster, CellType, organism, study_accession) %>% 
+        summarise(Count = n(),
+                  x = mean(UMAP_1), 
+                  y = mean(UMAP_2),
+                  area = area_chull(UMAP_1, UMAP_2),
+                  mindist = unique(mindist),
+                  nneighbors = unique(nneighbors),
+                  dims = unique(dims)) %>% 
+        summarise(study_count = n(), 
+                  Count = sum(Count),
+                  x = mean(x), 
+                  y = mean(y),
+                  area = mean(area),
+                  mindist = unique(mindist),
+                  nneighbors = unique(nneighbors),
+                  dims = unique(dims)) %>% 
+        summarise(organism_count = n(), 
+                  Count = sum(Count), 
+                  study_count = sum(study_count),
+                  x = mean(x), 
+                  y = mean(y),
+                  area = mean(area),
+                  mindist = unique(mindist),
+                  nneighbors = unique(nneighbors),
+                  dims = unique(dims)) %>% 
+        mutate(freq = Count / sum(Count)) %>% 
+        ungroup() %>% 
+        group_by(dims, cluster) %>% 
+        top_n(n = 1, wt = freq) 
+      umap_all[[paste0(i,'_', k)]]$knn <- k
+      umap_all[[paste0(i,'_', k)]]$method <- method
+      umap_all[[paste0(i,'_', k)]]$normalization <- norm
+    }
+    umap_all[[i]] <- NULL
+  }
+  umap_one <- umap_all %>% bind_rows()
+  umap_one$nfeatures <- x
+  umap_mega[[paste0(x, '_', method, '_', norm)]] <- umap_one
+  
+}
+umap_one <- umap_mega %>% bind_rows() %>% filter(dims != 8)
+```
+
+
+# boxplot Plot of Distribution of Frequency of Top Cell Type in Each Cluster
+Ideally every cluster would be nearly 1 (100%)
+```{r}
+
+umap_one %>% filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
+  ggplot(aes(y = freq, x = as.factor(dims), fill = as.factor(knn))) + 
+  geom_boxplot() + geom_hline(aes(yintercept=c(0.855))) +
+  theme_cowplot() + facet_wrap(~nfeatures + method, ncol = 1, strip.position="right") + coord_flip()
+
+## pointrange version
+p1 <- umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% group_by(knn, nfeatures, dims) %>% 
+  summarise(mean = mean(freq), 
+            median = median(freq),
+            q1 = quantile(freq, 0.25),
+            q3 = quantile(freq, 0.75)) %>% 
+  ggplot(aes(y = mean, x = as.factor(dims), 
+             color = as.factor(knn))) + 
+  geom_pointrange(aes(y=mean, ymin = q1, ymax = q3), position = position_dodge(width = 0.5), show.legend = FALSE) + 
+  theme_cowplot() + coord_flip() + scale_color_brewer(palette = 'Set2') +
+  facet_wrap(~nfeatures, ncol = 1, strip.position="right") +
+  ylab('Mean Cell Type Purity Per Cluster')
+```
+# Density Plot of Distribution of Number of Studies in Each Cluster
+Again, higher is better
+
+```{r}
+umap_one %>% filter(Count > 1000) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
+  ggplot(aes(y = study_count, x = as.factor(dims), fill = as.factor(knn))) + 
+  geom_boxplot() +
+  theme_cowplot() + facet_wrap(~nfeatures + method, ncol = 1, strip.position="right") + coord_flip()
+## pointrange
+p2 <- umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% group_by(knn, nfeatures, dims) %>% 
+  summarise(mean = mean(study_count), 
+            median = median(study_count),
+            q1 = quantile(study_count, 0.25),
+            q3 = quantile(study_count, 0.75)) %>% 
+  ggplot(aes(y = mean, x = as.factor(dims), 
+             color = as.factor(knn))) + 
+  geom_pointrange(aes(y=mean, ymin = q1, ymax = q3), 
+                  position = position_dodge(width = 0.5), show.legend = FALSE) + 
+  theme_cowplot() + coord_flip() + scale_color_brewer(palette = 'Set2') +
+  facet_wrap(~nfeatures, ncol = 1, strip.position="right") +
+  ylab('Mean Number of Studies\nPer Cluster/Cell Type')
+```
+
+# Density Plot of Distribution of Number of Organisms in Each Cluster
+Again, higher is better
+```{r}
+
+umap_one %>% filter(Count > 1000) %>% 
+  #mutate(org_n = length(Organism[[1]])) %>% 
+  ggplot(aes(organism_count, group = knn, colour = as.factor(knn))) + geom_density() + theme_cowplot() + facet_wrap(~dims+nfeatures+method)
+
+## pointrange
+p3 <- umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% group_by(knn, nfeatures, dims) %>% 
+  summarise(mean = mean(organism_count), 
+            median = median(organism_count),
+            q1 = quantile(organism_count, 0.25),
+            q3 = quantile(organism_count, 0.75)) %>% 
+  ggplot(aes(y = mean, x = as.factor(dims), 
+             color = as.factor(knn))) + 
+  geom_pointrange(aes(y=mean, ymin = q1, ymax = q3), position = position_dodge(width = 0.5)) + 
+  theme_cowplot() + coord_flip() + scale_color_brewer(palette = 'Set2') +
+  facet_wrap(~nfeatures, ncol = 1, strip.position="right") +
+  ylab('Mean Number of Organisms\nPer Cluster/Cell Type')
+```
+
+# 3 metrics, by pointrange visualization
+```{r, fig.width=6}
+patchwork::plot_layout(p1 + p2 + p3, nrow = 1)
+```
+
+# break down metrics by most represented (by study n) cell types
+Check for stability of performance by cell type (rods / cones / etc)
+```{r, fig.width=6, fig.height=10}
+p4 <- umap_one %>% 
+  filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
+                         'Cones', 'Amacrine Cells', 'Microglia', 
+                         'Pericytes')) %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, nfeatures, dims, CellType) %>% 
+  summarise(mean = mean(freq), 
+            median = median(freq)) %>% 
+  ggplot(aes(y = mean, x = as.factor(dims), color = as.factor(knn)), group = CellType) + 
+  geom_point(show.legend = FALSE) +
+  theme_cowplot() + 
+  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+p5 <- umap_one %>% filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
+                                          'Cones', 'Amacrine Cells', 'Microglia', 
+                                          'Pericytes')) %>% 
+  group_by(CellType, dims, knn, nfeatures, study_count) %>% 
+  summarise(Count = sum(Count)) %>%  
+  mutate(freq = Count / sum(Count)) %>% 
+  summarise(study_mean = sum(study_count * freq)) %>%  
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
+  ggplot(aes(y = study_mean, x = as.factor(dims), color = as.factor(knn))) + 
+  geom_point(show.legend = FALSE) +
+  theme_cowplot() + 
+  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# average number of organisms 
+# present in a cluster for each cell type
+p6 <- umap_one %>% filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
+                                          'Cones', 'Amacrine Cells', 'Microglia', 
+                                          'Pericytes')) %>% 
+  group_by(CellType, dims, knn, nfeatures, organism_count) %>% 
+  summarise(Count = sum(Count)) %>%  
+  mutate(freq = Count / sum(Count)) %>% 
+  summarise(organism_mean = sum(organism_count * freq)) %>%  
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
+  ggplot(aes(y = organism_mean, x = as.factor(dims), color = as.factor(knn))) + 
+  geom_point() +
+  theme_cowplot() + 
+  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# area of cluster
+# present in a cluster for each cell type
+# break down metrics by most represented (by study n) cell types
+p7 <- umap_one %>% 
+  filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
+                         'Cones', 'Amacrine Cells', 'Microglia', 
+                         'Pericytes')) %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, nfeatures, dims, CellType) %>% 
+  summarise(area = mean(area)) %>% 
+  ggplot(aes(y = area, x = as.factor(dims), color = as.factor(knn)), group = CellType) + 
+  geom_point(show.legend = FALSE) +
+  theme_cowplot() + ylab("Chull Area of Cluster") +
+  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+patchwork::plot_layout(p4 + p7 + p5 + p6, ncol = 6)
+```
+
+
+# Collapse plots to tables
+```{r}
+# sum score metric (averaged across all labelled cells)
+celltype <- umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% group_by(knn, nfeatures, nneighbors, dims, method) %>% 
+  summarise(celltype_mean = mean(freq), 
+            celltype_median = median(freq)) %>% 
+  ungroup() %>% 
+  mutate(celltype_rank  = rank(-celltype_mean))
+
+study <- umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% group_by(knn, nfeatures,  nneighbors, dims, method) %>% 
+  summarise(study_mean = mean(study_count), 
+            study_median = median(study_count)) %>% 
+  ungroup() %>% 
+  mutate(study_rank  = rank(-study_mean))
+org <-  umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% group_by(knn, nfeatures,  nneighbors,dims, method) %>% 
+  summarise(org_mean = mean(organism_count), 
+            org_median = median(organism_count)) %>% 
+  ungroup() %>% 
+  mutate(org_rank  = rank(-org_mean))
+
+area <-  umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, nfeatures,  nneighbors,dims, method) %>% 
+  summarise(area_mean = mean(area), 
+            area_median = median(area),
+            area_sum = sum(area)) %>% 
+  ungroup() %>% 
+  mutate(area_rank  = rank(-area_mean))
+
+tab_overall <- left_join(celltype, org) %>% 
+  left_join(area) %>% 
+  left_join(study) %>% 
+  select(-contains("median")) %>% 
+  ungroup() %>% 
+  mutate(Sum_mean = (org_mean/max(org_mean)) + 
+           (celltype_mean/max(celltype_mean)) + 
+           (study_mean/max(study_mean)) +
+           (min(area_mean)/area_mean),
+         rank_sum = org_rank + area_rank + celltype_rank + study_rank,
+         org = org_mean/max(org_mean),
+         ct = celltype_mean/max(celltype_mean),
+         sm = study_mean/max(study_mean),
+         area_mean = min(area_mean)/area_mean,
+         area_sum = min(area_sum)/area_sum) %>% 
+  arrange(-Sum_mean)
+
+tab_overall  %>%  DT::datatable()
+```
+
+knn | nfeatures | nneighbors | dims
+--- | --------- | ---------- | ----
+5 | 2000 | 50 | 10 
+![](../data/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__full__batch__scVI__dims10__mindist0.1__nneighbors50.big_plot.png)
+
+knn | nfeatures | nneighbors | dims
+--- | --------- | ---------- | ----
+4 | 10000 | 50 | 10 
+![](../data/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__mindist0.3__nneighbors50.big_plot.png)
+
+
+```{r}
+devtools::session_info()
+save.image(file = '../data/optimal_params.Rdata')
+```
+
+
+
+
