@@ -1,7 +1,7 @@
 library(tidyverse)
 library(Seurat)
 library(future)
-library(scran)
+#library(scran)
 plan(strategy = "multicore", workers = 4)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
@@ -25,25 +25,22 @@ create_TSNE_and_cluster <- function(integrated_obj,
                                          reduction.name = 'ccaTSNE',
                                          reduction.key = 'ccaTSNE_'){
     # TSNE
-    print("TSNE 3D Starting")
-    integrated_obj <- RunTSNE(integrated_obj, 
-                              dims = 1:max_dims, 
-							  check_duplicates = FALSE,
-                              dim.embed = 3, 
+	print('TSNE 2D Starting')
+	integrated_obj <- RunTSNE(integrated_obj,
+                              dims = 1:max_dims,
+                              check_duplicates = FALSE,
+                              dim.embed = 2,
                               perplexity = perplexity,
-                              reduction = reduction, 
-                              reduction.name = paste0(reduction.name, '3D'),
-                              reduction.key = gsub('_','3D_', reduction.key))
-    print("TSNE 2D Starting")
-    integrated_obj <- RunTSNE(integrated_obj, 
-                              dims = 1:max_dims, 
-							  check_duplicates = FALSE,
-                              dim.embed = 2, 
-                              perplexity = perplexity,
-                              reduction = reduction, 
+                              reduction = reduction,
+                              learning_rate = 37500,
+                              late_exag_coeff = 6,
+                              tsne.method = 'FIt-SNE',
+                              fast_tsne_path = '/home/mcgaugheyd/git/FIt-SNE/bin/fast_tsne',
+                              initialization = 2,
+  							  nthreads = 8,
                               reduction.name = reduction.name,
-                              reduction.key = reduction.key)
-  integrated_obj
+                              reduction.key = reduction.key)  
+	integrated_obj
 }
 
 
