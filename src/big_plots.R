@@ -1,6 +1,6 @@
 library(tidyverse)
-library(ggforce)
-library(ggrepel)
+#library(ggforce)
+#library(ggrepel)
 library(cowplot)
 
 args <- commandArgs(trailingOnly = TRUE)
@@ -100,6 +100,6 @@ plot5 <- umap %>%
   facet_wrap(~cluster) +
   xlab(paste(red, '1')) + ylab(paste(red, '2'))
 
-png(x, width = 1800, height = 5500, res = 150)
+png(args[3], width = 1800, height = 5500, res = 150)
 plot_grid(plot1, plot4, plot5, ncol = 1, rel_heights = c(0.5,0.5,1))
 dev.off()
