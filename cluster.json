@@ -72,9 +72,9 @@
 	},
 	"calculate_cluster" :
 	{
-		"mem" : "400G",
+		"mem" : "700G",
 		"partition" : "largemem",
-		"time" : "24:00:00",
+		"time" : "72:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
 	"run_phate" :

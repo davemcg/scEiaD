@@ -149,27 +149,27 @@ rule all:
 				n_features = [2000, 5000, 10000], \
 				covariate = ['batch'], \
 				dims = [8,10,20,30,50,100,200]),
-		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-				transform = ['scran', 'standard'], \
-				method = ['fastMNN'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
-				n_features = [2000], \
-				covariate = ['batch'], \
-				dims = [30,50,100,200],
-				dist = [0.001,0,1, 0.3],
-				neighbors = [5, 30, 50]),
-		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__perplexity{perplexity}.big_tsne_plot.png', \
-				transform = ['scran', 'standard'], \
-				method = ['fastMNN'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
-				n_features = [2000], \
-				covariate = ['batch'], \
-				dims = [30,50,100,200],
-				dist = [0.001,0,1, 0.3],
-				neighbors = [5, 30, 50],
-				perplexity = [50,100,300]),
+	#	expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
+	#			transform = ['scran', 'standard'], \
+	#			method = ['fastMNN'], \
+	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+	#			partition = ['full'], \
+	#			n_features = [2000], \
+	#			covariate = ['batch'], \
+	#			dims = [30,50,100,200],
+	#			dist = [0.001,0,1, 0.3],
+	#			neighbors = [5, 30, 50]),
+	#	expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__perplexity{perplexity}.big_tsne_plot.png', \
+	#			transform = ['scran', 'standard'], \
+	#			method = ['fastMNN'], \
+	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+	#			partition = ['full'], \
+	#			n_features = [2000], \
+	#			covariate = ['batch'], \
+	#			dims = [30,50,100,200],
+	#			dist = [0.001,0,1, 0.3],
+	#			neighbors = [5, 30, 50],
+	#			perplexity = [50,100,300]),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['counts'], \
 				method = ['scVI'], \
@@ -179,7 +179,7 @@ rule all:
 				covariate = ['batch'], \
 				dims = [8,10,20,30,50,100,200],
 				dist = [0.001,0.1, 0.3],
-				neighbors = [5, 15, 30, 50, 100]),
+				neighbors = [5, 15, 30, 50, 100, 500, 1000]),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__perplexity{perplexity}.big_tsne_plot.png', \
 				transform = ['counts'], \
 				method = ['scVI'], \
@@ -188,18 +188,16 @@ rule all:
 				n_features = [2000, 5000, 10000], \
 				covariate = ['batch'], \
 				dims = [8,10,20,30,50,100,200],
-				dist = [0.001,0.1, 0.3],
-				neighbors = [5, 15, 30, 50, 100],
-				perplexity = [50,100,300]),
-		expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
-				transform = ['scran', 'standard'], \
-				method = ['fastMNN'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
-				n_features = [2000], \
-				covariate = ['batch'], \
-				knn = [5, 7, 10], \
-				dims = [30,50,100,200]),
+				perplexity = [30,50,100,1000]),
+	#	expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
+	#			transform = ['scran', 'standard'], \
+	#			method = ['fastMNN'], \
+	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+	#			partition = ['full'], \
+	#			n_features = [2000], \
+	#			covariate = ['batch'], \
+	#			knn = [5, 7, 10], \
+	#			dims = [30,50,100,200]),
 		expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__knn{knn}.cluster.Rdata', \
 				transform = ['counts'], \
 				method = ['scVI'], \
@@ -486,6 +484,7 @@ rule calculate_umap:
 		obj = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
 	output:
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+	threads: 4
 	shell:
 		"""
 		module load R/3.6
@@ -499,6 +498,7 @@ rule calculate_tsne:
 		obj = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.seuratV3.Rdata'
 	output:
 		temp('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__perplexity{perplexity}.tsne.Rdata')
+	threads: 4
 	shell:
 		"""
 		module load R/3.6
