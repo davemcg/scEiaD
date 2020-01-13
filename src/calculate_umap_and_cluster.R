@@ -41,15 +41,15 @@ create_umap_and_cluster <- function(integrated_obj,
 
   if (umap) {
   # UMAP
-  print("UMAP 3D Starting")
-  integrated_obj <- RunUMAP(integrated_obj, 
-                            dims = 1:max_dims, 
-                            min.dist = min_dist,
-                            n.components = 3, 
-                            n.neighbors = n.neighbors,
-                            reduction = reduction, 
-                            reduction.name = paste0(reduction.name, '3D'),
-                            reduction.key = gsub('_','3D_', reduction.key))
+  #print("UMAP 3D Starting")
+  #integrated_obj <- RunUMAP(integrated_obj, 
+  #                          dims = 1:max_dims, 
+  #                          min.dist = min_dist,
+  #                          n.components = 3, 
+  #                          n.neighbors = n.neighbors,
+  #                          reduction = reduction, 
+  #                          reduction.name = paste0(reduction.name, '3D'),
+  #                          reduction.key = gsub('_','3D_', reduction.key))
   print("UMAP 2D Starting")
   integrated_obj <- RunUMAP(integrated_obj, 
                             dims = 1:max_dims, 
