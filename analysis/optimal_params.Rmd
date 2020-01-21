@@ -19,7 +19,7 @@ By the rank (`rank_sum`) method the best params:
 
 knn | nfeatures | nneighbors | dims
 --- | --------- | ---------- | ----
-5 | 2000 | 50 | 10 
+10 | 2000 | 50 | 50 
 
 
 By the scaled sum score (`Sum_mean`)
@@ -28,7 +28,10 @@ knn | nfeatures | nneighbors | dims
 --- | --------- | ---------- | ----
 4 | 10000 | 50 | 10 
 
-Current thinking is to use the later (`Sum_mean`)
+Current thinking is to use the former (`Sum_mean`), as it is fairly well ranked
+in the second metric also.
+
+Plus 2000 features is more commonly used in studies. 
 
 ```{r}
 library(tidyverse)
@@ -53,7 +56,7 @@ x10 = '.*n_features10000.*count.*scVI'
 ```
 
 # Grab all UMAP projections for the param options
-```{r}
+```{r, warning=FALSE}
 umap_mega <- list()
 for (x in c(x2cs, x5, x10)){
   print(x)
@@ -83,7 +86,7 @@ for (x in c(x2cs, x5, x10)){
   
   # load umap file with one cluster param -----
   files <- list.files('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap/', 
-                      pattern =  paste0(x, '.*mindist0.3.*nneighbors50\\..*'), 
+                      pattern =  paste0(x, '.*mindist0.3.*'), 
                       full.names = TRUE)
   umap_all <- list()
   count = 1
@@ -102,6 +105,7 @@ for (x in c(x2cs, x5, x10)){
     umap_all[[i]]$dims = dims
     umap_all[[i]]$method = method
     umap_all[[i]]$normalization = norm
+    umap_all[[i]]$total_area = area_chull(umap_all[[i]]$UMAP_1, umap_all[[i]]$UMAP_2)
     d <- dims
     for (k in c(cluster_all$knn %>% unique())){
       umap_all[[paste0(i,'_', k)]] <- umap_all[[i]] %>% 
@@ -109,7 +113,7 @@ for (x in c(x2cs, x5, x10)){
         left_join(., cluster_all %>% filter(dims == d, knn == k), by = 'Barcode') %>% 
         filter(!is.na(CellType), !is.na(cluster)) %>%
         mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>%
-        group_by(cluster, CellType, organism, study_accession) %>% 
+        group_by(total_area, cluster, CellType, organism, study_accession) %>% 
         summarise(Count = n(),
                   x = mean(UMAP_1), 
                   y = mean(UMAP_2),
@@ -117,6 +121,7 @@ for (x in c(x2cs, x5, x10)){
                   mindist = unique(mindist),
                   nneighbors = unique(nneighbors),
                   dims = unique(dims)) %>% 
+        filter(Count > 10) %>% 
         summarise(study_count = n(), 
                   Count = sum(Count),
                   x = mean(x), 
@@ -134,7 +139,8 @@ for (x in c(x2cs, x5, x10)){
                   mindist = unique(mindist),
                   nneighbors = unique(nneighbors),
                   dims = unique(dims)) %>% 
-        mutate(freq = Count / sum(Count)) %>% 
+        mutate(freq = Count / sum(Count),
+               area_scaled = area / total_area) %>% 
         ungroup() %>% 
         group_by(dims, cluster) %>% 
         top_n(n = 1, wt = freq) 
@@ -208,7 +214,7 @@ p2 <- umap_one %>%
 
 # Density Plot of Distribution of Number of Organisms in Each Cluster
 Again, higher is better
-```{r}
+```{r, fig.width=7}
 
 umap_one %>% filter(Count > 1000) %>% 
   #mutate(org_n = length(Organism[[1]])) %>% 
@@ -296,7 +302,7 @@ p7 <- umap_one %>%
   mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
            as.numeric()) %>% 
   group_by(knn, nfeatures, dims, CellType) %>% 
-  summarise(area = mean(area)) %>% 
+  summarise(area = mean(area_scaled)) %>% 
   ggplot(aes(y = area, x = as.factor(dims), color = as.factor(knn)), group = CellType) + 
   geom_point(show.legend = FALSE) +
   theme_cowplot() + ylab("Chull Area of Cluster") +
@@ -341,9 +347,9 @@ area <-  umap_one %>%
   mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
            as.numeric()) %>% 
   group_by(knn, nfeatures,  nneighbors,dims, method) %>% 
-  summarise(area_mean = mean(area), 
-            area_median = median(area),
-            area_sum = sum(area)) %>% 
+  summarise(area_mean = mean(area_scaled), 
+            area_median = median(area_scaled),
+            area_sum = sum(area_scaled)) %>% 
   ungroup() %>% 
   mutate(area_rank  = rank(-area_mean))
 
@@ -365,12 +371,13 @@ tab_overall <- left_join(celltype, org) %>%
   arrange(-Sum_mean)
 
 tab_overall  %>%  DT::datatable()
+
 ```
 
 knn | nfeatures | nneighbors | dims
 --- | --------- | ---------- | ----
-5 | 2000 | 50 | 10 
-![](../data/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__full__batch__scVI__dims10__mindist0.1__nneighbors50.big_plot.png)
+10 | 2000 | 50 | 50 
+![](../data/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__full__batch__scVI__dims50__mindist0.3__nneighbors50.big_plot.png)
 
 knn | nfeatures | nneighbors | dims
 --- | --------- | ---------- | ----
@@ -380,7 +387,7 @@ knn | nfeatures | nneighbors | dims
 
 ```{r}
 devtools::session_info()
-save.image(file = '../data/optimal_params.Rdata')
+#save.image(file = '../data/optimal_params.Rdata')
 ```
 
 
