@@ -200,10 +200,12 @@ silhouette <- perf_one %>%
   unique() %>% 
   arrange(value) %>% 
   mutate(Rank = row_number()) %>% 
-  rename('SilhouetteScore' = value, 
+  dplyr::rename('SilhouetteScore' = value, 
          'SilhouetteRank' = Rank, 
          'nfeatures' = nf) %>% 
   select(-`Cell Type`, -score)
+
+
 ```
 
 # ARI
@@ -213,7 +215,7 @@ ari <- perf_one %>%
   unique() %>% 
   arrange(-value) %>% 
   mutate(Rank = row_number()) %>% 
-  rename('ARIScore' = value, 
+  dplyr::rename('ARIScore' = value, 
          'ARIRank' = Rank, 
          'nfeatures' = nf) %>% 
   select(-`Cell Type`, -score)
@@ -224,9 +226,9 @@ ari <- perf_one %>%
 lisi <- perf_one %>% 
   filter(`Cell Type` == 'All', score == 'LISI')  %>% 
   unique() %>% 
-  arrange(-value) %>% 
+  arrange(value) %>% 
   mutate(Rank = row_number()) %>% 
-  rename('LISIScore' = value, 
+  dplyr::rename('LISIScore' = value, 
          'LISIRank' = Rank, 
          'nfeatures' = nf) %>% 
   select(-`Cell Type`, -score)
@@ -240,7 +242,7 @@ lisi <- perf_one %>%
 celltype <- umap_one %>% 
   mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
            as.numeric()) %>% 
-  group_by(knn, nfeatures, dims, method) %>% 
+  group_by(knn, normalization, nfeatures, dims, method) %>% 
   summarise(freq = sum(freq*Count)/sum(Count)) %>%  # scale cell type purity by number of cells 
   ungroup() %>% 
   mutate(celltype_rank  = rank(-freq))
@@ -249,7 +251,7 @@ study <- umap_one %>%
   filter(Count > 100) %>% 
   mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
            as.numeric()) %>% 
-  group_by(knn, nfeatures,  dims, method) %>% 
+  group_by(knn, normalization, nfeatures,  dims, method) %>% 
   summarise(study_mean = sum(study_count*Count)/sum(Count)) %>% 
   ungroup() %>% 
   mutate(study_rank  = rank(-study_mean))
@@ -257,7 +259,7 @@ study <- umap_one %>%
 org <-  umap_one %>% 
   mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
            as.numeric()) %>% 
-  group_by(knn, nfeatures,  dims, method) %>% 
+  group_by(knn, normalization, nfeatures,  dims, method) %>% 
   summarise(org_mean = sum(organism_count*Count)/sum(Count)) %>%  # scale organism type mixing by number of cells 
   ungroup() %>% 
   mutate(org_rank  = rank(-org_mean))
@@ -266,7 +268,7 @@ area <-  umap_one %>%
   filter(Count > 100) %>% 
   mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
            as.numeric()) %>% 
-  group_by(knn, nfeatures,  nneighbors,dims, method) %>% 
+  group_by(knn, normalization, nfeatures,  nneighbors,dims, method) %>% 
   summarise(area_mean = mean(area_scaled), 
             area_median = median(area_scaled),
             area_sum = sum(area_scaled)) %>% 
@@ -285,19 +287,100 @@ tab_overall <- left_join(celltype, org) %>%
          org_sum = org_rank + LISIRank + SilhouetteRank) %>% 
   arrange(celltype_sum)
 
-tab_overall  %>%  DT::datatable()
+tab_overall  %>% filter(dims != 8) %>%  DT::datatable()
 
 ```
 
+# Benchmark scVI, harmony, CCA, etc.
+```{r}
+perf_bench <- 
+  bind_rows(perf_one %>% filter(normalization != 'counts'), 
+            perf_one %>% filter(normalization == 'counts', dims == 30, nf == 2000, method == 'scVI'))
+umap_bench <- 
+  bind_rows(umap_one %>% filter(normalization != 'counts'), 
+            umap_one %>% filter(normalization == 'counts', dims == 30, nfeatures == '.*n_features2000.*count.*scVI', nneighbors == 30, mindist == 0.3,  method == 'scVI'))
+silhouette_bench <- perf_bench %>% 
+  filter(`Cell Type` == 'All', score == 'Silhouette')  %>% 
+  unique() %>% 
+  arrange(value) %>% 
+  mutate(Rank = row_number()) %>% 
+  dplyr::rename('SilhouetteScore' = value, 
+         'SilhouetteRank' = Rank, 
+         'nfeatures' = nf) %>% 
+  select(-`Cell Type`, -score)
+
+lisi_bench <- perf_bench %>% 
+  filter(`Cell Type` == 'All', score == 'LISI')  %>% 
+  unique() %>% 
+  arrange(value) %>% 
+  mutate(Rank = row_number()) %>% 
+  dplyr::rename('LISIScore' = value, 
+         'LISIRank' = Rank, 
+         'nfeatures' = nf) %>% 
+  select(-`Cell Type`, -score)
+
+
+celltype <- umap_bench %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, normalization, nfeatures, dims, method) %>% 
+  summarise(freq = sum(freq*Count)/sum(Count)) %>%  # scale cell type purity by number of cells 
+  ungroup() %>% 
+  mutate(celltype_rank  = rank(-freq))
+
+study <- umap_bench %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, normalization, nfeatures,  dims, method) %>% 
+  summarise(study_mean = sum(study_count*Count)/sum(Count)) %>% 
+  ungroup() %>% 
+  mutate(study_rank  = rank(-study_mean))
+
+org <-  umap_bench %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, normalization, nfeatures,  dims, method) %>% 
+  summarise(org_mean = sum(organism_count*Count)/sum(Count)) %>%  # scale organism type mixing by number of cells 
+  ungroup() %>% 
+  mutate(org_rank  = rank(-org_mean))
+
+area <-  umap_bench %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, normalization, nfeatures, nneighbors,dims, method) %>% 
+  summarise(area_mean = mean(area_scaled), 
+            area_median = median(area_scaled),
+            area_sum = sum(area_scaled)) %>% 
+  ungroup() %>% 
+  mutate(area_rank  = rank(-area_mean))
+
+tab_overall <- left_join(celltype, org) %>% 
+  #left_join(area) %>% 
+  left_join(study) %>% 
+  left_join(ari) %>% 
+  left_join(lisi) %>% 
+  left_join(silhouette) %>% 
+  select(-contains("median")) %>% 
+  ungroup() %>% 
+  mutate(celltype_sum = celltype_rank + LISIRank + SilhouetteRank,
+         org_sum = org_rank + LISIRank + SilhouetteRank) %>% 
+  arrange(celltype_sum)
+
+tab_overall  %>% filter(dims != 8, knn == 5) %>%  DT::datatable()
+
+```
 knn | nfeatures | nneighbors | dims
 --- | --------- | ---------- | ----
-10 | 2000 | 50 | 50 
-![](../data/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__full__batch__scVI__dims50__mindist0.3__nneighbors50.big_plot.png)
+7 | 2000 | 100 | 20 
+![](../data/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__full__batch__scVI__dims30__mindist0.1__nneighbors100.big_plot.png)
 
 knn | nfeatures | nneighbors | dims
 --- | --------- | ---------- | ----
-4 | 10000 | 50 | 10 
-![](../data/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__mindist0.3__nneighbors50.big_plot.png)
+4 | 10000 | 50 | 20 
+![](../data/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims20__mindist0.1__nneighbors100.big_plot.png)
+
 
 
 ```{r}
