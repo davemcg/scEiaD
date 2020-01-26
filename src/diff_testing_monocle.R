@@ -5,8 +5,8 @@ library(tidyverse)
 #load('umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__full__batch__scVI__dims30__mindist0.1__nneighbors100.umap.Rdata')
 
 args <- commandArgs(trailingOnly = TRUE)
-load(args[1]) # monocle obj
-load(args[2]) # seurat cluster obj
+load(args[1]) # seurat cluster obj
+load(args[2]) # monocle obj
 cds_retina@colData$monocleCluster <- cds_retina@clusters$UMAP$clusters %>% as.factor()
 cds_retina@colData$seuratCluster <- meta[,2] %>% pull(1) %>%  as.factor()
 
@@ -21,8 +21,9 @@ chunks <- split(1:nrow(cds_retina),
                              length(1:nrow(cds_retina)))
                      )
                 ) 
+print(chunks[[the_n]])
 
-cds_subset <- cds_retina[chunks[the_n],]
+cds_subset <- cds_retina[chunks[[the_n]],]
 
 gene_fits <- fit_models(cds_subset, model_formula_str = model)
 
