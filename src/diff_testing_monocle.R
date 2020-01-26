@@ -6,13 +6,15 @@ library(tidyverse)
 
 args <- commandArgs(trailingOnly = TRUE)
 load(args[1]) # monocle obj
-cds_retina@colData$monocleCluster <- cds_retina@clusters$UMAP$clusters
+load(args[2]) # seurat cluster obj
+cds_retina@colData$monocleCluster <- cds_retina@clusters$UMAP$clusters %>% as.factor()
+cds_retina@colData$seuratCluster <- meta[,2] %>% pull(1) %>%  as.factor()
 
-piece_n <- as.numeric(args[2]) # number of pieces to subset into
-the_n <- as.numeric(args[3]) # which subset this run is doing
-model <- args[4] #e.g "~cluster+batch+percent.mt" where cluster is the comparison of interest and the remainder are covariates
+piece_n <- as.numeric(args[3]) # number of pieces to subset into
+the_n <- as.numeric(args[4]) # which subset this run is doing
+model <- args[5] #e.g "~cluster+batch+percent.mt" where cluster is the comparison of interest and the remainder are covariates
 
-output <- args[5]
+output <- args[6]
 
 chunks <- split(1:nrow(cds_retina), 
                 sort(rep_len(1:piece_n, 
