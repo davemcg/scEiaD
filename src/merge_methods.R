@@ -8,6 +8,7 @@ method = args[1]
 # but many of the seurat wrapped integration tools can't be installed in conda
 # without crazy effort (e.g liger...as it needs to be compiled in C)
 if (method == 'scanorama'){
+  Sys.setenv(RETICULATE_PYTHON = "/gpfs/gsfs8/users/mcgaugheyd/conda/envs/scanorama/bin/python")
   library(reticulate)
   use_condaenv("scanorama")
   scanorama <- import('scanorama')
@@ -86,6 +87,13 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
       matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
     }
     out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', latent, '.loom')
+	
+	# add count to one cell if all are zero
+	vfeature_num <- length(vfeatures)
+	one0 <- vector(mode = 'numeric', length = vfeature_num)
+	one0[2] <- 1
+	matrix[,colSums(matrix) == 0] <- one0
+	
 	create(filename= out, 
            overwrite = TRUE,
            data = matrix, 
@@ -176,8 +184,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     if (length(splits_to_remove >= 1)) { 
       obj <- subset(obj, subset = split_by %in% splits_to_remove, invert = TRUE)
     }
-    #obj <-  ScaleData(seurat_obj, split.by = covariate, vars.to.regress = var_genes, do.center = FALSE)
-    obj@assays$RNA@scale.data <- obj@assays$RNA@scale.data - min(obj@assays$RNA@scale.data) + 0.1 # <- yeah this is hacky but I think OK...
+    obj <-  ScaleData(seurat_obj, split.by = covariate, do.center = FALSE)
+    #obj@assays$RNA@scale.data <- obj@assays$RNA@scale.data - min(obj@assays$RNA@scale.data) + 0.1 # <- yeah this is hacky but I think OK...
     # ...the alternative would be to re-run from scratch with raw counts, which would mean 
     # liger would be getting differently scaled values
     # than the other methods...
@@ -185,14 +193,14 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                           k = 20, 
                           lambda = 5, 
                           split.by = covariate)
-    obj <- RunQuantileAlignSNF(obj, split.by = "Method")
+    obj <- RunQuantileAlignSNF(obj, split.by = covariate)
     # finally re-do scaledata in case I use it in the future...I prob won't be expecting
     # it to not be centered and with no neg values....
-    obj <- ScaleData(obj,  
-                     features = var_genes,
-                     do.center = TRUE,
-                     do.scale = TRUE,
-                     vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
+    #obj <- ScaleData(obj,  
+    #                 features = var_genes,
+    #                 do.center = TRUE,
+    #                 do.scale = TRUE,
+    #                 vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
   } else if (method == 'scanorama'){
     # scanorama ----
     # scanorama can return "integrated" and/or "corrected" data
