@@ -105,5 +105,24 @@
 		"time" : "36:00:00",
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:100"
+	},
+	"monocle_diff_testing" :
+	{
+		"mem" : "50G",
+		"time" : "4:00:00",
+		"partition" : "quick",
+		"extra" : " --gres=lscratch:10"
+	},
+	"trajectory" :
+	{
+		"mem" : "700G",
+		"time" : "18:00:00",
+		"partition" : "largemem",
+		"extra" : " --gres=lscratch:100"
+	},
+	"perf_metrics" :
+	{
+		"mem" : "180G",
+		"time" : "03:30:00"
 	}
 }
