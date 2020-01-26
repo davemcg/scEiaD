@@ -1,3 +1,4 @@
+library(tidyverse)
 # quantify_performance.R
 
 # https://genomebiology.biomedcentral.com/articles/10.1186/s13059-019-1850-9
@@ -11,14 +12,19 @@ load(args[1])
 # full obj
 load(args[2])
 
+# find proper embedding to use
+reductions <- names(integrated_obj@reductions)
+reductions <- reductions[!grepl('UMA', reductions, ignore.case = TRUE)]
+if (length(reductions) == 1 && reductions == 'PCA'){
+	reduction <- 'PCA'
+} else { reduction = reductions[reductions != 'PCA'][1]
+}
 scores <- list()
 # kBET
 # devtools::install_github('theislab/kBET')
 # https://github.com/theislab/kBET
 set.seed(12534)
-# take up to 2000 from each organism/celltype
-
-
+# take up to 3000 from each organism/celltype
 cutdown <- umap %>% 
   rowid_to_column('ID') %>% 
   filter(!CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
@@ -29,12 +35,11 @@ cutdown <- umap %>%
 silhouette <- function(obj){
   indices <- obj$ID
   faux_pca <- list()
-  faux_pca$x <- integrated_obj@reductions$scVI@cell.embeddings[indices,]
+  faux_pca$x <- integrated_obj@reductions[[reduction]]@cell.embeddings[indices,]
   batch <- umap[indices, 'batch'] %>% pull(1) %>% as.factor() %>% as.numeric()
-  dims = ncol(integrated_obj@reductions$scVI@cell.embeddings[indices,])
+  dims = ncol(integrated_obj@reductions[[reduction]]@cell.embeddings[indices,])
   kBET::batch_sil(faux_pca, batch, nPCs = dims)
 }
-
 # have to subsample as this requires making a dist obj! 
 # -1 overlapping (good if you are evaluating batch mixing)
 # 1 distinct clusters (bad if you are evaluating batch)
@@ -55,7 +60,7 @@ scores$silhouette_CellType <- cutdown %>%
 # devtools::install_github("immunogenomics/lisi")
 # generates a score PER CELL which is a metric of number of types of neighbors
 # lower is better (pure cell population within region)
-scores$LISI <- lisi::compute_lisi(integrated_obj@reductions$scVI@cell.embeddings[cutdown$ID,], 
+scores$LISI <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,], 
                                   cutdown,
                                   'CellType')
 

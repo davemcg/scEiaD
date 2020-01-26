@@ -13,14 +13,14 @@ area_chull <- function(x,y){
 }
 # regex to pick projection types
 x1 <- '.*n_features1000.*count.*scVI'
-x2scf = '.*n_features2000.*scran.*fast'
-x2stf = '.*n_features2000.*standard.*fast'
+x2scf = '.*n_features2000.*scran'
+x2stf = '.*n_features2000.*standard'
 x2cs = '.*n_features2000.*count.*scVI'
 x5 = '.*n_features5000.*count.*scVI'
 x10 = '.*n_features10000.*count.*scVI'
 
 umap_mega <- list()
-for (x in c(x1, x2cs, x5, x10)){
+for (x in c(x1, x2cs, x2scf, x2stf, x5, x10)){
   print(x)
   # load all clustering params -----
   files <- list.files('cluster/', 
@@ -123,7 +123,7 @@ save(umap_one, file = 'umap_one.Rdata')
 
 # process ari / silhouette / etc data 
 perf_all <- list()
-for (x in c(x1, x2cs, x5, x10)){
+for (x in c(x1, x2cs, x2scf, x2stf, x5, x10)){
   print(x)
   # load all clustering params -----
   files <- list.files('perf_metrics',
@@ -146,7 +146,8 @@ for (x in c(x1, x2cs, x5, x10)){
 	silhouette <- as_tibble(silhouette)
 	table_score <- bind_rows(table_score, silhouette)
 	table_score <- rbind(table_score, c('All', scores$silhouette, 'Silhouette'))
-
+	
+	norm = str_extract(i, 'n_features\\d+__[^\\W_]+') %>% gsub('n_features\\d+__','',.)
 	nf = str_extract(i, 'n_features\\d+') %>% gsub('n_features', '', .) %>% as.numeric()
     dims = str_extract(i, 'dims\\d+') %>% gsub('dims', '', .) %>% as.numeric()
     #knn = str_extract(i, 'knn\\d+') %>% gsub('knn', '', .) %>% as.numeric()
@@ -155,8 +156,12 @@ for (x in c(x1, x2cs, x5, x10)){
     #table_score$knn = knn
     table_score$nf = nf
 	table_score$method <- method	
+	table_score$normalization <- norm
 
 	perf_all[[i]] <- table_score
   }
   #perf_all <- perf_all %>% bind_rows()
 }
+perf_one <- perf_all %>% bind_rows()
+perf_one$value <- as.numeric(perf_one$value)
+save(umap_one, perf_one, file = 'metrics.Rdata')
