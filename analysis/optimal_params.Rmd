@@ -5,193 +5,29 @@ output: html_notebook
 
 Pick optimal knn, nfeatures, nneighbors, dims based upon:
 
-- UMAP area of clusters (smaller is better)
-- cell type purity by cluster
-- study diversity by cluster
-- organism diversity by cluster
+- (1) cell type purity by cluster
+- (2) organism diversity by cluster
+- (3) Silhouette (scVI dimensions against batch)
+- (4) LISI (scVI dimensions against cell type)
 
-Two (simple) ways to use these scores:
+Cell Type purity is directly orthogaonl to organism diversity.
 
-- Rank of each, summed (lower overall is better)
-- Scaled by best score (higher is better)
+`1 + 3 + 4` favors 10,000 features
 
-By the rank (`rank_sum`) method the best params:
+while
 
-knn | nfeatures | nneighbors | dims
---- | --------- | ---------- | ----
-10 | 2000 | 50 | 50 
+`2 + 3 + 4` favors 2,000 features
+
+As there 
 
 
-By the scaled sum score (`Sum_mean`)
-
-knn | nfeatures | nneighbors | dims
---- | --------- | ---------- | ----
-4 | 10000 | 50 | 10 
-
-Current thinking is to use the former (`Sum_mean`), as it is fairly well ranked
-in the second metric also.
-
-Plus 2000 features is more commonly used in studies. 
 
 ```{r}
 library(tidyverse)
 library(cowplot)
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap_one.Rdata')
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/perf_one.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/metrics.Rdata')
 ```
 
-# boxplot Plot of Distribution of Frequency of Top Cell Type in Each Cluster
-Ideally every cluster would be nearly 1 (100%)
-```{r}
-
-umap_one %>% filter(Count > 100) %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
-  ggplot(aes(y = freq, x = as.factor(dims), fill = as.factor(knn))) + 
-  geom_boxplot() + geom_hline(aes(yintercept=c(0.855))) +
-  theme_cowplot() + facet_wrap(~nfeatures + method, ncol = 1, strip.position="right") + coord_flip()
-
-## pointrange version
-p1 <- umap_one %>% 
-  filter(Count > 100) %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% group_by(knn, nfeatures, dims) %>% 
-  summarise(mean = mean(freq), 
-            median = median(freq),
-            q1 = quantile(freq, 0.25),
-            q3 = quantile(freq, 0.75)) %>% 
-  ggplot(aes(y = mean, x = as.factor(dims), 
-             color = as.factor(knn))) + 
-  geom_pointrange(aes(y=mean, ymin = q1, ymax = q3), position = position_dodge(width = 0.5), show.legend = FALSE) + 
-  theme_cowplot() + coord_flip() + scale_color_brewer(palette = 'Set2') +
-  facet_wrap(~nfeatures, ncol = 1, strip.position="right") +
-  ylab('Mean Cell Type Purity Per Cluster')
-```
-# Density Plot of Distribution of Number of Studies in Each Cluster
-Again, higher is better
-
-```{r}
-umap_one %>% filter(Count > 1000) %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
-  ggplot(aes(y = study_count, x = as.factor(dims), fill = as.factor(knn))) + 
-  geom_boxplot() +
-  theme_cowplot() + facet_wrap(~nfeatures + method, ncol = 1, strip.position="right") + coord_flip()
-## pointrange
-p2 <- umap_one %>% 
-  filter(Count > 100) %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% group_by(knn, nfeatures, dims) %>% 
-  summarise(mean = mean(study_count), 
-            median = median(study_count),
-            q1 = quantile(study_count, 0.25),
-            q3 = quantile(study_count, 0.75)) %>% 
-  ggplot(aes(y = mean, x = as.factor(dims), 
-             color = as.factor(knn))) + 
-  geom_pointrange(aes(y=mean, ymin = q1, ymax = q3), 
-                  position = position_dodge(width = 0.5), show.legend = FALSE) + 
-  theme_cowplot() + coord_flip() + scale_color_brewer(palette = 'Set2') +
-  facet_wrap(~nfeatures, ncol = 1, strip.position="right") +
-  ylab('Mean Number of Studies\nPer Cluster/Cell Type')
-```
-
-# Density Plot of Distribution of Number of Organisms in Each Cluster
-Again, higher is better
-```{r, fig.width=7}
-
-umap_one %>% filter(Count > 1000) %>% 
-  #mutate(org_n = length(Organism[[1]])) %>% 
-  ggplot(aes(organism_count, group = knn, colour = as.factor(knn))) + geom_density() + theme_cowplot() + facet_wrap(~dims+nfeatures+method)
-
-## pointrange
-p3 <- umap_one %>% 
-  filter(Count > 100) %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% group_by(knn, nfeatures, dims) %>% 
-  summarise(mean = mean(organism_count), 
-            median = median(organism_count),
-            q1 = quantile(organism_count, 0.25),
-            q3 = quantile(organism_count, 0.75)) %>% 
-  ggplot(aes(y = mean, x = as.factor(dims), 
-             color = as.factor(knn))) + 
-  geom_pointrange(aes(y=mean, ymin = q1, ymax = q3), position = position_dodge(width = 0.5)) + 
-  theme_cowplot() + coord_flip() + scale_color_brewer(palette = 'Set2') +
-  facet_wrap(~nfeatures, ncol = 1, strip.position="right") +
-  ylab('Mean Number of Organisms\nPer Cluster/Cell Type')
-```
-
-# 3 metrics, by pointrange visualization
-```{r, fig.width=6}
-patchwork::plot_layout(p1 + p2 + p3, nrow = 1)
-```
-
-# break down metrics by most represented (by study n) cell types
-Check for stability of performance by cell type (rods / cones / etc)
-```{r, fig.width=6, fig.height=10}
-p4 <- umap_one %>% 
-  filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
-                         'Cones', 'Amacrine Cells', 'Microglia', 
-                         'Pericytes')) %>% 
-  filter(Count > 100) %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% 
-  group_by(knn, nfeatures, dims, CellType) %>% 
-  summarise(mean = mean(freq), 
-            median = median(freq)) %>% 
-  ggplot(aes(y = mean, x = as.factor(dims), color = as.factor(knn)), group = CellType) + 
-  geom_point(show.legend = FALSE) +
-  theme_cowplot() + 
-  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-p5 <- umap_one %>% filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
-                                          'Cones', 'Amacrine Cells', 'Microglia', 
-                                          'Pericytes')) %>% 
-  group_by(CellType, dims, knn, nfeatures, study_count) %>% 
-  summarise(Count = sum(Count)) %>%  
-  mutate(freq = Count / sum(Count)) %>% 
-  summarise(study_mean = sum(study_count * freq)) %>%  
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
-  ggplot(aes(y = study_mean, x = as.factor(dims), color = as.factor(knn))) + 
-  geom_point(show.legend = FALSE) +
-  theme_cowplot() + 
-  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-# average number of organisms 
-# present in a cluster for each cell type
-p6 <- umap_one %>% filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
-                                          'Cones', 'Amacrine Cells', 'Microglia', 
-                                          'Pericytes')) %>% 
-  group_by(CellType, dims, knn, nfeatures, organism_count) %>% 
-  summarise(Count = sum(Count)) %>%  
-  mutate(freq = Count / sum(Count)) %>% 
-  summarise(organism_mean = sum(organism_count * freq)) %>%  
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
-  ggplot(aes(y = organism_mean, x = as.factor(dims), color = as.factor(knn))) + 
-  geom_point() +
-  theme_cowplot() + 
-  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-# area of cluster
-# present in a cluster for each cell type
-# break down metrics by most represented (by study n) cell types
-p7 <- umap_one %>% 
-  filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
-                         'Cones', 'Amacrine Cells', 'Microglia', 
-                         'Pericytes')) %>% 
-  filter(Count > 100) %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% 
-  group_by(knn, nfeatures, dims, CellType) %>% 
-  summarise(area = mean(area_scaled)) %>% 
-  ggplot(aes(y = area, x = as.factor(dims), color = as.factor(knn)), group = CellType) + 
-  geom_point(show.legend = FALSE) +
-  theme_cowplot() + ylab("Chull Area of Cluster") +
-  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-patchwork::plot_layout(p4 + p7 + p5 + p6, ncol = 6)
-```
 
 # Silhouette
 ```{r}
@@ -356,7 +192,7 @@ area <-  umap_bench %>%
   ungroup() %>% 
   mutate(area_rank  = rank(-area_mean))
 
-tab_overall <- left_join(celltype, org) %>% 
+tab_bench <- left_join(celltype, org) %>% 
   #left_join(area) %>% 
   left_join(study) %>% 
   left_join(ari) %>% 
@@ -364,16 +200,16 @@ tab_overall <- left_join(celltype, org) %>%
   left_join(silhouette) %>% 
   select(-contains("median")) %>% 
   ungroup() %>% 
-  mutate(celltype_sum = celltype_rank + LISIRank + SilhouetteRank,
-         org_sum = org_rank + LISIRank + SilhouetteRank) %>% 
-  arrange(celltype_sum)
+  mutate(celltype_avg = (celltype_rank + LISIRank + SilhouetteRank) / 3,
+         org_avg = (org_rank + LISIRank + SilhouetteRank) / 3) %>% 
+  arrange(celltype_avg)
 
-tab_overall  %>% filter(dims != 8, knn == 5) %>%  DT::datatable()
+tab_bench  %>% filter(dims != 8, knn == 5) %>%  DT::datatable()
 
 ```
 knn | nfeatures | nneighbors | dims
 --- | --------- | ---------- | ----
-7 | 2000 | 100 | 20 
+7 | 2000 | 100 | 30 
 ![](../data/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__full__batch__scVI__dims30__mindist0.1__nneighbors100.big_plot.png)
 
 knn | nfeatures | nneighbors | dims
@@ -386,6 +222,161 @@ knn | nfeatures | nneighbors | dims
 ```{r}
 devtools::session_info()
 #save.image(file = '../data/optimal_params.Rdata')
+```
+
+
+
+# boxplot Plot of Distribution of Frequency of Top Cell Type in Each Cluster
+Ideally every cluster would be nearly 1 (100%)
+```{r}
+
+umap_one %>% filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
+  ggplot(aes(y = freq, x = as.factor(dims), fill = as.factor(knn))) + 
+  geom_boxplot() + geom_hline(aes(yintercept=c(0.855))) +
+  theme_cowplot() + facet_wrap(~nfeatures + method, ncol = 1, strip.position="right") + coord_flip()
+
+## pointrange version
+p1 <- umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% group_by(knn, nfeatures, dims) %>% 
+  summarise(mean = mean(freq), 
+            median = median(freq),
+            q1 = quantile(freq, 0.25),
+            q3 = quantile(freq, 0.75)) %>% 
+  ggplot(aes(y = mean, x = as.factor(dims), 
+             color = as.factor(knn))) + 
+  geom_pointrange(aes(y=mean, ymin = q1, ymax = q3), position = position_dodge(width = 0.5), show.legend = FALSE) + 
+  theme_cowplot() + coord_flip() + scale_color_brewer(palette = 'Set2') +
+  facet_wrap(~nfeatures, ncol = 1, strip.position="right") +
+  ylab('Mean Cell Type Purity Per Cluster')
+```
+# Density Plot of Distribution of Number of Studies in Each Cluster
+Again, higher is better
+
+```{r}
+umap_one %>% filter(Count > 1000) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
+  ggplot(aes(y = study_count, x = as.factor(dims), fill = as.factor(knn))) + 
+  geom_boxplot() +
+  theme_cowplot() + facet_wrap(~nfeatures + method, ncol = 1, strip.position="right") + coord_flip()
+## pointrange
+p2 <- umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% group_by(knn, nfeatures, dims) %>% 
+  summarise(mean = mean(study_count), 
+            median = median(study_count),
+            q1 = quantile(study_count, 0.25),
+            q3 = quantile(study_count, 0.75)) %>% 
+  ggplot(aes(y = mean, x = as.factor(dims), 
+             color = as.factor(knn))) + 
+  geom_pointrange(aes(y=mean, ymin = q1, ymax = q3), 
+                  position = position_dodge(width = 0.5), show.legend = FALSE) + 
+  theme_cowplot() + coord_flip() + scale_color_brewer(palette = 'Set2') +
+  facet_wrap(~nfeatures, ncol = 1, strip.position="right") +
+  ylab('Mean Number of Studies\nPer Cluster/Cell Type')
+```
+
+# Density Plot of Distribution of Number of Organisms in Each Cluster
+Again, higher is better
+```{r, fig.width=7}
+
+umap_one %>% filter(Count > 1000) %>% 
+  #mutate(org_n = length(Organism[[1]])) %>% 
+  ggplot(aes(organism_count, group = knn, colour = as.factor(knn))) + geom_density() + theme_cowplot() + facet_wrap(~dims+nfeatures+method)
+
+## pointrange
+p3 <- umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% group_by(knn, nfeatures, dims) %>% 
+  summarise(mean = mean(organism_count), 
+            median = median(organism_count),
+            q1 = quantile(organism_count, 0.25),
+            q3 = quantile(organism_count, 0.75)) %>% 
+  ggplot(aes(y = mean, x = as.factor(dims), 
+             color = as.factor(knn))) + 
+  geom_pointrange(aes(y=mean, ymin = q1, ymax = q3), position = position_dodge(width = 0.5)) + 
+  theme_cowplot() + coord_flip() + scale_color_brewer(palette = 'Set2') +
+  facet_wrap(~nfeatures, ncol = 1, strip.position="right") +
+  ylab('Mean Number of Organisms\nPer Cluster/Cell Type')
+```
+
+# 3 metrics, by pointrange visualization
+```{r, fig.width=6}
+patchwork::plot_layout(p1 + p2 + p3, nrow = 1)
+```
+
+# break down metrics by most represented (by study n) cell types
+Check for stability of performance by cell type (rods / cones / etc)
+```{r, fig.width=6, fig.height=10}
+p4 <- umap_one %>% 
+  filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
+                         'Cones', 'Amacrine Cells', 'Microglia', 
+                         'Pericytes')) %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, nfeatures, dims, CellType) %>% 
+  summarise(mean = mean(freq), 
+            median = median(freq)) %>% 
+  ggplot(aes(y = mean, x = as.factor(dims), color = as.factor(knn)), group = CellType) + 
+  geom_point(show.legend = FALSE) +
+  theme_cowplot() + 
+  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+p5 <- umap_one %>% filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
+                                          'Cones', 'Amacrine Cells', 'Microglia', 
+                                          'Pericytes')) %>% 
+  group_by(CellType, dims, knn, nfeatures, study_count) %>% 
+  summarise(Count = sum(Count)) %>%  
+  mutate(freq = Count / sum(Count)) %>% 
+  summarise(study_mean = sum(study_count * freq)) %>%  
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
+  ggplot(aes(y = study_mean, x = as.factor(dims), color = as.factor(knn))) + 
+  geom_point(show.legend = FALSE) +
+  theme_cowplot() + 
+  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# average number of organisms 
+# present in a cluster for each cell type
+p6 <- umap_one %>% filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
+                                          'Cones', 'Amacrine Cells', 'Microglia', 
+                                          'Pericytes')) %>% 
+  group_by(CellType, dims, knn, nfeatures, organism_count) %>% 
+  summarise(Count = sum(Count)) %>%  
+  mutate(freq = Count / sum(Count)) %>% 
+  summarise(organism_mean = sum(organism_count * freq)) %>%  
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% as.numeric()) %>% 
+  ggplot(aes(y = organism_mean, x = as.factor(dims), color = as.factor(knn))) + 
+  geom_point() +
+  theme_cowplot() + 
+  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# area of cluster
+# present in a cluster for each cell type
+# break down metrics by most represented (by study n) cell types
+p7 <- umap_one %>% 
+  filter(CellType %in% c('Bipolar Cells', 'Muller Glia', 'Rods', 
+                         'Cones', 'Amacrine Cells', 'Microglia', 
+                         'Pericytes')) %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, nfeatures, dims, CellType) %>% 
+  summarise(area = mean(area_scaled)) %>% 
+  ggplot(aes(y = area, x = as.factor(dims), color = as.factor(knn)), group = CellType) + 
+  geom_point(show.legend = FALSE) +
+  theme_cowplot() + ylab("Chull Area of Cluster") +
+  facet_grid(rows = vars(CellType), cols = vars(nfeatures)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+patchwork::plot_layout(p4 + p7 + p5 + p6, ncol = 6)
 ```
 
 
