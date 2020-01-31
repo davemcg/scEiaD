@@ -92,6 +92,9 @@ if (method == 'CCA'){
   }
   reduction <- 'pca'
   reduction.key <- 'ccaUMAP_'
+} else if (method == 'liger'){
+  reduction <- 'iNMF'
+  reduction.key <- 'iNMFUMAP_'
 } else if (method == 'scanorama'){
   reduction <- 'scanorama'
   reduction.key <- 'scanoramaUMAP_'

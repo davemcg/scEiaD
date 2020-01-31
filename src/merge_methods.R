@@ -92,7 +92,9 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 	vfeature_num <- length(vfeatures)
 	one0 <- vector(mode = 'numeric', length = vfeature_num)
 	one0[2] <- 1
-	matrix[,colSums(matrix) == 0] <- one0
+	if (sum(colSums(matrix)==0) > 0){
+		matrix[,colSums(matrix) == 0] <- one0
+	}
 	
 	create(filename= out, 
            overwrite = TRUE,
