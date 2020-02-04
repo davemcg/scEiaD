@@ -183,7 +183,7 @@ seurat_sct <- function(seurat_list){
 
 # scran normalization
 scran_norm <- function(seurat_obj = seurat__standard, split.by = 'batch'){
-  var_features <- seurat_obj@assays$RNA@var.features
+  var_features <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
   seurat_list <- SplitObject(seurat_obj, split.by = covariate)
   print('Beginning scran norm')
   # list of seurat objects
@@ -195,9 +195,11 @@ scran_norm <- function(seurat_obj = seurat__standard, split.by = 'batch'){
       sce_list[[obj]] <- SingleCellExperiment(assays = list(counts = as.matrix(x = seurat_list[[obj]]$RNA@data)))
       clusters = quickCluster(sce_list[[obj]], min.size=50)
       sce_list[[obj]] = computeSumFactors(sce_list[[obj]], cluster=clusters)
-      sce_list[[obj]] = normalize(sce_list[[obj]], return_log = FALSE)
+	  sce_list[[obj]] = scater::logNormCounts(sce_list[[obj]], log=TRUE)
+      #sce_list[[obj]] = normalize(sce_list[[obj]], return_log = FALSE)
       print(summary(sizeFactors(sce_list[[obj]])))
-      seurat_list[[obj]]$RNA@data = as.sparse(log(x = assay(sce_list[[obj]], "normcounts") + 1))
+      # seurat_list[[obj]]$RNA@data = as.sparse(log(x = assay(sce_list[[obj]], "normcounts") + 1))
+	  seurat_list[[obj]]$RNA@data = assay(sce_list[[obj]], "logcounts") %>% as.sparse()
     } else {seurat_list[[obj]] <- NULL} # remove obj with less than 50 cells
   }
   # merge back into one seurat obj
@@ -207,6 +209,37 @@ scran_norm <- function(seurat_obj = seurat__standard, split.by = 'batch'){
   # re do PCA
   merged <- RunPCA(merged, npcs = 100, features = var_features)
   merged
+}
+
+#' Performs L1 normalization on input data such that the sum of expression
+#' values for each cell sums to 1, then returns normalized matrix to the metric
+#' space using median UMI count per cell effectively scaling all cells as if
+#' they were sampled evenly.
+#' @param seurat_object
+#' @return seurat_obj 
+#' 2 dimensional array with normalized gene expression values
+#' @import Matrix
+#' @import dplyr
+#'
+#' @export
+library.size.normalize <- function(seurat_obj, sqrt = FALSE, verbose=FALSE) {
+  if (verbose) {
+    message(paste0(
+      "Normalizing library sizes for ",
+      nrow(data), " cells"
+    ))
+  }
+  vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
+  data <- seurat_obj@assays$RNA@counts %>% t()
+  data <- data[,vfeatures]
+  library_size <- Matrix::rowSums(data)
+  median_transcript_count <- stats::median(library_size)
+  data_norm <- median_transcript_count * data / library_size
+  data_norm <- t(data_norm)
+  if (sqrt) {data_norm <- sqrt(data_norm)}
+  seurat_obj@assays$RNA@scale.data <- data_norm %>% as.matrix()
+  seurat_obj <- RunPCA(seurat_obj, features = vfeatures
+  seurat_obj
 }
 
 if (set == 'early'){
@@ -230,6 +263,14 @@ if (transform == 'SCT'){
        file = args[1], compress = FALSE)
 } else if (transform == 'scran'){
   seurat__standard <- scran_norm(seurat__standard, split.by = covariate )
+  save(seurat__standard, 
+       file = args[1], compress = FALSE)
+} else if (transform == 'libSize'){
+  seurat__standard <- library.size.normalize(seurat__standard)
+  save(seurat__standard, 
+       file = args[1], compress = FALSE)
+} else if (transform == 'sqrt') {
+  seurat__standard <- library.size.normalize(seurat__standard, sqrt = TRUE)
   save(seurat__standard, 
        file = args[1], compress = FALSE)
 } else {

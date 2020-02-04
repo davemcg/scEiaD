@@ -42,6 +42,13 @@
 		"time" : "8:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
+	"make_seurat_objs_filtered" :
+	{
+		"mem" : "400G",
+		"partition" : "largemem",
+		"time" : "8:00:00",
+		"extra" : " --gres=lscratch:100"
+	},
 	"combine_well_and_umi" :
 	{
 		"mem" : "240G",
@@ -145,5 +152,11 @@
 		"time" : "36:00:00",
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:100"
-	}	
+	},
+	"make_h5ad_object" :
+	{
+		"mem" : "90G",
+		"time" : "4:00:00",
+		"partition" : "quick"
+	}
 }	

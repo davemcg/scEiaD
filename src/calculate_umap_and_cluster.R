@@ -38,7 +38,6 @@ create_umap_and_cluster <- function(integrated_obj,
                                     knn = 4,
                                     cluster = FALSE,
                                     umap = FALSE){
-
   if (umap) {
   # UMAP
   #print("UMAP 3D Starting")
@@ -97,7 +96,7 @@ if (method == 'CCA'){
   reduction.key <- 'iNMFUMAP_'
 } else if (method == 'scanorama'){
   reduction <- 'scanorama'
-  reduction.key <- 'scanoramaUMAP_'
+  reruction.key <- 'scanoramaUMAP_'
 } else if (method == 'harmony'){
   reduction <- 'harmony'
   reduction.key <- 'harmonyUMAP_'
@@ -105,20 +104,32 @@ if (method == 'CCA'){
   reduction <- 'mnn'
   reduction.key <- 'mnnUMAP_'
 } else if (method == 'none'){
+  if (length(integrated_obj@reductions) == 0) {
+    integrated_obj <- RunPCA(integrated_obj, npcs = 100)
+  }
   if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100){
     integrated_obj <- RunPCA(integrated_obj, npcs = 100)
   }
   reduction <- 'pca'
   reduction.key <- 'noneUMAP_'
 } else if (method == 'combat'){
+  if (length(integrated_obj@reductions) == 0) {
+    integrated_obj <- RunPCA(integrated_obj, npcs = 100)
+  }
   if ((integrated_obj@reductions$pca@cell.embeddings %>% ncol()) < 100){
     integrated_obj <- RunPCA(integrated_obj, npcs = 100)
   }
   reduction <- 'pca'
   reduction.key <- 'combatUMAP_'
+} else if (method == 'liger'){
+  reduction <- 'iNMF'
+  reduction.key <- 'ligerUMAP_'
 } else if (method == 'scVI'){
   reduction <- 'scVI'
   reduction.key <- 'scviUMAP_'
+} else if (method == 'magic') {
+  reduction <- 'magic'
+  reduction.key <- 'magicUMAP_'
 } else {
   print(paste0("Why did you pick ", method, "?"))
 }
