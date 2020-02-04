@@ -37,9 +37,15 @@ if (method == 'CCA'){
   }
   reduction <- 'pca'
   reduction.key <- 'combatUMAP_'
+} else if (method == 'liger'){
+  reduction <- 'iNMF'
+  reduction.key <- 'ligerUMAP_'
 } else if (method == 'scVI'){
   reduction <- 'scVI'
   reduction.key <- 'scviUMAP_'
+} else if (method == 'magic') {
+  reduction <- 'magic'
+  reduction.key <- 'magicUMAP_'
 } else {
   print(paste0("Why did you pick ", method, "?"))
 }
