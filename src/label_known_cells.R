@@ -2,14 +2,15 @@ library(tidyverse)
 load('~/git/massive_integrated_eye_scRNA/data/sra_metadata_extended.Rdata')
 meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv') %>% select(-TissueNote)
 # load labelled data from clark et all
-# https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1
-clark_labels <- read_csv('10x_mouse_retina_development_phenotype.csv')
+# NO WRONG NOW https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1
+clark_labels <- data.table::fread('GSE118614_barcodes.tsv.gz')
+#clark_labels <- read_csv('10x_mouse_retina_development_phenotype.csv')
 
-# extract clark blackshaw fields we want
+# extract clark blackshaw fields we1 want
 clark_labels <- clark_labels %>% 
   mutate(UMI = gsub('^.*\\.','', barcode) %>% gsub('-.*','',.)) %>% 
-  select(CellType, new_CellType, umap_CellType, umap_coord1, 
-         umap_coord2, umap_coord3, X1, barcode, sample, age, 
+  select(CellType = umap2_CellType, umap_coord1, 
+         umap_coord2, umap_coord3, umap_cluster, V1, barcode, sample, age, 
          UMI)
 
 ## now get macosko labels
@@ -78,8 +79,7 @@ meta_SRP158081 <- cell_info %>%
                             Age == 8 & Covariate == 'Rep2' ~ 'P8_rep2',
                             TRUE ~ 'UhOh')) %>% 
   left_join(clark_labels %>% 
-              select(UMI, sample, new_CellType) %>% 
-              dplyr::rename(CellType = new_CellType), 
+              select(UMI, sample, CellType), 
             by = c('UMI', 'sample')) %>% 
   select(value:batch,CellType) %>% mutate(Paper = 'Clark et al. 2019')
 
