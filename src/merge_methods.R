@@ -8,10 +8,14 @@ method = args[1]
 # but many of the seurat wrapped integration tools can't be installed in conda
 # without crazy effort (e.g liger...as it needs to be compiled in C)
 if (method == 'scanorama'){
-  Sys.setenv(RETICULATE_PYTHON = "/gpfs/gsfs8/users/mcgaugheyd/conda/envs/scanorama/bin/python")
+  Sys.setenv(RETICULATE_PYTHON = "/data/mcgaugheyd/conda/envs/scanorama/bin/python")
   library(reticulate)
   use_condaenv("scanorama")
   scanorama <- import('scanorama')
+} else if (method == 'magic') {
+  Sys.setenv(RETICULATE_PYTHON = '/data/mcgaugheyd/conda/envs/magic/bin/python')
+  library(reticulate)
+  library(Rmagic)
 } else {
   library(loomR)
   library(SeuratWrappers)
@@ -73,6 +77,27 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
       var_genes <- grep('^MT-', seurat_obj@assays$RNA@var.features, value = TRUE, invert = TRUE)
       obj@assays$RNA@scale.data <- seurat_obj@assays$RNA@scale.data
     }
+  } else if (method == 'magic') {
+	print(transform)
+	assay <- 'RNA'
+    vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
+    if (transform == 'sqrt'){
+	  matrix = seurat_obj@assays$RNA@counts[vfeatures, ] %>% t()
+      matrix = library.size.normalize(matrix)
+      matrix = sqrt(matrix)
+    } else if (transform == 'SCT'){
+      assay <- 'SCT'
+      vfeatures <- grep('^MT-', seurat_obj@assays$SCT@var.features, invert =TRUE, value = TRUE)
+      matrix = seurat_obj@assays$SCT@scale.data[vfeatures, ] %>% Matrix(., sparse = TRUE) %>% t()
+    } else {
+      matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ] %>% t()
+    } 
+	magic <- magic(matrix, genes = "pca_only", n.jobs=10, npca = latent, verbose = TRUE)
+	seurat_obj[["magic"]] <- CreateDimReducObject(embeddings = 
+								magic$result %>% as.matrix(), 
+								key = "magic_", 
+								assay = DefaultAssay(seurat_obj))
+	obj <- seurat_obj
   } else if (method == 'scVI') {
     # scVI ----
     assay <- 'RNA'
@@ -192,7 +217,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     # liger would be getting differently scaled values
     # than the other methods...
     obj <- RunOptimizeALS(obj, 
-                          k = 20, 
+                          k = latent, 
                           lambda = 5, 
                           split.by = covariate)
     obj <- RunQuantileAlignSNF(obj, split.by = covariate)
