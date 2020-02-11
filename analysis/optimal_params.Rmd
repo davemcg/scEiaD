@@ -81,7 +81,7 @@ celltype <- umap_one %>%
   group_by(knn, normalization, nfeatures, dims, method) %>% 
   summarise(freq = sum(freq*Count)/sum(Count)) %>%  # scale cell type purity by number of cells 
   ungroup() %>% 
-  mutate(celltype_rank  = rank(-freq))
+  mutate(celltype_rank  = rank(-freq)) %>% arrange(celltype_rank)
 
 study <- umap_one %>% 
   filter(Count > 100) %>% 
@@ -90,7 +90,7 @@ study <- umap_one %>%
   group_by(knn, normalization, nfeatures,  dims, method) %>% 
   summarise(study_mean = sum(study_count*Count)/sum(Count)) %>% 
   ungroup() %>% 
-  mutate(study_rank  = rank(-study_mean))
+  mutate(study_rank  = rank(-study_mean)) %>% arrange(study_rank)
 
 org <-  umap_one %>% 
   mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
@@ -98,7 +98,8 @@ org <-  umap_one %>%
   group_by(knn, normalization, nfeatures,  dims, method) %>% 
   summarise(org_mean = sum(organism_count*Count)/sum(Count)) %>%  # scale organism type mixing by number of cells 
   ungroup() %>% 
-  mutate(org_rank  = rank(-org_mean))
+  mutate(org_rank  = rank(-org_mean)) %>% 
+  arrange(org_rank)
 
 area <-  umap_one %>% 
   filter(Count > 100) %>% 
@@ -119,9 +120,10 @@ tab_overall <- left_join(celltype, org) %>%
   left_join(silhouette) %>% 
   select(-contains("median")) %>% 
   ungroup() %>% 
-  mutate(celltype_sum = celltype_rank + LISIRank + SilhouetteRank,
-         org_sum = org_rank + LISIRank + SilhouetteRank) %>% 
-  arrange(celltype_sum)
+  mutate(celltype_sum = celltype_rank + ARIRank + LISIRank + SilhouetteRank,
+         org_sum = org_rank + LISIRank + ARIRank + SilhouetteRank,
+         sum = celltype_rank + org_rank + LISIRank + ARIRank + SilhouetteRank) %>% 
+  arrange(sum)
 
 tab_overall  %>% filter(dims != 8) %>%  DT::datatable()
 
@@ -134,7 +136,9 @@ perf_bench <-
             perf_one %>% filter(normalization == 'counts', dims == 30, nf == 2000, method == 'scVI'))
 umap_bench <- 
   bind_rows(umap_one %>% filter(normalization != 'counts'), 
-            umap_one %>% filter(normalization == 'counts', dims == 30, nfeatures == '.*n_features2000.*count.*scVI', nneighbors == 30, mindist == 0.3,  method == 'scVI'))
+            umap_one %>% filter(normalization == 'counts', dims == 30, nfeatures == 2000, nneighbors == 30, mindist == 0.3,  method == 'scVI')) %>% 
+  filter(knn == 5)
+
 silhouette_bench <- perf_bench %>% 
   filter(`Cell Type` == 'All', score == 'Silhouette')  %>% 
   unique() %>% 
@@ -142,6 +146,16 @@ silhouette_bench <- perf_bench %>%
   mutate(Rank = row_number()) %>% 
   dplyr::rename('SilhouetteScore' = value, 
          'SilhouetteRank' = Rank, 
+         'nfeatures' = nf) %>% 
+  select(-`Cell Type`, -score)
+
+ari_bench <- perf_bench %>% 
+  filter(`Cell Type` == 'All', score == 'HA')  %>% 
+  unique() %>% 
+  arrange(-value) %>% 
+  mutate(Rank = row_number()) %>% 
+  dplyr::rename('ARIScore' = value, 
+         'ARIRank' = Rank, 
          'nfeatures' = nf) %>% 
   select(-`Cell Type`, -score)
 
@@ -156,9 +170,7 @@ lisi_bench <- perf_bench %>%
   select(-`Cell Type`, -score)
 
 
-celltype <- umap_bench %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% 
+celltype <- umap_bench %>%
   group_by(knn, normalization, nfeatures, dims, method) %>% 
   summarise(freq = sum(freq*Count)/sum(Count)) %>%  # scale cell type purity by number of cells 
   ungroup() %>% 
@@ -166,8 +178,6 @@ celltype <- umap_bench %>%
 
 study <- umap_bench %>% 
   filter(Count > 100) %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% 
   group_by(knn, normalization, nfeatures,  dims, method) %>% 
   summarise(study_mean = sum(study_count*Count)/sum(Count)) %>% 
   ungroup() %>% 
@@ -195,14 +205,12 @@ area <-  umap_bench %>%
 tab_bench <- left_join(celltype, org) %>% 
   #left_join(area) %>% 
   left_join(study) %>% 
-  left_join(ari) %>% 
-  left_join(lisi) %>% 
-  left_join(silhouette) %>% 
+  left_join(ari_bench) %>% 
+  left_join(lisi_bench) %>% 
+  left_join(silhouette_bench) %>% 
   select(-contains("median")) %>% 
   ungroup() %>% 
-  mutate(celltype_avg = (celltype_rank + LISIRank + SilhouetteRank) / 3,
-         org_avg = (org_rank + LISIRank + SilhouetteRank) / 3) %>% 
-  arrange(celltype_avg)
+  mutate(synthetic = (ARIRank + LISIRank + SilhouetteRank) / 3)
 
 tab_bench  %>% filter(dims != 8, knn == 5) %>%  DT::datatable()
 
