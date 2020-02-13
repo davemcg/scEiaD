@@ -12,6 +12,9 @@ load(args[1])
 # full obj
 load(args[2])
 
+if (!"cluster" %in% colnames(umap)){
+    umap$cluster <- umap$clusters
+}
 # find proper embedding to use
 reductions <- names(integrated_obj@reductions)
 reductions <- reductions[!grepl('UMA', reductions, ignore.case = TRUE)]
@@ -69,7 +72,7 @@ scores$LISI <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.em
 # very slow
 # install.packages('clues')
 ari <- function(obj){
-  clues::adjustedRand(obj$cluster, obj$CellType %>% as.factor() %>% as.numeric())
+  clues::adjustedRand(obj$cluster %>% as.character() %>% as.numeric(), obj$CellType %>% as.factor() %>% as.numeric())
 }
 scores$RI <- ari(cutdown)
 # by species
