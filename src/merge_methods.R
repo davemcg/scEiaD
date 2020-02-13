@@ -42,6 +42,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
   # the scaling happens at this level
   # e.g. DO NOT use 'batch' in build_seurat_obj.R then 'study_accession' here
   if (method == 'CCA'){
+	refs = c('SRP158081_10xv2_Rep1', 'SRP166660_10xv2_run2', 'SRP158528_10xv2_Macaque2')
     obj <- seurat_obj
     if (transform == 'SCT'){
       # remove sets with fewre than 1000 cells
@@ -51,8 +52,11 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                                bind_rows(.id = 'ID') %>% 
                                filter(value < 1000) %>% 
                                pull(ID)] <- NULL
-      anchors <- FindIntegrationAnchors(object.list = seurat_obj$seurat_list, dims = 1:20, normalization.method = 'SCT',
-                                        anchor.features = seurat_obj$study_data_features )
+	  # keep getting cholmod errors, so trying to use the Clark Blackshaw mouse and the Sanes macaque as ref
+      ref_index <- which(names(seurat_obj$seurat_list) %in% refs)
+	  anchors <- FindIntegrationAnchors(object.list = seurat_obj$seurat_list, dims = 1:20, normalization.method = 'SCT',
+                                        anchor.features = seurat_obj$study_data_features, 
+ 										reference = ref_index)
       obj <- IntegrateData(anchorset = anchors, verbose = TRUE, normalization.method = 'SCT')
     } else {
       seurat_list <- SplitObject(obj, split.by = covariate)
@@ -62,8 +66,10 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                     bind_rows(.id = 'ID') %>% 
                     filter(value < 1000) %>% 
                     pull(ID)] <- NULL
+      ref_index <- which(names(seurat_list) %in% refs)
       anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20, 
-                                        anchor.features = obj[[obj@active.assay]]@var.features )
+                                        anchor.features = obj[[obj@active.assay]]@var.features,
+						                reference = ref_index )
       obj <- IntegrateData(anchorset = anchors, verbose = TRUE)
     }
     obj <- ScaleData(obj)
