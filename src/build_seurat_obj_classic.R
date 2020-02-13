@@ -124,14 +124,23 @@ make_seurat_obj <- function(m,
   var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
   
   if (transform == 'standard'){
-    print(paste0('Running scale, splitting by ', split.by))
-    seurat_m <- ScaleData(seurat_m,
-                          features = var_genes,
-                          split.by = split.by,
-                          do.center = TRUE,
-                          do.scale = TRUE,
-                          verbose = TRUE,
-                          vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
+    print(paste0('Running lib.size and log correction, splitting by ', split.by))
+    	
+  	data <- seurat_m@assays$RNA@counts %>% t()
+  	data <- data[,var_genes]
+  	library_size <- Matrix::rowSums(data)
+ 	median_transcript_count <- stats::median(library_size)
+  	data_norm <- median_transcript_count * data / library_size
+  	data_norm <- t(data_norm)
+  	data_norm <- log(data_norm + 1)
+  	seurat_m@assays$RNA@scale.data <- data_norm %>% as.matrix()
+     #seurat_m <- ScaleData(seurat_m,
+      #                    features = var_genes,
+       #                   split.by = split.by,
+        #                  do.center = TRUE,
+         #                 do.scale = TRUE,
+          #                verbose = TRUE,
+           #               vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
     
     seurat_m <- RunPCA(seurat_m, npcs = 100)
   }
@@ -238,7 +247,7 @@ library.size.normalize <- function(seurat_obj, sqrt = FALSE, verbose=FALSE) {
   data_norm <- t(data_norm)
   if (sqrt) {data_norm <- sqrt(data_norm)}
   seurat_obj@assays$RNA@scale.data <- data_norm %>% as.matrix()
-  seurat_obj <- RunPCA(seurat_obj, features = vfeatures
+  seurat_obj <- RunPCA(seurat_obj, features = vfeatures)
   seurat_obj
 }
 
