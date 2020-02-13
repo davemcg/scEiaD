@@ -7,7 +7,9 @@ args <- commandArgs(trailingOnly = TRUE)
 
 red <- args[1]
 load(args[2])
-
+if (!"cluster" %in% colnames(umap)){
+	umap$cluster <- umap$clusters
+} 
 # filter
 umap <- umap %>% 
   rename(Stage = integration_group) %>% 
