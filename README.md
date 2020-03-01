@@ -13,7 +13,12 @@ Milestones:
   - optimize cell type (Vinay!) estimation 
     - subsample "called" cell types, bootstrap and re-identify
     - ID "called" cell types with potential mis-calls
-  - build prototype web app
-  - 
+    - afterwords...can try to ID rarer subtypes???? perhaps ID groups/clusters/sections with "fuzzy" confidence in annotation?
+    - check the sanes more detailed RGC annotation
+  - build prototype Shiny web app
+     - quick viz (scattermore)
+     - summary info (heatmap?) by cell type / species / time
+     - give info on # of indepedent studies/batches supporting cluster / group
+    
 
 ![](https://github.com/davemcg/massive_integrated_eye_scRNA/blob/master/miescRNA.svg)
