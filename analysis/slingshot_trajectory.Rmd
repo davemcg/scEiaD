@@ -1,0 +1,143 @@
+---
+title: "Slingshot Trajectory"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(Seurat)
+library(slingshot)
+library(SingleCellExperiment)
+library(tidyverse)
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter__mindist0.1__nneighbors15.umap.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__knn7.cluster.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_info_labelled.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/predictions/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter_cell_info_predictions.Rdata')
+
+integrated_obj@meta.data$cluster <- meta[,2] %>% pull(1)
+
+
+orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
+umap <- Embeddings(integrated_obj[['scviUMAP']]) %>% as_tibble(rownames = 'Barcode') %>% 
+  left_join(., orig_meta) %>% 
+  left_join(., cell_info_labels %>% 
+              dplyr::rename(Barcode = value) %>% select(-study_accession, -Age, -batch),
+            by = 'Barcode') %>% 
+  left_join(., predictions %>% 
+              as_tibble(rownames = 'Barcode') %>% 
+              select(Barcode, CellType_predict = `predicted.id`)) %>% 
+  mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
+                                      TRUE ~ CellType_predict))
+integrated_obj@meta.data$CellType <- umap$CellType
+integrated_obj@meta.data$CellType_predict <- umap$CellType_predict
+integrated_obj@meta.data$organism <- umap$organism
+
+```
+
+# Find "starting" cluster
+```{r}
+integrated_obj@meta.data %>% as_tibble() %>% group_by(CellType, cluster) %>% dplyr::count() %>% filter(CellType == 'Early RPCs') %>% arrange(-n)
+```
+```{r, fig.width = 8, fig.height=8}
+library(scattermore)
+umapFull <- umap %>% 
+  rename(Stage = integration_group,
+         UMAP_1 = scviUMAP_1,
+         UMAP_2 = scviUMAP_2) %>% 
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType))
+umap <- umapFull  %>% 
+  filter(!is.na(CellType), 
+         !is.na(study_accession), 
+         !CellType %in% c('Astrocytes', 'Horizontal Cells', 'Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType))  %>% 
+  mutate(Size = case_when(organism == 'Homo sapiens' ~ 0.015,
+                          TRUE ~ 0.01)) 
+
+# attach colors to cell types
+cell_types <- umap %>% 
+  pull(CellType) %>% unique() %>% sort()
+type_val <- setNames(pals::alphabet(n = cell_types %>% length()), cell_types)
+type_col <- scale_colour_manual(values = type_val)
+type_fill <- scale_fill_manual(values = type_val)
+
+red <- 'UMAP'
+umap %>% 
+  ggplot() + 
+  geom_scattermore(aes(x = umap[,paste0(red,'_1')] %>% pull(1), 
+                       y = umap[,paste0(red,'_2')] %>% pull(1),  
+                       colour = CellType), pointsize = 1, alpha = 0.05) + 
+  guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
+  cowplot::theme_cowplot() + 
+  type_col + 
+  scale_size(guide = 'none') +
+  scale_alpha(guide = 'none') +
+  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+  facet_wrap(~cluster) +
+  xlab(paste(red, '1')) + ylab(paste(red, '2'))
+
+
+```
+
+```{r, fig.width = 8, fig.height=8}
+umap %>% 
+  ggplot() + 
+  geom_scattermore(aes(x=umap[,paste0(red,'_1')] %>% pull(1), 
+                       y = umap[,paste0(red,'_2')] %>% pull(1), 
+                       colour = CellType), pointsize = 0.1, alpha = 0.1) + 
+  guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
+  cowplot::theme_cowplot() + 
+  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num ), alpha = 0.8, size = 2) +
+  type_col + 
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+  xlab(paste(red, '1')) + ylab(paste(red, '2'))
+```
+
+```{r}
+# Got: 
+# Error in solve.default(s1 + s2) : system is computationally singular: reciprocal condition number = 1.16521e-18
+# trying to add some noise as per: https://github.com/kstreet13/slingshot/issues/35
+sce <- Seurat::as.SingleCellExperiment(integrated_obj)
+
+
+sds_in <- sds_in <- apply(reducedDim(sce, "SCVI")[,1:10], 2, function(x) jitter(x))
+
+sds <- slingshot(sds_in, 
+                 clusterLabels = sce$cluster, 
+                 start.clus = 19, 
+                 stretch = 0, approx_points = 10000)
+save(sds, file = 'sds_massive_approx10000.Rdata', compress = FALSE)
+```
+
+
+```{r}
+paths <- slingshot::slingPseudotime(sds) %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), 
+               names_to = 'Curve', 
+               values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  mutate(time = cut_interval(Pseudotime, 250)) %>% 
+  left_join(umapFull) %>% 
+  group_by(Curve, time) %>% 
+  summarise(UMAP_1 = mean(UMAP_1),
+            UMAP_2 = mean(UMAP_2))
+
+slingshot::slingPseudotime(sds) %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  left_join(umapFull) %>% 
+  ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
+  facet_wrap(~Curve) + 
+  geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 1, alpha = 0.4) + 
+  geom_scattermore(pointsize = 1, alpha = 0.4) + 
+  cowplot::theme_cowplot() + 
+  scale_color_viridis_c() + 
+  xlab('UMAP 1') + ylab('UMAP 2') +
+  facet_wrap(~Curve) + 
+  geom_path(data = paths, aes(x=UMAP_1, y = UMAP_2), color = 'red', size = 2) 
+```
