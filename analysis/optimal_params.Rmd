@@ -122,7 +122,7 @@ tab_overall <- left_join(celltype, org) %>%
   ungroup() %>% 
   mutate(celltype_sum = celltype_rank + ARIRank + LISIRank + SilhouetteRank,
          org_sum = org_rank + LISIRank + ARIRank + SilhouetteRank,
-         sum = celltype_rank + org_rank + LISIRank + ARIRank + SilhouetteRank) %>% 
+         sum = celltype_rank + study_rank + LISIRank + ARIRank + SilhouetteRank) %>% 
   arrange(sum)
 
 tab_overall  %>% filter(dims != 8) %>%  DT::datatable()
