@@ -3,9 +3,6 @@ title: "Slingshot Trajectory"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 
 ```{r}
 library(Seurat)
@@ -82,6 +79,7 @@ umap %>%
 
 ```
 
+# UMAP by Cell Type
 ```{r, fig.width = 8, fig.height=8}
 umap %>% 
   ggplot() + 
@@ -96,13 +94,28 @@ umap %>%
   xlab(paste(red, '1')) + ylab(paste(red, '2'))
 ```
 
+# UMAP by Age
+```{r}
+umap %>% 
+  filter(Age < 100) %>% 
+  ggplot() + 
+  geom_scattermore(aes(x= UMAP_1, 
+                       y = UMAP_2, 
+                       colour = Age), pointsize = 0.1, alpha = 0.1) + 
+  guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
+  cowplot::theme_cowplot() + 
+  facet_wrap(~organism) +
+  scale_color_viridis_c() +
+  xlab(paste(red, '1')) + ylab(paste(red, '2'))
+```
+
 ```{r}
 # Got: 
 # Error in solve.default(s1 + s2) : system is computationally singular: reciprocal condition number = 1.16521e-18
 # trying to add some noise as per: https://github.com/kstreet13/slingshot/issues/35
 sce <- Seurat::as.SingleCellExperiment(integrated_obj)
 
-
+set.seed(2534)
 sds_in <- sds_in <- apply(reducedDim(sce, "SCVI")[,1:10], 2, function(x) jitter(x))
 
 sds <- slingshot(sds_in, 
@@ -113,7 +126,8 @@ save(sds, file = 'sds_massive_approx10000.Rdata', compress = FALSE)
 ```
 
 
-```{r}
+```{r, fig.width=8, fig.height=8}
+load('../sds_massive_approx10000.Rdata')
 paths <- slingshot::slingPseudotime(sds) %>% 
   as_tibble(rownames = 'Barcode') %>% 
   pivot_longer(contains('curve'), 
@@ -129,7 +143,7 @@ paths <- slingshot::slingPseudotime(sds) %>%
 slingshot::slingPseudotime(sds) %>% 
   as_tibble(rownames = 'Barcode') %>% 
   pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
-  filter(!is.na(Pseudotime)) %>% 
+  filter(!is.na(Pseudotime), Pseudotime < 12) %>% 
   left_join(umapFull) %>% 
   ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
   facet_wrap(~Curve) + 
@@ -140,4 +154,20 @@ slingshot::slingPseudotime(sds) %>%
   xlab('UMAP 1') + ylab('UMAP 2') +
   facet_wrap(~Curve) + 
   geom_path(data = paths, aes(x=UMAP_1, y = UMAP_2), color = 'red', size = 2) 
+```
+
+
+```{r, fig.height=10, fig.width=10}
+slingshot::slingPseudotime(sds) %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime), Pseudotime < 12) %>% 
+  left_join(umapFull) %>% filter(Age < 50) %>% 
+  filter(organism == 'Mus musculus') %>% 
+  ggplot(aes(x=Pseudotime, y = Age, colour = Pseudotime)) + 
+  #facet_wrap(~Tech) + 
+  geom_jitter(size = 0.2, alpha = 0.4) + 
+  cowplot::theme_cowplot() + 
+  facet_wrap(~Curve) + 
+  scale_color_viridis_c()
 ```
