@@ -71,7 +71,7 @@ if (combination == 'Mus_musculus'){
 m_early <- m[,cell_info %>% filter(Age < 10) %>% pull(value)]
 m_late <- m[,cell_info %>% filter(Age >= 10) %>% pull(value)]
 m_test <- m[,sample(1:ncol(m), 10000)]
-
+m_onlyUMI <-  m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
 downsample_samples <- 
   cell_info %>% 
   group_by(batch) %>% 
@@ -83,19 +83,28 @@ m_downsample <- m[,downsample_samples]
 
 make_seurat_obj <- function(m, 
                             split.by = 'study_accession',
-                            nfeatures = nfeatures){
+                            nfeatures = nfeatures,
+							skip_well = TRUE){
   umi_m <- m[,cell_info %>% filter(value %in% colnames(m), UMI == 'NO') %>% pull(value)]
   droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), UMI == 'YES') %>% pull(value)]
-  seurat_umi <- CreateSeuratObject(umi_m)
+  if (skip_well){
+ 	 seurat_umi <- CreateSeuratObject(umi_m)
+  }
   seurat_droplet <- CreateSeuratObject(droplet_m)
   
   # FILTER STEP!!!!
   # keep cells with < 10% mito genes, and more than 200 and less than 3000 detected genes for UMI
   # for well, drop the 3000 gene top end filter as there shouldn't be any droplets
-  seurat_umi <- subset(seurat_umi, subset = nFeature_RNA > 200)
+  if (skip_well){
+    seurat_umi <- subset(seurat_umi, subset = nFeature_RNA > 200)
+  }
   seurat_droplet <- subset(seurat_droplet, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 )
   # cells to keep
-  cells_to_keep <- c(row.names(seurat_umi@meta.data), row.names(seurat_droplet@meta.data))
+  if (skip_well){
+	cells_to_keep <- c(row.names(seurat_umi@meta.data), row.names(seurat_droplet@meta.data))
+  } else {
+	cells_to_keep <- row.names(seurat_droplet@meta.data)
+  }
   m_filter <- m[,cells_to_keep]
   
   seurat_m <- CreateSeuratObject(m_filter)
@@ -260,6 +269,9 @@ if (set == 'early'){
 } else if (set == 'full'){
   print("Running Full")
   seurat__standard <- make_seurat_obj(m, split.by = covariate)
+}  else if (set == 'onlyUMI'){
+  print("Running onlyUMI (remove well based)")
+  seurat__standard <- make_seurat_obj(m_onlyUMI, split.by = covariate, skip_well = FALSE)
 } else if (set == 'downsample'){
   print("Running downsample")
   seurat__standard <- make_seurat_obj(m_downsample, split.by = covariate)

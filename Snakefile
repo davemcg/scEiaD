@@ -179,7 +179,7 @@ rule all:
 				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
+				partition = ['full', 'onlyUMI'], \
 				n_features = [1000, 2000, 5000, 10000], \
 				covariate = ['batch'], \
 				dims = [10,20,30,50,100],
@@ -205,31 +205,31 @@ rule all:
 				dims = [30],
 				dist = [0.3],
 				neighbors = [30]),
-	#	expand('monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.monocle.Rdata', \
-	#			transform = ['counts'], \
-	#			method = ['scVI'], \
-	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-	#			partition = ['full'], \
-	#			n_features = [1000, 2000, 10000], \
-	#			covariate = ['batch'], \
-	#			dims = [10,20,30,50,100],
-	#			dist = [0.1, 0.3],
-	#			neighbors = [15, 30, 50, 100, 500]),
-	#	expand('monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.monocle.Rdata', \
-	#			transform = ['counts'], \
-	#			method = ['scVI'], \
-	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-	#			partition = ['full'], \
-	#			n_features = [1000, 2000], \
-	#			covariate = ['batch'], \
-	#			dims = [200],
-	#			dist = [0.1, 0.3],
-	#			neighbors = [15, 30, 50, 100, 500]),
-		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.Rdata', \
+		expand('monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.monocle.Rdata', \
 				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['full'], \
+				n_features = [5000], \
+				covariate = ['batch'], \
+				dims = [200],
+				dist = [0.1, 0.3],
+				neighbors = [15, 30, 50, 100, 500]),
+		expand('monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.monocle.Rdata', \
+				transform = ['counts'], \
+				method = ['scVI'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['full'], \
+				n_features = [10000], \
+				covariate = ['batch'], \
+				dims = [10],
+				dist = [0.1, 0.3],
+				neighbors = [15, 30, 50, 100, 500]),
+		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.Rdata', \
+				transform = ['counts'], \
+				method = ['scVI'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['full', 'onlyUMI'], \
 				n_features = [1000, 2000, 5000, 10000], \
 				covariate = ['batch'], \
 				dims = [10,20,30,50,100],
@@ -278,7 +278,7 @@ rule all:
 				method = ['scVI'], \
 				n_features = [1000, 2000,5000,10000], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
+				partition = ['full', 'onlyUMI'], \
 				covariate = ['batch'], \
 				knn = [4, 5, 7, 10], \
 				dims = [8,10,20,30,50,100]),
@@ -291,17 +291,26 @@ rule all:
 				covariate = ['batch'], \
 				knn = [4, 5, 7, 10], \
 				dims = [200]),
-#		expand('anndata/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad', \
-#				transform = ['counts'], \
-#				method = ['scVI'], \
-#				n_features = [10000], \
-#				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-#				partition = ['full'], \
-#				covariate = ['batch'], \
-#				neighbors = [100], \
-#				knn = [4], \
-#				dims = [20], \
-#				dist = [0.1]),
+		expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata', \
+				transform = ['SCT','libSize','sqrt','scran', 'standard'], \
+				method = ['magic', 'CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
+				n_features = [2000], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['full'], \
+				covariate = ['batch'], \
+				knn = [5], \
+				dims = [30]),
+		expand('anndata/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad', \
+				transform = ['counts'], \
+				method = ['scVI'], \
+				n_features = [10000], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['onlyUMI'], \
+				covariate = ['batch'], \
+				neighbors = [15], \
+				knn = [7], \
+				dims = [10], \
+				dist = [0.1]),
 #		expand('anndata/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad', \
 #				transform = ['counts'], \
 #				method = ['scVI'], \
@@ -314,7 +323,8 @@ rule all:
 #				dims = [30], \
 #				dist = [0.1]),
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
-		expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples)
+		expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples),
+		'site/anthology.sqlite'
 
 # mouse, human, macaque fasta and gtf
 rule download_references:
@@ -699,7 +709,7 @@ rule run_phate:
 rule extract_umap:
 	input:
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn5.cluster.seuratV3.Rdata',
+		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn5.cluster.Rdata',
 		'cell_info_labelled.Rdata',
 		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 	output:
@@ -858,4 +868,22 @@ rule make_h5ad_object:
 		"""
 		module load R
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad.R {input} {output}
+		"""
+
+rule make_sqlite:
+	input:
+		#seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter__mindist0.1__nneighbors15.umap.Rdata',
+		#meta = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter__mindist0.1__nneighbors15.umap.Rdata'
+		seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyUMI__batch__scVI__dims50__preFilter__mindist0.3__nneighbors15.umap.Rdata',
+		meta = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyUMI__batch__scVI__dims50__preFilter__mindist0.3__nneighbors15.umap.Rdata'
+		cluster = 'cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyUMI__batch__scVI__dims100__preFilter__knn5.cluster.Rdata'
+	params:
+		'site/anthology.sqlite'
+	output:
+		'site/anthology.sqlite.gz'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/make_sqlite.R {input} {params} 
+		pigz -p 32 {params}
 		"""

@@ -158,5 +158,12 @@
 		"mem" : "90G",
 		"time" : "4:00:00",
 		"partition" : "quick"
+	},
+	"make_sqlite" :
+	{
+		"mem" : "250G",
+		"time" : "4:00:00",
+		"partition" : "largemem",
+		"extra" : " --gres=lscratch:20"
 	}
 }	
