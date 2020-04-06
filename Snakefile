@@ -137,49 +137,12 @@ rule all:
 	input:
 		'references/kallisto_idx/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz.idx',
 		'quant/Macaca_fascicularis/full_sparse_matrix.Rdata',
-	#	'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__scran__full__batch.seuratV3.Rdata',
-	#	'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__SCT__full__batch.seuratV3.Rdata',
-	#	'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__standard__full__batch.seuratV3.Rdata',
 		expand('quant/{organism}/full_sparse_matrix.Rdata', organism = organism),
-		#expand('diff_testing/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__postFilter__mindist{dist}__knn{knn}__nneighbors{neighbors}.model{model}.monocle_diff.coefficient_table.Rdata',
-		#	    combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-		#		partition = ['full'], \
-		#		n_features = [2000], \
-		#		dist = [0.1], \
-		#		transform = ['counts'], \
-		#		covariate = ['batch'], \
-		#		method = ['scVI'], \
-		#		dims = [30], \
-		#		knn = [7], \
-		#		neighbors = [100], \
-		#		model = ['~seuratCluster+batch+percent.mt', '~monocleCluster+batch+percent.mt', \
-		#		         '~seuratCluster+batch+percent.mt+organism', '~monocleCluster+batch+percent.mt+organism']),
-	#	expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__postFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-	#			transform = ['scran', 'standard'], \
-	#			method = ['fastMNN'], \
-	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-	#			partition = ['full'], \
-	#			n_features = [2000], \
-	#			covariate = ['batch'], \
-	#			dims = [30,50,100,200],
-	#			dist = [0.001,0,1, 0.3],
-	#			neighbors = [5, 30, 50]),
-	#	expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__postFilter__perplexity{perplexity}.big_tsne_plot.png', \
-	#			transform = ['scran', 'standard'], \
-	#			method = ['fastMNN'], \
-	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-	#			partition = ['full'], \
-	#			n_features = [2000], \
-	#			covariate = ['batch'], \
-	#			dims = [30,50,100,200],
-	#			dist = [0.001,0,1, 0.3],
-	#			neighbors = [5, 30, 50],
-	#			perplexity = [50,100,300]),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full', 'onlyUMI'], \
+				partition = ['onlyDROPLET'], \
 				n_features = [1000, 2000, 5000, 10000], \
 				covariate = ['batch'], \
 				dims = [10,20,30,50,100],
@@ -189,7 +152,7 @@ rule all:
 				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
+				partition = ['onlyDROPLET'], \
 				n_features = [1000, 2000, 5000], \
 				covariate = ['batch'], \
 				dims = [200],
@@ -199,37 +162,17 @@ rule all:
 				transform = ['sqrt','libSize','scran', 'standard', 'SCT'], \
 				method = ['magic', 'CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
+				partition = ['onlyDROPLET', 'onlyWELL'], \
 				n_features = [2000], \
 				covariate = ['batch'], \
 				dims = [30],
 				dist = [0.3],
 				neighbors = [30]),
-		expand('monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.monocle.Rdata', \
-				transform = ['counts'], \
-				method = ['scVI'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
-				n_features = [5000], \
-				covariate = ['batch'], \
-				dims = [200],
-				dist = [0.1, 0.3],
-				neighbors = [15, 30, 50, 100, 500]),
-		expand('monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.monocle.Rdata', \
-				transform = ['counts'], \
-				method = ['scVI'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
-				n_features = [10000], \
-				covariate = ['batch'], \
-				dims = [10],
-				dist = [0.1, 0.3],
-				neighbors = [15, 30, 50, 100, 500]),
 		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.Rdata', \
 				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full', 'onlyUMI'], \
+				partition = ['onlyDROPLET'], \
 				n_features = [1000, 2000, 5000, 10000], \
 				covariate = ['batch'], \
 				dims = [10,20,30,50,100],
@@ -239,7 +182,7 @@ rule all:
 				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
+				partition = ['onlyDROPLET'], \
 				n_features = [1000, 2000, 5000], \
 				covariate = ['batch'], \
 				dims = [200],
@@ -249,36 +192,18 @@ rule all:
 				transform = ['SCT','libSize','sqrt','scran', 'standard'], \
 				method = ['magic', 'CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
+				partition = ['onlyDROPLET','onlyWELL'], \
 				n_features = [2000], \
 				covariate = ['batch'], \
 				dims = [30],
 				dist = [0.3],
 				neighbors = [30]),
-	#	expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__postFilter__perplexity{perplexity}.big_tsne_plot.png', \
-	#			transform = ['counts'], \
-	#			method = ['scVI'], \
-	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-	#			partition = ['full'], \
-	#			n_features = [2000, 5000, 10000], \
-	#			covariate = ['batch'], \
-	#			dims = [8,10,20,30,50,100,200],
-	#			perplexity = [30,50,100,1000]),
-	#	expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__postFilter__knn{knn}.cluster.Rdata', \
-	#			transform = ['scran', 'standard'], \
-	#			method = ['fastMNN'], \
-	#			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-	#			partition = ['full'], \
-	#			n_features = [2000], \
-	#			covariate = ['batch'], \
-	#			knn = [5, 7, 10], \
-	#			dims = [30,50,100,200]),
 		expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata', \
 				transform = ['counts'], \
 				method = ['scVI'], \
 				n_features = [1000, 2000,5000,10000], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full', 'onlyUMI'], \
+				partition = ['onlyDROPLET'], \
 				covariate = ['batch'], \
 				knn = [4, 5, 7, 10], \
 				dims = [8,10,20,30,50,100]),
@@ -287,7 +212,7 @@ rule all:
 				method = ['scVI'], \
 				n_features = [1000, 2000,5000], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
+				partition = ['onlyDROPLET'], \
 				covariate = ['batch'], \
 				knn = [4, 5, 7, 10], \
 				dims = [200]),
@@ -296,35 +221,13 @@ rule all:
 				method = ['magic', 'CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
 				n_features = [2000], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['full'], \
+				partition = ['onlyDROPLET','onlyWELL'], \
 				covariate = ['batch'], \
 				knn = [5], \
 				dims = [30]),
-		expand('anndata/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad', \
-				transform = ['counts'], \
-				method = ['scVI'], \
-				n_features = [10000], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['onlyUMI'], \
-				covariate = ['batch'], \
-				neighbors = [15], \
-				knn = [7], \
-				dims = [10], \
-				dist = [0.1]),
-#		expand('anndata/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad', \
-#				transform = ['counts'], \
-#				method = ['scVI'], \
-#				n_features = [2000], \
-#				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-#				partition = ['full'], \
-#				covariate = ['batch'], \
-#				neighbors = [50], \
-#				knn = [7], \
-#				dims = [30], \
-#				dist = [0.1]),
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
 		expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples),
-		'site/anthology.sqlite'
+		'site/anthology.sqlite.gz'
 
 # mouse, human, macaque fasta and gtf
 rule download_references:
@@ -585,17 +488,38 @@ rule label_known_cells_with_type:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/label_known_cells.R 
 		"""
 
+
+# as the wellONLY data has no labelled cells, we need to use the droplet data to transfer labels
+def predict_missing_cell_types_input(partition):
+	if partition == 'onlyWELL':
+		out = ['seurat_obj/{combination}__n_features{n_features}__{transform}__onlyWELL__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
+				'seurat_obj/{combination}__n_features{n_features}__{transform}__onlyDROPLET__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata']
+	else:
+		out = ['seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata']
+	return(out)
+
 rule predict_missing_cell_types_00:
 	input:
-		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
+		lambda wildcards: predict_missing_cell_types_input(wildcards.partition),
 		'cell_info_labelled.Rdata'
 	output:
 		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
-	shell:
-		"""
-		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels.R {input} {wildcards.transform} {output}
-		"""
+	run:
+		if wildcards.partition == 'onlyWELL':
+			command = 'module load R/3.6; ' \
+						'Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels__sep_objs.R \
+							{input} {transform} {output}'.format(input = ' '.join(input),
+																			transform = wildcards.transform,
+																			output = output) 
+		else:
+			command = 'module load R/3.6; ' \
+						'Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels.R \
+							{input} {transform} {output}'.format(input = ' '.join(input),
+																			transform = wildcards.transform,
+																			output = output)
+		sp.run("echo \"" +  command + "\"\n", shell = True)
+		sp.run(command, shell=True)
+
 
 rule doublet_ID:
 	input:
@@ -607,51 +531,6 @@ rule doublet_ID:
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/doublet_ID.R {input}
 		"""
-
-# removes doublets and some unwanted cell types
-#rule make_seurat_objs_filtered:
-#	input:
-#		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
-#		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__scVI__dims30__preFilter_cell_info_predictions.Rdata',
-#		'doublet_calls.Rdata',
-#		'cell_info_labelled.Rdata'
-#	output:
-#		temp('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__postFilter.seuratV3.Rdata')
-#	shell:
-#		"""
-#		module load R
-#		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/filter_seurat_obj.R {input} {output}
-#		"""
-
-#3rule integrate_01:
-#	input:
-#		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__postFilter.seuratV3.Rdata',
-#	output:
-#		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__postFilter.seuratV3.Rdata'
-#	threads: 8
-#	run:
-#		job = "module load R/3.6; \
-#				Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
-#				  {method} {transform} {covariate} {dims} {input} {output}".format(\
-#						method = wildcards.method, \
-#						transform = wildcards.transform, \
-#					    covariate = wildcards.covariate, \
-#						dims = wildcards.dims, \
-#			            output = output, input = input)
-#		sp.run("echo \"" +  job + "\"\n", shell = True)
-#		sp.run(job, shell = True)
-
-#rule predict_missing_cell_types_01:
-#	input:
-#		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__postFilter.seuratV3.Rdata',
-#		'cell_info_labelled.Rdata'
-#	output:
-#		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__postFilter_cell_info_predictions.Rdata'
-#	shell:
-#		"""
-#		module load R/3.6
-#		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels.R {input} {wildcards.transform} {output}
-#		"""
 
 rule calculate_umap:
 	input:
@@ -771,18 +650,6 @@ rule plot_integration_tsne:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R TSNE {input} {output}
 		"""
 
-rule plot_integration_with_well_supported_cell_types:
-	input:
-		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
-	output:
-		'plots/well_supported_celltypes/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.WellSupportedCells.color_study__facet_celltype.pdf',
-		'plots/well_supported_celltypes/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.WellSupportedCells.color_celltype.pdf',
-	shell:
-		"""
-		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/plot_assess_integration_specific_types.R {input} {output}
-		"""
-
 rule cluster_assessment:
 	input:
 		expand('umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata', \
@@ -874,9 +741,9 @@ rule make_sqlite:
 	input:
 		#seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter__mindist0.1__nneighbors15.umap.Rdata',
 		#meta = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter__mindist0.1__nneighbors15.umap.Rdata'
-		seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyUMI__batch__scVI__dims50__preFilter__mindist0.3__nneighbors15.umap.Rdata',
-		meta = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyUMI__batch__scVI__dims50__preFilter__mindist0.3__nneighbors15.umap.Rdata'
-		cluster = 'cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyUMI__batch__scVI__dims100__preFilter__knn5.cluster.Rdata'
+		seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyDROPLET__batch__scVI__dims50__preFilter__mindist0.3__nneighbors15.umap.Rdata',
+		meta = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyDROPLET__batch__scVI__dims50__preFilter__mindist0.3__nneighbors15.umap.Rdata',
+		cluster = 'cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyDROPLET__batch__scVI__dims50__preFilter__knn10.cluster.Rdata'
 	params:
 		'site/anthology.sqlite'
 	output:
@@ -887,3 +754,4 @@ rule make_sqlite:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/make_sqlite.R {input} {params} 
 		pigz -p 32 {params}
 		"""
+

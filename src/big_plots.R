@@ -8,6 +8,12 @@ args <- commandArgs(trailingOnly = TRUE)
 
 red <- args[1]
 load(args[2])
+if (grepl('onlyWELL', args[2])){
+	celltype_col <- 'CellType_predict'
+	print('woo')
+} else { 
+	celltype_col <- 'CellType' 
+}	
 
 if (!"cluster" %in% colnames(umap)){
   umap$cluster <- umap$clusters
@@ -16,7 +22,7 @@ if (!"cluster" %in% colnames(umap)){
 # filter
 umap <- umap %>% 
   rename(Stage = integration_group) %>% 
-  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>% 
+  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', !!as.symbol(celltype_col))) %>% 
   filter(!is.na(CellType), 
          !is.na(study_accession), 
          !CellType %in% c('Astrocytes', 'Horizontal Cells', 'Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
