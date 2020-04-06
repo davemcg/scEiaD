@@ -12,6 +12,14 @@ load(args[1])
 # full obj
 load(args[2])
 
+
+print(args[2])
+
+if (grepl('onlyWELL', args[2])){
+    umap$CellType <- umap$CellType_predict
+} 
+
+
 if (!"cluster" %in% colnames(umap)){
     umap$cluster <- umap$clusters
 }
@@ -28,6 +36,7 @@ scores <- list()
 # https://github.com/theislab/kBET
 set.seed(12534)
 # take up to 3000 from each organism/celltype
+print('cutdown begin')
 cutdown <- umap %>% 
   rowid_to_column('ID') %>% 
   filter(!CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
@@ -35,21 +44,31 @@ cutdown <- umap %>%
   group_by(organism, CellType) %>% 
   sample_n(3000, replace = TRUE) %>% 
   unique()
+# remove celltypes which have fewer than 10 cells
+keep <- umap %>% group_by(CellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(CellType)
+cutdown <- cutdown %>% filter(CellType %in% keep)
 silhouette <- function(obj){
-  indices <- obj$ID
-  faux_pca <- list()
-  faux_pca$x <- integrated_obj@reductions[[reduction]]@cell.embeddings[indices,]
-  batch <- umap[indices, 'batch'] %>% pull(1) %>% as.factor() %>% as.numeric()
-  dims = ncol(integrated_obj@reductions[[reduction]]@cell.embeddings[indices,])
-  kBET::batch_sil(faux_pca, batch, nPCs = dims)
+  out <- 0
+  try({
+    indices <- obj$ID
+    faux_pca <- list()
+    faux_pca$x <- integrated_obj@reductions[[reduction]]@cell.embeddings[indices,]
+    batch <- umap[indices, 'batch'] %>% pull(1) %>% as.factor() %>% as.numeric()
+    dims = ncol(integrated_obj@reductions[[reduction]]@cell.embeddings[indices,])
+    out <- kBET::batch_sil(faux_pca, batch, nPCs = dims)
+  })
+  out
 }
 # have to subsample as this requires making a dist obj! 
 # -1 overlapping (good if you are evaluating batch mixing)
 # 1 distinct clusters (bad if you are evaluating batch)
 # 0 is random
+print('scoring starts')
+print('silhouette')
 scores$silhouette <- silhouette(cutdown)
 
 # run silhouette by cell type
+print('silhouette by celltype')
 scores$silhouette_CellType <- cutdown %>% 
   group_by(CellType) %>% group_map(~ silhouette(.x))
 
@@ -63,6 +82,7 @@ scores$silhouette_CellType <- cutdown %>%
 # devtools::install_github("immunogenomics/lisi")
 # generates a score PER CELL which is a metric of number of types of neighbors
 # lower is better (pure cell population within region)
+print('lisi')
 scores$LISI <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,], 
                                   cutdown,
                                   'CellType')
@@ -71,10 +91,15 @@ scores$LISI <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.em
 # https://davetang.org/muse/2017/09/21/adjusted-rand-index/
 # very slow
 # install.packages('clues')
+print('ari')
 ari <- function(obj){
-  clues::adjustedRand(obj$cluster %>% as.character() %>% as.numeric(), obj$CellType %>% as.factor() %>% as.numeric())
+  out <- 'fail'
+  try({
+    clues::adjustedRand(obj$cluster %>% as.character() %>% as.numeric(), obj$CellType %>% as.factor() %>% as.numeric())
+  })
 }
 scores$RI <- ari(cutdown)
+print('scoring over')
 # by species
 scores$RI_species <- cutdown %>% 
   group_by(organism) %>% 
