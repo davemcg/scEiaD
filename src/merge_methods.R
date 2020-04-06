@@ -153,7 +153,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          use_cuda,
                          n_hidden,
                          n_latent,
-                         n_layers)
+                         n_layers,
+						 FALSE)
     # run scVI     
 	print(scVI_command) 
     system(scVI_command)
@@ -170,7 +171,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          use_cuda,
                          64,
                          n_latent,
-                         n_layers)
+                         n_layers,
+						 FALSE)
     	# run scVI
    	 	print(scVI_command)
 	    system(scVI_command)
