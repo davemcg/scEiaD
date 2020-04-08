@@ -227,7 +227,7 @@ rule all:
 				dims = [30]),
 		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
 		expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples),
-		'site/anthology.sqlite.gz'
+		expand('site/anthology_limma{correction}.sqlite.gz', correction = ['TRUE', 'FALSE'])
 
 # mouse, human, macaque fasta and gtf
 rule download_references:
@@ -741,17 +741,17 @@ rule make_sqlite:
 	input:
 		#seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter__mindist0.1__nneighbors15.umap.Rdata',
 		#meta = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter__mindist0.1__nneighbors15.umap.Rdata'
-		seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyDROPLET__batch__scVI__dims50__preFilter__mindist0.3__nneighbors15.umap.Rdata',
-		meta = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyDROPLET__batch__scVI__dims50__preFilter__mindist0.3__nneighbors15.umap.Rdata',
-		cluster = 'cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyDROPLET__batch__scVI__dims50__preFilter__knn10.cluster.Rdata'
+		seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims200__preFilter__mindist0.1__nneighbors100.umap.Rdata',
+		meta = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims200__preFilter__mindist0.1__nneighbors100.umap.Rdata',
+		cluster = 'cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims200__preFilter__knn10.cluster.Rdata'
 	params:
-		'site/anthology.sqlite'
+		'site/anthology_limma{correction}.sqlite'
 	output:
-		'site/anthology.sqlite.gz'
+		'site/anthology_limma{correction}.sqlite.gz'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/make_sqlite.R {input} {params} 
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/make_sqlite.R {input} {params} {wildcards.correction}
 		pigz -p 32 {params}
 		"""
 

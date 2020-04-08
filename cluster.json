@@ -162,7 +162,7 @@
 	"make_sqlite" :
 	{
 		"mem" : "350G",
-		"time" : "4:00:00",
+		"time" : "12:00:00",
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:20"
 	}
