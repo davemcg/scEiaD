@@ -20,4 +20,4 @@ for (f in files){
 
 coefficient_table <- coefficient_table(gene_fits_all %>% filter(status == 'OK')) %>% select(-model, -model_summary)
 save(coefficient_table, file = args[1])
-save(gene_fits_all, file = args[2])
+#save(gene_fits_all, file = args[2])
