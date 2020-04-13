@@ -16,7 +16,7 @@ Cell Type purity is directly orthogaonl to organism diversity.
 ```{r}
 library(tidyverse)
 library(cowplot)
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/metrics3.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/metrics_onlyDROPLETn.Rdata')
 ```
 
 
@@ -117,7 +117,7 @@ tab_overall <- left_join(celltype, org) %>%
          syn = LISIRank + ARIRank + SilhouetteRank) %>% 
   arrange(sum)
 
-tab_overall  %>% filter(dims != 8) %>%  DT::datatable()
+tab_overall  %>%  DT::datatable()
 
 ```
 
@@ -125,11 +125,10 @@ tab_overall  %>% filter(dims != 8) %>%  DT::datatable()
 ```{r}
 perf_bench <- 
   bind_rows(perf_one %>% filter(normalization != 'counts'), 
-            perf_one %>% filter(normalization == 'counts', dims == 200, nf == 2000, method == 'scVI'))
+            perf_one %>% filter(normalization == 'counts', dims == 30, nf == 2000, method == 'scVI'))
 umap_bench <- 
   bind_rows(umap_one %>% filter(normalization != 'counts'), 
-            umap_one %>% filter(normalization == 'counts', dims == 200, nfeatures == 2000, nneighbors == 100, mindist == 0.3,  method == 'scVI')) %>% 
-  filter(knn == 5)
+            umap_one %>% filter(normalization == 'counts', knn == 5, dims == 30, nfeatures == 2000, nneighbors == 100, mindist == 0.3,  method == 'scVI')) 
 
 silhouette_bench <- perf_bench %>% 
   filter(`Cell Type` == 'All', score == 'Silhouette')  %>% 
@@ -208,7 +207,7 @@ tab_bench <- left_join(celltype, org) %>%
          syn = LISIRank + ARIRank + SilhouetteRank) %>% 
   arrange(sum)
 
-tab_bench  %>% filter(dims != 8, knn == 5) %>%  DT::datatable()
+tab_bench %>%  DT::datatable()
 
 ```
 
