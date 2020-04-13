@@ -14,7 +14,7 @@ library(cowplot)
 library(ggrepel)
 library(patchwork)
 
-anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/anthology_limmaFALSE.sqlite", idleTimeout = 3600000)
+anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "/Volumes/McGaughey_S/anthology_limmaFALSE_nf5000-d50-k7.sqlite", idleTimeout = 3600000)
 
 # filter
 meta_filter <- anthology_2020_v01 %>% 
@@ -28,7 +28,7 @@ meta_filter <- anthology_2020_v01 %>%
 
 # get coords for cell labels
 celltype_predict_labels <- meta_filter %>% group_by(CellType_predict) %>% summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2))
-
+celltype_labels <- meta_filter %>% group_by(CellType) %>% summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2))
 # get coords for cell labels
 cluster_labels <- meta_filter %>% group_by(cluster) %>% summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2))
 
@@ -50,7 +50,7 @@ cat(file=stderr(), ' seconds.\n')
 shinyServer(function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
-    # server help queries ------
+    ## server help queries ------
     # server gene / tx to UI side
     if (is.null(query[['Gene']])){
       updateSelectizeInput(session, 'Gene',
@@ -73,7 +73,7 @@ shinyServer(function(input, output, session) {
       updateSelectizeInput(session, 'dotplot_Gene',
                            choices = anthology_2020_v01 %>% tbl('genes') %>% as_tibble() %>% pull(1),
                            options = list(placeholder = 'Type to search'), 
-                           selected = c('CRX', 'PDE6A', 'NRL', 'GAS7','GUCA1B','VAX2','ADAM9', 'SAG'),
+                           selected = c('RHO','WIF1','CABP5', 'AIF1','AQPT4','ARR3','ONECUT1','GRIK1','GAD1','POU4F2'),
                            server = TRUE)
     }
     
@@ -82,6 +82,17 @@ shinyServer(function(input, output, session) {
                            choices = anthology_2020_v01 %>% tbl('grouped_stats') %>% 
                              select(-Gene, -cell_ct, -cell_exp_ct, -cpm) %>% colnames() %>% sort(),
                            options = list(placeholder = 'Type to search'), 
+                           selected = c('CellType_predict'),
+                           server = TRUE)
+    }
+    
+    if (is.null(query[['meta_groupings']])){
+      updateSelectizeInput(session, 'meta_groupings',
+                           choices = meta_filter %>% 
+                             select(-Barcode, -UMAP_1, -UMAP_2, -nCount_RNA, -nFeature_RNA, -percent_mt) %>% 
+                             colnames() %>% sort(),
+                           options = list(placeholder = 'Type to search'), 
+                           selected = c('CellType_predict', 'organism'),
                            server = TRUE)
     }
     
@@ -107,10 +118,11 @@ shinyServer(function(input, output, session) {
         #guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
         scale_color_viridis_c(option = 'magma') +
         theme_cowplot() + 
-        theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        theme(axis.line = element_blank(),
               axis.title = element_blank(),
               axis.ticks = element_blank(),
-              axis.text = element_blank()) 
+              axis.text = element_blank()) +
+        annotate("text", -Inf, Inf, label = paste0(gene, '\nexpression'), hjust = 0, vjust = 1, size = 6)
       
       plot
       
@@ -124,15 +136,13 @@ shinyServer(function(input, output, session) {
     meta_plot <- eventReactive(input$BUTTON_draw_meta, {
       meta_column <- input$meta_column
       transform <- input$meta_column_transform
-      
-      cat(transform)
       if (transform == 'log2' && is.numeric(meta_filter[,meta_column] %>% pull(1))){
         cat('log2 time')
         meta_filter[,meta_column] <- log2(meta_filter[,meta_column] + 1)
       }
       plot <- meta_filter %>% 
         filter(!is.na(!!as.symbol(meta_column))) %>% 
-        sample_frac(0.3) %>% 
+        #sample_frac(0.3) %>% 
         ggplot() + 
         geom_scattermore(aes(x = UMAP_1, 
                              y = UMAP_2),
@@ -146,10 +156,11 @@ shinyServer(function(input, output, session) {
                          alpha = 0.2) +
         guides(colour = guide_legend(override.aes = list(size=3, alpha = 1))) + 
         theme_cowplot() + 
-        theme(panel.border = element_rect(colour = "black", fill=NA, size=1),
+        theme(axis.line = element_blank(),
               axis.title = element_blank(),
               axis.ticks = element_blank(),
-              axis.text = element_blank()) 
+              axis.text = element_blank()) +
+        annotate("text", -Inf, Inf, label = "Metadata", hjust = 0, vjust = 1, size = 6)
       
       if (is.numeric(meta_filter[,meta_column] %>% pull(1)) ){
         color <- scale_color_viridis_c()
@@ -158,12 +169,24 @@ shinyServer(function(input, output, session) {
                                                     pals::alphabet2() %>% unname()), 
                                                   times = 10))
       }
-      
-      if (input$label_toggle == 'TRUE'){
-        plot + color +  geom_text_repel(data = celltype_predict_labels, bg.color = 'white',
-                                        aes(x = UMAP_1, y = UMAP_2, label = CellType_predict)) 
+      more <- NULL
+      if ('1' %in% input$label_toggle){
+        more <- geom_text_repel(data = celltype_labels, bg.color = 'white',
+                                aes(x = UMAP_1, y = UMAP_2, label = CellType)) 
+      }
+      if ('2' %in% input$label_toggle){
+        more <- geom_text_repel(data = celltype_predict_labels, bg.color = 'white',
+                                aes(x = UMAP_1, y = UMAP_2, label = CellType_predict)) 
+      }
+      if ('3' %in% input$label_toggle){
+        more <- geom_text_repel(data = cluster_labels, bg.color = 'white',
+                                aes(x = UMAP_1, y = UMAP_2, label = cluster),
+                                max.iter = 20) 
+      } 
+      if (meta_column == 'cluster'){
+        plot + more + theme(legend.position = 'none') + color
       } else {
-        plot + color
+        plot + more + color
       }
       
     })
@@ -172,7 +195,7 @@ shinyServer(function(input, output, session) {
     })  
     
     # gene cluster table  --------
-    gene_cluster_stats_maker <- eventReactive(input$BUTTON_draw_scatter, {
+    gene_cluster_stats_maker <- eventReactive(input$BUTTON_make_gene_table, {
       grouping_features <- input$grouping_features
       gene <- input$Gene
       table <- anthology_2020_v01 %>% tbl('grouped_stats') %>% 
@@ -189,15 +212,36 @@ shinyServer(function(input, output, session) {
         mutate(`%` = round((cell_exp_ct / Count) * 100, 2),
                Expression = round(cpm * (`%` / 100), 2)) %>% 
         select_at(vars(one_of(c('Gene', grouping_features, 'cell_exp_ct', 'Count', '%', 'Expression')))) %>% 
+        arrange(-Expression) %>% 
         rename(`Cells # Detected` = cell_exp_ct, 
-               `Total Cells` = Count)
+               `Total Cells` = Count,
+               `log2(cpm+1)` = Expression)
       
-      table %>% DT::datatable(extensions = 'Buttons', rownames = F, options = list(
-        pageLength = 20, dom = 'frtBip', buttons = c('pageLength','copy', 'csv')))
+      table %>% DT::datatable(extensions = 'Buttons', rownames = F, 
+                              filter = list(position = 'bottom', clear = FALSE),
+                              options = list(pageLength = 10, dom = 'frtBip', buttons = c('pageLength','copy', 'csv')))
     })
     output$gene_cluster_stats <- DT::renderDataTable({ gene_cluster_stats_maker()})
     
-    # dotplot ---------
+    
+    # metadata table -----
+    metadata_stats <- eventReactive(input$BUTTON_make_meta_table, {
+      grouping_features <- input$meta_groupings
+      table <- meta_filter %>% 
+        group_by_at(vars(one_of(grouping_features))) %>% 
+        summarise(Count = n()) %>% 
+        select_at(vars(one_of(c(grouping_features, 'Count')))) %>% 
+        arrange(-Count) %>% 
+        rename(`Total Cells` = Count)
+      
+      table %>% DT::datatable(extensions = 'Buttons', rownames = F, 
+                              filter = list(position = 'bottom', clear = FALSE),
+                              options = list(pageLength = 10, dom = 'frtBip', buttons = c('pageLength','copy', 'csv')))
+    })
+    output$metadata_stats <- DT::renderDataTable({ metadata_stats()})
+    
+    # NEW SECTION -----------
+    ## dotplot ---------
     make_dotplot <- eventReactive(input$BUTTON_draw_dotplot, {
       gene <- input$dotplot_Gene
       grouping_features <- c('CellType_predict', 'organism')
@@ -264,8 +308,8 @@ shinyServer(function(input, output, session) {
         theme_nothing() +
         ggtree::xlim2(dotplot)
       
-        org_legend <- plot_grid(get_legend(org_labels + theme(legend.position="bottom")))
-        ct_legend <- plot_grid(get_legend(ct_labels + theme(legend.position="bottom")))
+      org_legend <- plot_grid(get_legend(org_labels + theme(legend.position="bottom")))
+      ct_legend <- plot_grid(get_legend(ct_labels + theme(legend.position="bottom")))
       org_labels +
         ct_labels +
         dotplot + 
