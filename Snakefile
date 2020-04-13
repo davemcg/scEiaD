@@ -1,3 +1,5 @@
+import pprint
+pp = pprint.PrettyPrinter(width=41, compact=True) 
 import subprocess as sp
 
 srr_sample_file = config['srr_sample_file']
@@ -39,6 +41,7 @@ def metadata_builder(file, SRS_dict = {}, discrepancy = False):
 	return(SRS_dict)
 
 SRS_dict = metadata_builder(srr_sample_file)
+# pp.pprint(SRS_dict)
 # hand edited file which corrects mistakes that in the 
 # various databases
 # SRS_dict = metadata_builder(srr_sample_discrepancy_file, SRS_dict, discrepancy = True)
@@ -80,32 +83,45 @@ def lookup_run_from_SRS(SRS):
 	return(out)
 
 # return dummy well file for macaca ,as there is no well data at this time
-def well_and_droplet_input(organism):
+def well_and_droplet_input(organism, reference):
 	if organism == 'Macaca_fascicularis':
-		out = ['quant/' + x + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
+		out = ['quant/' + x + '/' + reference + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
 	else:
 		out = ['quant/' + organism + '/counts.Rdata']	+ \
-				['quant/' + x + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
+				['quant/' + x + '/' + reference + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
 	return(out)
 
-def SRS_info(SRS, data_to_return):
+def REF_idx(ref, data_to_return):
 	organism = SRS_dict[SRS]['organism']
-	if organism.lower() == 'mus_musculus':
+	if ref == 'mm':
 		idx = 'references/kallisto_idx/gencode.vM22.pc_transcripts.fa.gz.idx'
 		txnames = 'references/gencode.vM22.metadata.MGI_tx_mapping.tsv'
-	elif organism.lower() == 'homo_sapiens':
+	elif ref == 'hs':
 		idx = 'references/kallisto_idx/gencode.v31.pc_transcripts.fa.gz.idx'
 		txnames = 'references/gencode.v31.metadata.HGNC_tx_mapping.tsv'
-	elif organism.lower() == 'macaca_fascicularis':
-		idx = 'references/kallisto_idx/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz.idx'
-		txnames = 'references/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all_tx_mapping.tsv'
+	elif ref == 'mf':
+		idx = 'references/kallisto_idx/Macaca_mulatta.Mmul_10.cdna.all.fa.gz.idx'
+		txnames = 'references/Macaca_mulatta.Mmul_10.cdna.all_tx_mapping.tsv'
 	else:
-		print(SRS + ' ' + organism + " NO SPECIES MATCH!")
+		print(ref + " NO REF MATCH!")
 	if data_to_return == 'idx':
 		out = idx
 	else:
 		out = txnames
 	return(out)
+
+def ORG_ref(organism):
+	if organism.lower() == 'mus_musculus':
+		out = ['mm']
+	elif organism.lower() == 'homo_sapiens':
+		out = ['hs']
+	elif organism.lower() == 'macaca_fascicularis':
+		out = ['hs','mf']
+	else:
+		print(organism + ' NO MATCH')
+	return(out)
+
+
 
 
 SRS_UMI_samples = []
@@ -135,8 +151,6 @@ wildcard_constraints:
 
 rule all:
 	input:
-		'references/kallisto_idx/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz.idx',
-		'quant/Macaca_fascicularis/full_sparse_matrix.Rdata',
 		expand('quant/{organism}/full_sparse_matrix.Rdata', organism = organism),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['counts'], \
@@ -159,8 +173,8 @@ rule all:
 				dist = [0.001,0.1, 0.3],
 				neighbors = [15, 30, 50, 100, 500]),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-				transform = ['sqrt','libSize','scran', 'standard', 'SCT'], \
-				method = ['magic', 'CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
+				transform = ['sqrt','libSize','scran', 'standard'], \
+				method = ['magic',  'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['onlyDROPLET', 'onlyWELL'], \
 				n_features = [2000], \
@@ -189,8 +203,8 @@ rule all:
 				dist = [0.001,0.1, 0.3],
 				neighbors = [15, 30, 50, 100, 500]),
 		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.Rdata', \
-				transform = ['SCT','libSize','sqrt','scran', 'standard'], \
-				method = ['magic', 'CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
+				transform = ['libSize','sqrt','scran', 'standard'], \
+				method = ['magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['onlyDROPLET','onlyWELL'], \
 				n_features = [2000], \
@@ -206,7 +220,7 @@ rule all:
 				partition = ['onlyDROPLET'], \
 				covariate = ['batch'], \
 				knn = [4, 5, 7, 10], \
-				dims = [8,10,20,30,50,100]),
+				dims = [10,20,30,50,100]),
 		expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata', \
 				transform = ['counts'], \
 				method = ['scVI'], \
@@ -217,23 +231,23 @@ rule all:
 				knn = [4, 5, 7, 10], \
 				dims = [200]),
 		expand('cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata', \
-				transform = ['SCT','libSize','sqrt','scran', 'standard'], \
-				method = ['magic', 'CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
+				transform = ['libSize','sqrt','scran', 'standard'], \
+				method = ['magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
 				n_features = [2000], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['onlyDROPLET','onlyWELL'], \
 				covariate = ['batch'], \
-				knn = [5], \
-				dims = [30]),
-		expand('quant/{SRS}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
-		expand('quant/{SRS}/output.bus', SRS = SRS_UMI_samples),
+				knn = [7], \
+				dims = [50]),
+		#expand('quant/{SRS}/{reference}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
+		#expand('quant/{SRS}/{reference}/output.bus', SRS = SRS_UMI_samples),
 		expand('site/anthology_limma{correction}.sqlite.gz', correction = ['TRUE', 'FALSE'])
 
-# mouse, human, macaque fasta and gtf
+## mouse, human, macaque fasta and gtf
 rule download_references:
 	output:
 		mouse_fasta = 'references/gencode.vM22.pc_transcripts.fa.gz',
-		macaque_fasta = 'references/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz',
+		macaque_fasta = 'references/Macaca_mulatta.Mmul_10.cdna.all.fa.gz',
 		human_fasta = 'references/gencode.v31.pc_transcripts.fa.gz'
 	shell:
 		"""
@@ -241,6 +255,7 @@ rule download_references:
 		wget ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M22/gencode.vM22.pc_transcripts.fa.gz  
 		#wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/364/345/GCF_000364345.1_Macaca_fascicularis_5.0/GCF_000364345.1_Macaca_fascicularis_5.0_rna.fna.gz
 		wget ftp://ftp.ensembl.org/pub/release-98/fasta/macaca_fascicularis/cdna/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz
+		wget ftp://ftp.ensembl.org/pub/release-99/fasta/macaca_mulatta/cdna/Macaca_mulatta.Mmul_10.cdna.all.fa.gz
 		wget ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_31/gencode.v31.pc_transcripts.fa.gz
 		mv *fa*gz references/
 		"""
@@ -264,7 +279,7 @@ rule tx_gene_mapping:
 	input:
 		'references/gencode.vM22.pc_transcripts.fa.gz'
 	output:
-		mf = 'references/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all_tx_mapping.tsv',
+		mf = 'references/Macaca_mulatta.Mmul_10.cdna.all_tx_mapping.tsv',
 		hs = 'references/gencode.v31.metadata.HGNC_tx_mapping.tsv',
 		mm = 'references/gencode.vM22.metadata.MGI_tx_mapping.tsv'
 	shell:
@@ -273,7 +288,7 @@ rule tx_gene_mapping:
 			sed 's/>//g' | \
 			awk 'BEGIN {{OFS = "\t"; FS = "|"}}; {{print $0, $2, $6}}' > {output.mm}
 
-		zgrep "^>" references/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz | \
+		zgrep "^>" references/Macaca_mulatta.Mmul_10.cdna.all.fa.gz | \
 			sed 's/>//g' > mf.header
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/macaque_ensembl_fasta_header.R mf.header {output.mf}
@@ -293,26 +308,28 @@ rule tx_gene_mapping:
 rule kallisto_bus:
 	input:
 		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS),
-		idx = lambda wildcards: SRS_info(wildcards.SRS, 'idx')
+		idx = lambda wildcards: REF_idx(wildcards.reference, 'idx')
 	output:
-		bus = 'quant/{SRS}/output.bus',
-		ec = 'quant/{SRS}/matrix.ec',
-		tx_name = 'quant/{SRS}/transcripts.txt'
+		bus = 'quant/{SRS}/{reference}/output.bus',
+		ec = 'quant/{SRS}/{reference}/matrix.ec',
+		tx_name = 'quant/{SRS}/{reference}/transcripts.txt'
 	params:
 		tech = lambda wildcards: SRS_dict[wildcards.SRS]['tech'],
 		paired = lambda wildcards: SRS_dict[wildcards.SRS]['paired']
 	run:
 		if params.paired:
 			job = "kallisto bus -x {tech} \
-					-i {idx} -o quant/{SRS} {fastq}".format(fastq = input.fastq,
+					-i {idx} -o quant/{SRS}/{reference} {fastq}".format(fastq = input.fastq,
                                                     tech = params.tech,
 													idx = input.idx,
+													reference = wildcards.reference,
 													SRS = wildcards.SRS)
 		else:
 			job = "kallisto bus --single -x {tech} \
-					-i {idx} -o quant/{SRS} {fastq}".format(fastq = input.fastq,
+					-i {idx} -o quant/{SRS}/{reference} {fastq}".format(fastq = input.fastq,
                                                     tech = params.tech,
 													idx = input.idx,
+													reference = wildcards.reference,
 													SRS = wildcards.SRS)
 		sp.run("echo " + job + '\n', shell = True)
 		sp.run(job, shell = True)	
@@ -321,24 +338,26 @@ rule kallisto_bus:
 rule kallisto_quant:
 	input:
 		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS),
-		idx = lambda wildcards: SRS_info(wildcards.SRS, 'idx')
+		idx = lambda wildcards: REF_idx(wildcards.reference, 'idx')
 	output:
-		quant = 'quant/{SRS}/abundance.tsv.gz'
+		quant = 'quant/{SRS}/{reference}/abundance.tsv.gz'
 	params:
 		paired = lambda wildcards: SRS_dict[wildcards.SRS]['paired']
 	threads: 8
 	run:
 		if params.paired:
 			job = "kallisto quant -t {t} -b 100 --plaintext --bias \
-					-i {idx} -o quant/{SRS} {fastq}".format(fastq = input.fastq,
+					-i {idx} -o quant/{SRS}/{reference} {fastq}".format(fastq = input.fastq,
                                                     t = threads,
 													idx = input.idx,
+													reference = wildcards.reference,
 													SRS = wildcards.SRS)
 		else:
 			job = "kallisto quant --single -l 200 -s 30  -t {t} -b 100 --plaintext --bias \
-					-i {idx} -o quant/{SRS} {fastq}".format(fastq = input.fastq,
+					-i {idx} -o quant/{SRS}/{reference} {fastq}".format(fastq = input.fastq,
                                                     t = threads,
 													idx = input.idx,
+													reference = wildcards.reference,
 													SRS = wildcards.SRS)
 		sp.run("echo " + job + '\n', shell = True)
 		sp.run(job, shell = True)	
@@ -349,9 +368,9 @@ rule kallisto_quant:
 # make these temp files
 rule bustools_sort:
 	input:
-		'quant/{SRS}/output.bus'
+		'quant/{SRS}/{reference}/output.bus'
 	output:
-		('quant/{SRS}/output.sorted.bus')
+		temp('quant/{SRS}/{reference}/output.sorted.bus')
 	threads: 4
 	shell:
 		"""
@@ -364,15 +383,15 @@ rule bustools_sort:
 # make these temp files
 rule bustools_whitelist_correct_count:
 	input:
-		bus = 'quant/{SRS}/output.sorted.bus',
-		ec = 'quant/{SRS}/matrix.ec',
-		tx_name = 'quant/{SRS}/transcripts.txt',
-		tx_map = lambda wildcards: SRS_info(wildcards.SRS, 'tx')
+		bus = 'quant/{SRS}/{reference}/output.sorted.bus',
+		ec = 'quant/{SRS}/{reference}/matrix.ec',
+		tx_name = 'quant/{SRS}/{reference}/transcripts.txt',
+		tx_map = lambda wildcards: REF_idx(wildcards.reference, 'tx')
 	output:
-		whitelist = 'whitelist/{SRS}_whitelist',
-		bus_matrix = 'quant/{SRS}/genecount/gene.mtx'
+		whitelist = 'whitelist/{SRS}/{reference}_whitelist',
+		bus_matrix = 'quant/{SRS}/{reference}/genecount/gene.mtx'
 	params:
-		bus_out = 'quant/{SRS}/genecount/gene'
+		bus_out = 'quant/{SRS}/{reference}/genecount/gene'
 	shell:
 		"""
 		/home/mcgaugheyd/git/bustools/build/src/./bustools whitelist \
@@ -393,22 +412,22 @@ rule bustools_whitelist_correct_count:
 
 rule create_sparse_matrix:
 	input:
-		'quant/{SRS}/genecount/gene.mtx'
+		'quant/{SRS}/{reference}/genecount/gene.mtx'
 	output:
-		stats = 'quant/{SRS}/genecount/stats.tsv',
-		matrix = 'quant/{SRS}/genecount/matrix.Rdata'
+		stats = 'quant/{SRS}/{reference}/genecount/stats.tsv',
+		matrix = 'quant/{SRS}/{reference}/genecount/matrix.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {output.matrix} {output.stats}
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {output.matrix} {output.stats}
 		"""		
 
 rule merge_nonUMI_quant_by_organism:
 	input:
-		quant = lambda wildcards: expand('quant/{SRS}/abundance.tsv.gz', SRS = organism_well_dict[wildcards.organism]),
-		tx_map = lambda wildcards: SRS_info(organism_well_dict[wildcards.organism][0], 'tx')
+		quant = lambda wildcards: expand('quant/{SRS}/{{reference}}/abundance.tsv.gz', SRS = organism_well_dict[wildcards.organism]),
+		tx_map = lambda wildcards: REF_idx(wildcards.reference, 'tx')
 	output:
-		'quant/{organism}/counts.Rdata'
+		'quant/{reference}/{organism}/counts.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -418,16 +437,31 @@ rule merge_nonUMI_quant_by_organism:
 rule combine_well_and_umi:
 	input:
 		srr_metadata = config['srr_sample_file'],
-		tx_map = lambda wildcards: SRS_info(organism_droplet_dict[wildcards.organism][0], 'tx'),
-		counts = lambda wildcards: well_and_droplet_input(wildcards.organism)
+		tx_map = lambda wildcards:  REF_idx(wildcards.reference, 'tx'),  # SRS_info(organism_droplet_dict[wildcards.organism][0], 'tx'),
+		counts = lambda wildcards: well_and_droplet_input(wildcards.organism, wildcards.reference)
 	output:
-		cell_info = '{organism}_cell_info.tsv',
-		matrix = 'quant/{organism}/full_sparse_matrix.Rdata'
+		cell_info = '{organism}_{reference}_cell_info.tsv',
+		matrix = 'quant/{organism}/{reference}_full_sparse_matrix.Rdata'
 	shell:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_sparse_matrix.R {wildcards.organism} {output} {input}
 		"""
+
+rule merge_across_references:
+	input:
+		cell_info = lambda wildcards: expand('{{organism}}_{reference}_cell_info.tsv', reference = ORG_ref(wildcards.organism)),
+		matrix = lambda wildcards: expand('quant/{{organism}}/{reference}_full_sparse_matrix.Rdata', reference = ORG_ref(wildcards.organism))
+	output:
+		'quant/{organism}/full_sparse_matrix.Rdata',
+		'{organism}_cell_info.tsv'
+	shell:
+		"""
+		module load R/3.6
+		# script analyzes, for macaque, which gene is more detected when using human or macaque ref
+		# then creates new matrix blending "best" gene from either human or macaque
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/rebuild_macaque_sparse_matrix.R {wildcards.organism} {output} {input}
+		"""	
 
 localrules: cat_cell_info
 rule cat_cell_info:
@@ -439,7 +473,7 @@ rule cat_cell_info:
 	shell:
 		"""
 		cat {input} | head -n 1 > header
-		cat header <( grep -v "^name" {input}) > {output}
+		cat header <( grep -hv "^value" {input}) > {output}
 		"""
 		
 rule make_seurat_objs:

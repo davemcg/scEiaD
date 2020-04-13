@@ -56,6 +56,13 @@
 		"time" : "4:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
+	"merge_across_references" :
+	{
+		"mem" : "240G",
+		"partition" : "quick",
+		"time" : "4:00:00",
+		"extra" : " --gres=lscratch:100"
+	},
 	"integrate_00" :
 	{
 		"mem" : "600G",

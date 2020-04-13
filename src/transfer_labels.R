@@ -21,7 +21,7 @@ nmeta <- integrated_obj@meta.data
 # join with umap
 nmeta <- left_join(nmeta %>% as_tibble(rownames = 'Barcode'), cell_info_labels %>% select(Barcode = value, CellType))
 
-# label the non clark blackshaw labels as missing
+# label the unlabelled cells as missing
 nmeta$CellType[is.na(nmeta$CellType)] <- 'Missing'
 integrated_obj@meta.data$CellType <- nmeta$CellType
 
