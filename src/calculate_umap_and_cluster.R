@@ -96,7 +96,7 @@ if (method == 'CCA'){
   reduction.key <- 'iNMFUMAP_'
 } else if (method == 'scanorama'){
   reduction <- 'scanorama'
-  reruction.key <- 'scanoramaUMAP_'
+  reduction.key <- 'scanoramaUMAP_'
 } else if (method == 'harmony'){
   reduction <- 'harmony'
   reduction.key <- 'harmonyUMAP_'
