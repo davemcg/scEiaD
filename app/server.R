@@ -14,7 +14,7 @@ library(cowplot)
 library(ggrepel)
 library(patchwork)
 
-anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "/Volumes/McGaughey_S/anthology_limmaFALSE_nf5000-d50-k7.sqlite", idleTimeout = 3600000)
+anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "./www/anthology_limmaFALSE_nf5000-d50-k7.sqlite", idleTimeout = 3600000)
 
 # filter
 meta_filter <- anthology_2020_v01 %>% 
@@ -109,9 +109,9 @@ shinyServer(function(input, output, session) {
         as_tibble()
       
       plot <- p %>% ggplot() + 
-        geom_scattermore(data = meta_filter %>% sample_frac(0.2),
+        geom_scattermore(data = meta_filter,
                          aes(x = UMAP_1, y = UMAP_2), 
-                         pointsize = 0.3, color = 'gray', alpha = 0.2) +
+                         pointsize = 0.3, color = 'gray', alpha = 0.1) +
         geom_scattermore(aes(x = UMAP_1, y = UMAP_2, colour = cpm), 
                          pointsize = pt_size, 
                          alpha = 0.3) +
@@ -142,7 +142,7 @@ shinyServer(function(input, output, session) {
       }
       plot <- meta_filter %>% 
         filter(!is.na(!!as.symbol(meta_column))) %>% 
-        sample_frac(0.2) %>% 
+        #sample_frac(0.3) %>% 
         ggplot() + 
         geom_scattermore(aes(x = UMAP_1, 
                              y = UMAP_2),
@@ -181,7 +181,7 @@ shinyServer(function(input, output, session) {
       if ('3' %in% input$label_toggle){
         more <- geom_text_repel(data = cluster_labels, bg.color = 'white',
                                 aes(x = UMAP_1, y = UMAP_2, label = cluster),
-                                max.time = 0.1) 
+                                max.iter = 20) 
       } 
       if (meta_column == 'cluster'){
         plot + more + theme(legend.position = 'none') + color

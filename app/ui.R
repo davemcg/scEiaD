@@ -64,9 +64,9 @@ shinyUI(
                                             selectizeInput('meta_groupings', strong('Metadata Table Groupings '),
                                                            choices = NULL, 
                                                            multiple = TRUE),
-                                            div(DT::dataTableOutput('metadata_stats'), style='font-size:75%')),
+                                            div(DT::dataTableOutput('metadata_stats'), style='font-size:75%'))
                                    )
-                                 ),
+                                 )
                         ),
                         tabPanel('Heatmap',
                                  column(8,
