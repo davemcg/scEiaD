@@ -71,16 +71,37 @@ create_umap_and_cluster <- function(integrated_obj,
     # switch to scran / igraph method as it is about 5X faster
 	for (k in knn){
       graph <- buildSNNGraph(Embeddings(integrated_obj, reduction = reduction), 
-		transposed = TRUE, k = k, d = max_dims)
-      cluster <- igraph::cluster_walktrap(graph)$membership
+		transposed = TRUE, k = k, d = max_dims, type = 'jaccard')
+      cluster <- igraph::cluster_louvain(graph)$membership
       integrated_obj@meta.data[,paste0('cluster_knn', k)] <- cluster
 	  integrated_obj@misc[[paste0("Graph_knn", k)]] <- graph
+
+	  # do subclustering on each cluster
+	  meta <- cbind(integrated_obj@meta.data %>% row.names(), cluster) %>% data.frame()
+	  colnames(meta) <- c('Barcode','cluster')
+      k <- 20
+	  subcluster <- list()
+	  for (i in unique(meta$cluster)){
+  	    bc <- meta %>% 
+				as_tibble() %>% 
+		        filter(cluster == i) %>% 
+			    pull(Barcode) %>% 
+				as.character()
+        graph <- buildSNNGraph(Embeddings(integrated_obj, reduction = reduction)[bc,],
+                         transposed = TRUE, k = k, d = max_dims, type = 'jaccard')
+        c_bc <- igraph::cluster_louvain(graph)$membership
+        sub <- cbind(bc, c_bc) %>% data.frame()
+        colnames(sub) <- c('Barcode','subcluster')
+        subcluster[[i]] <- sub
+      }
+	  subcluster <- subcluster %>% bind_rows(.id = 'supercluster')  %>%
+						mutate(supersubcluster = paste0(supercluster, '.', subcluster))
+	  subcluster <- left_join(integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode'), subcluster, by = 'Barcode')
+	  integrated_obj@meta.data[,paste0('subcluster_knn', k)] <- subcluster$supersubcluster
 	}
 } else {
-	print("Skip clustering")
     #integrated_obj@meta.data$cluster <- NA
 }
-	
   integrated_obj
 }
 
@@ -145,5 +166,7 @@ integrated_obj <- create_umap_and_cluster(integrated_obj = integrated_obj,
                                           cluster = cluster,
 										  umap = umap)
 
-save(integrated_obj, file = args[9], compress = FALSE )
+integrated_obj@assays$RNA@data <- as.matrix(c(0))
+integrated_obj@assays$RNA@scale.data <- as.matrix(c(0))
+save(integrated_obj, file = args[9], compress = TRUE)
 

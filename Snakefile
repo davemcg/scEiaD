@@ -121,9 +121,6 @@ def ORG_ref(organism):
 		print(organism + ' NO MATCH')
 	return(out)
 
-
-
-
 SRS_UMI_samples = []
 SRS_nonUMI_samples = []
 for SRS in SRS_dict.keys():
@@ -241,7 +238,7 @@ rule all:
 				dims = [50]),
 		#expand('quant/{SRS}/{reference}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
 		#expand('quant/{SRS}/{reference}/output.bus', SRS = SRS_UMI_samples),
-		expand('site/anthology_limma{correction}.sqlite.gz', correction = ['TRUE', 'FALSE'])
+		expand('site/anthology_limma{correction}.sqlite.gz', correction = ['FALSE'])
 
 ## mouse, human, macaque fasta and gtf
 rule download_references:
@@ -482,7 +479,7 @@ rule make_seurat_objs:
 		expand('quant/{organism}/full_sparse_matrix.Rdata', \
 			 organism = organism)
 	output:
-		seurat = temp('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata')
+		seurat = ('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata')
 	shell:
 		"""
 		module load R/3.6
@@ -684,28 +681,6 @@ rule plot_integration_tsne:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R TSNE {input} {output}
 		"""
 
-rule cluster_assessment:
-	input:
-		expand('umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata', \
-				transform = transform, \
-				method = method, \
-				combination = 'Mus_musculus', \
-				partition = ['full'], \
-				n_features = [2000], \
-				covariate = covariate, \
-				dist = [0.001, 0.3, 0.5], \
-				neighbors = [5, 30, 50],\
-				dims = dims)
-	output:
-		'plots/well_supported_celltypes/{organism}.mean_cluster_purity_by_cell_type.pdf',
-		'plots/well_supported_celltypes/{organism}.mean_cluster_purity_by_study_and_cell_type.pdf',
-		'plots/well_supported_celltypes/{organism}.median_cluster_area_chull.pdf'
-	shell:
-		"""
-		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/cluster_purity.R umap {output}
-		"""
-
 rule monocle_diff_testing:
 	input:
 		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
@@ -775,9 +750,9 @@ rule make_sqlite:
 	input:
 		#seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter__mindist0.1__nneighbors15.umap.Rdata',
 		#meta = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter__mindist0.1__nneighbors15.umap.Rdata'
-		seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims200__preFilter__mindist0.1__nneighbors100.umap.Rdata',
-		meta = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims200__preFilter__mindist0.1__nneighbors100.umap.Rdata',
-		cluster = 'cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims200__preFilter__knn10.cluster.Rdata'
+		seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyDROPLET__batch__scVI__dims50__preFilter__mindist0.1__nneighbors100.umap.Rdata',
+		meta = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyDROPLET__batch__scVI__dims50__preFilter__mindist0.1__nneighbors100.umap.Rdata',
+		cluster = 'cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__onlyDROPLET__batch__scVI__dims50__preFilter__knn7.cluster.Rdata'
 	params:
 		'site/anthology_limma{correction}.sqlite'
 	output:

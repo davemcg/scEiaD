@@ -5,9 +5,11 @@ library(tidyverse)
 # load cluster data
 load(args[2])
 cluster <- meta %>% pull(2)
+subcluster <- meta %>% pull(3)
 # load integrated seurat obj
 load(args[1])
 integrated_obj@meta.data$cluster <- cluster
+integrated_obj@meta.data$subcluster <- subcluster
 # load labelled cell data
 load(args[3])
 # load predicted cell data (+ labelled)

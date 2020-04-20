@@ -81,7 +81,7 @@
 	{
 		"mem" : "100G",
 		"partition" : "norm",
-		"time" : "8:00:00",
+		"time" : "16:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
 	"calculate_tsne" : 
@@ -93,10 +93,10 @@
 	},
 	"calculate_cluster" :
 	{
-		"mem" : "700G",
-		"partition" : "largemem",
-		"time" : "72:00:00",
-		"extra" : " --gres=lscratch:100"
+		"mem" : "120G",
+		"partition" : "norm",
+		"time" : "6:00:00",
+		"extra" : " --gres=lscratch:10"
 	},
 	"run_phate" :
 	{
