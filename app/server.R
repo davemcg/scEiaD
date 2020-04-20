@@ -5,16 +5,15 @@ cat(file = stderr(), 'Server Go!\n')
 options(shiny.sanitize.errors = FALSE)
 
 library(ggplot2)
+library(Cairo)
 library(scattermore)
 library(dplyr)
 require(pals)
 library(pool)
 library(RSQLite)
-library(cowplot)
 library(ggrepel)
 library(patchwork)
-
-anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "./www/anthology_limmaFALSE_nf5000-d50-k7.sqlite", idleTimeout = 3600000)
+anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/anthology_limmaFALSE_nf5000-d50-k7.sqlite", idleTimeout = 3600000)
 
 # filter
 meta_filter <- anthology_2020_v01 %>% 
@@ -24,7 +23,12 @@ meta_filter <- anthology_2020_v01 %>%
          !is.na(study_accession), 
          !CellType_predict %in% c('Astrocytes', 'Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
          !grepl('RPE|Vascul', CellType_predict))  %>% 
-  dplyr::select(-UMI) 
+  dplyr::select(-UMI, -cluster) %>% 
+  left_join(., subcluster %>% 
+              as_tibble() %>% 
+              mutate(subcluster = paste0(supercluster, '.', cluster), 
+                     cluster = supercluster) %>% 
+              select(-supercluster))
 
 # get coords for cell labels
 celltype_predict_labels <- meta_filter %>% group_by(CellType_predict) %>% summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2))
@@ -97,21 +101,24 @@ shinyServer(function(input, output, session) {
     }
     
     # gene scatter plot ------------
+    gene_scatter_ranges <- reactiveValues(x = c(meta_filter$UMAP_1 %>% min(), meta_filter$UMAP_1 %>% max()), 
+                                          y = c(meta_filter$UMAP_2 %>% min(), meta_filter$UMAP_2 %>% max()))
+    
     gene_scatter_plot <- eventReactive(input$BUTTON_draw_scatter, {
       cat(file=stderr(), 'gene scatter plot\n')
       gene <- input$Gene
       pt_size <- as.numeric(input$pt_size) / 10
       query = paste0('select * from cpm where Gene in ("',
                      paste(gene, collapse='","'),'")')
-      p <- dbGetQuery(anthology_2020_v01, query) %>% 
-        left_join(.,meta_filter, by = 'Barcode') %>% 
-        filter(cpm > 1) %>% 
-        as_tibble()
+      p <-  anthology_2020_v01 %>% tbl('cpm') %>% 
+        filter(cpm > 1, Gene == gene) %>% 
+        as_tibble() %>% 
+        left_join(., meta_filter, by = 'Barcode')
       
       plot <- p %>% ggplot() + 
-        geom_scattermore(data = meta_filter,
+        geom_scattermore(data = meta_filter %>% sample_frac(0.2),
                          aes(x = UMAP_1, y = UMAP_2), 
-                         pointsize = 0.3, color = 'gray', alpha = 0.1) +
+                         pointsize = pt_size, color = 'gray', alpha = 0.1) +
         geom_scattermore(aes(x = UMAP_1, y = UMAP_2, colour = cpm), 
                          pointsize = pt_size, 
                          alpha = 0.3) +
@@ -127,12 +134,25 @@ shinyServer(function(input, output, session) {
       plot
       
     })
+    
+    observeEvent(input$gene_scatter_plot_dblclick, {
+      brush <- input$gene_scatter_plot_brush
+      if (!is.null(brush)) {
+        gene_scatter_ranges$x <- c(brush$xmin, brush$xmax)
+        gene_scatter_ranges$y <- c(brush$ymin, brush$ymax)
+        
+      } else {
+        gene_scatter_ranges$x <- c(meta_filter$UMAP_1 %>% min(), meta_filter$UMAP_1 %>% max())
+        gene_scatter_ranges$y <- c(meta_filter$UMAP_2 %>% min(), meta_filter$UMAP_2 %>% max())
+      }
+    })
     output$gene_scatter_plot <- renderPlot({
-      gene_scatter_plot()
+      gene_scatter_plot() + xlim(gene_scatter_ranges$x) + ylim(gene_scatter_ranges$y)
     })  
     
     
     # metadata plot --------------
+    
     meta_plot <- eventReactive(input$BUTTON_draw_meta, {
       meta_column <- input$meta_column
       transform <- input$meta_column_transform
@@ -141,13 +161,14 @@ shinyServer(function(input, output, session) {
         meta_filter[,meta_column] <- log2(meta_filter[,meta_column] + 1)
       }
       plot <- meta_filter %>% 
-        filter(!is.na(!!as.symbol(meta_column))) %>% 
-        #sample_frac(0.3) %>% 
+             filter(!is.na(!!as.symbol(meta_column))) %>% 
         ggplot() + 
-        geom_scattermore(aes(x = UMAP_1, 
-                             y = UMAP_2),
-                         color = 'gray',
-                         pointsize = 0.5, 
+        geom_scattermore(data = meta_filter %>% 
+                           filter(is.na(!!as.symbol(meta_column))),
+                         aes(x = UMAP_1, 
+                             y = UMAP_2, 
+                             colour = !!as.symbol(meta_column) ), 
+                         pointsize = 0.8, 
                          alpha = 0.2) +
         geom_scattermore(aes(x = UMAP_1, 
                              y = UMAP_2, 
@@ -163,11 +184,12 @@ shinyServer(function(input, output, session) {
         annotate("text", -Inf, Inf, label = "Metadata", hjust = 0, vjust = 1, size = 6)
       
       if (is.numeric(meta_filter[,meta_column] %>% pull(1)) ){
-        color <- scale_color_viridis_c()
+        color <- scale_color_viridis_c(na.value = "gray")
       } else {
         color <- scale_colour_manual(values = rep(c(pals::alphabet() %>% unname(),
                                                     pals::alphabet2() %>% unname()), 
-                                                  times = 10))
+                                                  times = 10),
+                                     na.value = "gray")
       }
       more <- NULL
       if ('1' %in% input$label_toggle){
@@ -190,8 +212,22 @@ shinyServer(function(input, output, session) {
       }
       
     })
+    meta_ranges <- reactiveValues(x = c(meta_filter$UMAP_1 %>% min(), meta_filter$UMAP_1 %>% max()), 
+                                  y = c(meta_filter$UMAP_2 %>% min(), meta_filter$UMAP_2 %>% max()))
+    observeEvent(input$meta_plot_dblclick, {
+      brush <- input$meta_plot_brush
+      if (!is.null(brush)) {
+        meta_ranges$x <- c(brush$xmin, brush$xmax)
+        meta_ranges$y <- c(brush$ymin, brush$ymax)
+        
+      } else {
+        meta_ranges$x <- c(meta_filter$UMAP_1 %>% min(), meta_filter$UMAP_1 %>% max())
+        meta_ranges$y <- c(meta_filter$UMAP_2 %>% min(), meta_filter$UMAP_2 %>% max())
+      }
+    })
+    
     output$meta_plot <- renderPlot({
-      meta_plot()
+      meta_plot() + xlim(meta_ranges$x) + ylim(meta_ranges$y)
     })  
     
     # gene cluster table  --------

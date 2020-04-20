@@ -2,11 +2,13 @@ print('UI Start')
 print(Sys.time())
 
 library(shiny)
+library(Cairo)
 library(ggplot2)
 library(scattermore)
 library(pals)
 library(shinythemes)
 library(cowplot)
+library(svgPanZoom)
 
 shinyUI(
   navbarPage('Ocular scAnthology',
@@ -18,7 +20,12 @@ shinyUI(
                                  fluidPage(
                                    fluidRow(
                                      column(6,
-                                            plotOutput('gene_scatter_plot'),
+                                            plotOutput('gene_scatter_plot', 
+                                                       dblclick = "gene_scatter_plot_dblclick",
+                                                       brush = brushOpts(
+                                                         id = "gene_scatter_plot_brush",
+                                                         resetOnNew = TRUE
+                                                       )),
                                             fluidRow(column(5,
                                                             selectizeInput('Gene', strong('Gene: '),
                                                                            choices=NULL, multiple=FALSE)),
@@ -27,7 +34,12 @@ shinyUI(
                                                                            choices=c(3,5,10,20, 50), 
                                                                            selected = 5, multiple=FALSE)))),
                                      column(6,
-                                            plotOutput('meta_plot'),
+                                            plotOutput('meta_plot',
+                                                       dblclick = "meta_plot_dblclick",
+                                                       brush = brushOpts(
+                                                         id = "meta_plot_brush",
+                                                         resetOnNew = TRUE
+                                                       )),
                                             fluidRow(column(5, 
                                                             selectInput("label_toggle", label = strong("Label: "), 
                                                                         choices = list("None" = 0,
