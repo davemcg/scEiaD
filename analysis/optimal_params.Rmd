@@ -16,7 +16,7 @@ Cell Type purity is directly orthogaonl to organism diversity.
 ```{r}
 library(tidyverse)
 library(cowplot)
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/metrics_onlyDROPLETn.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/metrics_onlyDROPLETn2.Rdata')
 ```
 
 

@@ -15,17 +15,16 @@ shinyUI(
              theme = shinytheme('flatly'),
              selected = 'Overview',
              navbarMenu('Viz',
-                        # Expression ---------------
                         tabPanel('UMAP 2D', 
                                  fluidPage(
                                    fluidRow(
+                                     # Gene Scatter  ---------------
                                      column(6,
                                             plotOutput('gene_scatter_plot', 
                                                        dblclick = "gene_scatter_plot_dblclick",
                                                        brush = brushOpts(
                                                          id = "gene_scatter_plot_brush",
-                                                         resetOnNew = TRUE
-                                                       )),
+                                                         resetOnNew = TRUE)),
                                             fluidRow(column(5,
                                                             selectizeInput('Gene', strong('Gene: '),
                                                                            choices=NULL, multiple=FALSE)),
@@ -33,13 +32,13 @@ shinyUI(
                                                             selectizeInput('pt_size', strong('Point Size: '),
                                                                            choices=c(3,5,10,20, 50), 
                                                                            selected = 5, multiple=FALSE)))),
+                                     # Meta Plot ------
                                      column(6,
                                             plotOutput('meta_plot',
                                                        dblclick = "meta_plot_dblclick",
                                                        brush = brushOpts(
                                                          id = "meta_plot_brush",
-                                                         resetOnNew = TRUE
-                                                       )),
+                                                         resetOnNew = TRUE)),
                                             fluidRow(column(5, 
                                                             selectInput("label_toggle", label = strong("Label: "), 
                                                                         choices = list("None" = 0,
