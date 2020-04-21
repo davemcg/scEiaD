@@ -71,14 +71,22 @@ db_create_index(pool, table = 'cpm', columns = c('Barcode'))
 
 metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, nCount_RNA, nFeature_RNA, percent_mt = `percent.mt`, batch, sample_accession, study_accession, Age, library_layout, organism, Platform, UMI, Covariate, CellType, CellType_predict, Paper, integration_group) %>% 
 							 left_join(., meta, by = 'Barcode')
-colnames(metadata)[ncol(metadata)] <- 'cluster'
+colnames(metadata)[ncol(metadata)] <- 'subcluster'
+colnames(metadata)[(ncol(metadata) - 1)] <- 'cluster'
 metadata <- metadata %>% rename(Stage = integration_group) %>% 
-  mutate(cluster = as.character(cluster),
-         CellType_predict = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType_predict),
-         CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType))
+  mutate(cluster = as.character(cluster))
+
+meta_filter <- metadata %>% 
+  filter(!is.na(CellType_predict), 
+         !is.na(study_accession), 
+         !CellType_predict %in% c('Astrocytes', 'Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !grepl('RPE|Vascul', CellType_predict))
 
 dbWriteTable(pool, "metadata", metadata, overwrite = TRUE)
 db_create_index(pool, table = 'metadata', columns = c('Barcode'))
+
+dbWriteTable(pool, "metadata_filter", meta_filter, overwrite = TRUE)
+db_create_index(pool, table = 'metadata_filter', columns = c('Barcode'))
 
 dbWriteTable(pool, "genes", genes, overwrite = TRUE)
 
