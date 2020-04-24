@@ -14,8 +14,8 @@ shinyUI(
   navbarPage('Ocular scAnthology',
              theme = shinytheme('flatly'),
              selected = 'Overview',
-             navbarMenu('Viz',
-                        tabPanel('UMAP 2D', 
+             navbarMenu('Viz', # UMAP ----------
+                        tabPanel('UMAP', 
                                  fluidPage(
                                    fluidRow(
                                      # Gene Scatter  ---------------
@@ -29,9 +29,13 @@ shinyUI(
                                                             selectizeInput('Gene', strong('Gene: '),
                                                                            choices=NULL, multiple=FALSE)),
                                                      column(5,
-                                                            selectizeInput('pt_size', strong('Point Size: '),
-                                                                           choices=c(3,5,10,20, 50), 
-                                                                           selected = 5, multiple=FALSE)))),
+                                                            selectizeInput('pt_size_gene', strong('Point Size: '),
+                                                                           choices=c(1,3,5,10), 
+                                                                           selected = 1, multiple=FALSE)),
+                                                     column(5,
+                                                            sliderInput("gene_scatter_slider", label = strong("Expression Range: "), min = 1, 
+                                                                        max = 15, value = c(1, 15))
+                                                     ))),
                                      # Meta Plot ------
                                      column(6,
                                             plotOutput('meta_plot',
@@ -39,18 +43,24 @@ shinyUI(
                                                        brush = brushOpts(
                                                          id = "meta_plot_brush",
                                                          resetOnNew = TRUE)),
-                                            fluidRow(column(5, 
+                                            fluidRow(column(5, selectizeInput('meta_column', strong('Color: '),
+                                                                              choices= NULL, selected = 'CellType_predict')),
+                                                     column(5, 
+                                                            selectizeInput('pt_size_meta', strong('Point Size: '),
+                                                                           choices=c(1,3,5), 
+                                                                           selected = 1, multiple=FALSE)),
+                                                     column(5, 
                                                             selectInput("label_toggle", label = strong("Label: "), 
                                                                         choices = list("None" = 0,
                                                                                        "CellType (published)" = 1,
                                                                                        "CellType (predict)" = 2,
                                                                                        "Cluster" = 3), multiple = FALSE,
                                                                         selected = 2)),
-                                                     column(5,selectizeInput('meta_column', strong('Color: '),
-                                                                             choices= NULL, selected = 'CellType_predict')),
                                                      column(5, radioButtons('meta_column_transform', 
                                                                             label = 'Numeric Transform', inline = TRUE,
-                                                                            choices = list("None" = "None", "log2" = "log2")))))
+                                                                            choices = list("None" = "None", "log2" = "log2")))
+                                            )
+                                     )
                                    ),
                                    fluidRow(
                                      column(6, 
@@ -79,9 +89,34 @@ shinyUI(
                                    )
                                  )
                         ),
-                        tabPanel('Heatmap',
+                        tabPanel('Facet UMAP', # Facet UMAP ---------
+                                 column(10, 
+                                        fluidRow(
+                                          column(10,
+                                                 fluidRow(column(5,
+                                                                 selectizeInput('facet', strong('Facet On: '),
+                                                                                choices=NULL, multiple=FALSE)),
+                                                          column(5,
+                                                                 selectizeInput('facet_color', strong('Color On: '),
+                                                                                choices=NULL, multiple=FALSE)),
+                                                          column(5,
+                                                                 selectizeInput('pt_size_facet', strong('Point Size: '),
+                                                                                choices=c(1,3,5,10), 
+                                                                                selected = 1, multiple=FALSE)),
+                                                          column(5,
+                                                                 selectizeInput('facet_height', strong('Plot Height: '),
+                                                                                choices = c(100,200,300,400,600, 800),
+                                                                                selected = 400, multiple = FALSE))),
+                                                 fluidRow(column(10, actionButton('BUTTON_draw_filter','Draw Plot', icon = icon("arrow-down"),
+                                                                         style='background-color: #3399ff; color: #ffffff'))),
+                                                 br(),
+                                                 plotOutput('facet_plot'))
+                                        )
+
+                                 )),
+                        tabPanel('Dotplot', # Dotplot ---------
                                  column(8,
-                                        plotOutput('dotplot', height = 800),
+                                        plotOutput('dotplot'),
                                         selectizeInput('dotplot_Gene', strong('Genes: '),
                                                        choices=NULL, multiple=TRUE),
                                         actionButton('BUTTON_draw_dotplot','Draw Dotplot!', 

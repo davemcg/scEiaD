@@ -13,14 +13,14 @@ library(pool)
 library(RSQLite)
 library(ggrepel)
 library(patchwork)
-anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "/Volumes/McGaughey_S/anthology_limmaFALSE-nf5000-d50-k7-v2.sqlite", idleTimeout = 3600000)
+anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-200-0.1-100-7.sqlite", idleTimeout = 3600000)
 
 # filter
 meta_filter <- anthology_2020_v01 %>% 
   tbl('metadata_filter') %>% 
-  as_tibble() %>% 
-  mutate(subcluster = cluster) %>% 
-  mutate(cluster = cluster_knn7 %>% as.character())
+  as_tibble()
+#mutate(subcluster = cluster) %>% 
+#mutate(cluster = cluster_knn7 %>% as.character())
 
 # cutdown mf for plotting
 mf <- meta_filter %>% sample_frac(0.2)
@@ -41,8 +41,6 @@ cluster_labels <- meta_filter %>% group_by(cluster) %>% summarise(UMAP_1 = mean(
 # type_val <- setNames(pals::alphabet(n = cell_types %>% length()), cell_types)
 # type_col <- scale_colour_manual(values = type_val)
 # type_fill <- scale_fill_manual(values = type_val)
-
-
 cat(file=stderr(), 'Data loaded in ')
 cat(file=stderr(), Sys.time() - time)
 cat(file=stderr(), ' seconds.\n')
@@ -53,7 +51,7 @@ shinyServer(function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
     ## server help queries ------
-    # server gene / tx to UI side
+    # gene plot updateSelectizeInput -------
     if (is.null(query[['Gene']])){
       updateSelectizeInput(session, 'Gene',
                            choices = anthology_2020_v01 %>% tbl('genes') %>% as_tibble() %>% pull(1),
@@ -61,16 +59,17 @@ shinyServer(function(input, output, session) {
                            selected = 'CRX',
                            server = TRUE)
     }
-    # server gene / tx to UI side
+    # meta plot updateSelectizeInput ------
     if (is.null(query[['meta_column']])){
       updateSelectizeInput(session, 'meta_column',
                            choices = meta_filter %>% 
-                             dplyr::select(nCount_RNA:cluster) %>% colnames() %>% sort(),
+                             dplyr::select(nCount_RNA:subcluster) %>% colnames() %>% sort(),
                            options = list(placeholder = 'Type to search'),
+                           selected = 'CellType_predict',
                            server = TRUE)
     }
     
-    # dotplot genes 
+    # dotplot updateSelectizeInput ----
     if (is.null(query[['dotplot_Gene']])){
       updateSelectizeInput(session, 'dotplot_Gene',
                            choices = anthology_2020_v01 %>% tbl('genes') %>% as_tibble() %>% pull(1),
@@ -78,7 +77,7 @@ shinyServer(function(input, output, session) {
                            selected = c('RHO','WIF1','CABP5', 'AIF1','AQPT4','ARR3','ONECUT1','GRIK1','GAD1','POU4F2'),
                            server = TRUE)
     }
-    
+    # 
     if (is.null(query[['grouping_features']])){
       updateSelectizeInput(session, 'grouping_features',
                            choices = anthology_2020_v01 %>% tbl('grouped_stats') %>% 
@@ -98,6 +97,25 @@ shinyServer(function(input, output, session) {
                            server = TRUE)
     }
     
+    if (is.null(query[['facet']])){
+      updateSelectizeInput(session, 'facet',
+                           choices = meta_filter %>% 
+                             dplyr::select(nCount_RNA:subcluster) %>% colnames() %>% sort(),
+                           options = list(placeholder = 'Type to search'),
+                           selected = 'organism',
+                           server = TRUE)
+    }
+    
+    # server gene / tx to UI side
+    if (is.null(query[['facet_color']])){
+      updateSelectizeInput(session, 'facet_color',
+                           choices = meta_filter %>% 
+                             dplyr::select(nCount_RNA:subcluster) %>% colnames() %>% sort(),
+                           options = list(placeholder = 'Type to search'),
+                           selected = 'CellType',
+                           server = TRUE)
+    }
+    
     # gene scatter plot ------------
     gene_scatter_ranges <- reactiveValues(x = c(meta_filter$UMAP_1 %>% min(), meta_filter$UMAP_1 %>% max()), 
                                           y = c(meta_filter$UMAP_2 %>% min(), meta_filter$UMAP_2 %>% max()))
@@ -105,12 +123,17 @@ shinyServer(function(input, output, session) {
     gene_scatter_plot <- eventReactive(input$BUTTON_draw_scatter, {
       cat(file=stderr(), paste0(Sys.time(), ' Gene Scatter Plot Call\n'))
       gene <- input$Gene
-      pt_size <- as.numeric(input$pt_size) / 5
+      pt_size <- input$pt_size_gene %>% as.numeric()
+      expression_range <- input$gene_scatter_slider
       p <-  anthology_2020_v01 %>% tbl('cpm') %>% 
-        filter(cpm > 1, Gene == gene) %>% 
+        filter(Gene == gene) %>% 
         as_tibble() %>% 
+        mutate(cpm = cpm - min(cpm) + 1) %>% 
+        filter(cpm > as.numeric(expression_range[1]), 
+               cpm < as.numeric(expression_range[2])) %>% 
         left_join(., meta_filter, by = 'Barcode') %>% 
-        filter(!is.na(UMAP_1), !is.na(UMAP_2), !is.na(cpm))
+        filter(!is.na(UMAP_1), !is.na(UMAP_2), !is.na(cpm)) 
+        
       color_range <- range(p$cpm)
       plot <- p %>% ggplot() + 
         geom_scattermost(cbind(mf$UMAP_1, mf$UMAP_2), color = '#D3D3D333', 
@@ -132,7 +155,7 @@ shinyServer(function(input, output, session) {
               axis.title = element_blank(),
               axis.ticks = element_blank(),
               axis.text = element_blank()) +
-        annotate("text", -Inf, Inf, label = paste0(gene, '\nexpression'), hjust = 0, vjust = 1, size = 6)
+        annotate("text", -Inf, Inf, label = paste0(gene, ' expression'), hjust = 0, vjust = 1, size = 6)
       
       suppressWarnings(plot)
       
@@ -160,6 +183,7 @@ shinyServer(function(input, output, session) {
       cat(file=stderr(), paste0(Sys.time(), ' Meta Plot Call\n'))
       meta_column <- input$meta_column
       transform <- input$meta_column_transform
+      pt_size <- input$pt_size_meta %>% as.numeric() 
       if (transform == 'log2' && is.numeric(meta_filter[,meta_column] %>% pull(1))){
         cat('log2 time')
         meta_filter[,meta_column] <- log2(meta_filter[,meta_column] + 1)
@@ -169,61 +193,61 @@ shinyServer(function(input, output, session) {
       # metadata NUMERIC plot --------------
       if (is.numeric(meta_filter[,meta_column] %>% pull(1)) ){
         color_range <- range(p_data[,meta_column] %>% pull(1))
-        plot <- ggplot() + 
-          geom_scattermost(cbind(mf %>% 
-                                   filter(is.na(!!as.symbol(meta_column))) %>% pull(UMAP_1),
-                                 mf %>% 
-                                   filter(is.na(!!as.symbol(meta_column))) %>% pull(UMAP_2)),
-                           pointsize = 1, color = '#D3D3D333',
-                           pixels = c(750,750)) +
-          geom_scattermost(cbind(p_data$UMAP_1, p_data$UMAP_2),
-                           color = viridis::viridis(100, alpha=0.3)
-                           [1+99*((p_data[,meta_column] %>% pull(1))-color_range[1])/diff(color_range)],
-                           pointsize= 1,
-                           pixels=c(750,750),
-                           interpolate=FALSE) +
-          geom_point(data=data.frame(x=double(0)), aes(x,x,color=x))  + 
-          scale_color_gradientn(  #add the manual guide for the empty aes
-            limits=c(min(p_data[,meta_column] %>% pull(1)),
-                     max(p_data[,meta_column] %>% pull(1))),
-            colors=viridis::viridis(100),
-            name=meta_column) +
-          guides(colour = guide_legend(override.aes = list(alpha = 1))) +
-          theme_cowplot() + 
-          theme(axis.line = element_blank(),
-                axis.title = element_blank(),
-                axis.ticks = element_blank(),
-                axis.text = element_blank()) +
-          annotate("text", -Inf, Inf, label = "Metadata", hjust = 0, vjust = 1, size = 6)
+        suppressWarnings(plot <- ggplot() + 
+                           geom_scattermost(cbind(mf %>% 
+                                                    filter(is.na(!!as.symbol(meta_column))) %>% pull(UMAP_1),
+                                                  mf %>% 
+                                                    filter(is.na(!!as.symbol(meta_column))) %>% pull(UMAP_2)),
+                                            pointsize = pt_size, color = '#D3D3D333',
+                                            pixels = c(750,750)) +
+                           geom_scattermost(cbind(p_data$UMAP_1, p_data$UMAP_2),
+                                            color = viridis::viridis(100, alpha=0.3)
+                                            [1+99*((p_data[,meta_column] %>% pull(1))-color_range[1])/diff(color_range)],
+                                            pointsize= pt_size,
+                                            pixels=c(750,750),
+                                            interpolate=FALSE) +
+                           geom_point(data=data.frame(x=double(0)), aes(x,x,color=x))  + 
+                           scale_color_gradientn(  #add the manual guide for the empty aes
+                             limits=c(min(p_data[,meta_column] %>% pull(1)),
+                                      max(p_data[,meta_column] %>% pull(1))),
+                             colors=viridis::viridis(100),
+                             name=meta_column) +
+                           guides(colour = guide_legend(override.aes = list(alpha = 1))) +
+                           theme_cowplot() + 
+                           theme(axis.line = element_blank(),
+                                 axis.title = element_blank(),
+                                 axis.ticks = element_blank(),
+                                 axis.text = element_blank()) +
+                           annotate("text", -Inf, Inf, label = "Metadata", hjust = 0, vjust = 1, size = 6))
         # metadata CATEGORICAL plot --------------
       } else {
         group <- p_data[,meta_column] %>% pull(1) %>% as.factor()
-        p_color = rep(c(pals::alphabet(),pals::alphabet2()), times = 10)[group] %>% paste0(., '33') # alpha 0.33
+        p_color = rep(c(pals::alphabet(),pals::alphabet2()), times = 20)[group] %>% paste0(., '33') # alpha 0.33
         color_data <- group %>% levels() %>% tibble::enframe() %>% mutate(x=0) 
-        plot <- ggplot() +
-          geom_scattermost(cbind(mf %>% 
-                                   filter(is.na(!!as.symbol(meta_column))) %>% pull(UMAP_1),
-                                 mf %>% 
-                                   filter(is.na(!!as.symbol(meta_column))) %>% pull(UMAP_2)),
-                           pointsize = 1, color = '#D3D3D333',
-                           pixels = c(750,750)) +
-          geom_scattermost(cbind(p_data$UMAP_1, p_data$UMAP_2),
-                           color = p_color ,
-                           pointsize= 1,
-                           pixels=c(750,750),
-                           interpolate=FALSE) +
-          geom_point(data=color_data, aes(x,x,color=value), alpha = 0) + 
-          scale_colour_manual(name= meta_column,
-                              values = rep(c(pals::alphabet() %>% unname(),
-                                             pals::alphabet2() %>% unname()), 
-                                           times = 10)) +
-          guides(colour = guide_legend(override.aes = list(alpha = 1, size = 7))) +
-          theme_cowplot() + 
-          theme(axis.line = element_blank(),
-                axis.title = element_blank(),
-                axis.ticks = element_blank(),
-                axis.text = element_blank()) +
-          annotate("text", -Inf, Inf, label = "Metadata", hjust = 0, vjust = 1, size = 6)
+        suppressWarnings(plot <- ggplot() +
+                           geom_scattermost(cbind(mf %>% 
+                                                    filter(is.na(!!as.symbol(meta_column))) %>% pull(UMAP_1),
+                                                  mf %>% 
+                                                    filter(is.na(!!as.symbol(meta_column))) %>% pull(UMAP_2)),
+                                            pointsize = pt_size, color = '#D3D3D333',
+                                            pixels = c(750,750)) +
+                           geom_scattermost(cbind(p_data$UMAP_1, p_data$UMAP_2),
+                                            color = p_color ,
+                                            pointsize= pt_size,
+                                            pixels=c(750,750),
+                                            interpolate=FALSE) +
+                           geom_point(data=color_data, aes(x,x,color=value), alpha = 0) + 
+                           scale_colour_manual(name= meta_column,
+                                               values = rep(c(pals::alphabet() %>% unname(),
+                                                              pals::alphabet2() %>% unname()), 
+                                                            times = 20)) +
+                           guides(colour = guide_legend(override.aes = list(alpha = 1, size = 7))) +
+                           theme_cowplot() + 
+                           theme(axis.line = element_blank(),
+                                 axis.title = element_blank(),
+                                 axis.ticks = element_blank(),
+                                 axis.text = element_blank()) +
+                           annotate("text", -Inf, Inf, label = "Metadata", hjust = 0, vjust = 1, size = 6))
       }
       
       more <- NULL
@@ -240,7 +264,7 @@ shinyServer(function(input, output, session) {
                                 aes(x = UMAP_1, y = UMAP_2, label = cluster),
                                 max.iter = 20) 
       } 
-      if (meta_column == 'cluster'){
+      if (meta_column %in% c('cluster','subcluster')){
         suppressWarnings(plot + more + theme(legend.position = 'none'))
       } else {
         suppressWarnings(plot + more)
@@ -311,7 +335,52 @@ shinyServer(function(input, output, session) {
     })
     output$metadata_stats <- DT::renderDataTable({ metadata_stats()})
     
-    # NEW SECTION -----------
+    # facet plot -----------
+    facet_plot <- eventReactive(input$BUTTON_draw_filter, {
+      cat(file=stderr(), paste0(Sys.time(), ' Facet Plot Call\n'))
+      facet_column <- input$facet
+      color_column <- input$facet_color
+      #transform <- input$facet_column_transform
+      pt_size <- input$pt_size_facet %>% as.numeric() 
+
+      gray_data <- meta_filter %>% 
+        filter(is.na(!!as.symbol(color_column))) 
+      p_data <- meta_filter %>% 
+        filter(!is.na(!!as.symbol(facet_column)),
+               !is.na(!!as.symbol(color_column)))
+
+      suppressWarnings(plot <- ggplot(data = p_data) +
+                         geom_scattermore(data = gray_data,
+                                          aes(x = UMAP_1, y = UMAP_2),
+                                          color = 'gray',
+                                          pointsize = pt_size,
+                                          pixels = c(750,750),
+                                          alpha = 0.4) +
+                         geom_scattermore(aes(x = UMAP_1, y = UMAP_2,
+                                          color = !!as.symbol(color_column)) ,
+                                          pointsize= pt_size,
+                                          pixels = c(750,750),
+                                          alpha = 0.6) +
+                         facet_wrap(vars(!!(as.symbol(facet_column)))) +
+                         scale_colour_manual(values = rep(c(pals::alphabet() %>% unname(),
+                                                            pals::alphabet2() %>% unname()), 
+                                                          times = 20),
+                                             na.value = 'gray') +
+                         guides(colour = guide_legend(override.aes = list(alpha = 1, size = 7))) +
+                         theme_cowplot() + 
+                         theme(axis.line = element_blank(),
+                               axis.title = element_blank(),
+                               axis.ticks = element_blank(),
+                               axis.text = element_blank())
+      )
+      plot
+      
+    })
+    
+    output$facet_plot <- renderPlot({
+      facet_plot()
+    }, height = eventReactive(input$BUTTON_draw_filter, {input$facet_height %>% as.numeric()}))
+    
     ## dotplot ---------
     make_dotplot <- eventReactive(input$BUTTON_draw_dotplot, {
       gene <- input$dotplot_Gene
@@ -392,7 +461,7 @@ shinyServer(function(input, output, session) {
     })
     output$dotplot <- renderPlot({
       make_dotplot()
-    })  
+    }, height = 300)  
     
     
   })
