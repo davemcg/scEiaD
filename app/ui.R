@@ -125,7 +125,7 @@ shinyUI(
              ),
              tabPanel('Overview',
                       (
-                        fluidRow(column(width = 8, offset = 1, h2('Ocular Single Cell Gene Expression Anthology v0.00'))))
+                        fluidRow(column(width = 8, offset = 1, h2('Ocular Single Cell Gene Expression Anthology v0.10'))))
              )
   )
 )
