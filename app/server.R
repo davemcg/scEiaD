@@ -439,14 +439,14 @@ shinyServer(function(input, output, session) {
         scale_fill_manual(values = rep(c(pals::alphabet() %>% unname(),
                                          pals::alphabet2() %>% unname()))) +
         theme_nothing() +
-        ggtree::xlim2(dotplot)
+        aplot::xlim2(dotplot)
       ct_labels <- order %>% 
         ggplot() + 
         geom_tile(aes(x = Column, y = 1, fill = CellType_predict)) + 
         scale_fill_manual(values = rep(c(pals::alphabet2() %>% unname(),
                                          pals::alphabet() %>% unname()))) +
         theme_nothing() +
-        ggtree::xlim2(dotplot)
+        aplot::xlim2(dotplot)
       
       org_legend <- plot_grid(get_legend(org_labels + theme(legend.position="bottom")))
       ct_legend <- plot_grid(get_legend(ct_labels + theme(legend.position="bottom")))
@@ -461,7 +461,7 @@ shinyServer(function(input, output, session) {
     })
     output$dotplot <- renderPlot({
       make_dotplot()
-    }, height = 300)  
+    }, height = eventReactive(input$BUTTON_draw_dotplot, {input$dotplot_height %>% as.numeric()}))
     
     
   })

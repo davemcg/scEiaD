@@ -108,20 +108,23 @@ shinyUI(
                                                                                 choices = c(100,200,300,400,600, 800),
                                                                                 selected = 400, multiple = FALSE))),
                                                  fluidRow(column(10, actionButton('BUTTON_draw_filter','Draw Plot', icon = icon("arrow-down"),
-                                                                         style='background-color: #3399ff; color: #ffffff'))),
+                                                                                  style='background-color: #3399ff; color: #ffffff'))),
                                                  br(),
                                                  plotOutput('facet_plot'))
                                         )
-
+                                        
                                  )),
                         tabPanel('Dotplot', # Dotplot ---------
                                  column(8,
-                                        plotOutput('dotplot'),
-                                        selectizeInput('dotplot_Gene', strong('Genes: '),
-                                                       choices=NULL, multiple=TRUE),
-                                        actionButton('BUTTON_draw_dotplot','Draw Dotplot!', 
+                                        fluidRow(
+                                          column(6, selectizeInput('dotplot_Gene', strong('Genes: '),
+                                                                   choices=NULL, multiple=TRUE)),
+                                          column(6, selectizeInput('dotplot_height', strong('Plot Height: '),
+                                                                   choices = seq(400, 2000, by = 100), selected = 800))),
+                                        actionButton('BUTTON_draw_dotplot','Draw Dotplot!', icon = icon("arrow-down"),
                                                      style='background-color: #3399ff; color: #ffffff'),
-                                        br()))
+                                        br(),
+                                        plotOutput('dotplot')))
              ),
              tabPanel('Overview',
                       (
