@@ -266,7 +266,9 @@ plot_grid(plotX + geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType), size 
 Clustering Cell Type Analysis
 ` r umap %>% filter(!is.na(CellType), !CellType %in% c('Neurogenic Cells', 'Photoreceptor Precursors', 'Late RPCs', 'Early RPCs'), integration_group == 'Late') %>% nrow()` total cells excluding the Clark et al. specific cell types and early development cells.
 
+
 `r cluster_labels %>% filter(StudyCount > 4) %>% pull(Count) %>% sum()` are in clusters with like cell types and 4 or more independent studies. 
+
 
 ```{r}
 umap %>%
