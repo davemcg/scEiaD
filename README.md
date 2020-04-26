@@ -29,14 +29,10 @@ Milestones:
      - Then I read [Sina's](https://www.biorxiv.org/content/10.1101/2020.03.05.977991v3) mouse primary motor cortex paper. They have SMART-seq, 10X, (and MERFISH) data. Sina *independently* used each tech type and leveraged the largest advantage of SMART-seq: full(er) read length to get isoform specificity.
      - So I'm going to crib off of this and run well/droplet separately (for integration) then post-hoc merge.
   - Internal (NEI) deploy of scAnthology Shiny app, April 2020
-    - Thanks (mostly) to [scattermore](https://github.com/exaexa/scattermore)
-    - [INSERT GIF?]
+   - Thanks (mostly) to [scattermore](https://github.com/exaexa/scattermore)
+   - [INSERT GIF?]
   - To do:
     - Velocity (see above)
-    - Diff testing
-      - Diff testing on subclustering
-      - Implement [pseudobulk](https://osca.bioconductor.org/multi-sample-comparisons.html#differential-expression-between-conditions) by cell type / cluster?
-      - Run [Wilcox test](https://osca.bioconductor.org/marker-detection.html#using-the-wilcoxon-rank-sum-test) to get cluster / etc AUC and combine with Monocle testing in unified DF
     - optimize cell type (Vinay!) estimation
       - subsample "called" cell types, bootstrap and re-identify
       - ID "called" cell types with potential mis-calls
@@ -45,7 +41,6 @@ Milestones:
     - Finalize well-based processing (ARI/Silhouette/LISI calling is semi-borked on this smaller dataset)
     - "Integrate" well data into droplet ... somehow
     - Do isoform-level tx calling with well data
-      - Crib from [Sina's](https://www.biorxiv.org/content/10.1101/2020.03.05.977991v3) paper
     - BIG ONE:
       - Process Mouse Atlas data to provide non-retina cell type "comparison" 
     - Continue to build out Shiny app
