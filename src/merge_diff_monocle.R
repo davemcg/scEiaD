@@ -5,9 +5,9 @@ library(tidyverse)
 #load('umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__full__batch__scVI__dims30__mindist0.1__nneighbors100.umap.Rdata')
 
 args <- commandArgs(trailingOnly = TRUE)
-model = args[3]
+model = args[2]
 
-files <- Sys.glob(paste0('diff_testing/*',model,'.monocle_diff.Rdata')) 
+files <- Sys.glob(paste0('diff_testing/*',model,'.diff.Rdata')) 
 
 gene_fits_all <- as_tibble()
 count = 0

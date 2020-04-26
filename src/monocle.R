@@ -22,18 +22,18 @@ load(args[1])
 load(args[2])
 
 
-plot_file <- args[3]
-plot_file_no_label <- args[4]
-output <- args[5]
+#plot_file <- args[3]
+#plot_file_no_label <- args[4]
+output <- args[3]
 
 # gene_annotation <- grep('^MT-', integrated_obj@assays$RNA@var.features, invert =TRUE, value = TRUE) %>% 
 #   enframe(name = NULL, value ='gene_short_name') %>% 
 #   data.frame()
 # row.names(gene_annotation) <- gene_annotation$gene_short_name
-gene_annotation <- row.names(integrated_obj) %>% 
+gene_annotation <- row.names(integrated_obj@assays$RNA@counts) %>% 
   enframe(name = NULL, value ='gene_short_name') %>% 
   data.frame()
-row.names(gene_annotation) <- row.names(integrated_obj)
+row.names(gene_annotation) <- row.names(integrated_obj@assays$RNA@counts)
 
 cell_metadata <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode') %>% 
   left_join(umap %>% select(Barcode, study_accession:Method), by = 'Barcode') %>% 
@@ -58,32 +58,33 @@ cds_retina@int_colData$reducedDims$UMAP <- as.matrix(integrated_obj@reductions[[
 
 # monocle uses a igrpah structure with some more data I haven't computed?
 # for now re-run
-cds_retina <- cluster_cells(cds_retina, method = 'PCA')
-cds_retina <- learn_graph(cds_retina)
-
-rownames(cds_retina@principal_graph_aux[['UMAP']]$dp_mst) <- NULL
-colnames(cds_retina@int_colData$reducedDims$UMAP) <- NULL
-
-png(filename = plot_file, width = 5000, height = 4000, res = 400)
-plot_cells(cds_retina, color_cells_by = 'CellType_predict', 
-           label_roots=FALSE, 
-           label_leaves = FALSE, 
-           alpha = 0.8, 
-           label_branch_points = FALSE, 
-           group_label_size= 5)
-dev.off()
-
-png(filename = plot_file_no_label, width = 9000, height = 4000, res = 400)
-plot_cells(cds_retina, color_cells_by = 'CellType_predict', 
-           label_roots=FALSE, 
-           label_leaves = FALSE, 
-           alpha = 0.8, 
-           label_branch_points = FALSE, 
-           group_label_size= 5,
-           label_cell_groups = FALSE)
-dev.off()
-
+#cds_retina <- cluster_cells(cds_retina, method = 'PCA')
+#cds_retina <- learn_graph(cds_retina)
+#
+#rownames(cds_retina@principal_graph_aux[['UMAP']]$dp_mst) <- NULL
+#colnames(cds_retina@int_colData$reducedDims$UMAP) <- NULL
+#
+#png(filename = plot_file, width = 5000, height = 4000, res = 400)
+#plot_cells(cds_retina, color_cells_by = 'CellType_predict', 
+#           label_roots=FALSE, 
+#           label_leaves = FALSE, 
+#           alpha = 0.8, 
+#           label_branch_points = FALSE, 
+#           group_label_size= 5)
+#dev.off()
+#
+#png(filename = plot_file_no_label, width = 9000, height = 4000, res = 400)
+#plot_cells(cds_retina, color_cells_by = 'CellType_predict', 
+#           label_roots=FALSE, 
+#           label_leaves = FALSE, 
+#           alpha = 0.8, 
+#           label_branch_points = FALSE, 
+#           group_label_size= 5,
+#           label_cell_groups = FALSE)
+#dev.off()
+#
 save(cds_retina, 
+	 compress = FALSE,
      file = output)
 # 
 # cds_retina@reduce_dim_aux[["UMAP"]] = as.matrix(integrated_obj@reductions[["scviUMAP"]]@cell.embeddings)
