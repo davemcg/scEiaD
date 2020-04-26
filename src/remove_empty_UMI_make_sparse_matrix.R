@@ -3,9 +3,10 @@ args = commandArgs(trailingOnly=TRUE)
 base_dir <- '/data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA/'
 
 SRS = args[1]
-matrix_file <- paste0(base_dir, args[2])
+REF = args[2]
+matrix_file <- paste0(base_dir, args[3])
 # tsne_plot <- args[3]
-stats_file <- paste0(base_dir, args[3])
+stats_file <- paste0(base_dir, args[4])
 
 library(Seurat)
 library(BUSpaRse)
@@ -15,7 +16,7 @@ library(readr)
 
 # input data from project
 
-raw_matrix <- BUSpaRse::read_count_output(paste0(base_dir, 'quant/', SRS, '/genecount'),'gene', FALSE)
+raw_matrix <- BUSpaRse::read_count_output(paste0(base_dir, 'quant/', SRS, '/', REF, '/genecount'),'gene', FALSE)
 dim(raw_matrix)
 tot_counts <- Matrix::colSums(raw_matrix)
 

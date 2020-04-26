@@ -20,7 +20,8 @@ set = args[2] # early, late, full, downsampled
 covariate = args[3] # study_accession, batch, etc.
 transform = args[4] # SCT or standard seurat
 combination = args[5] # mouse, mouse and macaque, mouse and macaque and human
-cell_info <- read_tsv(args[6]) # cell_info.tsv
+n_features = args[6] %>% as.numeric()
+cell_info <- read_tsv(args[7]) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
 cell_info <- cell_info %>% 
@@ -28,7 +29,9 @@ cell_info <- cell_info %>%
                            study_accession == 'SRP125998' ~ paste0(study_accession, "_", Platform, '_NA'),
                            TRUE ~ batch)) %>% 
   mutate(batch = gsub(' ', '_', batch))
-rdata_files = args[7:length(args)]
+
+nfeatures = args[7] %>% as.numeric()
+rdata_files = args[8:length(args)]
 rdata <- list()
 for (i in rdata_files){
   load(i)
@@ -68,7 +71,8 @@ if (combination == 'Mus_musculus'){
 m_early <- m[,cell_info %>% filter(Age < 10) %>% pull(value)]
 m_late <- m[,cell_info %>% filter(Age >= 10) %>% pull(value)]
 m_test <- m[,sample(1:ncol(m), 10000)]
-
+m_onlyDROPLET <-  m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
+m_onlyWELL <- m[,cell_info %>% filter(!Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
 downsample_samples <- 
   cell_info %>% 
   group_by(batch) %>% 
@@ -79,19 +83,38 @@ m_downsample <- m[,downsample_samples]
 
 
 make_seurat_obj <- function(m, 
-                            split.by = 'study_accession'){
-  umi_m <- m[,cell_info %>% filter(value %in% colnames(m), UMI == 'NO') %>% pull(value)]
+                            split.by = 'study_accession',
+                            nfeatures = nfeatures,
+							keep_well = TRUE,
+							keep_droplet = TRUE){
+  well_m <- m[,cell_info %>% filter(value %in% colnames(m), UMI == 'NO') %>% pull(value)]
   droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), UMI == 'YES') %>% pull(value)]
-  seurat_umi <- CreateSeuratObject(umi_m)
-  seurat_droplet <- CreateSeuratObject(droplet_m)
+  if (keep_well){
+ 	 seurat_well <- CreateSeuratObject(well_m)
+  } 
+  if (keep_droplet){
+     seurat_droplet <- CreateSeuratObject(droplet_m)
+  }
   
   # FILTER STEP!!!!
   # keep cells with < 10% mito genes, and more than 200 and less than 3000 detected genes for UMI
-  # for well, drop the 3000 gene top end filterr as there shouldn't be any droplets
-  seurat_umi <- subset(seurat_umi, subset = nFeature_RNA > 200)
-  seurat_droplet <- subset(seurat_droplet, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 )
+  # for well, drop the 3000 gene top end filter as there shouldn't be any droplets
+  if (keep_well){
+    seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
+  }
+  if (keep_droplet){
+    seurat_droplet <- subset(seurat_droplet, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 )
+  }
   # cells to keep
-  cells_to_keep <- c(row.names(seurat_umi@meta.data), row.names(seurat_droplet@meta.data))
+  if (!keep_well & keep_droplet){
+	cells_to_keep <- row.names(seurat_droplet@meta.data)
+  } else if (keep_well & !keep_droplet) {
+	cells_to_keep <- row.names(seurat_well@meta.data)
+  } else {
+    cells_to_keep <- c(row.names(seurat_droplet@meta.data), row.names(seurat_well@meta.data))
+  }
+
+
   m_filter <- m[,cells_to_keep]
   
   seurat_m <- CreateSeuratObject(m_filter)
@@ -113,19 +136,30 @@ make_seurat_obj <- function(m,
   # scale data and regress
   seurat_m <- NormalizeData(seurat_m)
   # find var features
-  seurat_m <- FindVariableFeatures(seurat_m, nfeatures = 2000, selection.method = 'vst')
+
+  seurat_m <- FindVariableFeatures(seurat_m, nfeatures = n_features, selection.method = 'vst')
+
   # don't use mito genes
   var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
   
   if (transform == 'standard'){
-    print(paste0('Running scale, splitting by ', split.by))
-    seurat_m <- ScaleData(seurat_m,
-                          features = var_genes,
-                          split.by = split.by,
-                          do.center = TRUE,
-                          do.scale = TRUE,
-                          verbose = TRUE,
-                          vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
+    print(paste0('Running lib.size and log correction, splitting by ', split.by))
+    	
+  	data <- seurat_m@assays$RNA@counts %>% t()
+  	data <- data[,var_genes]
+  	library_size <- Matrix::rowSums(data)
+ 	median_transcript_count <- stats::median(library_size)
+  	data_norm <- median_transcript_count * data / library_size
+  	data_norm <- t(data_norm)
+  	data_norm <- log(data_norm + 1)
+  	seurat_m@assays$RNA@scale.data <- data_norm %>% as.matrix()
+     #seurat_m <- ScaleData(seurat_m,
+      #                    features = var_genes,
+       #                   split.by = split.by,
+        #                  do.center = TRUE,
+         #                 do.scale = TRUE,
+          #                verbose = TRUE,
+           #               vars.to.regress = c("nCount_RNA", "nFeature_RNA", "percent.mt"))
     
     seurat_m <- RunPCA(seurat_m, npcs = 100)
   }
@@ -165,7 +199,7 @@ seurat_sct <- function(seurat_list){
     seurat_list[low_n] <- NULL
   }
   
-  study_data_features <- SelectIntegrationFeatures(object.list = seurat_list, nfeatures = 2000, verbose = FALSE)
+  study_data_features <- SelectIntegrationFeatures(object.list = seurat_list, nfeatures = n_features, verbose = FALSE)
   seurat_list <- PrepSCTIntegration(object.list = seurat_list, anchor.features = study_data_features, verbose = FALSE)
   
   # have to apply PCA after SelectIntegrationFeatures and PrepSCTIntegration
@@ -177,7 +211,7 @@ seurat_sct <- function(seurat_list){
 
 # scran normalization
 scran_norm <- function(seurat_obj = seurat__standard, split.by = 'batch'){
-  var_features <- seurat_obj@assays$RNA@var.features
+  var_features <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
   seurat_list <- SplitObject(seurat_obj, split.by = covariate)
   print('Beginning scran norm')
   # list of seurat objects
@@ -189,9 +223,11 @@ scran_norm <- function(seurat_obj = seurat__standard, split.by = 'batch'){
       sce_list[[obj]] <- SingleCellExperiment(assays = list(counts = as.matrix(x = seurat_list[[obj]]$RNA@data)))
       clusters = quickCluster(sce_list[[obj]], min.size=50)
       sce_list[[obj]] = computeSumFactors(sce_list[[obj]], cluster=clusters)
-      sce_list[[obj]] = normalize(sce_list[[obj]], return_log = FALSE)
+	  sce_list[[obj]] = scater::logNormCounts(sce_list[[obj]], log=TRUE)
+      #sce_list[[obj]] = normalize(sce_list[[obj]], return_log = FALSE)
       print(summary(sizeFactors(sce_list[[obj]])))
-      seurat_list[[obj]]$RNA@data = as.sparse(log(x = assay(sce_list[[obj]], "normcounts") + 1))
+      # seurat_list[[obj]]$RNA@data = as.sparse(log(x = assay(sce_list[[obj]], "normcounts") + 1))
+	  seurat_list[[obj]]$RNA@data = assay(sce_list[[obj]], "logcounts") %>% as.sparse()
     } else {seurat_list[[obj]] <- NULL} # remove obj with less than 50 cells
   }
   # merge back into one seurat obj
@@ -203,6 +239,37 @@ scran_norm <- function(seurat_obj = seurat__standard, split.by = 'batch'){
   merged
 }
 
+#' Performs L1 normalization on input data such that the sum of expression
+#' values for each cell sums to 1, then returns normalized matrix to the metric
+#' space using median UMI count per cell effectively scaling all cells as if
+#' they were sampled evenly.
+#' @param seurat_object
+#' @return seurat_obj 
+#' 2 dimensional array with normalized gene expression values
+#' @import Matrix
+#' @import dplyr
+#'
+#' @export
+library.size.normalize <- function(seurat_obj, sqrt = FALSE, verbose=FALSE) {
+  if (verbose) {
+    message(paste0(
+      "Normalizing library sizes for ",
+      nrow(data), " cells"
+    ))
+  }
+  vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
+  data <- seurat_obj@assays$RNA@counts %>% t()
+  data <- data[,vfeatures]
+  library_size <- Matrix::rowSums(data)
+  median_transcript_count <- stats::median(library_size)
+  data_norm <- median_transcript_count * data / library_size
+  data_norm <- t(data_norm)
+  if (sqrt) {data_norm <- sqrt(data_norm)}
+  seurat_obj@assays$RNA@scale.data <- data_norm %>% as.matrix()
+  seurat_obj <- RunPCA(seurat_obj, features = vfeatures)
+  seurat_obj
+}
+
 if (set == 'early'){
   print("Running Early")
   seurat__standard <- make_seurat_obj(m_early, split.by = covariate)
@@ -212,6 +279,12 @@ if (set == 'early'){
 } else if (set == 'full'){
   print("Running Full")
   seurat__standard <- make_seurat_obj(m, split.by = covariate)
+} else if (set == 'onlyDROPLET'){
+  print("Running onlyDROPLET (remove well based)")
+  seurat__standard <- make_seurat_obj(m_onlyDROPLET, split.by = covariate, keep_well = FALSE)
+} else if (set == 'onlyWELL'){
+  print("Running onlyWELL (remove droplet based)") 
+  seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE)
 } else if (set == 'downsample'){
   print("Running downsample")
   seurat__standard <- make_seurat_obj(m_downsample, split.by = covariate)
@@ -224,6 +297,14 @@ if (transform == 'SCT'){
        file = args[1], compress = FALSE)
 } else if (transform == 'scran'){
   seurat__standard <- scran_norm(seurat__standard, split.by = covariate )
+  save(seurat__standard, 
+       file = args[1], compress = FALSE)
+} else if (transform == 'libSize'){
+  seurat__standard <- library.size.normalize(seurat__standard)
+  save(seurat__standard, 
+       file = args[1], compress = FALSE)
+} else if (transform == 'sqrt') {
+  seurat__standard <- library.size.normalize(seurat__standard, sqrt = TRUE)
   save(seurat__standard, 
        file = args[1], compress = FALSE)
 } else {

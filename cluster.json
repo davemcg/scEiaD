@@ -42,6 +42,13 @@
 		"time" : "8:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
+	"make_seurat_objs_filtered" :
+	{
+		"mem" : "400G",
+		"partition" : "largemem",
+		"time" : "8:00:00",
+		"extra" : " --gres=lscratch:100"
+	},
 	"combine_well_and_umi" :
 	{
 		"mem" : "240G",
@@ -49,30 +56,121 @@
 		"time" : "4:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
-	"integrate" :
+	"merge_across_references" :
 	{
-		"mem" : "600G",
-		"partition" : "largemem",
-		"time" : "12:00:00",
+		"mem" : "240G",
+		"partition" : "quick",
+		"time" : "4:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
-	"calculate_umap_and_cluster" :
+	"integrate_00" :
 	{
 		"mem" : "600G",
 		"partition" : "largemem",
-		"time" : "12:00:00",
+		"time" : "72:00:00",
+		"extra" : " --gres=lscratch:100"
+	},
+	"integrate_01" :
+	{
+		"mem" : "600G",
+		"partition" : "largemem",
+		"time" : "72:00:00",
+		"extra" : " --gres=lscratch:100"
+	},
+	"calculate_umap" : 
+	{
+		"mem" : "100G",
+		"partition" : "norm",
+		"time" : "16:00:00",
+		"extra" : " --gres=lscratch:100"
+	},
+	"calculate_tsne" : 
+	{
+		"mem" : "100G",
+		"partition" : "norm",
+		"time" : "24:00:00",
+		"extra" : " --gres=lscratch:100"
+	},
+	"calculate_cluster" :
+	{
+		"mem" : "120G",
+		"partition" : "norm",
+		"time" : "6:00:00",
+		"extra" : " --gres=lscratch:10"
+	},
+	"run_phate" :
+	{
+		"mem" : "160G",
+		"partition" : "norm",
+		"time" : "24:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
 	"extract_umap" :
 	{
-		"mem" : "300G",
-		"partition" : "largemem"
+		"mem" : "80G",
+		"time" : "00:30:00"
 	},
-	"predict_missing_cell_types" :
+	"extract_tsne" :
 	{
-		"mem" : "600G",
-		"time" : "12:00:00",
+		"mem" : "80G",
+		"time" : "00:30:00"
+	},
+	"extract_cluster" :
+	{
+		"mem" : "80G",
+		"time" : "00:30:00"
+	},
+	"predict_missing_cell_types_00" :
+	{
+		"mem" : "400G",
+		"time" : "36:00:00",
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:100"
+	},
+	"predict_missing_cell_types_01" :
+	{
+		"mem" : "200G",
+		"time" : "36:00:00",
+		"partition" : "largemem",
+		"extra" : " --gres=lscratch:100"
+	},
+	"monocle_diff_testing" :
+	{
+		"mem" : "50G",
+		"time" : "4:00:00",
+		"partition" : "quick",
+		"extra" : " --gres=lscratch:10"
+	},
+	"trajectory" :
+	{
+		"mem" : "700G",
+		"time" : "18:00:00",
+		"partition" : "largemem",
+		"extra" : " --gres=lscratch:100"
+	},
+	"perf_metrics" :
+	{
+		"mem" : "180G",
+		"time" : "03:30:00"
+	},
+	"monocle_diff_merge" :
+	{
+		"mem" : "800G",
+		"time" : "36:00:00",
+		"partition" : "largemem",
+		"extra" : " --gres=lscratch:100"
+	},
+	"make_h5ad_object" :
+	{
+		"mem" : "90G",
+		"time" : "4:00:00",
+		"partition" : "quick"
+	},
+	"make_sqlite" :
+	{
+		"mem" : "350G",
+		"time" : "12:00:00",
+		"partition" : "largemem",
+		"extra" : " --gres=lscratch:20"
 	}
-}
+}	

@@ -29,15 +29,15 @@ type_fill <- scale_fill_manual(values = type_val)
 # 
 cluster_labels <- umap %>%
   mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>%
-  group_by(seurat_clusters, CellType) %>%
-  filter(!is.na(CellType), !is.na(seurat_clusters)) %>%
+  group_by(cluster, CellType) %>%
+  filter(!is.na(CellType), !is.na(cluster)) %>%
   summarise(Count = n(), x = mean(UMAP_1), y = mean(UMAP_2), 
             Organism = list(unique(organism)), 
             study_accession = list(unique(study_accession))) %>%
   mutate(freq = Count / sum(Count)) %>%
   filter(freq > 0.25) %>%
   ungroup() %>%
-  group_by(seurat_clusters) %>%
+  group_by(cluster) %>%
   top_n(3, -freq) %>%
   #filter(Count > 100) %>%
   summarise(seurat_cluster_CellType = paste0(CellType, collapse = ', '),
@@ -45,7 +45,7 @@ cluster_labels <- umap %>%
             Count = sum(Count),
             OrganismCount = unlist(Organism) %>% unique() %>% sort() %>% paste(., collapse = ', '),
             StudyCount = unlist(study_accession) %>% length()) %>%
-  mutate(seurat_cluster_CellType_num = paste0(seurat_clusters, ' (', seurat_cluster_CellType, ')'))
+  mutate(seurat_cluster_CellType_num = paste0(cluster, ' (', seurat_cluster_CellType, ')'))
 ```
 
 # UMAP of known cells
@@ -265,6 +265,9 @@ plot_grid(plotX + geom_point(aes(x=UMAP_1, y = UMAP_2, colour = CellType), size 
 
 Clustering Cell Type Analysis
 ` r umap %>% filter(!is.na(CellType), !CellType %in% c('Neurogenic Cells', 'Photoreceptor Precursors', 'Late RPCs', 'Early RPCs'), integration_group == 'Late') %>% nrow()` total cells excluding the Clark et al. specific cell types and early development cells.
+
+
+`r cluster_labels %>% filter(StudyCount > 4) %>% pull(Count) %>% sum()` are in clusters with like cell types and 4 or more independent studies. 
 
 
 ```{r}

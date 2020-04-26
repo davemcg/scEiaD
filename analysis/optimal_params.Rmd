@@ -1,0 +1,225 @@
+---
+title: "Optimal Params"
+output: html_notebook
+---
+
+Pick optimal knn, nfeatures, nneighbors, dims based upon:
+
+- (1) cell type purity by cluster
+- (2) organism diversity by cluster
+- (3) Silhouette (scVI dimensions against batch)
+- (4) LISI (scVI dimensions against cell type)
+
+Cell Type purity is directly orthogaonl to organism diversity.
+
+
+```{r}
+library(tidyverse)
+library(cowplot)
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/metrics_onlyDROPLETn2.Rdata')
+```
+
+
+# Silhouette
+```{r}
+silhouette <- perf_one %>% 
+  filter(`Cell Type` == 'All', score == 'Silhouette')  %>% 
+  unique() %>% 
+  arrange(value) %>% 
+  mutate(Rank = row_number()) %>% 
+  dplyr::rename('SilhouetteScore' = value, 
+         'SilhouetteRank' = Rank, 
+         'nfeatures' = nf) %>% 
+  select(-`Cell Type`, -score)
+
+
+```
+
+# ARI
+```{r}
+ari <- perf_one %>% 
+  filter(`Cell Type` == 'All', score == 'HA')  %>% 
+  unique() %>% 
+  arrange(-value) %>% 
+  mutate(Rank = row_number()) %>% 
+  dplyr::rename('ARIScore' = value, 
+         'ARIRank' = Rank, 
+         'nfeatures' = nf) %>% 
+  select(-`Cell Type`, -score)
+```
+
+# LISI
+```{r}
+lisi <- perf_one %>% 
+  filter(`Cell Type` == 'All', score == 'LISI')  %>% 
+  unique() %>% 
+  arrange(value) %>% 
+  mutate(Rank = row_number()) %>% 
+  dplyr::rename('LISIScore' = value, 
+         'LISIRank' = Rank, 
+         'nfeatures' = nf) %>% 
+  select(-`Cell Type`, -score)
+```
+
+# Collapse plots to tables
+```{r}
+# sum score metric (averaged across all labelled cells)
+# celltype is celltype purity by cluster
+# ideally would be 1 
+celltype <- umap_one %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, normalization, nfeatures, dims, method) %>% 
+  summarise(freq = sum(freq*Count)/sum(Count)) %>%  # scale cell type purity by number of cells 
+  ungroup() %>% 
+  mutate(celltype_rank  = rank(-freq)) %>% arrange(celltype_rank)
+
+study <- umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, normalization, nfeatures,  dims, method) %>% 
+  summarise(study_mean = sum(study_count*Count)/sum(Count)) %>% 
+  ungroup() %>% 
+  mutate(study_rank  = rank(-study_mean)) %>% arrange(study_rank)
+
+org <-  umap_one %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, normalization, nfeatures,  dims, method) %>% 
+  summarise(org_mean = sum(organism_count*Count)/sum(Count)) %>%  # scale organism type mixing by number of cells 
+  ungroup() %>% 
+  mutate(org_rank  = rank(-org_mean)) %>% 
+  arrange(org_rank)
+
+area <-  umap_one %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, normalization, nfeatures,  nneighbors,dims, method) %>% 
+  summarise(area_mean = mean(area_scaled), 
+            area_median = median(area_scaled),
+            area_sum = sum(area_scaled)) %>% 
+  ungroup() %>% 
+  mutate(area_rank  = rank(-area_mean))
+
+tab_overall <- left_join(celltype, org) %>% 
+  #left_join(area) %>% 
+  left_join(study) %>% 
+  left_join(ari) %>% 
+  left_join(lisi) %>% 
+  left_join(silhouette) %>% 
+  select(-contains("median")) %>% 
+  ungroup() %>% 
+  mutate(celltype_sum = celltype_rank + ARIRank + LISIRank + SilhouetteRank,
+         org_sum = org_rank + LISIRank + ARIRank + SilhouetteRank,
+         sum = org_rank + LISIRank + ARIRank + SilhouetteRank,
+         syn = LISIRank + ARIRank + SilhouetteRank) %>% 
+  arrange(sum)
+
+tab_overall  %>%  DT::datatable()
+
+```
+
+# Benchmark scVI, harmony, CCA, etc.
+```{r}
+perf_bench <- 
+  bind_rows(perf_one %>% filter(normalization != 'counts'), 
+            perf_one %>% filter(normalization == 'counts', dims == 30, nf == 2000, method == 'scVI'))
+umap_bench <- 
+  bind_rows(umap_one %>% filter(normalization != 'counts'), 
+            umap_one %>% filter(normalization == 'counts', knn == 5, dims == 30, nfeatures == 2000, nneighbors == 100, mindist == 0.3,  method == 'scVI')) 
+
+silhouette_bench <- perf_bench %>% 
+  filter(`Cell Type` == 'All', score == 'Silhouette')  %>% 
+  unique() %>% 
+  arrange(value) %>% 
+  mutate(Rank = row_number()) %>% 
+  dplyr::rename('SilhouetteScore' = value, 
+         'SilhouetteRank' = Rank, 
+         'nfeatures' = nf) %>% 
+  select(-`Cell Type`, -score)
+
+ari_bench <- perf_bench %>% 
+  filter(`Cell Type` == 'All', score == 'HA')  %>% 
+  unique() %>% 
+  arrange(-value) %>% 
+  mutate(Rank = row_number()) %>% 
+  dplyr::rename('ARIScore' = value, 
+         'ARIRank' = Rank, 
+         'nfeatures' = nf) %>% 
+  select(-`Cell Type`, -score)
+
+lisi_bench <- perf_bench %>% 
+  filter(`Cell Type` == 'All', score == 'LISI')  %>% 
+  unique() %>% 
+  arrange(value) %>% 
+  mutate(Rank = row_number()) %>% 
+  dplyr::rename('LISIScore' = value, 
+         'LISIRank' = Rank, 
+         'nfeatures' = nf) %>% 
+  select(-`Cell Type`, -score)
+
+
+celltype <- umap_bench %>%
+  group_by(knn, normalization, nfeatures, dims, method) %>% 
+  summarise(freq = sum(freq*Count)/sum(Count)) %>%  # scale cell type purity by number of cells 
+  ungroup() %>% 
+  mutate(celltype_rank  = rank(-freq))
+
+study <- umap_bench %>% 
+  filter(Count > 100) %>% 
+  group_by(knn, normalization, nfeatures,  dims, method) %>% 
+  summarise(study_mean = sum(study_count*Count)/sum(Count)) %>% 
+  ungroup() %>% 
+  mutate(study_rank  = rank(-study_mean))
+
+org <-  umap_bench %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, normalization, nfeatures,  dims, method) %>% 
+  summarise(org_mean = sum(organism_count*Count)/sum(Count)) %>%  # scale organism type mixing by number of cells 
+  ungroup() %>% 
+  mutate(org_rank  = rank(-org_mean))
+
+area <-  umap_bench %>% 
+  filter(Count > 100) %>% 
+  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
+           as.numeric()) %>% 
+  group_by(knn, normalization, nfeatures, nneighbors,dims, method) %>% 
+  summarise(area_mean = mean(area_scaled), 
+            area_median = median(area_scaled),
+            area_sum = sum(area_scaled)) %>% 
+  ungroup() %>% 
+  mutate(area_rank  = rank(-area_mean))
+
+tab_bench <- left_join(celltype, org) %>% 
+  #left_join(area) %>% 
+  left_join(study) %>% 
+  left_join(ari_bench) %>% 
+  left_join(lisi_bench) %>% 
+  left_join(silhouette_bench) %>% 
+  select(-contains("median")) %>% 
+  ungroup() %>% 
+  mutate(celltype_sum = celltype_rank + ARIRank + LISIRank + SilhouetteRank,
+         org_sum = org_rank + LISIRank + ARIRank + SilhouetteRank,
+         sum = org_rank + LISIRank + ARIRank + SilhouetteRank,
+         syn = LISIRank + ARIRank + SilhouetteRank) %>% 
+  arrange(sum)
+
+tab_bench %>%  DT::datatable()
+
+```
+
+
+
+```{r}
+devtools::session_info()
+#save.image(file = '../data/optimal_params.Rdata')
+```
+
+
+
+
+
+
