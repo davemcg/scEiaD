@@ -135,7 +135,7 @@ covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens']
 dims = [8,10,20,25,30,50,75,100,200]
-model = ['A', 'B'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
+model = ['A', 'B', 'C', 'D'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 wildcard_constraints:
 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
 	method = '|'.join(method),
@@ -236,8 +236,9 @@ rule all:
 				covariate = ['batch'], \
 				knn = [7], \
 				dims = [50]),
-		expand('diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.{model}.diff.coef_table.Rdata',
-			    combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+		expand('site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz',
+			    correction = 'FALSE', \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['onlyDROPLET'], \
 				n_features = [2000], \
 				dist = [0.1], \
@@ -246,8 +247,7 @@ rule all:
 				method = ['scVI'], \
 				dims = [200], \
 				knn = [7], \
-				neighbors = [100], \
-				model = model), 
+				neighbors = [100]),
 		#expand('quant/{SRS}/{reference}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
 		#expand('quant/{SRS}/{reference}/output.bus', SRS = SRS_UMI_samples),
 		'site/anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-onlyDROPLET-batch-scVI-10-0.1-100-10.sqlite.gz',
@@ -506,7 +506,7 @@ rule integrate_00:
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
 	output:
 		#temp('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
-		temp('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
+		('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
 	threads: 8
 	run:
 		job = "module load R/3.6; \
@@ -567,13 +567,13 @@ rule predict_missing_cell_types_00:
 
 rule doublet_ID:
 	input:
-		'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__full__batch.seuratV3.Rdata'
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
 	output:
-		'doublet_calls.Rdata'
+		'doublet_calls/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.doublets.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/doublet_ID.R {input}
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/doublet_ID.R {input} {output}
 		"""
 
 rule calculate_umap:
@@ -734,6 +734,19 @@ rule build_monocle_obj:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/monocle.R {input} {output}
 		"""
 
+rule diff_test_wilcox:
+	input:
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
+		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata'	
+	output:
+		'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__{knn}__{group}.sceWilcox.Rdata'
+	threads: 6 
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_sce_wilcox.R {input} {wildcards.group} {thread} {output}
+		"""
+
 rule perf_metrics:
 	input:
 		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
@@ -772,7 +785,30 @@ rule make_sqlite:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/make_sqlite.R {input} {params} {wildcards.correction}
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/make_sqlite.R \
+			{input.seurat} \
+			{input.meta} \
+			{input.cluster} \
+			{params} \
+			{wildcards.correction}
 		pigz -p 32 {params}
 		"""
 
+rule sqlite_add_tables:
+	input:
+		sqlite = 'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz',
+		diff_wilcox = expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__{{knn}}__{group}.sceWilcox.Rdata', \
+					group = ['cluster','subcluster']),
+		diff_glm = expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__{{dims}}__{{dist}}__{{knn}}__{{neighbors}}.{model}.diff.coef_table.Rdata', \
+					model = ['A','B','C','D']),
+		doublet = 'doublet_calls/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.doublets.Rdata'
+	output:
+		'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
+	params:
+		'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
+	shell:
+		"""
+		cp {input.sqlite} {output}
+		"""
+		
+			
