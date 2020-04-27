@@ -18,7 +18,11 @@ if (model == 'A'){
   model <- '~seuratCluster+batch+percent.mt'
 } else if (model == 'B') {
   model <- '~seuratCluster+batch+percent.mt+organism'
-}
+} else if (model == 'C') {
+  model <- '~CellType_predict+batch+percent.mt+organism'
+} else if (model == 'D') {
+  model <- '~CellType_predict+batch+percent.mt+organism'
+} 
 
 output <- args[6]
 
