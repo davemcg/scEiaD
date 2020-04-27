@@ -1,6 +1,12 @@
 # scAnthology
 
-Goal: Harmonize all publicly **available** scRNA-seq datasets for eye (mostly retina as of February 2020).
+Goals: 
+ - Harmonize all publicly **available** scRNA-seq datasets for eye (mostly retina as of February 2020).
+ - Make {Shiny} app for data exploration
+ - Stretch goals:
+   - ID novel cell types
+   - Species (in)consistent gene expression patterns across cell types
+   
 
 Milestones:
 
@@ -32,6 +38,7 @@ Milestones:
     - [INSERT GIF?]
   - To do:
     - Velocity (see above)
+    - Doublet ID
     - Diff testing
       - Diff testing on subclustering
       - Implement [pseudobulk](https://osca.bioconductor.org/multi-sample-comparisons.html#differential-expression-between-conditions) by cell type / cluster?
