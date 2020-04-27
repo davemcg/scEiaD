@@ -32,7 +32,9 @@ if (args[4] == 'cluster') {
 markers_wilcox <- findMarkers(int_sce, 
 				group = group, 
 				block = int_sce$batch, 
+				pval.type = 'some',
 				test="wilcox", 
+				min.prop = 0.8,
 				BPPARAM=MulticoreParam(as.integer(args[5])))
 
 save(markers_wilcox, file = args[6]) 
