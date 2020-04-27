@@ -26,9 +26,11 @@ Milestones:
      - Hand compared walktrap with jaccard/louvain; the latter works better (visual inspection of cluster <-> umap)
      - Testing "subclustering" (higher resolution?) by running louvain again *within* a cluster
    - Diff testing:
-     - Monocle, two models
-      - ~Cluster + percent.mt
-      - ~Cluster + percent.mt + organism
+     - Monocle, four models
+      - ~Cluster + percent.mt + batch
+      - ~Cluster + percent.mt + batch + organism
+      - ~CellType_predict + percent.mt + batch
+      - ~CellType_predict + percent.mt + batch + organism    
    - Droplet vs Well:
      - Originally I was trying to fully merge all data at once, but the well-based data was very problematic. I was going crazy. 
      - Then I read [Sina's](https://www.biorxiv.org/content/10.1101/2020.03.05.977991v3) mouse primary motor cortex paper. They have SMART-seq, 10X, (and MERFISH) data. Sina *independently* used each tech type and leveraged the largest advantage of SMART-seq: full(er) read length to get isoform specificity.
