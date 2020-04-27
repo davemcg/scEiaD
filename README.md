@@ -38,6 +38,7 @@ Milestones:
     - [INSERT GIF?]
   - To do:
     - Velocity (see above)
+    - Cell Cycle ID
     - Doublet ID
     - Diff testing
       - Diff testing on subclustering
