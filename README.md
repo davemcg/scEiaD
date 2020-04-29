@@ -39,7 +39,7 @@ Milestones:
     - Thanks (mostly) to [scattermore](https://github.com/exaexa/scattermore)
     - [INSERT GIF?]
   - To do:
-    - Velocity (see above)
+    - [Velocity](https://bustools.github.io/BUS_notebooks_R/velocity.html) 
     - Cell Cycle ID
     - Doublet ID
     - Diff testing
