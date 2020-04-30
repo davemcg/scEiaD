@@ -117,15 +117,39 @@ shinyUI(
                         tabPanel('Dotplot', # Dotplot ---------
                                  column(8,
                                         fluidRow(
-                                          column(6, selectizeInput('dotplot_Gene', strong('Genes: '),
+                                          column(5, selectizeInput('dotplot_Gene', strong('Genes: '),
                                                                    choices=NULL, multiple=TRUE)),
-                                          column(6, selectizeInput('dotplot_height', strong('Plot Height: '),
+                                          column(4, selectizeInput('dotplot_groups', strong('Group by (two max): '),
+                                                                   choices=NULL, multiple=TRUE)),
+                                          column(3, selectizeInput('dotplot_height', strong('Plot Height: '),
                                                                    choices = seq(400, 2000, by = 100), selected = 800))),
                                         actionButton('BUTTON_draw_dotplot','Draw Dotplot!', icon = icon("arrow-down"),
                                                      style='background-color: #3399ff; color: #ffffff'),
-                                        br(),
+                                        br(), br(),
                                         plotOutput('dotplot')))
              ),
+             tabPanel('Diff Testing',
+                      fluidPage(column(8,
+                                       fluidRow(
+                                         selectInput('diff_table_select', strong('Differential testing by: '),
+                                                     choices = c('Cluster', 'CellType (predict)')),
+                                         selectInput('search_by', strong('Search by: '), 
+                                                            choices = c('Gene','Term'), 
+                                                            selected = 'Gene')
+                                       )),
+                                column(8,
+                                       fluidRow(
+                                         conditionalPanel("input.search_by == 'Gene'",
+                                                          selectizeInput('diff_gene', strong('Genes: '), 
+                                                                         choices =  NULL,
+                                                                         multiple = TRUE)),
+                                         conditionalPanel("input.search_by == 'Term'",
+                                                          selectizeInput('diff_term', strong('Term: '), 
+                                                                         choices =  NULL,
+                                                                         multiple = TRUE))
+                                       )),
+                                column(8,
+                                       div(DT::dataTableOutput('make_diff_table'), style='font-size:75%')))),
              tabPanel('Overview',
                       (
                         fluidRow(column(width = 8, offset = 1, h2('Ocular Single Cell Gene Expression Anthology v0.10'))))

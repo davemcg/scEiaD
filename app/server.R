@@ -13,6 +13,7 @@ library(pool)
 library(RSQLite)
 library(ggrepel)
 library(patchwork)
+require(purrr)
 anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-200-0.1-100-7.sqlite", idleTimeout = 3600000)
 
 # filter
@@ -77,6 +78,19 @@ shinyServer(function(input, output, session) {
                            selected = c('RHO','WIF1','CABP5', 'AIF1','AQPT4','ARR3','ONECUT1','GRIK1','GAD1','POU4F2'),
                            server = TRUE)
     }
+    if (is.null(query[['dotplot_groups']])){
+      updateSelectizeInput(session, 'dotplot_groups',
+                           choices = meta_filter %>% 
+                             select(-Barcode) %>% 
+                             select_if(purrr::negate(is.numeric)) %>% 
+                             colnames() %>% sort(),
+                           options = list(placeholder = 'Type to search',
+                                          maxItems = 2), 
+                           selected = c('CellType_predict','organism'),
+                           server = TRUE)
+    }
+    
+    
     # 
     if (is.null(query[['grouping_features']])){
       updateSelectizeInput(session, 'grouping_features',
@@ -96,7 +110,7 @@ shinyServer(function(input, output, session) {
                            selected = c('CellType_predict', 'organism'),
                            server = TRUE)
     }
-    
+    # facet plot updateSelect --------
     if (is.null(query[['facet']])){
       updateSelectizeInput(session, 'facet',
                            choices = meta_filter %>% 
@@ -106,7 +120,6 @@ shinyServer(function(input, output, session) {
                            server = TRUE)
     }
     
-    # server gene / tx to UI side
     if (is.null(query[['facet_color']])){
       updateSelectizeInput(session, 'facet_color',
                            choices = meta_filter %>% 
@@ -115,7 +128,23 @@ shinyServer(function(input, output, session) {
                            selected = 'CellType',
                            server = TRUE)
     }
+    # diff table updateSelect ------
+    if (is.null(query[['diff_gene']])){
+      updateSelectizeInput(session, 'diff_gene',
+                           choices = anthology_2020_v01 %>% tbl('genes') %>% as_tibble() %>% pull(1),
+                           options = list(placeholder = 'Type to search'), 
+                           selected = 'CRX',
+                           server = TRUE)
+    }
+    if (is.null(query[['diff_term']])){
+      updateSelectizeInput(session, 'diff_term',
+                           choices = anthology_2020_v01 %>% tbl(diff_table()) %>%
+                             as_tibble() %>% pull(term) %>% unique() %>% sort(),
+                           options = list(placeholder = 'Type to search'),
+                           server = TRUE)
+    }
     
+    # BREAK -------
     # gene scatter plot ------------
     gene_scatter_ranges <- reactiveValues(x = c(meta_filter$UMAP_1 %>% min(), meta_filter$UMAP_1 %>% max()), 
                                           y = c(meta_filter$UMAP_2 %>% min(), meta_filter$UMAP_2 %>% max()))
@@ -133,7 +162,7 @@ shinyServer(function(input, output, session) {
                cpm < as.numeric(expression_range[2])) %>% 
         left_join(., meta_filter, by = 'Barcode') %>% 
         filter(!is.na(UMAP_1), !is.na(UMAP_2), !is.na(cpm)) 
-        
+      
       color_range <- range(p$cpm)
       plot <- p %>% ggplot() + 
         geom_scattermost(cbind(mf$UMAP_1, mf$UMAP_2), color = '#D3D3D333', 
@@ -342,13 +371,13 @@ shinyServer(function(input, output, session) {
       color_column <- input$facet_color
       #transform <- input$facet_column_transform
       pt_size <- input$pt_size_facet %>% as.numeric() 
-
+      
       gray_data <- meta_filter %>% 
         filter(is.na(!!as.symbol(color_column))) 
       p_data <- meta_filter %>% 
         filter(!is.na(!!as.symbol(facet_column)),
                !is.na(!!as.symbol(color_column)))
-
+      
       suppressWarnings(plot <- ggplot(data = p_data) +
                          geom_scattermore(data = gray_data,
                                           aes(x = UMAP_1, y = UMAP_2),
@@ -357,7 +386,7 @@ shinyServer(function(input, output, session) {
                                           pixels = c(750,750),
                                           alpha = 0.4) +
                          geom_scattermore(aes(x = UMAP_1, y = UMAP_2,
-                                          color = !!as.symbol(color_column)) ,
+                                              color = !!as.symbol(color_column)) ,
                                           pointsize= pt_size,
                                           pixels = c(750,750),
                                           alpha = 0.6) +
@@ -384,7 +413,7 @@ shinyServer(function(input, output, session) {
     ## dotplot ---------
     make_dotplot <- eventReactive(input$BUTTON_draw_dotplot, {
       gene <- input$dotplot_Gene
-      grouping_features <- c('CellType_predict', 'organism')
+      grouping_features <- input$dotplot_groups
       dotplot_data <- anthology_2020_v01 %>% tbl('grouped_stats') %>% 
         filter(Gene %in% gene) %>%
         group_by_at(vars(one_of(c('Gene', grouping_features)))) %>% 
@@ -400,8 +429,21 @@ shinyServer(function(input, output, session) {
         filter(!is.na(Count),
                `%` > 2) %>% 
         select_at(vars(one_of(c('Gene', grouping_features, 'cell_exp_ct', 'Count', '%', 'Expression')))) %>% 
-        mutate(Column = paste(`CellType_predict`, organism)) %>% 
         filter(!is.na(Gene)) 
+      if (length(grouping_features) == 2){
+        colnames(dotplot_data)[c(2,3)] <- c("Group1","Group2")
+        dotplot_data <- dotplot_data %>% 
+          mutate(Column = paste(Group1,Group2),
+                 Column = case_when(grepl('^\\d', Column) ~ paste0('X', Column),
+                                    TRUE ~ Column))
+      } else {
+        colnames(dotplot_data)[c(2)] <- c("Group1")
+        dotplot_data <- dotplot_data %>% 
+          mutate(Column = Group1,
+                 Column = case_when(grepl('^\\d', Column) ~ paste0('X', Column),
+                                    TRUE ~ Column)) 
+      }
+      
       # cluster
       # make data square to calculate euclidean distance
       mat <- dotplot_data %>% 
@@ -433,36 +475,85 @@ shinyServer(function(input, output, session) {
                                            gsub('\\.$', ')', .) %>% 
                                            gsub('\\.', ' ', .), value = 'Column'),
                          dotplot_data)
-      org_labels <- order %>% 
+      
+      group1_labels <- order %>% 
         ggplot() + 
-        geom_tile(aes(x = Column, y = 1, fill = organism)) + 
-        scale_fill_manual(values = rep(c(pals::alphabet() %>% unname(),
-                                         pals::alphabet2() %>% unname()))) +
+        geom_tile(aes(x = Column, y = 1, fill = Group1)) + 
+        scale_fill_manual(name = grouping_features[1],
+                          values = rep(c(pals::alphabet2() %>% unname(),
+                                         pals::alphabet() %>% unname()), times = 10)) +
         theme_nothing() +
         aplot::xlim2(dotplot)
-      ct_labels <- order %>% 
-        ggplot() + 
-        geom_tile(aes(x = Column, y = 1, fill = CellType_predict)) + 
-        scale_fill_manual(values = rep(c(pals::alphabet2() %>% unname(),
-                                         pals::alphabet() %>% unname()))) +
-        theme_nothing() +
-        aplot::xlim2(dotplot)
+      # remove legend if same size as matrix as will be HUGE
+      if ((dotplot_data$Group1 %>% unique() %>% length()) == ncol(mat)) { 
+        group1_legend <- NULL
+      } else {
+        group1_legend <- plot_grid(get_legend(group1_labels + theme(legend.position="bottom")))
+      }
       
-      org_legend <- plot_grid(get_legend(org_labels + theme(legend.position="bottom")))
-      ct_legend <- plot_grid(get_legend(ct_labels + theme(legend.position="bottom")))
-      org_labels +
-        ct_labels +
-        dotplot + 
-        org_legend +
-        ct_legend +
-        plot_layout(ncol= 1, heights = c(0.1,0.1, 1, 0.1, 0.2))
-      
-      
+      if (length(grouping_features) == 2){
+        group2_labels <- order %>% 
+          ggplot() + 
+          geom_tile(aes(x = Column, y = 1, fill = Group2)) + 
+          scale_fill_manual(name = grouping_features[2],
+                            values = rep(c(pals::alphabet() %>% unname(),
+                                           pals::alphabet2() %>% unname()), times = 10)) +
+          theme_nothing() +
+          aplot::xlim2(dotplot)
+        if ((dotplot_data$Group2 %>% unique() %>% length()) == ncol(mat)) { 
+          group2_legend <- NULL
+        } else {
+          group2_legend <- plot_grid(get_legend(group2_labels + theme(legend.position="bottom")))
+        }
+        
+        group2_labels +
+          group1_labels +
+          dotplot + 
+          group2_legend +
+          group1_legend +
+          plot_layout(ncol= 1, heights = c(0.1,0.1, 1, 0.1, 0.2))
+      } else {
+        group1_labels +
+          dotplot + 
+          group1_legend +
+          plot_layout(ncol= 1, heights = c(0.1, 1, 0.1))
+      }
     })
     output$dotplot <- renderPlot({
       make_dotplot()
     }, height = eventReactive(input$BUTTON_draw_dotplot, {input$dotplot_height %>% as.numeric()}))
-    
+  })
+  
+  ## diff testing table ----
+  diff_table <- reactive({
+    req(input$diff_table_select)
+    if (input$diff_table_select == 'Cluster'){
+       out <- 'diff_testing_A'
+    } else {out <- 'diff_testing_C'}
+    return(out)
+  })
+  
+   output$make_diff_table <- DT::renderDataTable(server = TRUE, {
+    gene <- input$diff_gene
+    #cat(diff_table)
+    if (input$search_by == 'Gene'){
+    out <- anthology_2020_v01 %>% tbl(diff_table()) %>% 
+      filter(gene_short_name %in% gene) %>% 
+      arrange(-abs(normalized_effect)) 
+    } else {
+      filter_term <- input$diff_term
+      out <- anthology_2020_v01 %>% tbl(diff_table()) %>% 
+        filter(term %in% filter_term) %>% 
+        arrange(-abs(normalized_effect)) 
+    }
+    out %>% 
+      mutate(`AUC Score` = round(count / 55, 1),
+             mean_auc = round(mean_auc, 2)) %>% 
+      select(-status, -model_component, -count, -med_auc, -estimate, -test_val, -p_value) %>% 
+      collect() %>% 
+      DT::datatable(extensions = 'Buttons', rownames = F, 
+                    filter = list(position = 'bottom', clear = FALSE),
+                    options = list(pageLength = 10, dom = 'frtBip', buttons = c('pageLength','copy', 'csv')))
     
   })
 })
