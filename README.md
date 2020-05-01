@@ -6,6 +6,8 @@ Goals:
  - Stretch goals:
    - ID novel cell types
    - Species (in)consistent gene expression patterns across cell types
+   - Splicing/transcript-level differences with well scRNA data
+
    
 
 Milestones:
@@ -41,11 +43,11 @@ Milestones:
   - To do:
     - [Velocity](https://bustools.github.io/BUS_notebooks_R/velocity.html) 
     - Cell Cycle ID
-    - Doublet ID
+    - Doublet ID (done with scrublet as of ~2020/04/25)
     - Diff testing
       - Diff testing on subclustering
       - Implement [pseudobulk](https://osca.bioconductor.org/multi-sample-comparisons.html#differential-expression-between-conditions) by cell type / cluster?
-      - Run [Wilcox test](https://osca.bioconductor.org/marker-detection.html#using-the-wilcoxon-rank-sum-test) to get cluster / etc AUC and combine with Monocle testing in unified DF
+      - Run [Wilcox test](https://osca.bioconductor.org/marker-detection.html#using-the-wilcoxon-rank-sum-test) to get cluster / etc AUC and combine with Monocle testing in unified DF (done with scran as of ~2020/04/25)
     - optimize cell type (Vinay!) estimation
       - subsample "called" cell types, bootstrap and re-identify
       - ID "called" cell types with potential mis-calls
@@ -53,6 +55,7 @@ Milestones:
       - check the Sanes more detailed RGC annotation to see if "subclustering" (above) resolves the **many** Sanes ID'ed RGC cell types
     - Finalize well-based processing (ARI/Silhouette/LISI calling is semi-borked on this smaller dataset)
     - "Integrate" well data into droplet ... somehow
+      - easiest is to not use for viz, but just add to celltype-based tables
     - Do isoform-level tx calling with well data
       - Crib from [Sina's](https://www.biorxiv.org/content/10.1101/2020.03.05.977991v3) paper
     - BIG ONE:
