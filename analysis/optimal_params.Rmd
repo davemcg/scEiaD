@@ -211,7 +211,31 @@ tab_bench %>%  DT::datatable()
 
 ```
 
+# Import in Well based metrics
+```{r}
+files <- list.files('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/perf_metrics/', pattern = '.*onlyWELL.*', full.names = TRUE)
+well_perf <- list()
+for (i in files){
+  load(i)
+  ari <- scores$RI['HA']
+  silhouette <- scores$silhouette
+  lisi <- scores$LISI$CellType %>% mean()
+  norm <- (str_extract(i, 'Mus_.*') %>% str_split(., '__'))[[1]][3]
+  method <- (str_extract(i, 'Mus_.*') %>% str_split(., '__'))[[1]][6]
+  well_perf[[i]] <- cbind(norm, method, ari, lisi, silhouette) %>% as_tibble()
+}
 
+well_perf %>% bind_rows() %>% 
+  mutate(ari = as.numeric(ari), lisi = as.numeric(lisi), silhouette = as.numeric(silhouette)) %>% 
+  arrange(-ari) %>% 
+  mutate(ari_rank = row_number()) %>% 
+  arrange(silhouette) %>% 
+  mutate(silhouette_rank = row_number()) %>% 
+  arrange(lisi) %>% 
+  mutate(lisi_rank = row_number()) %>% 
+  mutate(sum = ari_rank + lisi_rank) %>% 
+  DT::datatable()
+```
 
 ```{r}
 devtools::session_info()
