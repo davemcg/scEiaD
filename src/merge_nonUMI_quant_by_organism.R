@@ -7,9 +7,9 @@ library(stringr)
 library(dplyr)
 library(Matrix)
 
-files <- args[seq(3,length(args))]
+files <- args[seq(4,length(args))]
 
-tx2gene <- read_tsv(args[2], col_names = F) %>% select(X1, X3)
+tx2gene <- read_tsv(args[3], col_names = F) %>% select(X1, X3)
 
 SRS = str_extract(files, 'SRS.*/') %>% gsub('/','',.)
 
@@ -20,3 +20,10 @@ colnames(count) <- SRS
 count <- count %>% Matrix(., sparse = TRUE)
 
 save(count, file = args[1])
+
+txi_count <- tximport(files, type = 'kallisto', txOut = TRUE, countsFromAbundance = 'no')
+
+count <- txi_count$counts
+colnames(count) <- SRS
+count <- count %>% Matrix(., sparse = TRUE)
+save(count, file = args[2])
