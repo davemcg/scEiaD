@@ -23,6 +23,7 @@ nmeta <- left_join(nmeta %>% as_tibble(rownames = 'Barcode'), cell_info_labels %
 
 # label the unlabelled cells as missing
 nmeta$CellType[is.na(nmeta$CellType)] <- 'Missing'
+nmeta$CellType[grepl('Doubl',nmeta$CellType)] <- 'Missing'
 integrated_obj@meta.data$CellType <- nmeta$CellType
 
 # # var genes
