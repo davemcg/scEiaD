@@ -87,7 +87,7 @@ def well_and_droplet_input(organism, reference):
 	if organism == 'Macaca_fascicularis':
 		out = ['quant/' + x + '/' + reference + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
 	else:
-		out = ['quant/' + organism + '/counts.Rdata']	+ \
+		out = ['quant/' + organism + '/' + reference + '__counts.Rdata']	+ \
 				['quant/' + x + '/' + reference + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
 	return(out)
 
@@ -148,7 +148,8 @@ wildcard_constraints:
 
 rule all:
 	input:
-		expand('quant/{organism}/full_sparse_matrix.Rdata', organism = organism),
+		#'quant/Homo_sapiens/hs__counts.Rdata',
+		#expand('quant/{organism}/full_sparse_matrix.Rdata', organism = organism),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['counts'], \
 				method = ['scVI'], \
@@ -248,10 +249,6 @@ rule all:
 				dims = [200], \
 				knn = [7], \
 				neighbors = [100]),
-		#expand('quant/{SRS}/{reference}/abundance.tsv.gz', SRS = SRS_nonUMI_samples), # non UMI data
-		#expand('quant/{SRS}/{reference}/output.bus', SRS = SRS_UMI_samples),
-		'site/anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-onlyDROPLET-batch-scVI-10-0.1-100-10.sqlite.gz',
-		#'site/anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-20-0.1-100-10.sqlite.gz'
 
 ## mouse, human, macaque fasta and gtf
 rule download_references:
@@ -371,7 +368,7 @@ rule kallisto_quant:
 													SRS = wildcards.SRS)
 		sp.run("echo " + job + '\n', shell = True)
 		sp.run(job, shell = True)	
-		sp.run('gzip quant/' + wildcards.SRS + '/*tsv', shell = True)
+		sp.run('gzip quant/' + wildcards.SRS + '/' + wildcards.reference + '/*tsv', shell = True)
 			
 			
 # sorting required for whitelist creation and correction
@@ -437,7 +434,8 @@ rule merge_nonUMI_quant_by_organism:
 		quant = lambda wildcards: expand('quant/{SRS}/{{reference}}/abundance.tsv.gz', SRS = organism_well_dict[wildcards.organism]),
 		tx_map = lambda wildcards: REF_idx(wildcards.reference, 'tx')
 	output:
-		'quant/{reference}/{organism}/counts.Rdata'
+		'quant/{organism}/{reference}__counts.Rdata',
+		'quant/{organism}/{reference}__counts_tx.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -696,8 +694,7 @@ rule plot_integration_tsne:
 
 rule monocle_diff_testing:
 	input:
-		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
-		'monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.monocle.Rdata'
+		'monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
 	output:
 		'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.{piece}.{model}.diff.Rdata'
 	shell:
@@ -720,14 +717,27 @@ rule monocle_diff_merge:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_diff_monocle.R {output} {wildcards.model}
 		"""
 
+rule monocle_marker_test:
+	input:
+		'monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
+	output:
+		'diff_test/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}__{group}.monocleTopMarker.Rdata'
+	threads: 16
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_topMarker_monocle.R {input} {threads} {wildcards.group} {output}
+		"""
+
 rule build_monocle_obj:
 	input:
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
+		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata'
 	output:
 		#'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.monocle_trajectory_labels.png',
 		#'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.monocle_trajectory.png',
-		'monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.monocle.Rdata'
+		'monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -740,7 +750,8 @@ rule diff_test_wilcox:
 		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
 		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	output:
-		'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__{knn}__{neighbors}__{dist}__{group}.sceWilcox.Rdata'
+		'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__{knn}__{neighbors}__{dist}__{group}.sceWilcox.Rdata',
+		'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__{knn}__{neighbors}__{dist}__{group}.sceWilcox_summary.Rdata'
 	threads: 4 
 	shell:
 		"""
@@ -765,7 +776,7 @@ rule make_h5ad_object:
 		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
 		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		#'monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.monocle.Rdata'
+		#'monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
 	output:
 		'anndata/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad'
 	shell:
@@ -802,14 +813,24 @@ rule sqlite_add_tables:
 					group = ['cluster','CellType_predict']),
 		diff_glm = expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__{{dims}}__{{dist}}__{{knn}}__{{neighbors}}.{model}.diff.coef_table.Rdata', \
 					model = ['A','B','C','D']),
+		marker_monocle = expand('diff_test/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{{knn}}__{group}.monocleTopMarker.Rdata', \
+					group = ['seuratCluster','CellType_predict']),
 		doublet = 'doublet_calls/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.doublets.Rdata'
 	output:
 		'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
 	params:
-		'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
+		inp = 'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite' 
+	threads: 16
 	shell:
 		"""
-		cp {input.sqlite} {output}
+		module load R/3.6
+		pigz -d -p {threads} {input.sqlite}
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/sqlite_add_diff_tables.R {params} \
+			'diff_testing/{wildcards.combination}__{wildcards.n_features}__{wildcards.transform}__{wildcards.partition}__{wildcards.covariate}__{wildcards.method}__{wildcards.dims}__{wildcards.dist}__{wildcards.knn}__{wildcards.neighbors}' \
+			'diff_testing/{wildcards.combination}__{wildcards.n_features}__{wildcards.transform}__{wildcards.partition}__{wildcards.covariate}__{wildcards.method}__dims{wildcards.dims}__{wildcards.knn}__{wildcards.neighbors}__{wildcards.dist}'	\
+			{input.doublet}
+		pigz -p {threads} {params}
+		mv {input.sqlite} {output}
 		"""
 		
 			

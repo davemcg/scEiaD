@@ -148,6 +148,12 @@
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:100"
 	},
+	"doublet_ID" :
+	{
+		"mem" : "180G",
+		"time" : "08:00:00",
+		"partition" : "norm"
+	},
 	"perf_metrics" :
 	{
 		"mem" : "180G",
@@ -173,11 +179,25 @@
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:20"
 	},
+	"monocle_marker_test" :
+	{
+		"mem" : "200G",
+		"time" : "4:00:00",
+		"partition" : "largemem",
+		"extra" : " --gres=lscratch:20"
+	},
 	"make_sqlite" :
 	{
 		"mem" : "350G",
 		"time" : "12:00:00",
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:20"
+	},
+	"sqlite_add_tables:" :
+	{
+		"mem" : "50G",
+		"time" : "2:00:00",
+		"partition" : "quick",
+		"extra" : " --gres=lscratch:5"
 	}
 }	
