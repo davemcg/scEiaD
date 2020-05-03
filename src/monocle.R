@@ -21,10 +21,11 @@ load(args[1])
 #load('umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__full__batch__scVI__dims200__mindist0.1__nneighbors50.umap.Rdata')
 load(args[2])
 
+load(args[3])
 
 #plot_file <- args[3]
 #plot_file_no_label <- args[4]
-output <- args[3]
+output <- args[4]
 
 # gene_annotation <- grep('^MT-', integrated_obj@assays$RNA@var.features, invert =TRUE, value = TRUE) %>% 
 #   enframe(name = NULL, value ='gene_short_name') %>% 
@@ -39,6 +40,9 @@ cell_metadata <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode') %>
   left_join(umap %>% select(Barcode, study_accession:Method), by = 'Barcode') %>% 
   data.frame()
 row.names(cell_metadata) <- cell_metadata$Barcode
+
+cell_metadata$seuratCluster <- meta[,2] %>% pull(1) %>%  as.factor()
+cell_metadata$seuratSubCluster <- meta[,3] %>% pull(1) %>%  as.factor()
 
 counts <- integrated_obj@assays$RNA@counts
 #row.names(counts) <- gene_annotation$gene_short_name
