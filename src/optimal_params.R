@@ -20,7 +20,7 @@ x5 = '.*n_features5000.*count.*scVI'
 x10 = '.*n_features10000.*count.*scVI'
 
 umap_mega <- list()
-for (x in c('.*preFilter.*')){
+for (x in c('.*onlyDROPLET.*')){
   print('cluster data')
   # load all clustering params -----
   files <- list.files('cluster/', 
@@ -145,7 +145,7 @@ save(umap_one, file = 'umap_one.Rdata')
 
 # process ari / silhouette / etc data 
 perf_all <- list()
-for (x in c('.*preFilter.*')){
+for (x in c('.*onlyDROPLET.*')){
   print(x)
   # load all clustering params -----
   files <- list.files('perf_metrics',
@@ -186,4 +186,4 @@ for (x in c('.*preFilter.*')){
 }
 perf_one <- perf_all %>% bind_rows()
 perf_one$value <- as.numeric(perf_one$value)
-save(umap_one, perf_one, file = 'metrics.Rdata')
+save(umap_one, perf_one, file = 'metrics_onlyDROPLET_2020_05_03.Rdata')
