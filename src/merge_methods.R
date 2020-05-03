@@ -211,14 +211,14 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     obj <- seurat_obj
     # identify batches wiht really low cell coutns (<100) to exclude
     obj@meta.data$split_by <- obj@meta.data[,covariate]
-    splits_to_remove <- obj@meta.data %>% 
-      dplyr::group_by(split_by)%>% 
-      summarise(Count = n())  %>% 
-      filter(Count < 100) %>% 
-      pull(split_by) 
-    if (length(splits_to_remove >= 1)) { 
-      obj <- subset(obj, subset = split_by %in% splits_to_remove, invert = TRUE)
-    }
+    #splits_to_remove <- obj@meta.data %>% 
+    #  dplyr::group_by(split_by)%>% 
+    #  summarise(Count = n())  %>% 
+    #  filter(Count < 100) %>% 
+    #  pull(split_by) 
+    #if (length(splits_to_remove >= 1)) { 
+    #  obj <- subset(obj, subset = split_by %in% splits_to_remove, invert = TRUE)
+    #}
     obj <-  ScaleData(seurat_obj, split.by = covariate, do.center = FALSE)
     #obj@assays$RNA@scale.data <- obj@assays$RNA@scale.data - min(obj@assays$RNA@scale.data) + 0.1 # <- yeah this is hacky but I think OK...
     # ...the alternative would be to re-run from scratch with raw counts, which would mean 
