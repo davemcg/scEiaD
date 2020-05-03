@@ -25,8 +25,7 @@ cell_info <- read_tsv(args[7]) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
 cell_info <- cell_info %>% 
-  mutate(batch = case_when(UMI == 'NO' ~ paste0(organism, '_Well_NA'),
-                           study_accession == 'SRP125998' ~ paste0(study_accession, "_", Platform, '_NA'),
+  mutate(batch = case_when(study_accession == 'SRP125998' ~ paste0(study_accession, "_", Platform, '_NA'),
                            TRUE ~ batch)) %>% 
   mutate(batch = gsub(' ', '_', batch))
 
