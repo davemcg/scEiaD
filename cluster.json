@@ -175,8 +175,14 @@
 	"diff_test_wilcox" :
 	{
 		"mem" : "450G",
-		"time" : "3:00:00",
+		"time" : "6:00:00",
 		"partition" : "largemem",
+		"extra" : " --gres=lscratch:20"
+	},
+	"build_monocle_obj" :
+	{
+		"mem" : "100G",
+		"time" : "1:00:00",
 		"extra" : " --gres=lscratch:20"
 	},
 	"monocle_marker_test" :

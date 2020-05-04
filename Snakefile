@@ -237,18 +237,10 @@ rule all:
 				covariate = ['batch'], \
 				knn = [7], \
 				dims = [50]),
-		expand('site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz',
-			    correction = 'FALSE', \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['onlyDROPLET'], \
-				n_features = [2000], \
-				dist = [0.1], \
-				transform = ['counts'], \
-				covariate = ['batch'], \
-				method = ['scVI'], \
-				dims = [200], \
-				knn = [7], \
-				neighbors = [100]),
+		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-200-0.1-100-7.sqlite.gz',
+		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-50-0.1-500-10.sqlite.gz',
+		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-onlyDROPLET-batch-scVI-20-0.1-30-7.sqlite.gz',
+		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-onlyDROPLET-batch-scVI-50-0.1-100-7.sqlite.gz'
 
 ## mouse, human, macaque fasta and gtf
 rule download_references:
