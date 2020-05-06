@@ -8,7 +8,6 @@ library(scattermore)
 library(pals)
 library(shinythemes)
 library(cowplot)
-library(svgPanZoom)
 
 shinyUI(
   navbarPage('Ocular scAnthology',
