@@ -29,7 +29,7 @@ macosko_labels <- macosko_labels %>%
                               Cluster == 37 ~ 'Vascular Endothelium',
                               Cluster == 38 ~ 'Pericytes',
                               Cluster == 39 ~ 'Microglia',
-                              TRUE ~ 'None')) %>% 
+                              TRUE ~ 'None')) %>%
   mutate(label = gsub('_.*','', Cell),
          UMI = gsub('\\w\\d_','', Cell))
 
@@ -46,6 +46,20 @@ karthik <- karthik %>%
                               CLUSTER == 20 ~ 'Rods',
                               CLUSTER == 22 ~ 'Cones', 
                               TRUE ~ 'Bipolar Cells')) %>% 
+  mutate(SubCellType = case_when(CLUSTER == 7 ~ 'BC1A',
+                                 CLUSTER == 9 ~ 'BC1B',
+                                 CLUSTER == 10 ~ 'BC2',
+                                 CLUSTER == 12 ~ 'BC3A',
+                                 CLUSTER == 8 ~ 'BC3B',
+                                 CLUSTER == 14 ~ 'BC4',
+                                 CLUSTER == 3 ~ 'BC5A',
+                                 CLUSTER == 13 ~ 'BC5B',
+                                 CLUSTER == 6 ~ 'BC5C',
+                                 CLUSTER == 11 ~ 'BC5D',
+                                 CLUSTER == 5 ~ 'BC6',
+                                 CLUSTER == 4 ~ 'BC7',
+                                 CLUSTER == 15 ~ 'BC8/9',
+                                 CLUSTER == 1 ~ 'RBC')) %>% 
   mutate(mouse = gsub('_.*', '', CELL_NAME),
          UMI = gsub('.*_','', CELL_NAME)) 
 
@@ -98,8 +112,8 @@ meta_SRP075719 <- cell_info %>%
                            sample_accession == 'SRS1467250' ~ 'Bipolar2',
                            sample_accession == 'SRS1467252' ~ 'Bipolar4',
                            TRUE ~ 'X')) %>% 
-  left_join(., karthik %>% select(mouse, UMI, CellType), by = c('UMI', 'mouse')) %>% 
-  select(value:batch,CellType) %>% 
+  left_join(., karthik %>% select(mouse, UMI, CellType, SubCellType), by = c('UMI', 'mouse')) %>% 
+  select(value:batch,CellType, SubCellType) %>% 
   mutate(Paper = 'Shekhar et al. 2016')
 
 ## sanes macaque 
@@ -131,7 +145,8 @@ meta_MacaqueSanes <- meta_MacaqueSanes %>%
                               grepl('Cones', Subcluster) ~ 'Cones',
                               Subcluster == 'Rods' ~ 'Rods',
                               Type == 'RGC' ~ 'Retinal Ganglion Cells')) %>% 
-  select(value:batch, CellType, TissueNote) %>% 
+  mutate(SubCellType = Cluster) %>% 
+  select(value:batch, CellType, SubCellType, TissueNote) %>% 
   mutate(Paper = 'Peng et al. 2019')
 
 # scheetz human fovea

@@ -9,9 +9,14 @@ args <- commandArgs(trailingOnly = TRUE)
 red <- args[1]
 load(args[2])
 ptsize = 4
+
 if (grepl('onlyWELL', args[2])){
-  ptsize = 20
-}
+ 	celltype_col <- 'CellType_predict'
+ 	print('woo')
+    ptsize = 20
+ } else { 
+ 	celltype_col <- 'CellType' 
+ }
 
 if (!"cluster" %in% colnames(umap)){
   umap$cluster <- umap$clusters

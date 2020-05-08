@@ -237,10 +237,10 @@ rule all:
 				covariate = ['batch'], \
 				knn = [7], \
 				dims = [50]),
-		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-200-0.1-100-7.sqlite.gz',
+	#	'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-200-0.1-100-7.sqlite.gz',
 		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-50-0.1-500-10.sqlite.gz',
-		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-onlyDROPLET-batch-scVI-20-0.1-30-7.sqlite.gz',
-		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-onlyDROPLET-batch-scVI-50-0.1-100-7.sqlite.gz'
+	#	'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-onlyDROPLET-batch-scVI-20-0.1-30-7.sqlite.gz',
+	#	'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-onlyDROPLET-batch-scVI-50-0.1-100-7.sqlite.gz'
 
 ## mouse, human, macaque fasta and gtf
 rule download_references:
@@ -706,7 +706,7 @@ rule monocle_diff_merge:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_diff_monocle.R {output} {wildcards.model}
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_diff_monocle.R {output} {wildcards.model} {input}
 		"""
 
 rule monocle_marker_test:

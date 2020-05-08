@@ -7,7 +7,8 @@ library(tidyverse)
 args <- commandArgs(trailingOnly = TRUE)
 model = args[2]
 
-files <- Sys.glob(paste0('diff_testing/*',model,'.diff.Rdata')) 
+#files <- Sys.glob(paste0('diff_testing/*',model,'.diff.Rdata')) 
+files <- args[3:length(args)]
 
 gene_fits_all <- as_tibble()
 count = 0
