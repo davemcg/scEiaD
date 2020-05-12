@@ -97,6 +97,8 @@ meta_SRP158081 <- cell_info %>%
             by = c('UMI', 'sample')) %>% 
   select(value:batch,CellType) %>% mutate(Paper = 'Clark et al. 2019')
 
+
+
 meta_SRP050054 <- cell_info %>% 
   filter(study_accession == 'SRP050054') %>% 
   left_join(macosko_labels %>% 
@@ -116,7 +118,40 @@ meta_SRP075719 <- cell_info %>%
   select(value:batch,CellType, SubCellType) %>% 
   mutate(Paper = 'Shekhar et al. 2016')
 
+# lu clark human dev scRNA
+## load cell info
+cell_info <- read_tsv('cell_info.tsv')  
+lu_clark <- data.table::fread('~/git/massive_integrated_eye_scRNA/data/GSE138002_Final_barcodes.csv.gz') %>%
+							mutate(UMI = gsub('^.*\\.','', barcode) %>% gsub('-.*','',.)) %>%
+				dplyr::rename(CellType = umap2_CellType) %>%
+				mutate(CellType = gsub('BC/Photo_Precurs', 'Photoreceptor Precursors', CellType))
+meta_srp223254 <- cell_info %>%
+  filter(study_accession %in% c('SRP151023', 'SRP170761','SRP223254')) %>% 
+  mutate(UMI = gsub('_\\w+', '', value)) %>% 
+  mutate(sample = case_when(Age == -217 ~ '24_Day',
+                            Age == -203 ~ 'Hgw11',
+                            Age == -196 ~  'Hgw12',
+                            Age == -189 ~ 'Hgw13',
+                            Age == -182 ~ 'Hgw14',
+                            Age == -175 ~ 'Hgw15',
+							Age == -168 ~ 'Hgw16',
+                            Age == -161 ~ 'Hgw17',
+							Age == -154 ~ 'Hgw18',
+							sample_accession == 'SRS5434858' ~ 'Hgw19_rep1',
+							sample_accession == 'SRS5434858' ~ 'Hgw19_rep2',
+							Age == -140 ~ 'Hgw20',
+							Age == -126 ~ 'Hgw22',
+							sample_accession == 'SRS3443575' ~ 'Hgw24_rep1',
+							sample_accession == 'SRS3443577' ~ 'Hgw24_rep2',
+							Age == -91 ~ 'Hgw27',
+							sample_accession == 'SRS5141025m' ~ 'Hpnd8_rep1',
+							sample_accession == 'SRS5141025p' ~ 'Hpnd8_rep2',
+							Age == 31360 ~ 'Adult')) %>%
+  left_join(lu_clark %>% select(UMI, sample, CellType),
+				by = c('UMI', 'sample')) %>% 
+  select(value:batch,CellType) %>% mutate(Paper = 'Lu et al. 2020')
 ## sanes macaque 
+cell_info <- read_tsv('cell_info.tsv') %>% select(-TissueNote)
 sanes_files <- list.files('~/git/massive_integrated_eye_scRNA/data/', "Macaque*", full.names = TRUE)
 sanes <- sanes_files %>% 
   map(read_csv) %>% 
@@ -126,6 +161,7 @@ sanes <- sanes_files %>%
   mutate(Type = gsub('_combined.*','', Type)) %>% 
   mutate(Type = gsub('.*_','', Type))
 
+#meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv')
 meta_MacaqueSanes <- cell_info %>% filter(study_accession %in% c('SRP158528', 'SRP157927')) %>% 
   left_join(sra_metadata_extended %>% 
               select(sample_accession, TissueNote), by = 'sample_accession') %>% 
@@ -148,7 +184,8 @@ meta_MacaqueSanes <- meta_MacaqueSanes %>%
   mutate(SubCellType = Cluster) %>% 
   select(value:batch, CellType, SubCellType, TissueNote) %>% 
   mutate(Paper = 'Peng et al. 2019')
-
+# reload
+# meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv') %>% select(-TissueNote)
 # scheetz human fovea
 scheetz_files <- list.files('~/git/massive_integrated_eye_scRNA/data/', pattern = 'GSM.*donor.*gz', full.names = TRUE)
 scheetz <- scheetz_files %>% 
@@ -219,7 +256,7 @@ meta_mennon <- cell_info %>% filter(study_accession %in% c('SRP222001','SRP22295
   mutate(Paper = 'Mennon et al. 2019')
 
 
-meta_SRP <- bind_rows(meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, meta_mennon)
+meta_SRP <- bind_rows(meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, meta_mennon)
 
 cell_info_labels <- bind_rows(meta_SRP, 
                               cell_info %>% select(value:batch) %>% 
@@ -235,6 +272,8 @@ cell_info_labels <- cell_info_labels %>%
                            study_accession == 'SRP186407' ~ "O'Koren et al. 2019",
                            TRUE ~ Paper))
 
+
+
 # label internal iPSC RPE data
 cell_info_labels <- cell_info_labels %>% 
   mutate(CellType = case_when(grepl('iPSC_RPE_scRNA_01', value) ~ 'iPSC',
@@ -244,7 +283,11 @@ cell_info_labels <- cell_info_labels %>%
          Paper = case_when(grepl('iPSC_RPE_scRNA', value) ~ 'Hufnagel 2020',
                            TRUE ~ Paper))
 
-save(cell_info_labels, file = 'cell_info_labelled.Rdata')
+if ((cell_info_labels$value %>% duplicated) %>% sum() == 0) {
+	save(cell_info_labels, file = 'cell_info_labelled.Rdata')
+} else {
+	print("Doubled cell labels! Check data frame!")
+}
 
 
 # ## Figure out what the hell is going on as the above file lists p1, r1 through r6 and GEO lists the 7 samples as 1 - 7....
