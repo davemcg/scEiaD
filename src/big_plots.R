@@ -45,7 +45,7 @@ plot1 <- umap %>%
   ggplot() + 
   geom_scattermore(aes(x=umap[,paste0(red,'_1')] %>% pull(1), 
                        y = umap[,paste0(red,'_2')] %>% pull(1), 
-                       colour = CellType), pointsize = ptsize, alpha = 0.1) + 
+                       colour = CellType), pointsize = (ptsize/3), alpha = 0.1) + 
   guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
   theme_cowplot() + 
   #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num ), alpha = 0.8, size = 2) +
@@ -103,7 +103,7 @@ plot5 <- umap %>%
   ggplot() + 
   geom_scattermore(aes(x = umap[,paste0(red,'_1')] %>% pull(1), 
                        y = umap[,paste0(red,'_2')] %>% pull(1),  
-                       colour = CellType), pointsize = 20, alpha = 0.05) + 
+                       colour = CellType), pointsize = ptsize, alpha = 0.05) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
   theme_cowplot() + 
   type_col + 
@@ -120,7 +120,7 @@ plot6 <- umap %>%
   geom_scattermore(aes(x = umap[,paste0(red,'_1')] %>% pull(1), 
                        y = umap[,paste0(red,'_2')] %>% pull(1), 
                        colour = study_accession), 
-                   pointsize = 20, alpha = 0.1) + 
+                   pointsize = ptsize, alpha = 0.1) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
   theme_cowplot() + 
   scale_size(guide = 'none') +
