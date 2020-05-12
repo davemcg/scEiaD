@@ -42,7 +42,7 @@ cutdown <- umap %>%
   filter(!CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
          !is.na(CellType)) %>% 
   group_by(organism, CellType) %>% 
-  sample_n(3000, replace = TRUE) %>% 
+  sample_n(2000, replace = TRUE) %>% 
   unique()
 # remove celltypes which have fewer than 10 cells
 keep <- umap %>% group_by(CellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(CellType)
