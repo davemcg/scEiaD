@@ -1,0 +1,6 @@
+fasterq-dump    SRR7405873  ; pigz -p 6 SRR7405873*fastq
+fasterq-dump    SRR7405876  ; pigz -p 6 SRR7405876*fastq
+fasterq-dump    SRR7405877  ; pigz -p 6 SRR7405877*fastq
+fasterq-dump    SRR7405878  ; pigz -p 6 SRR7405878*fastq
+fasterq-dump    SRR9675719  ; pigz -p 6 SRR9675719*fastq
+fasterq-dump    SRR7405874  ; pigz -p 6 SRR7405874*fastq
