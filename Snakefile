@@ -10,6 +10,8 @@ srr_sample_file = config['srr_sample_file']
 def metadata_builder(file, SRS_dict = {}, discrepancy = False):
 	with open(file) as file:
 		for line in file:
+			if line[0] == '#':
+				continue
 			info = line.strip('\n').split('\t')
 			if info[0] == 'sample_accession':
 				continue
@@ -148,8 +150,7 @@ wildcard_constraints:
 
 rule all:
 	input:
-		#'quant/Homo_sapiens/hs__counts.Rdata',
-		#expand('quant/{organism}/full_sparse_matrix.Rdata', organism = organism),
+		expand('quant/{sample}/hs/output.bus', sample = SRS_UMI_samples),	
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['counts'], \
 				method = ['scVI'], \
@@ -312,12 +313,13 @@ rule kallisto_bus:
 		bus = 'quant/{SRS}/{reference}/output.bus',
 		ec = 'quant/{SRS}/{reference}/matrix.ec',
 		tx_name = 'quant/{SRS}/{reference}/transcripts.txt'
+	threads: 4
 	params:
 		tech = lambda wildcards: SRS_dict[wildcards.SRS]['tech'],
 		paired = lambda wildcards: SRS_dict[wildcards.SRS]['paired']
 	run:
 		if params.paired:
-			job = "kallisto bus -x {tech} \
+			job = "kallisto bus -t 4 -x {tech} \
 					-i {idx} -o quant/{SRS}/{reference} {fastq}".format(fastq = input.fastq,
                                                     tech = params.tech,
 													idx = input.idx,
