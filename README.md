@@ -56,6 +56,7 @@ Milestones:
     - Finalize well-based processing (ARI/Silhouette/LISI calling is semi-borked on this smaller dataset)
     - "Integrate" well data into droplet ... somehow
       - easiest is to not use for viz, but just add to celltype-based tables
+      - cluster2pattern from [projectR](https://www.bioconductor.org/packages/release/bioc/vignettes/projectR/inst/doc/projectR.pdf)?
     - Do isoform-level tx calling with well data
       - Crib from [Sina's](https://www.biorxiv.org/content/10.1101/2020.03.05.977991v3) paper
     - BIG ONE:
