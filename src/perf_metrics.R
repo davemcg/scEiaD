@@ -11,7 +11,9 @@ args <- commandArgs(trailingOnly = TRUE)
 load(args[1])
 # full obj
 load(args[2])
-
+# load cluster
+load(args[3])
+umap$cluster <- meta %>% pull(2)
 
 print(args[2])
 
@@ -20,9 +22,9 @@ if (grepl('onlyWELL', args[2])){
 } 
 
 
-if (!"cluster" %in% colnames(umap)){
-    umap$cluster <- umap$clusters
-}
+#if (!"cluster" %in% colnames(umap)){
+#    umap$cluster <- umap$clusters
+#}
 # find proper embedding to use
 reductions <- names(integrated_obj@reductions)
 reductions <- reductions[!grepl('UMA', reductions, ignore.case = TRUE)]
@@ -35,7 +37,7 @@ scores <- list()
 # devtools::install_github('theislab/kBET')
 # https://github.com/theislab/kBET
 set.seed(12534)
-# take up to 3000 from each organism/celltype
+# take up to 2000 from each organism/celltype
 print('cutdown begin')
 cutdown <- umap %>% 
   rowid_to_column('ID') %>% 
@@ -44,18 +46,19 @@ cutdown <- umap %>%
   group_by(organism, CellType) %>% 
   sample_n(2000, replace = TRUE) %>% 
   unique()
-# remove celltypes which have fewer than 10 cells
+# remove celltypes which have fewer than 100 cells
 keep <- umap %>% group_by(CellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(CellType)
 cutdown <- cutdown %>% filter(CellType %in% keep)
-silhouette <- function(obj){
+silhouette <- function(obj, against = 'batch'){
   out <- 0
   try({
     indices <- obj$ID
     faux_pca <- list()
     faux_pca$x <- integrated_obj@reductions[[reduction]]@cell.embeddings[indices,]
-    batch <- umap[indices, 'batch'] %>% pull(1) %>% as.factor() %>% as.numeric()
+    
+	metric <- umap[indices, against] %>% pull(1) %>% as.factor() %>% as.numeric()
     dims = ncol(integrated_obj@reductions[[reduction]]@cell.embeddings[indices,])
-    out <- kBET::batch_sil(faux_pca, batch, nPCs = dims)
+    out <- kBET::batch_sil(faux_pca, metric, nPCs = dims)
   })
   out
 }
@@ -65,12 +68,13 @@ silhouette <- function(obj){
 # 0 is random
 print('scoring starts')
 print('silhouette')
-scores$silhouette <- silhouette(cutdown)
-
+scores$silhouette_batch <- silhouette(cutdown)
+scores$silhouette_celltype <- silhouette(cutdown, against = 'CellType')
+scores$silhouette_cluster <- silhouette(cutdown, against = 'cluster')
 # run silhouette by cell type
-print('silhouette by celltype')
-scores$silhouette_CellType <- cutdown %>% 
-  group_by(CellType) %>% group_map(~ silhouette(.x))
+#print('silhouette by celltype')
+#scores$silhouette_CellType <- cutdown %>% 
+#  group_by(CellType) %>% group_map(~ silhouette(.x))
 
 # batch <- umap[cutdown,'batch'] %>% pull(1) %>% as.factor() %>% as.numeric()
 # not much point running kBET for me as it returns fail for everything
@@ -83,10 +87,15 @@ scores$silhouette_CellType <- cutdown %>%
 # generates a score PER CELL which is a metric of number of types of neighbors
 # lower is better (pure cell population within region)
 print('lisi')
-scores$LISI <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,], 
+scores$LISI_celltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,], 
                                   cutdown,
                                   'CellType')
-
+scores$LISI_batch <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,],
+                                  cutdown,
+                                  'batch')
+scores$LISI_cluster <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,],
+                                  cutdown,
+                                  'cluster')
 # ARI
 # https://davetang.org/muse/2017/09/21/adjusted-rand-index/
 # very slow
@@ -108,4 +117,4 @@ scores$RI_species <- cutdown %>%
 scores$Barcode <- cutdown %>% ungroup() %>% select(Barcode)
 scores$umap_cutdown <- cutdown
 
-save(scores, file = args[3])
+save(scores, file = args[4])
