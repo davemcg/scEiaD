@@ -36,7 +36,7 @@ latent = args[4] %>% as.numeric()
 load(args[5])
 
 
-run_integration <- function(seurat_obj, method, covariate = 'study_accession', transform = 'standard', latent = 50){
+run_integration <- function(seurat_obj, method, covariate = 'study_accession', transform = 'standard', latent = 50, file = args[5]){
   # covariate MUST MATCH what was used in build_seurat_obj.R
   # otherwise weird-ness may happen
   # the scaling happens at this level
@@ -104,6 +104,115 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 								key = "magic_", 
 								assay = DefaultAssay(seurat_obj))
 	obj <- seurat_obj
+  } else if (method == 'insct') {
+    assay <- 'RNA'
+    vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
+    if (transform == 'counts'){
+      matrix = seurat_obj@assays$RNA@counts[vfeatures, ]
+    } else if (transform == 'SCT'){
+      assay <- 'SCT'
+      vfeatures <- grep('^MT-', seurat_obj@assays$SCT@var.features, invert =TRUE, value = TRUE)
+      matrix = seurat_obj@assays$SCT@scale.data[vfeatures, ] %>% Matrix(., sparse = TRUE)
+    } else {
+      matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
+    }
+	if (ncol(matrix) < 100000){type = 'onlyWELL'} else {type = 'onlyDROPLET'}
+    out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', latent, '_', type, '.loom')
+	
+	# add count to one cell if all are zero
+	vfeature_num <- length(vfeatures)
+	one0 <- vector(mode = 'numeric', length = vfeature_num)
+	one0[2] <- 1
+	if (sum(colSums(matrix)==0) > 0){
+		matrix[,colSums(matrix) == 0] <- one0
+	}
+
+    load('cell_info_labelled.Rdata')
+    ct <- seurat_obj@meta.data %>% as_tibble(rownames = 'value') %>% left_join(cell_info_labels, by = 'value') %>% pull(CellType)
+	ct[ct == 'Doublet'] <- 'Missing'
+	ct[ct == 'Doublets'] <- 'Missing'
+	ct[is.na(ct)] <- 'Missing'
+	create(filename= out, 
+           overwrite = TRUE,
+           data = matrix, 
+           cell.attrs = list(batch = seurat_obj@meta.data[,covariate],
+							 masking_batch = cbind(ct, batch = seurat_obj@meta.data[,covariate]) %>% 
+										as_tibble() %>% 
+										mutate(mask_batch = case_when(ct == 'Missing' ~ 'missing', 
+										 							  batch == 'SRP050054_DropSeq_retina5' ~ 'missing',
+																	  batch == 'SRP050054_DropSeq_retina6' ~ 'missing',
+																	  TRUE ~ batch)) %>% 
+										pull(mask_batch),
+							 celltype = ct,
+                             batch_indices = seurat_obj@meta.data[,covariate] %>% 
+                               as.factor() %>% 
+                               as.numeric()))
+    # connect to new loom file, then disconnect...otherwise python call gets borked for 
+    # as we are connected into the file on create
+    loom <- connect(out, mode = 'r')
+    loom$close_all() 
+
+    insct_command = paste('conda activate INSCT; /data/mcgaugheyd/conda/envs/INSCT/bin/./python3.7 /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_INSCT.py',
+                         out, latent)
+    # run desc     
+	print(insct_command) 
+    system(insct_command)
+    # import reduced dim (latent)
+    latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
+	latent_dims <- latent_dims[2:nrow(latent_dims),2:ncol(latent_dims)]
+    row.names(latent_dims) <- colnames(seurat_obj)
+    colnames(latent_dims) <- paste0("desc_", 1:ncol(latent_dims))
+    
+    seurat_obj[["insct"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "insct_", assay = DefaultAssay(seurat_obj))
+	obj <- seurat_obj 
+
+  } else if (method == 'desc') {
+    assay <- 'RNA'
+    vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
+    if (transform == 'counts'){
+      matrix = seurat_obj@assays$RNA@counts[vfeatures, ]
+    } else if (transform == 'SCT'){
+      assay <- 'SCT'
+      vfeatures <- grep('^MT-', seurat_obj@assays$SCT@var.features, invert =TRUE, value = TRUE)
+      matrix = seurat_obj@assays$SCT@scale.data[vfeatures, ] %>% Matrix(., sparse = TRUE)
+    } else {
+      matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
+    }
+	out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', latent, '_', sample(1e5:5e5, 1), '.loom')
+		
+	# add count to one cell if all are zero
+	vfeature_num <- length(vfeatures)
+	one0 <- vector(mode = 'numeric', length = vfeature_num)
+	one0[2] <- 1
+	if (sum(colSums(matrix)==0) > 0){
+		matrix[,colSums(matrix) == 0] <- one0
+	}
+	create(filename= out, 
+           overwrite = TRUE,
+           data = matrix, 
+           cell.attrs = list(batch = seurat_obj@meta.data[,covariate],
+                             batch_indices = seurat_obj@meta.data[,covariate] %>% 
+                               as.factor() %>% 
+                               as.numeric()))
+    # connect to new loom file, then disconnect...otherwise python call gets borked for 
+    # as we are connected into the file on create
+    loom <- connect(out, mode = 'r')
+    loom$close_all() 
+
+    desc_command = paste('conda activate DESC; /data/mcgaugheyd/conda/envs/DESC/bin/./python3.7 /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_desc.py',
+                         out)
+    # run desc     
+	print(desc_command) 
+    system(desc_command)
+    # import reduced dim (latent)
+    latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
+	latent_dims <- latent_dims[2:nrow(latent_dims),2:ncol(latent_dims)]
+    row.names(latent_dims) <- colnames(seurat_obj)
+    colnames(latent_dims) <- paste0("desc_", 1:ncol(latent_dims))
+    
+    seurat_obj[["desc"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "desc_", assay = DefaultAssay(seurat_obj))
+	obj <- seurat_obj 
+
   } else if (method == 'scVI') {
     # scVI ----
     assay <- 'RNA'

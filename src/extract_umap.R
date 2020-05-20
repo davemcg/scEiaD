@@ -21,12 +21,6 @@ if (method == 'CCA'){
   reduction <- 'pca'
   reduction.key <- 'ccaUMAP_'
   #DefaultAssay(integrated_obj) <- 'SCT'
-} else if (method == 'scanorama'){
-  reduction <- 'scanorama'
-  reduction.key <- 'scanoramaUMAP_'
-} else if (method == 'harmony'){
-  reduction <- 'harmony'
-  reduction.key <- 'harmonyUMAP_'
 } else if (method == 'fastMNN'){
   reduction <- 'mnn'
   reduction.key <- 'mnnUMAP_'
@@ -42,14 +36,10 @@ if (method == 'CCA'){
 } else if (method == 'liger'){
   reduction <- 'iNMF'
   reduction.key <- 'iNMFUMAP_'
-} else if (method == 'scVI'){
-  reduction <- 'scVI'
-  reduction.key <- 'scviUMAP_'
-} else if (method == 'magic') {
-  reduction <- 'magic'
-  reduction.key <- 'magicUMAP_'
 } else {
-  print(paste0("Why did you pick ", method, "?"))
+  print("GUESSING!")
+  reduction <- method
+  reduction.key <- paste0(reduction, 'UMAP_')
 }
 reduction.name <- gsub('_','', reduction.key)
 

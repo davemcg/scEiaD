@@ -151,8 +151,12 @@ if (method == 'CCA'){
 } else if (method == 'magic') {
   reduction <- 'magic'
   reduction.key <- 'magicUMAP_'
+} else if (method == 'desc') {
+  reduction <- 'desc'
+  reduction.key <- 'descUMAP_'
 } else {
-  print(paste0("Why did you pick ", method, "?"))
+  reduction <- method
+  reduction.key <- paste0(method,'UMAP_')
 }
 reduction.name <- gsub('_','', reduction.key)
 integrated_obj <- create_umap_and_cluster(integrated_obj = integrated_obj, 
