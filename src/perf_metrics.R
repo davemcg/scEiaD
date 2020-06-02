@@ -20,7 +20,8 @@ print(args[2])
 if (grepl('onlyWELL', args[2])){
     umap$CellType <- umap$CellType_predict
 } 
-
+umap <- umap %>%  mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType))
+umap$SubCellType[grepl('^RB|Rods|Peri|^MG$|^Mic$', umap$SubCellType)] <- NA
 
 #if (!"cluster" %in% colnames(umap)){
 #    umap$cluster <- umap$clusters
@@ -49,6 +50,23 @@ cutdown <- umap %>%
 # remove celltypes which have fewer than 100 cells
 keep <- umap %>% group_by(CellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(CellType)
 cutdown <- cutdown %>% filter(CellType %in% keep)
+# cutdown against subcelltype
+cutdownSUB <- umap %>% 
+  rowid_to_column('ID') %>% 
+  filter(!is.na(SubCellType)) %>% 
+  group_by(organism, SubCellType) %>% 
+  sample_n(2000, replace = TRUE) %>% 
+  unique()
+# remove celltypes which have fewer than 100 cells
+keep <- umap %>% group_by(SubCellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(SubCellType)
+cutdownSUB <- cutdownSUB %>% filter(SubCellType %in% keep)
+
+# kBET silhouette function
+# user can select what silhoette is calcualted AGAINST 
+# have to subsample input as this requires making a dist obj! 
+# -1 overlapping (good if you are evaluating batch mixing)
+# 1 distinct clusters (bad if you are evaluating batch)
+# 0 is random
 silhouette <- function(obj, against = 'batch'){
   out <- 0
   try({
@@ -62,15 +80,12 @@ silhouette <- function(obj, against = 'batch'){
   })
   out
 }
-# have to subsample as this requires making a dist obj! 
-# -1 overlapping (good if you are evaluating batch mixing)
-# 1 distinct clusters (bad if you are evaluating batch)
-# 0 is random
 print('scoring starts')
 print('silhouette')
 scores$silhouette_batch <- silhouette(cutdown)
 scores$silhouette_celltype <- silhouette(cutdown, against = 'CellType')
 scores$silhouette_cluster <- silhouette(cutdown, against = 'cluster')
+scores$silhouette_subcelltype <- silhouette(cutdownSUB, against = 'SubCellType')
 # run silhouette by cell type
 #print('silhouette by celltype')
 #scores$silhouette_CellType <- cutdown %>% 
@@ -87,6 +102,9 @@ scores$silhouette_cluster <- silhouette(cutdown, against = 'cluster')
 # generates a score PER CELL which is a metric of number of types of neighbors
 # lower is better (pure cell population within region)
 print('lisi')
+try({scores$LISI_subcelltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdownSUB$ID,], 
+                                  cutdownSUB,
+                                  'SubCellType') })
 scores$LISI_celltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,], 
                                   cutdown,
                                   'CellType')
@@ -100,19 +118,19 @@ scores$LISI_cluster <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]
 # https://davetang.org/muse/2017/09/21/adjusted-rand-index/
 # very slow
 # install.packages('clues')
-print('ari')
-ari <- function(obj){
-  out <- 'fail'
-  try({
-    clues::adjustedRand(obj$cluster %>% as.character() %>% as.numeric(), obj$CellType %>% as.factor() %>% as.numeric())
-  })
-}
-scores$RI <- ari(cutdown)
-print('scoring over')
+#print('ari')
+#ari <- function(obj){
+#  out <- 'fail'
+#  try({
+#    clues::adjustedRand(obj$cluster %>% as.character() %>% as.numeric(), obj$CellType %>% as.factor() %>% as.numeric())
+#  })
+#}
+#scores$RI <- ari(cutdown)
+#print('scoring over')
 # by species
-scores$RI_species <- cutdown %>% 
-  group_by(organism) %>% 
-  group_map(~ ari(.x))
+#scores$RI_species <- cutdown %>% 
+#  group_by(organism) %>% 
+#  group_map(~ ari(.x))
 
 scores$Barcode <- cutdown %>% ungroup() %>% select(Barcode)
 scores$umap_cutdown <- cutdown

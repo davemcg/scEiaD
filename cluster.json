@@ -65,10 +65,10 @@
 	},
 	"integrate_00" :
 	{
-		"mem" : "50G",
+		"mem" : "200G",
 		"partition" : "gpu",
 		"time" : "8:00:00",
-		"extra" : " --gres=gpu:p100:1,lscratch:5"
+		"extra" : " --gres=gpu:k80:1,lscratch:5"
 	},
 	"integrate_01" :
 	{
@@ -122,10 +122,10 @@
 	},
 	"predict_missing_cell_types_00" :
 	{
-		"mem" : "200G",
-		"time" : "48:00:00",
-		"partition" : "norm",
-		"extra" : " --gres=lscratch:20"
+		"mem" : "250G",
+		"time" : "30:00:00",
+		"partition" : "largemem",
+		"extra" : " --gres=lscratch:2"
 	},
 	"monocle_diff_testing" :
 	{
@@ -151,7 +151,7 @@
 	{
 		"partition" : "norm",
 		"mem" : "150G",
-		"time" : "02:30:00"
+		"time" : "04:30:00"
 	},
 	"monocle_diff_merge" :
 	{
@@ -162,7 +162,7 @@
 	},
 	"make_h5ad_object" :
 	{
-		"mem" : "90G",
+		"mem" : "100G",
 		"time" : "4:00:00",
 		"partition" : "quick"
 	},
@@ -185,6 +185,12 @@
 		"time" : "4:00:00",
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:20"
+	},
+	"scIB_stats" :
+	{
+		"mem" : "30G",
+		"time" : "2:00:00",
+		"partition" : "norm"
 	},
 	"make_sqlite" :
 	{
