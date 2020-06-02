@@ -36,6 +36,9 @@ if (method == 'CCA'){
 } else if (method == 'liger'){
   reduction <- 'iNMF'
   reduction.key <- 'iNMFUMAP_'
+} else if (method == 'scVI'){
+   reduction <- 'scVI'
+   reduction.key <- 'scviUMAP_'
 } else {
   print("GUESSING!")
   reduction <- method
