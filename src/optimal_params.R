@@ -3,8 +3,7 @@ library(cowplot)
 library(splancs)
 # load annotations
 # load('cell_info_labelled.Rdata')
-
- calculate of matrix of points
+# calculate of matrix of points
 area_chull <- function(x,y){
   matrix <- cbind(x,y) %>% as.matrix()
   ch = chull(matrix)
@@ -159,10 +158,10 @@ for (x in c('.*onlyDROPLET.*')){
 								c('Silhouette', scores$silhouette_batch, 'Batch'),
 								c('Silhouette', scores$silhouette_celltype, 'CellType'),
 								c('Silhouette', scores$silhouette_cluster, 'Cluster'),
-								scores$RI %>% enframe(name = 'score') %>% mutate('Cell Type' = 'CellType-Batch'))
+								scores$RI %>% enframe(name = 'score') %>% mutate('Cell Type' = 'CellType-Cluster'))
 							
 	colnames(table_score) <- c('Score', 'Value', 'Group')
-	table_score$Value <- as.numeric(table_score$Value)
+	table_score$Value <- as.numeric(as.character(table_score$Value))
 
 
 	norm = str_extract(i, 'n_features\\d+__[^\\W_]+') %>% gsub('n_features\\d+__','',.)
@@ -181,4 +180,34 @@ for (x in c('.*onlyDROPLET.*')){
   #perf_all <- perf_all %>% bind_rows()
 }
 perf_one <- perf_all %>% bind_rows() %>% unique()
-save(perf_one, file = 'metrics_onlyDROPLET_2020_05_15.Rdata')
+
+
+# scIB
+files = list.files('scIB_stats/', pattern = 'csv', full.names = TRUE)
+data <- list()
+for (i in files){
+  	norm = str_extract(i, 'n_features\\d+__[^\\W_]+') %>% gsub('n_features\\d+__','',.)
+    nf = str_extract(i, 'n_features\\d+') %>% gsub('n_features', '', .) %>% as.numeric()
+    dims = str_extract(i, 'dims\\d+') %>% gsub('dims', '', .) %>% as.numeric()
+    method = str_extract(i, 'batch__[^\\W_]+') %>% gsub('batch__','',.)
+    knn = str_extract(i, 'knn\\d+') %>% gsub('knn', '', .) %>% as.numeric()
+	table_score <- read_csv(i, col_names = FALSE)
+	table_score$dims = dims
+    table_score$nf = nf
+    table_score$knn <- knn
+    table_score$method <- method
+    table_score$normalization <- norm
+	colnames(table_score)[1:2] <- c('Score', 'Value')
+	data[[i]] <- table_score
+}
+perf_two <- data %>% bind_rows() %>%  
+			mutate(Group = case_when(Score == 'nmi' ~ 'CellType-Cluster',
+									 Score == 'nmi_sub' ~ 'SubCellType-Cluster',
+									 Score == 'ari' ~ 'CellType-Cluster',
+							         Score == 'ari_sub' ~ 'SubCellType-Cluster',
+									Score == 'pcr' ~ 'After-Before')) %>%
+			mutate(Score = gsub('_sub','',Score)) %>% 
+			mutate(Score = toupper(Score))
+
+perf <- bind_rows(perf_one %>% filter(Score != 'ARI'), perf_two)
+save(perf, file = 'metrics_onlyDROPLET_2020_06_02.Rdata')
