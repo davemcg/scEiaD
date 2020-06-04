@@ -5,247 +5,82 @@ output: html_notebook
 
 Pick optimal knn, nfeatures, nneighbors, dims based upon:
 
-- (1) Study diversity diversity by cluster (avg. number of studies in clusters with >100 cells)
-- (2) Silhouette (scVI dimensions against batch - lower is better, a score of -1 means perfect mixing, 1 means perfectly non-mixed (bad in this situation) )
-- (3) LISI (scVI dimensions against cell type - lower is better, a score of 1 means that each cell has, on average, one cell type near it)
-- ($) ARI (adjusted rand index, ratio of agreements over disagreements. 1 perfectly agrees, 0 perfectly disagrees. Higher is better, as the ARI is calcalted as agreement between cluster and known cell type labels)
-
-Cell Type purity is directly orthogaonl to organism diversity.
-
-
+  - ARI (adjusted rand index, ratio of agreements over disagreements. 1 perfectly agrees, 0 perfectly disagrees. Higher is better, as the ARI is calculted as agreement between cluster and known cell type labels)
+  - Silhouette (scVI dimensions against [Batch, CellType, Cluster]). A score of -1 means perfect mixing, 1 means perfectly non-mixed (good for Cluster, CellType)
+  - LISI (scVI dimensions against [Batch, CellType, Cluster]). A score of 1 means that each cell has, on average, one [Batch, CellType, Cluster] near it. Higher is better for Batch. Closest to 1 is best for CellType, Cluster.
+    - Silhouette and LISI each have three scores: 
+      - Batch 
+      - CellType 
+      - Cluster 
+    
 ```{r}
 library(tidyverse)
 library(cowplot)
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/metrics_onlyDROPLET_2020_05_03.Rdata')
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/metrics_onlyDROPLET_2020_06_02.Rdata')
+
+
+perf_well <- perf %>% unique() %>% filter(grepl('WELL', subset)) %>% 
+  select(Score, Group, Value, dims:normalization) %>% 
+  filter(Score %in% c('LISI','Silhouette')) 
+
+
+perf <- perf %>% unique() %>% filter(!grepl('WELL', subset)) %>% 
+  select(Score, Group, Value, dims:normalization) %>% 
+  filter(Score %in% c('LISI','Silhouette', 'ARI', 'PCR', 'NMI')) 
+
+
+perf %>% DT::datatable()
 ```
 
 
-# Silhouette
+# LISI Metric
+Want Batch as high as possible (mean # of batches near each cell) and Cluster as low as possible (mean # of cluster types near each cell)
 ```{r}
-silhouette <- perf_one %>% 
-  filter(`Cell Type` == 'All', score == 'Silhouette')  %>% 
-  unique() %>% 
-  arrange(value) %>% 
-  mutate(Rank = row_number()) %>% 
-  dplyr::rename('SilhouetteScore' = value, 
-                'SilhouetteRank' = Rank, 
-                'nfeatures' = nf) %>% 
-  select(-`Cell Type`, -score)
-
-
+perf %>% 
+  filter(Score == 'LISI', nf == 2000, dims %in% c(10,30), knn == 7) %>%
+  pivot_wider(values_from = Value, names_from = c('Group')) %>% 
+  ggplot(aes(y=Batch, x=-Cluster, shape = normalization)) + geom_point(aes(color=method), size = 5) +
+  cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname())
 ```
 
 # ARI
 ```{r}
-ari <- perf_one %>% 
-  filter(`Cell Type` == 'All', score == 'HA')  %>% 
-  unique() %>% 
-  arrange(-value) %>% 
-  mutate(Rank = row_number()) %>% 
-  dplyr::rename('ARIScore' = value, 
-                'ARIRank' = Rank, 
-                'nfeatures' = nf) %>% 
-  select(-`Cell Type`, -score)
+perf %>% 
+  filter(Score == 'ARI', nf == 2000, dims %in% c(10,30), knn == 7) %>%
+  ggplot(aes(y=Value, x=normalization)) + geom_point(aes(color=method), size = 5) +
+  cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname()) + ylab('ARI (higher is better)')
 ```
 
-# LISI
+# Silhouette Metric
+Want Batch as low as possible (-1 is perfect mixing) and Cluster as high as possible (1 is perfect purity of cluster types near each cell). Notice how the y-axis has been "flipped" by multiply by -1.
 ```{r}
-lisi <- perf_one %>% 
-  filter(`Cell Type` == 'All', score == 'LISI')  %>% 
-  unique() %>% 
-  arrange(value) %>% 
-  mutate(Rank = row_number()) %>% 
-  dplyr::rename('LISIScore' = value, 
-                'LISIRank' = Rank, 
-                'nfeatures' = nf) %>% 
-  select(-`Cell Type`, -score)
+perf %>% filter(Score == 'Silhouette') %>% 
+    pivot_wider(values_from = Value, names_from = c('Group')) %>% 
+  ggplot(aes(y=-Batch, x=Cluster, shape = normalization)) + geom_point(aes(color=method), size = 5) +
+  cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname())
 ```
 
-# Collapse plots to tables
+# Table
+Use Z scaling to get `sumZScale` score where the highest value is, overall across all the metrics, the best performer
 ```{r}
-# sum score metric (averaged across all labelled cells)
-# celltype is celltype purity by cluster
-# ideally would be 1 
-celltype <- umap_one %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% 
-  group_by(knn, normalization, nfeatures, dims, method) %>% 
-  summarise(freq = sum(freq*Count)/sum(Count)) %>%  # scale cell type purity by number of cells 
-  ungroup() %>% 
-  mutate(celltype_rank  = rank(-freq)) %>% arrange(celltype_rank)
+perf %>% 
+  pivot_wider(names_from = c('Score','Group'), values_from = Value) %>% 
+  mutate(sumZScale = 
+           -scale(LISI_CellType)[,1] +
+           scale(Silhouette_CellType)[,1] +
+           scale(`NMI_CellType-Cluster`)[,1] +
+           scale(`NMI_SubCellType-Cluster`)[,1] +
+           scale(`ARI_CellType-Cluster`)[,1] +
+           scale(`ARI_SubCellType-Cluster`)[,1] +
+           
+           scale(LISI_Batch)[,1] + # Z score
+           -scale(LISI_Cluster)[,1] +
+           -scale(Silhouette_Batch)[,1] + # Z score
+           scale(Silhouette_Cluster)[,1] +
+           scale(`PCR_After-Before`)[,1]
+           ) %>% 
+  arrange(-sumZScale) %>% DT::datatable()
 
-study <- umap_one %>% 
-  filter(Count > 100) %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% 
-  group_by(knn, normalization, nfeatures,  dims, method) %>% 
-  summarise(study_mean = sum(study_count*Count)/sum(Count)) %>% 
-  ungroup() %>% 
-  mutate(study_rank  = rank(-study_mean)) %>% arrange(study_rank)
-
-org <-  umap_one %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% 
-  group_by(knn, normalization, nfeatures,  dims, method) %>% 
-  summarise(org_mean = sum(organism_count*Count)/sum(Count)) %>%  # scale organism type mixing by number of cells 
-  ungroup() %>% 
-  mutate(org_rank  = rank(-org_mean)) %>% 
-  arrange(org_rank)
-
-area <-  umap_one %>% 
-  filter(Count > 100) %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% 
-  group_by(knn, normalization, nfeatures,  nneighbors,dims, method) %>% 
-  summarise(area_mean = mean(area_scaled), 
-            area_median = median(area_scaled),
-            area_sum = sum(area_scaled)) %>% 
-  ungroup() %>% 
-  mutate(area_rank  = rank(-area_mean))
-
-tab_overall <- left_join(celltype, org) %>% 
-  #left_join(area) %>% 
-  left_join(study) %>% 
-  left_join(ari) %>% 
-  left_join(lisi) %>% 
-  left_join(silhouette) %>% 
-  select(-contains("median")) %>% 
-  #filter(nfeatures > 1000) %>% 
-  ungroup() %>% 
-  mutate(flipS = -SilhouetteScore) %>% 
-  mutate(sumZScale = scale(ARIScore)[,1] + # Z score
-           scale(study_mean)[,1] +
-           -scale(LISIScore)[,1] + 
-           scale(flipS)[,1]) %>% 
-  select(-flipS) %>% 
-  arrange(-sumZScale)
-
-tab_overall  %>%  DT::datatable()
-
-```
-
-# Benchmark scVI, harmony, CCA, etc.
-```{r}
-perf_bench <- 
-  bind_rows(perf_one %>% filter(normalization != 'counts'), 
-            perf_one %>% filter(normalization == 'counts', dims == 30, nf == 2000, method == 'scVI'))
-umap_bench <- 
-  bind_rows(umap_one %>% filter(normalization != 'counts'), 
-            umap_one %>% filter(normalization == 'counts', knn == 5, dims == 30, nfeatures == 2000, nneighbors == 100, mindist == 0.3,  method == 'scVI')) 
-
-silhouette_bench <- perf_bench %>% 
-  filter(`Cell Type` == 'All', score == 'Silhouette')  %>% 
-  unique() %>% 
-  arrange(value) %>% 
-  mutate(Rank = row_number()) %>% 
-  dplyr::rename('SilhouetteScore' = value, 
-                'SilhouetteRank' = Rank, 
-                'nfeatures' = nf) %>% 
-  select(-`Cell Type`, -score)
-
-ari_bench <- perf_bench %>% 
-  filter(`Cell Type` == 'All', score == 'HA')  %>% 
-  unique() %>% 
-  arrange(-value) %>% 
-  mutate(Rank = row_number()) %>% 
-  dplyr::rename('ARIScore' = value, 
-                'ARIRank' = Rank, 
-                'nfeatures' = nf) %>% 
-  select(-`Cell Type`, -score)
-
-lisi_bench <- perf_bench %>% 
-  filter(`Cell Type` == 'All', score == 'LISI')  %>% 
-  unique() %>% 
-  arrange(value) %>% 
-  mutate(Rank = row_number()) %>% 
-  dplyr::rename('LISIScore' = value, 
-                'LISIRank' = Rank, 
-                'nfeatures' = nf) %>% 
-  select(-`Cell Type`, -score)
-
-
-celltype <- umap_bench %>%
-  group_by(knn, normalization, nfeatures, dims, method) %>% 
-  summarise(freq = sum(freq*Count)/sum(Count)) %>%  # scale cell type purity by number of cells 
-  ungroup() %>% 
-  mutate(celltype_rank  = rank(-freq))
-
-study <- umap_bench %>% 
-  filter(Count > 100) %>% 
-  group_by(knn, normalization, nfeatures,  dims, method) %>% 
-  summarise(study_mean = sum(study_count*Count)/sum(Count)) %>% 
-  ungroup() %>% 
-  mutate(study_rank  = rank(-study_mean))
-
-org <-  umap_bench %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% 
-  group_by(knn, normalization, nfeatures,  dims, method) %>% 
-  summarise(org_mean = sum(organism_count*Count)/sum(Count)) %>%  # scale organism type mixing by number of cells 
-  ungroup() %>% 
-  mutate(org_rank  = rank(-org_mean))
-
-area <-  umap_bench %>% 
-  filter(Count > 100) %>% 
-  mutate(nfeatures = str_extract(nfeatures, '\\d+') %>% 
-           as.numeric()) %>% 
-  group_by(knn, normalization, nfeatures, nneighbors,dims, method) %>% 
-  summarise(area_mean = mean(area_scaled), 
-            area_median = median(area_scaled),
-            area_sum = sum(area_scaled)) %>% 
-  ungroup() %>% 
-  mutate(area_rank  = rank(-area_mean))
-
-tab_bench <- left_join(celltype, org) %>% 
-  #left_join(area) %>% 
-  left_join(study) %>% 
-  left_join(ari_bench) %>% 
-  left_join(lisi_bench) %>% 
-  left_join(silhouette_bench) %>% 
-  select(-contains("median")) %>% 
-  ungroup() %>% 
-  mutate(flipS = -SilhouetteScore) %>% 
-  mutate(sumZScale = scale(ARIScore)[,1] + # Z score
-           scale(org_mean)[,1] +
-           -scale(LISIScore)[,1] + 
-           scale(flipS)[,1]) %>% 
-  select(-flipS) %>% 
-  arrange(-sumZScale)
-
-tab_bench %>%  DT::datatable()
-
-```
-
-# Import in Well based metrics
-```{r}
-files <- list.files('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/perf_metrics/', pattern = '.*onlyWELL.*', full.names = TRUE)
-well_perf <- list()
-for (i in files){
-  load(i)
-  ari <- scores$RI['HA']
-  silhouette <- scores$silhouette
-  lisi <- scores$LISI$CellType %>% mean()
-  norm <- (str_extract(i, 'Mus_.*') %>% str_split(., '__'))[[1]][3]
-  method <- (str_extract(i, 'Mus_.*') %>% str_split(., '__'))[[1]][6]
-  well_perf[[i]] <- cbind(norm, method, ari, lisi, silhouette) %>% as_tibble()
-}
-
-well_perf %>% bind_rows() %>% 
-  mutate(ari = as.numeric(ari), lisi = as.numeric(lisi), silhouette = as.numeric(silhouette)) %>% 
-  arrange(-ari) %>% 
-  mutate(ari_rank = row_number()) %>% 
-  arrange(silhouette) %>% 
-  mutate(silhouette_rank = row_number()) %>% 
-  arrange(lisi) %>% 
-  mutate(lisi_rank = row_number()) %>% 
-  mutate(sum = ari_rank + lisi_rank + silhouette_rank) %>% 
-   mutate(flipS = -silhouette) %>% 
-  mutate(sumZScale = scale(ari)[,1] + # Z score
-           -scale(lisi)[,1] + 
-           scale(flipS)[,1]) %>% 
-  select(-flipS) %>% 
-  arrange(-sumZScale) %>% 
-  DT::datatable()
 ```
 
 ```{r}
