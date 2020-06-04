@@ -7,21 +7,24 @@ options(shiny.sanitize.errors = FALSE)
 library(ggplot2)
 library(Cairo)
 library(scattermore)
-library(dplyr)
-require(pals)
-library(pool)
-library(RSQLite)
+library(pals)
 library(ggrepel)
 library(patchwork)
-require(purrr)
-anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-200-0.1-100-7.sqlite", idleTimeout = 3600000)
+library(purrr)
+library(pool)
+library(RSQLite)
+library(dplyr)
+anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-6-0.1-500-10.sqlite", idleTimeout = 3600000)
 
+# fancy tables
+# they come from `tables.Rmd` in analyis/
+load('www/formattables.Rdata')
 # filter
-meta_filter <- anthology_2020_v01 %>% 
-  tbl('metadata_filter') %>% 
-  as_tibble()
-#mutate(subcluster = cluster) %>% 
-#mutate(cluster = cluster_knn7 %>% as.character())
+meta_filter <- left_join(anthology_2020_v01 %>% tbl('metadata_filter'), 
+                         anthology_2020_v01 %>% tbl('doublets'), by ='Barcode') %>% 
+  as_tibble() %>% 
+  mutate(`Doublet Probability` = as.numeric(`Doublet Probability`),
+         doublet_score_scran = as.numeric(doublet_score_scran))
 
 # cutdown mf for plotting
 mf <- meta_filter %>% sample_frac(0.2)
@@ -64,12 +67,12 @@ shinyServer(function(input, output, session) {
     if (is.null(query[['meta_column']])){
       updateSelectizeInput(session, 'meta_column',
                            choices = meta_filter %>% 
-                             dplyr::select(nCount_RNA:subcluster) %>% colnames() %>% sort(),
+                             dplyr::select(nCount_RNA:doublet_score_scran) %>% colnames() %>% sort(),
                            options = list(placeholder = 'Type to search'),
                            selected = 'CellType_predict',
                            server = TRUE)
     }
-    
+
     # dotplot updateSelectizeInput ----
     if (is.null(query[['dotplot_Gene']])){
       updateSelectizeInput(session, 'dotplot_Gene',
@@ -114,7 +117,7 @@ shinyServer(function(input, output, session) {
     if (is.null(query[['facet']])){
       updateSelectizeInput(session, 'facet',
                            choices = meta_filter %>% 
-                             dplyr::select(nCount_RNA:subcluster) %>% colnames() %>% sort(),
+                             dplyr::select(nCount_RNA:doublet_score_scran) %>% colnames() %>% sort(),
                            options = list(placeholder = 'Type to search'),
                            selected = 'organism',
                            server = TRUE)
@@ -123,7 +126,7 @@ shinyServer(function(input, output, session) {
     if (is.null(query[['facet_color']])){
       updateSelectizeInput(session, 'facet_color',
                            choices = meta_filter %>% 
-                             dplyr::select(nCount_RNA:subcluster) %>% colnames() %>% sort(),
+                             dplyr::select(nCount_RNA:doublet_score_scran) %>% colnames() %>% sort(),
                            options = list(placeholder = 'Type to search'),
                            selected = 'CellType',
                            server = TRUE)
@@ -132,7 +135,7 @@ shinyServer(function(input, output, session) {
     if (is.null(query[['diff_gene']])){
       updateSelectizeInput(session, 'diff_gene',
                            choices = anthology_2020_v01 %>% tbl('genes') %>% as_tibble() %>% pull(1),
-                           options = list(placeholder = 'Type to search'), 
+                           options = list(placeholder = 'Type to search'),
                            selected = 'CRX',
                            server = TRUE)
     }
@@ -213,12 +216,15 @@ shinyServer(function(input, output, session) {
       meta_column <- input$meta_column
       transform <- input$meta_column_transform
       pt_size <- input$pt_size_meta %>% as.numeric() 
+      filter_column <- input$meta_column
       if (transform == 'log2' && is.numeric(meta_filter[,meta_column] %>% pull(1))){
         cat('log2 time')
         meta_filter[,meta_column] <- log2(meta_filter[,meta_column] + 1)
       }
       p_data <- meta_filter %>% 
-        filter(!is.na(!!as.symbol(meta_column))) 
+        filter(!is.na(!!as.symbol(meta_column))) %>% 
+        filter()
+      
       # metadata NUMERIC plot --------------
       if (is.numeric(meta_filter[,meta_column] %>% pull(1)) ){
         color_range <- range(p_data[,meta_column] %>% pull(1))
@@ -528,18 +534,18 @@ shinyServer(function(input, output, session) {
   diff_table <- reactive({
     req(input$diff_table_select)
     if (input$diff_table_select == 'Cluster'){
-       out <- 'diff_testing_A'
+      out <- 'diff_testing_A'
     } else {out <- 'diff_testing_C'}
     return(out)
   })
   
-   output$make_diff_table <- DT::renderDataTable(server = TRUE, {
+  output$make_diff_table <- DT::renderDataTable(server = TRUE, {
     gene <- input$diff_gene
     #cat(diff_table)
     if (input$search_by == 'Gene'){
-    out <- anthology_2020_v01 %>% tbl(diff_table()) %>% 
-      filter(gene_short_name %in% gene) %>% 
-      arrange(-abs(normalized_effect)) 
+      out <- anthology_2020_v01 %>% tbl(diff_table()) %>% 
+        filter(gene_short_name %in% gene) %>% 
+        arrange(-abs(normalized_effect)) 
     } else {
       filter_term <- input$diff_term
       out <- anthology_2020_v01 %>% tbl(diff_table()) %>% 
@@ -556,4 +562,7 @@ shinyServer(function(input, output, session) {
                     options = list(pageLength = 10, dom = 'frtBip', buttons = c('pageLength','copy', 'csv')))
     
   })
+  
+  output$formattable01 <- renderFormattable({formattable_01})
+  output$formattable02 <- renderFormattable({formattable_02})
 })

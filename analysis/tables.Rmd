@@ -15,6 +15,8 @@ library(tidyverse)
 library(formattable)
 library(webshot)
 library(htmltools)
+library(pool)
+library(RSQLite)
 # all cells
 load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_info_labelled.Rdata')
 # cells after QC (high mito, low gene counts, high gene count)
@@ -30,10 +32,18 @@ load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_inf
 #   mutate(Platform = gsub('Seqv', 'Seq_v', Platform))
 
 # save(stats, file = 'post_filtering_stats.Rdata')
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/post_filtering_stats.Rdata')
+#load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/post_filtering_stats.Rdata')
 
 # load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/fastMNN_umap_full.Rdata')
 study_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GEO_Study_Level_Metadata.tsv')
+
+anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-6-0.1-500-10.sqlite", idleTimeout = 3600000)
+meta <- anthology_2020_v01 %>% tbl('metadata') %>% as_tibble()
+
+
+# well based meta
+load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__sqrt__onlyWELL__batch__fastMNN__dims30__preFilter__mindist0.3__nneighbors30.umap.Rdata')
+stats <- bind_rows(meta %>% select(Platform, study_accession), umap %>% select(Platform, study_accession)) %>% group_by(study_accession, Platform) %>% summarise(Counts = n())
 ```
 
 # Table 1
@@ -79,7 +89,7 @@ export_formattable <- function(f, file, width = "100%", height = NULL,
           delay = delay)
 }
 
-post <- stats %>% rename(`Post QC<br/>Count` = value) %>% 
+post <- stats %>% rename(`Post QC<br/>Count` = Counts) %>% 
               select(study_accession, Platform, `Post QC<br/>Count`) %>% 
               group_by(study_accession, Platform) %>% 
               summarise(`Post QC<br/>Count` = sum(`Post QC<br/>Count`))
@@ -121,10 +131,11 @@ export_formattable(formattable_01, '01_table.png')
 Pre-labelled cells I've extracted so far
 ```{r}
 table02 <- cell_info_labels %>% 
+  mutate(CellType = gsub('AC/HC_Precurs', 'Amacrine/Horizontal Precursors', CellType)) %>% 
   mutate(CellType = gsub("Rod Bipolar Cells", "Bipolar Cells", CellType)) %>% 
   filter(!is.na(CellType), 
          !is.na(study_accession), 
-         !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+         !CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells', 'Astrocytes'),
          !grepl('RPE|Vascul', CellType)) %>% 
   mutate(organism = case_when(grepl('Homo', organism) ~ 'HS',
                              grepl('Mus', organism) ~ 'MM',
@@ -134,9 +145,12 @@ table02 <- cell_info_labels %>%
   summarise(Studies = length(study_accession), Count = sum(Count)) %>% 
   summarise(Species = paste(organism, collapse = ', '), Studies = sum(Studies), Count = sum(Count)) %>% 
   arrange(-Count) %>% 
-  formattable(., list(Count = normalize_bar("lightblue"), CellType = color_bar_factor3), width = "1")
+  formattable(., list(Count = normalize_bar("lightblue")), width = "1")
 table02
+formattable_02 <- table02
 export_formattable(table02, '02_table.png', width = '40%')
+
+save(formattable_01, formattable_02, file = 'formattables.Rdata')
 ```
 
 # Table 3 

@@ -8,7 +8,7 @@ library(scattermore)
 library(pals)
 library(shinythemes)
 library(cowplot)
-
+library(formattable)
 shinyUI(
   navbarPage('Ocular scAnthology',
              theme = shinytheme('flatly'),
@@ -42,8 +42,9 @@ shinyUI(
                                                        brush = brushOpts(
                                                          id = "meta_plot_brush",
                                                          resetOnNew = TRUE)),
-                                            fluidRow(column(5, selectizeInput('meta_column', strong('Color: '),
-                                                                              choices= NULL, selected = 'CellType_predict')),
+                                            fluidRow(column(5, 
+                                                            selectizeInput('meta_column', strong('Color: '),
+                                                                           choices= NULL, selected = 'CellType_predict')),
                                                      column(5, 
                                                             selectizeInput('pt_size_meta', strong('Point Size: '),
                                                                            choices=c(1,3,5), 
@@ -55,9 +56,10 @@ shinyUI(
                                                                                        "CellType (predict)" = 2,
                                                                                        "Cluster" = 3), multiple = FALSE,
                                                                         selected = 2)),
-                                                     column(5, radioButtons('meta_column_transform', 
-                                                                            label = 'Numeric Transform', inline = TRUE,
-                                                                            choices = list("None" = "None", "log2" = "log2")))
+                                                     column(3, 
+                                                            radioButtons('meta_column_transform', 
+                                                                         label = 'Numeric Transform', inline = TRUE,
+                                                                         choices = list("None" = "None", "log2" = "log2")))
                                             )
                                      )
                                    ),
@@ -133,8 +135,8 @@ shinyUI(
                                          selectInput('diff_table_select', strong('Differential testing by: '),
                                                      choices = c('Cluster', 'CellType (predict)')),
                                          selectInput('search_by', strong('Search by: '), 
-                                                            choices = c('Gene','Term'), 
-                                                            selected = 'Gene')
+                                                     choices = c('Gene','Term'), 
+                                                     selected = 'Gene')
                                        )),
                                 column(8,
                                        fluidRow(
@@ -150,8 +152,15 @@ shinyUI(
                                 column(8,
                                        div(DT::dataTableOutput('make_diff_table'), style='font-size:75%')))),
              tabPanel('Overview',
-                      (
-                        fluidRow(column(width = 8, offset = 1, h2('Ocular Single Cell Gene Expression Anthology v0.10'))))
-             )
+                      fluidPage(
+                        fluidRow(column(width = 8, offset = 1, h2('scAnthology v0.20'))),
+                        br(),
+                        fluidRow(column(width = 8, offset = 1, h2('Overview'))),
+                        fluidRow(column(width = 8, offset = 1, 'scAnthology is a meta-anlysis project combining over 15 studies, 3 species, and over 900,000 transcriptomes from the retina. Deep metadata minining, rigorous quality control analysis, and deep learning based batch effect correction in a unified bioinformatic framework allow the universe of retina single cell expression information to be analyzed in one location.')),
+                        fluidRow(column(width = 8, offset = 1, h2('Data Sources'))),
+                        fluidRow(column(width = 8, offset = 1, formattableOutput("formattable01"))),
+                        fluidRow(column(width = 8, offset = 1, h2('Cell Types'))),
+                        fluidRow(column(width = 6, offset = 1, formattableOutput("formattable02")))
+             ))
   )
 )
