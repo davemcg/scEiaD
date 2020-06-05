@@ -14,6 +14,7 @@ library(purrr)
 library(pool)
 library(RSQLite)
 library(dplyr)
+library(formattable)
 anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-6-0.1-500-10.sqlite", idleTimeout = 3600000)
 
 # fancy tables
@@ -63,6 +64,27 @@ shinyServer(function(input, output, session) {
                            selected = 'CRX',
                            server = TRUE)
     }
+    # gene plot category filtering ----
+    if (is.null(query[['gene_filter_cat']])){
+      updateSelectizeInput(session, 'gene_filter_cat',
+                           choices = meta_filter %>% 
+                             dplyr::select(nCount_RNA:doublet_score_scran) %>% colnames() %>% sort(),
+                           selected = '',
+                           server = TRUE)
+    }
+    
+    observeEvent(input$gene_filter_cat, {
+      if (input$gene_filter_cat == ''){
+        choice = ''
+      } else {
+        choice = meta_filter[,input$gene_filter_cat] %>% pull(1) %>% unique() %>% sort()
+      }
+      updateSelectizeInput(session, 'gene_filter_on',
+                           choices = choice,
+                           server = TRUE)
+    })
+    
+    
     # meta plot updateSelectizeInput ------
     if (is.null(query[['meta_column']])){
       updateSelectizeInput(session, 'meta_column',
@@ -72,7 +94,26 @@ shinyServer(function(input, output, session) {
                            selected = 'CellType_predict',
                            server = TRUE)
     }
-
+    # meta plot category filtering ----
+    if (is.null(query[['meta_filter_cat']])){
+      updateSelectizeInput(session, 'meta_filter_cat',
+                           choices = meta_filter %>% 
+                             dplyr::select(nCount_RNA:doublet_score_scran) %>% colnames() %>% sort(),
+                           selected = '',
+                           server = TRUE)
+    }
+    
+    observeEvent(input$meta_filter_cat, {
+    if (input$meta_filter_cat == ''){
+        choice = ''
+    } else {
+        choice = meta_filter[,input$meta_filter_cat] %>% pull(1) %>% unique() %>% sort()
+    }
+      updateSelectizeInput(session, 'meta_filter_on',
+                           choices = choice,
+                           server = TRUE)
+    })
+    
     # dotplot updateSelectizeInput ----
     if (is.null(query[['dotplot_Gene']])){
       updateSelectizeInput(session, 'dotplot_Gene',
@@ -165,7 +206,10 @@ shinyServer(function(input, output, session) {
                cpm < as.numeric(expression_range[2])) %>% 
         left_join(., meta_filter, by = 'Barcode') %>% 
         filter(!is.na(UMAP_1), !is.na(UMAP_2), !is.na(cpm)) 
-      
+      if (input$gene_filter_cat != ''){
+        p <- p %>% 
+          filter(!!as.symbol(input$gene_filter_cat) %in% input$gene_filter_on)
+      }
       color_range <- range(p$cpm)
       plot <- p %>% ggplot() + 
         geom_scattermost(cbind(mf$UMAP_1, mf$UMAP_2), color = '#D3D3D333', 
@@ -210,7 +254,6 @@ shinyServer(function(input, output, session) {
     
     
     # metadata plot --------------
-    
     meta_plot <- eventReactive(input$BUTTON_draw_meta, {
       cat(file=stderr(), paste0(Sys.time(), ' Meta Plot Call\n'))
       meta_column <- input$meta_column
@@ -222,8 +265,12 @@ shinyServer(function(input, output, session) {
         meta_filter[,meta_column] <- log2(meta_filter[,meta_column] + 1)
       }
       p_data <- meta_filter %>% 
-        filter(!is.na(!!as.symbol(meta_column))) %>% 
-        filter()
+        filter(!is.na(!!as.symbol(meta_column))) 
+      # category filtering
+      if (input$meta_filter_cat != ''){
+        p_data <- p_data %>% 
+          filter(!!as.symbol(input$meta_filter_cat) %in% input$meta_filter_on)
+      }
       
       # metadata NUMERIC plot --------------
       if (is.numeric(meta_filter[,meta_column] %>% pull(1)) ){
