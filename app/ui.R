@@ -183,14 +183,18 @@ shinyUI(
                                        div(DT::dataTableOutput('make_diff_table'), style='font-size:75%')))),
              tabPanel('Overview',
                       fluidPage(
-                        fluidRow(column(width = 8, offset = 1, h2('scAnthology v0.20'))),
+                        fluidRow(column(width = 8, offset = 1, h2('scAnthology v0.21'))),
                         br(),
                         fluidRow(column(width = 8, offset = 1, h2('Overview'))),
-                        fluidRow(column(width = 8, offset = 1, 'The light-sensitive portion of the mammalian eye is the retina. The retina itself is not a monolithic tissue - the cones and rods which convert light into signal are supported by a wide variety of neural cell types. scAnthology is a meta-analysis project over 900,000 single-cell transcriptomes across 15 studies and 3 species across the retina cell types. Deep metadata minining, rigorous quality control analysis, and deep learning based batch effect correction in a unified bioinformatic framework allow the universe of retina single cell expression information to be analyzed in one location.')),
+                        fluidRow(column(width = 8, offset = 1, 'The light-sensitive portion of the mammalian eye is the retina. The retina itself is not a monolithic tissue - the cones and rods which convert light into signal are supported by a wide variety of neural cell types. scAnthology is a meta-analysis project over 900,000 single-cell transcriptomes across 15 studies and 3 species across the retina cell types. Deep metadata minining, rigorous quality control analysis, differential gene expression testing, and deep learning based batch effect correction in a unified bioinformatic framework allow the universe of retina single cell expression information to be analyzed in one location.')),
                         fluidRow(column(width = 8, offset = 1, h2('Data Sources'))),
                         fluidRow(column(width = 8, offset = 1, formattableOutput("formattable01"))),
                         fluidRow(column(width = 8, offset = 1, h2('Cell Types'))),
-                        fluidRow(column(width = 6, offset = 1, formattableOutput("formattable02")))
+                        fluidRow(column(width = 6, offset = 1, formattableOutput("formattable02"))),
+                        br(),
+                        fluidRow(column(width = 8, offset = 1, h2('Change log'))),
+                        fluidRow(column(width = 8, offset = 1, '0.21 (2020-06-15): Added subcluster diff testing tables, temporal gene expression by celltype plot section.')),
+                        fluidRow(column(width = 8, offset = 1, '0.20 (2020-06-06): New 2D UMAP projection that includes the full Yu - Clark Human scRNA dataset. Added tables to "Overview" section showing data stats. Added "filtering" functionality to UMAP plot section.'))
                       ))
   )
 )
