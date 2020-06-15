@@ -104,11 +104,11 @@ shinyServer(function(input, output, session) {
     }
     
     observeEvent(input$meta_filter_cat, {
-    if (input$meta_filter_cat == ''){
+      if (input$meta_filter_cat == ''){
         choice = ''
-    } else {
+      } else {
         choice = meta_filter[,input$meta_filter_cat] %>% pull(1) %>% unique() %>% sort()
-    }
+      }
       updateSelectizeInput(session, 'meta_filter_on',
                            choices = choice,
                            server = TRUE)
@@ -154,6 +154,16 @@ shinyServer(function(input, output, session) {
                            selected = c('CellType_predict', 'organism'),
                            server = TRUE)
     }
+    # temporal plot updateSelect -----
+    if (is.null(query[['temporal_gene']])){
+      updateSelectizeInput(session, 'temporal_gene',
+                           choices = anthology_2020_v01 %>% tbl('genes') %>% as_tibble() %>% pull(1),
+                           options = list(placeholder = 'Type to search'), 
+                           selected = c('PAX6','POU4F2'),
+                           server = TRUE)
+    }    
+    
+    
     # facet plot updateSelect --------
     if (is.null(query[['facet']])){
       updateSelectizeInput(session, 'facet',
@@ -463,6 +473,59 @@ shinyServer(function(input, output, session) {
       facet_plot()
     }, height = eventReactive(input$BUTTON_draw_filter, {input$facet_height %>% as.numeric()}))
     
+    ## temporal plot -----------
+    temporal_plot <- eventReactive(input$BUTTON_draw_temporal, {
+      cat(file=stderr(), paste0(Sys.time(), ' Temporal Plot Call\n'))
+      gene <- input$temporal_gene
+      grouping <- input$temporal_group
+      cat(gene)
+      cat(grouping)
+      if (grouping == 'CellType (predict)'){grouping <- 'CellType_predict'}
+      
+      temporal_data <- anthology_2020_v01 %>% tbl('cpm') %>%
+        filter(Gene %in% gene) %>%
+        as_tibble() %>%
+        mutate(cpm = cpm - min(cpm) + 1) %>%
+        left_join(., meta_filter) %>%
+        filter(!is.na(!!as.symbol(grouping)), !grepl('Doub|RPE|Astro', !!as.symbol(grouping))) %>%
+        group_by(organism, !!as.symbol(grouping), Age, Gene) %>%
+        summarise(cpm = mean(cpm), count = n()) %>%
+        ungroup() %>%
+        mutate(Age = case_when(organism == 'Mus musculus' & Age == 1000 ~ 20,
+                               organism == 'Homo sapiens' & Age == 1000 ~ 65,
+                               is.na(Age) ~ 65,
+                               Age == 31360 ~ 65,
+                               TRUE ~ Age))
+      cat(colnames(temporal_data))
+      
+      temporal_human <-  temporal_data %>% 
+        filter(organism == 'Homo sapiens') %>% 
+        ggplot(aes(x=Age, y = cpm, color = Gene)) + 
+        geom_point(stat = 'identity') +
+        ggtitle('Human') +
+        geom_line() + ylab('Mean CPM') +
+        cowplot::theme_cowplot() + xlab('Age (days from birth)') +
+        facet_wrap(vars(!!as.symbol(grouping))) +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+        scale_colour_manual(values = rep(c(pals::alphabet() %>% unname())))
+      temporal_mouse <- temporal_data %>%
+        filter(organism == 'Mus musculus') %>%
+        ggplot(aes(x=Age, y = cpm, color = Gene)) +
+        geom_point(stat = 'identity') +
+        ggtitle('Mouse') +
+        geom_line() + ylab('Mean CPM') +
+        cowplot::theme_cowplot() + xlab('Age (days from birth)') +
+        facet_wrap(vars(!!as.symbol(grouping))) +
+        theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+        scale_colour_manual(values = rep(c(pals::alphabet() %>% unname())))
+      # draw plot
+      temporal_human + temporal_mouse + plot_layout(ncol = 1)
+    })
+    
+    output$temporal_plot <- renderPlot({
+      temporal_plot()
+    }, height = 700)
+    
     ## dotplot ---------
     make_dotplot <- eventReactive(input$BUTTON_draw_dotplot, {
       gene <- input$dotplot_Gene
@@ -582,6 +645,10 @@ shinyServer(function(input, output, session) {
     req(input$diff_table_select)
     if (input$diff_table_select == 'Cluster'){
       out <- 'diff_testing_A'
+    } else if (input$diff_table_select == 'CellType') {
+      out <- 'diff_testing_E'
+    } else if (input$diff_table_select == 'SubCluster') {
+      out <- 'diff_testing_G'
     } else {out <- 'diff_testing_C'}
     return(out)
   })

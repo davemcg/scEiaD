@@ -34,7 +34,7 @@ shinyUI(
                                             fluidRow(column(5,
                                                             sliderInput("gene_scatter_slider", label = strong("Expression Range: "), min = 1, 
                                                                         max = 15, value = c(1, 15))
-                                                     )),
+                                            )),
                                             fluidRow(column(5,
                                                             selectizeInput('gene_filter_cat', strong('Filter Category: '),
                                                                            choices = NULL, selected = NULL)),
@@ -127,6 +127,21 @@ shinyUI(
                                         )
                                         
                                  )),
+                        # temporal plot -----
+                        tabPanel('Temporal Gene x Cell Type',
+                                 column(10,
+                                        fluidRow(
+                                          column(10,
+                                                 fluidRow(column(5, selectizeInput('temporal_gene', strong('Gene(s): '),
+                                                                                   choices = NULL, multiple = TRUE)),
+                                                          column(5, selectInput('temporal_group', strong('Split on: '),
+                                                                                choices = c('CellType', 'CellType (predict)')))))),
+                                          fluidRow(column(5, 
+                                                          actionButton('BUTTON_draw_temporal','Draw Plot', icon = icon("arrow-down"),
+                                                                       style='background-color: #3399ff; color: #ffffff'))),
+                                          br(), br(), 
+                                          fluidRow(column(10, plotOutput('temporal_plot')))
+                                        )),
                         tabPanel('Dotplot', # Dotplot ---------
                                  column(8,
                                         fluidRow(
@@ -141,11 +156,12 @@ shinyUI(
                                         br(), br(),
                                         plotOutput('dotplot')))
              ),
+             # diff testing  tables ------------
              tabPanel('Diff Testing',
                       fluidPage(column(8,
                                        fluidRow(
                                          selectInput('diff_table_select', strong('Differential testing by: '),
-                                                     choices = c('Cluster', 'CellType (predict)')),
+                                                     choices = c('Cluster', 'SubCluster', 'CellType', 'CellType (predict)')),
                                          selectInput('search_by', strong('Search by: '), 
                                                      choices = c('Gene','Term'), 
                                                      selected = 'Gene')
@@ -168,11 +184,11 @@ shinyUI(
                         fluidRow(column(width = 8, offset = 1, h2('scAnthology v0.20'))),
                         br(),
                         fluidRow(column(width = 8, offset = 1, h2('Overview'))),
-                        fluidRow(column(width = 8, offset = 1, 'scAnthology is a meta-anlysis project combining over 15 studies, 3 species, and over 900,000 transcriptomes from the retina. Deep metadata minining, rigorous quality control analysis, and deep learning based batch effect correction in a unified bioinformatic framework allow the universe of retina single cell expression information to be analyzed in one location.')),
+                        fluidRow(column(width = 8, offset = 1, 'The light-sensitive portion of the mammalian eye is the retina. The retina itself is not a monolithic tissue - the cones and rods which transfer light information into signals are supported by a wide variety of neural cell types. scAnthology is a meta-analysis project over 900,000 single-cell transcriptomes across 15 studies and 3 species across the retina cell types. Deep metadata minining, rigorous quality control analysis, and deep learning based batch effect correction in a unified bioinformatic framework allow the universe of retina single cell expression information to be analyzed in one location.')),
                         fluidRow(column(width = 8, offset = 1, h2('Data Sources'))),
                         fluidRow(column(width = 8, offset = 1, formattableOutput("formattable01"))),
                         fluidRow(column(width = 8, offset = 1, h2('Cell Types'))),
                         fluidRow(column(width = 6, offset = 1, formattableOutput("formattable02")))
-             ))
+                      ))
   )
 )
