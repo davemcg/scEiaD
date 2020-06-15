@@ -14,7 +14,7 @@ shinyUI(
              theme = shinytheme('flatly'),
              selected = 'Overview',
              navbarMenu('Viz', # UMAP ----------
-                        tabPanel('UMAP', 
+                        tabPanel('UMAP - Tables', 
                                  fluidPage(
                                    fluidRow(
                                      # Gene Scatter  ---------------
@@ -102,6 +102,33 @@ shinyUI(
                                    )
                                  )
                         ),
+                        # exp_plots ------
+                        tabPanel('Expression Plot by Groupings', 
+                                 column(12,
+                                        fluidRow(
+                                          column(3, 
+                                                 fluidRow(selectizeInput('exp_plot_genes', strong('Gene(s): '),
+                                                                         choices = NULL, multiple = TRUE))),
+                                          column(3,
+                                                 fluidRow(selectizeInput('exp_plot_groups', strong('Grouping feature(s): '),
+                                                                         choices = NULL, multiple = TRUE))),
+                                          
+                                          column(2,
+                                                 selectizeInput('exp_plot_height', strong('Plot Height: '),
+                                                                choices = seq(200, 2000, by = 100),
+                                                                selected = 400, multiple = FALSE)),
+                                          column(2,
+                                                 selectInput('exp_plot_ylab', strong('Value: '),
+                                                             choices = c('Mean CPM', '% of Cells Detected')))),
+                                        fluidRow(
+                                          column(3,
+                                                 fluidRow(checkboxInput('exp_plot_facet', 'Facet on 1st Group', TRUE)))
+                                          
+                                        ),
+                                        fluidRow(column(10, actionButton('BUTTON_draw_exp_plot','Draw Plot', icon = icon("arrow-down"),
+                                                                         style='background-color: #3399ff; color: #ffffff'))),
+                                        br(),
+                                        fluidRow(column(10, plotOutput('exp_plot'))))),
                         tabPanel('Facet UMAP', # Facet UMAP ---------
                                  column(10, 
                                         fluidRow(
@@ -138,12 +165,12 @@ shinyUI(
                                                                                 choices = c('CellType', 'CellType (predict)'))),
                                                           column(3, selectInput('temporal_y_val', strong('Value: '),
                                                                                 choices = c('Mean CPM', 'Ratio Detected')))))),
-                                          fluidRow(column(5, 
-                                                          actionButton('BUTTON_draw_temporal','Draw Plot', icon = icon("arrow-down"),
-                                                                       style='background-color: #3399ff; color: #ffffff'))),
-                                          br(), br(), 
-                                          fluidRow(column(10, plotOutput('temporal_plot')))
-                                        )),
+                                        fluidRow(column(5, 
+                                                        actionButton('BUTTON_draw_temporal','Draw Plot', icon = icon("arrow-down"),
+                                                                     style='background-color: #3399ff; color: #ffffff'))),
+                                        br(), br(), 
+                                        fluidRow(column(10, plotOutput('temporal_plot')))
+                                 )),
                         tabPanel('Dotplot', # Dotplot ---------
                                  column(8,
                                         fluidRow(
@@ -181,9 +208,9 @@ shinyUI(
                                        )),
                                 column(8,
                                        div(DT::dataTableOutput('make_diff_table'), style='font-size:75%')))),
-             tabPanel('Overview',
+             tabPanel('Overview', # Overview ------
                       fluidPage(
-                        fluidRow(column(width = 8, offset = 1, h2('scAnthology v0.21'))),
+                        fluidRow(column(width = 8, offset = 1, h2('scAnthology v0.22'))),
                         br(),
                         fluidRow(column(width = 8, offset = 1, h2('Overview'))),
                         fluidRow(column(width = 8, offset = 1, 'The light-sensitive portion of the mammalian eye is the retina. The retina itself is not a monolithic tissue - the cones and rods which convert light into signal are supported by a wide variety of neural cell types. scAnthology is a meta-analysis project over 900,000 single-cell transcriptomes across 15 studies and 3 species across the retina cell types. Deep metadata minining, rigorous quality control analysis, differential gene expression testing, and deep learning based batch effect correction in a unified bioinformatic framework allow the universe of retina single cell expression information to be analyzed in one location.')),
@@ -193,6 +220,7 @@ shinyUI(
                         fluidRow(column(width = 6, offset = 1, formattableOutput("formattable02"))),
                         br(),
                         fluidRow(column(width = 8, offset = 1, h2('Change log'))),
+                        fluidRow(column(width = 8, offset = 1, '0.22 (2020-06-15): Added expression plot by user selected groups plot view. Fixed bug in mean cpm expression calculation for Viz -> UMAP - Table gene tables')),
                         fluidRow(column(width = 8, offset = 1, '0.21 (2020-06-15): Added subcluster diff testing tables, temporal gene expression by celltype plot section.')),
                         fluidRow(column(width = 8, offset = 1, '0.20 (2020-06-06): New 2D UMAP projection that includes the full Yu - Clark Human scRNA dataset. Added tables to "Overview" section showing data stats. Added "filtering" functionality to UMAP plot section.'))
                       ))

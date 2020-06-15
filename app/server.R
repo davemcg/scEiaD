@@ -154,6 +154,23 @@ shinyServer(function(input, output, session) {
                            selected = c('CellType_predict', 'organism'),
                            server = TRUE)
     }
+    # exp_plot plot updateSelect -----
+    if (is.null(query[['exp_plot_genes']])){
+      updateSelectizeInput(session, 'exp_plot_genes',
+                           choices = anthology_2020_v01 %>% tbl('genes') %>% as_tibble() %>% pull(1),
+                           options = list(placeholder = 'Type to search'), 
+                           selected = c('PAX6','POU4F2','CRX','NRL'),
+                           server = TRUE)
+    }    
+    # meta plot category filtering ----
+    if (is.null(query[['exp_plot_groups']])){
+      updateSelectizeInput(session, 'exp_plot_groups',
+                           choices = meta_filter %>% 
+                             dplyr::select(nCount_RNA:doublet_score_scran) %>% colnames() %>% sort(),
+                           selected = c('organism','CellType'),
+                           server = TRUE)
+    }
+    
     # temporal plot updateSelect -----
     if (is.null(query[['temporal_gene']])){
       updateSelectizeInput(session, 'temporal_gene',
@@ -388,14 +405,14 @@ shinyServer(function(input, output, session) {
       table <- anthology_2020_v01 %>% tbl('grouped_stats') %>% 
         filter(Gene == gene) %>%
         group_by_at(vars(one_of(c('Gene', grouping_features)))) %>% 
-        summarise(cell_exp_ct = sum(cell_exp_ct, na.rm = TRUE),
-                  cpm = mean(cpm)) %>% 
+        summarise(cpm = sum(cpm * cell_exp_ct) / sum(cell_exp_ct),
+                  cell_exp_ct = sum(cell_exp_ct, na.rm = TRUE)) %>% 
         as_tibble() %>% 
         tidyr::drop_na() %>% 
         full_join(., meta_filter %>% 
                     group_by_at(vars(one_of(grouping_features))) %>% 
                     summarise(Count = n())) %>% 
-        filter(!is.na(Count)) %>% 
+        mutate(cell_exp_ct = ifelse(is.na(cell_exp_ct), 0, cell_exp_ct)) %>% 
         mutate(`%` = round((cell_exp_ct / Count) * 100, 2),
                Expression = round(cpm * (`%` / 100), 2)) %>% 
         select_at(vars(one_of(c('Gene', grouping_features, 'cell_exp_ct', 'Count', '%', 'Expression')))) %>% 
@@ -473,6 +490,50 @@ shinyServer(function(input, output, session) {
       facet_plot()
     }, height = eventReactive(input$BUTTON_draw_filter, {input$facet_height %>% as.numeric()}))
     
+    ## exp_plot -----------
+    exp_plot <- eventReactive(input$BUTTON_draw_exp_plot, {
+      cat(file=stderr(), paste0(Sys.time(), ' Exp Plot Call\n'))
+      gene <- input$exp_plot_genes
+      grouping_features <- input$exp_plot_groups
+      box_data <- anthology_2020_v01 %>% tbl('grouped_stats') %>% 
+        filter(Gene %in% gene) %>%
+        #filter(!is.na(!!as.symbol(grouping_features))) %>% 
+        group_by_at(vars(one_of(c('Gene', grouping_features)))) %>% 
+        summarise(cpm = sum(cpm * cell_exp_ct) / sum(cell_exp_ct),
+                  cell_exp_ct = sum(cell_exp_ct, na.rm = TRUE)) %>% 
+        as_tibble() %>% 
+        full_join(., meta_filter %>% 
+                    group_by_at(vars(one_of(grouping_features))) %>% 
+                    summarise(Count = n())) %>% 
+        mutate(cell_exp_ct = ifelse(is.na(cell_exp_ct), 0, cell_exp_ct)) %>% 
+        mutate(`%` = round((cell_exp_ct / Count) * 100, 2),
+               Expression = round(cpm * (`%` / 100), 2)) %>% 
+        select_at(vars(one_of(c('Gene', grouping_features, 'cell_exp_ct', 'Count', '%', 'Expression')))) %>% 
+        arrange(-Expression) %>% 
+        rename(`Cells # Detected` = cell_exp_ct, 
+               `Total Cells` = Count,
+               `Mean CPM` = Expression,
+               `% of Cells Detected` = `%`) %>% 
+        tidyr::drop_na()
+      box_data$Group <- box_data[,c(2:(length(grouping_features)+1))] %>% tidyr::unite(x, sep = ' ') %>% pull(1)
+      plot <-       box_data %>% 
+        ggplot(aes(x=Group, y = !!as.symbol(input$exp_plot_ylab), color = Gene)) +
+        geom_point(size = 2) + 
+        cowplot::theme_cowplot() + 
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+        scale_colour_manual(values = rep(c(pals::alphabet() %>% unname())))
+      if (input$exp_plot_facet){
+        plot + facet_wrap(ncol = 3, scales = 'free_x', vars(!!as.symbol(grouping_features[1])))
+      } else {plot}
+
+    })
+    
+    output$exp_plot <- renderPlot({
+      exp_plot()
+    }, height = eventReactive(input$BUTTON_draw_exp_plot, {as.numeric(input$exp_plot_height)}))
+
+      
+      
     ## temporal plot -----------
     temporal_plot <- eventReactive(input$BUTTON_draw_temporal, {
       cat(file=stderr(), paste0(Sys.time(), ' Temporal Plot Call\n'))
