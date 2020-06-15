@@ -478,46 +478,52 @@ shinyServer(function(input, output, session) {
       cat(file=stderr(), paste0(Sys.time(), ' Temporal Plot Call\n'))
       gene <- input$temporal_gene
       grouping <- input$temporal_group
-      cat(gene)
-      cat(grouping)
+      y_val <- input$temporal_y_val
       if (grouping == 'CellType (predict)'){grouping <- 'CellType_predict'}
-      
+      if (y_val == 'Mean CPM') {y_val <- 'cpm'} else {y_val <- 'Ratio'} 
+      meta_data <- meta_filter %>% 
+        group_by(organism, !!as.symbol(grouping), Age) %>%
+        summarise(full_count = n())
       temporal_data <- anthology_2020_v01 %>% tbl('cpm') %>%
         filter(Gene %in% gene) %>%
         as_tibble() %>%
         mutate(cpm = cpm - min(cpm) + 1) %>%
-        left_join(., meta_filter) %>%
+        left_join(., meta_filter, by = 'Barcode') %>%
         filter(!is.na(!!as.symbol(grouping)), !grepl('Doub|RPE|Astro', !!as.symbol(grouping))) %>%
         group_by(organism, !!as.symbol(grouping), Age, Gene) %>%
         summarise(cpm = mean(cpm), count = n()) %>%
+        right_join(., meta_data) %>% 
+        mutate(count = ifelse(is.na(count), 0, count)) %>% 
+        mutate(Ratio = count/full_count) %>% 
+        filter(!is.na(!!as.symbol(grouping)), !is.na(Gene)) %>% 
         ungroup() %>%
         mutate(Age = case_when(organism == 'Mus musculus' & Age == 1000 ~ 20,
                                organism == 'Homo sapiens' & Age == 1000 ~ 65,
                                is.na(Age) ~ 65,
                                Age == 31360 ~ 65,
                                TRUE ~ Age))
-      cat(colnames(temporal_data))
-      
-      temporal_human <-  temporal_data %>% 
+
+
+      suppressWarnings(temporal_human <-  temporal_data %>% 
         filter(organism == 'Homo sapiens') %>% 
-        ggplot(aes(x=Age, y = cpm, color = Gene)) + 
+        ggplot(aes(x=Age, y = !!as.symbol(y_val), color = Gene)) + 
         geom_point(stat = 'identity') +
         ggtitle('Human') +
-        geom_line() + ylab('Mean CPM') +
+        geom_line() + ylab(input$temporal_y_val) +
         cowplot::theme_cowplot() + xlab('Age (days from birth)') +
         facet_wrap(vars(!!as.symbol(grouping))) +
         theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-        scale_colour_manual(values = rep(c(pals::alphabet() %>% unname())))
-      temporal_mouse <- temporal_data %>%
+        scale_colour_manual(values = rep(c(pals::alphabet() %>% unname()))))
+      suppressWarnings(temporal_mouse <- temporal_data %>%
         filter(organism == 'Mus musculus') %>%
-        ggplot(aes(x=Age, y = cpm, color = Gene)) +
+        ggplot(aes(x=Age, y = !!as.symbol(y_val), color = Gene)) +
         geom_point(stat = 'identity') +
         ggtitle('Mouse') +
-        geom_line() + ylab('Mean CPM') +
+        geom_line() + ylab(input$temporal_y_val) +
         cowplot::theme_cowplot() + xlab('Age (days from birth)') +
         facet_wrap(vars(!!as.symbol(grouping))) +
         theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-        scale_colour_manual(values = rep(c(pals::alphabet() %>% unname())))
+        scale_colour_manual(values = rep(c(pals::alphabet() %>% unname()))))
       # draw plot
       temporal_human + temporal_mouse + plot_layout(ncol = 1)
     })
