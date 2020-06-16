@@ -738,6 +738,7 @@ shinyServer(function(input, output, session) {
              mean_auc = round(mean_auc, 2)) %>% 
       select(-status, -model_component, -count, -med_auc, -estimate, -test_val, -p_value) %>% 
       collect() %>% 
+      filter(!grepl('Doub|RPE|Astro|Red|Vascular', term)) %>% 
       DT::datatable(extensions = 'Buttons', rownames = F, 
                     filter = list(position = 'bottom', clear = FALSE),
                     options = list(pageLength = 10, dom = 'frtBip', buttons = c('pageLength','copy', 'csv')))
