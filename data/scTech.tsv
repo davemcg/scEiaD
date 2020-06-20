@@ -17,10 +17,18 @@ SRP075720	GSE81903	SMARTSeq_v2	NO	aka Smart-seq2
 SRP073242	GSE80232	SMARTSeq_v2	NO	aka Smart-seq2
 SRP075719	GSE81904	DropSeq	YES	NA
 SRP050054	GSE63472	DropSeq	YES	NA
-SRP125998	GSE122466	10xv2	YES	NA
 SRP170038	GSE122783	SMARTSeq_v2	NO	This is a guess, they don't say. Unpublished data with really sparse info...
 SRP182592	GSE125708	BULK	NO	oops
 SRP186396	GSE126819	C1	NO	The cell suspension mix was then loaded on a C1 Single-Cell AutoPrep integrated fluidic circuit (IFC) designed for 10- to 17-μm cells (HT-800, Fluidigm, 100-57-80). cDNA synthesis and preamplifications were processed following the manufacturer’s instructions (C1 system, Fluidigm)
 SRP222001	GSE137537	10xv2	YES	Version not specified, guessing that it is 10xv2.
 SRP222958	GSE137537	DropSeq	YES	Seq-Well used (same oligo layout as DropSeq).
 SRP168426	GSE122466	10xv2	YES	NA
+SRP238587	GSE142526	10xv2	YES	NA
+E-MTAB-7316	E-MTAB-7316	10xv2	YES	NA
+SRP125998	GSE107618	SMARTSeq_v2	NO	NA
+SRP218652	GSE135922	10xv3	YES	NA
+SRP151023	GSE116106	10xv2	YES	NA
+SRP170761	GSE122970	10xv2	YES	NA
+SRP223254	GSE138002	10xv2	YES	NA
+SRP257883	GSE149100	10xv3	YES	NA
+SRP212151	GSE133382	10xv2	YES	NA
