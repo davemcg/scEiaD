@@ -11,7 +11,7 @@
 ##############
 
 library(tidyverse)
-files <- list.files('data/', pattern = '.*donor.*mac.*', full.names = TRUE)
+files <- list.files('data/', pattern = 'GSM449.*.*donor.*mac.*', full.names = TRUE)
 
 
 file_list <- list()
@@ -23,4 +23,6 @@ for (i in files){
   file_list[[i]] <- data %>% select(barcode, donor, celltype, region, age)
 }
 
+SRP257883_GSE_meta <- file_list %>% bind_rows()
+save(SRP257883_GSE_meta, file = 'data/SRP257883_GSE_meta.Rdata')
 
