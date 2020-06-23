@@ -43,4 +43,14 @@ SRP218652__non_enriched <- file_list %>% bind_rows() %>% filter(!grepl('enriched
                               Cluster == 11 ~ 'Mast'
                               )) %>% filter(!is.na(CellType))
 SRP218652__enriched <- file_list %>% bind_rows() %>% filter(grepl('enriched', Sample)) %>% mutate(CellType = case_when(Cluster %in% c('5','6','7','8') ~ 'Endothelial')) %>%  filter(!is.na(CellType))
-save(SRP218652__non_enriched, SRP218652__enriched, file = 'data/SRP218652__meta.Rdata')
+
+SRP218652 <- bind_rows(SRP218652__enriched, SRP218652__non_enriched)
+gsm <- str_extract(SRP218652$Sample, 'GSM\\d+') %>% unique()
+srs <- c()
+for (i in gsm){
+  srs <- c(srs, system(paste('/Users/mcgaugheyd/anaconda3/bin/pysradb gsm-to-srs ', i), intern = TRUE)[2] %>% str_extract(., 'SRS\\d+'))
+}
+conversion <- cbind(gsm, srs) %>% as_tibble()
+SRP218652 <- SRP218652 %>% mutate(gsm = str_extract(Sample, 'GSM\\d+')) %>% left_join(., conversion, by = 'gsm') %>% 
+  mutate(sample_accession = srs)
+save(SRP218652, file = 'data/SRP218652__meta.Rdata')
