@@ -154,14 +154,14 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 
     insct_command = paste('conda activate INSCT; /data/mcgaugheyd/conda/envs/INSCT/bin/./python3.7 /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_INSCT.py',
                          out, latent)
-    # run desc     
+    # run insct     
 	print(insct_command) 
     system(insct_command)
     # import reduced dim (latent)
     latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
 	latent_dims <- latent_dims[2:nrow(latent_dims),2:ncol(latent_dims)]
     row.names(latent_dims) <- colnames(seurat_obj)
-    colnames(latent_dims) <- paste0("desc_", 1:ncol(latent_dims))
+    colnames(latent_dims) <- paste0("insct_", 1:ncol(latent_dims))
     
     seurat_obj[["insct"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "insct_", assay = DefaultAssay(seurat_obj))
 	obj <- seurat_obj 
@@ -187,6 +187,11 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 	if (sum(colSums(matrix)==0) > 0){
 		matrix[,colSums(matrix) == 0] <- one0
 	}
+	# desc is crapping out and dropping a features
+	# remove the lowest 4 expression feature (genes)
+	min_val = min_val = rowSums(matrix) %>% sort() %>% head(5) %>% tail(1)
+	removal = (rowSums(matrix) < min_val)
+	matrix <- matrix[!removal,]
 	create(filename= out, 
            overwrite = TRUE,
            data = matrix, 
@@ -200,7 +205,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     loom$close_all() 
 
     desc_command = paste('conda activate DESC; /data/mcgaugheyd/conda/envs/DESC/bin/./python3.7 /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_desc.py',
-                         out)
+                         out, transform, latent)
     # run desc     
 	print(desc_command) 
     system(desc_command)
