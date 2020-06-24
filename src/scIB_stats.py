@@ -4,7 +4,8 @@ import scanpy as sc
 #adata = sc.read_h5ad('anndata/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims50__preFilter__mindist0.1__nneighbors500__knn10.h5ad')
 args = sys.argv
 
-adata = sc.read_h5ad(args[1])
+reduction_method = args[1]
+adata = sc.read_h5ad(args[2])
 adata
 adata_filter  = adata[adata.obs['CellType'] != 'NA']
 adata_filterSUB = adata[adata.obs['SubCellType'] != 'NA']
@@ -17,13 +18,13 @@ ari_sub = scIB.metrics.ari(adata_filterSUB, 'SubCellType', 'cluster')
 nmi = scIB.metrics.nmi(adata_filter, 'CellType', 'cluster')
 nmi_sub = scIB.metrics.nmi(adata_filterSUB, 'SubCellType', 'cluster')
 
-sc.pp.pca(adata, n_comps = int(args[2]))
+sc.pp.pca(adata, n_comps = int(args[3]))
 before = scIB.metrics.pcr(adata, 'batch', embed = 'X_pca', recompute_pca = False)
-after = scIB.metrics.pcr(adata, 'batch', embed = 'X_scvi', recompute_pca = False)
+after = scIB.metrics.pcr(adata, 'batch', embed = reduction_method, recompute_pca = False)
 pcr = (before-after)/before
 
 
-f = open(args[3], 'w')
+f = open(args[4], 'w')
 
 f.write("pcr," + str(pcr) + '\n')
 f.write("nmi," + str(nmi) + '\n')
