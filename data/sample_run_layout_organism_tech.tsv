@@ -1,105 +1,281 @@
 sample_accession	run_accession	library_layout	organism	Platform	UMI	study_accession	Tissue	Covariate	Age	integration_group	TissueNote
-ERS2852885	ERR2854358	PAIRED	Homo sapiens	10xv2	YES	E-MTAB-7316	Donor1	NA	Late	female           
-ERS2852886	ERR2854359	PAIRED	Homo sapiens	10xv2	YES	E-MTAB-7316	Donor2	NA	Late	male
-ERS2852887	ERR2854360	PAIRED	Homo sapiens	10xv2	YES	E-MTAB-7316	Donor2	NA	Late	male
-ERS2852888	ERR2854361	PAIRED	Homo sapiens	10xv2	YES	E-MTAB-7316	Donor3	NA	Late	female
-ERS2852889	ERR2854362	PAIRED	Homo sapiens	10xv2	YES	E-MTAB-7316	Donor3	NA	Late	female
-SRS6517606	SRR11587802	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_neg	Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
-SRS6517606	SRR11587805	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_neg	Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
-SRS6517606	SRR11587808	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_neg	Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
-SRS6517606	SRR11587806	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_neg	Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
-SRS6517606	SRR11587804	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_neg	Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
-SRS6517606	SRR11587809	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_neg	Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
-SRS6517606	SRR11587807	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_neg	Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
-SRS6517606	SRR11587803	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_neg	Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
-SRS6517607	SRR11587811	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_pos	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
-SRS6517607	SRR11587816	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_pos	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
-SRS6517607	SRR11587817	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_pos	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
-SRS6517607	SRR11587815	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_pos	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
-SRS6517607	SRR11587812	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_pos	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
-SRS6517607	SRR11587810	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_pos	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
-SRS6517607	SRR11587814	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_pos	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
-SRS6517607	SRR11587813	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_pos	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
-SRS6517609	SRR11587830	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_pos	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
-SRS6517609	SRR11587833	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_pos	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
-SRS6517609	SRR11587831	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_pos	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
-SRS6517609	SRR11587826	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_pos	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
-SRS6517609	SRR11587828	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_pos	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
-SRS6517609	SRR11587829	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_pos	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
-SRS6517609	SRR11587832	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_pos	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
-SRS6517609	SRR11587827	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_pos	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
-SRS6517612	SRR11587854	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_neg	Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
-SRS6517612	SRR11587852	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_neg	Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
-SRS6517612	SRR11587857	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_neg	Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
-SRS6517612	SRR11587850	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_neg	Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
-SRS6517612	SRR11587853	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_neg	Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
-SRS6517612	SRR11587855	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_neg	Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
-SRS6517612	SRR11587851	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_neg	Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
-SRS6517612	SRR11587856	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_neg	Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
-SRS6517605	SRR11587801	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_pos	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
-SRS6517605	SRR11587798	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_pos	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
-SRS6517605	SRR11587799	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_pos	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
-SRS6517605	SRR11587794	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_pos	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
-SRS6517605	SRR11587800	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_pos	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
-SRS6517605	SRR11587797	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_pos	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
-SRS6517605	SRR11587796	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_pos	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
-SRS6517605	SRR11587795	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_22_mac_CD31_pos	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
-SRS6517608	SRR11587818	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_neg	Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
-SRS6517608	SRR11587823	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_neg	Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
-SRS6517608	SRR11587821	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_neg	Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
-SRS6517608	SRR11587824	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_neg	Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
-SRS6517608	SRR11587819	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_neg	Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
-SRS6517608	SRR11587820	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_neg	Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
-SRS6517608	SRR11587825	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_neg	Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
-SRS6517608	SRR11587822	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_23_mac_CD31_neg	Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
-SRS6517611	SRR11587846	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_pos	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
-SRS6517611	SRR11587844	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_pos	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
-SRS6517611	SRR11587847	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_pos	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
-SRS6517611	SRR11587845	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_pos	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
-SRS6517611	SRR11587843	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_pos	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
-SRS6517611	SRR11587842	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_pos	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
-SRS6517611	SRR11587849	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_pos	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
-SRS6517611	SRR11587848	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_25_mac_CD31_pos	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
-SRS6517610	SRR11587840	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_neg	Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
-SRS6517610	SRR11587841	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_neg	Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
-SRS6517610	SRR11587839	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_neg	Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
-SRS6517610	SRR11587834	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_neg	Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
-SRS6517610	SRR11587836	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_neg	Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
-SRS6517610	SRR11587837	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_neg	Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
-SRS6517610	SRR11587838	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_neg	Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
-SRS6517610	SRR11587835	PAIRED	Homo sapiens	10xv3	YES	SRP257883	donor_24_mac_CD31_neg	Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
-SRS5878923	SRR10759475	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina		NA	60	Early	Organoid
+SRS5281882	SRR9990688	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor7	NA	Late	Peripheral-12mm-cd31-enriched-donor7
+SRS5281882	SRR9990687	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor7	NA	Late	Peripheral-12mm-cd31-enriched-donor7
+SRS5281882	SRR9990689	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor7	NA	Late	Peripheral-12mm-cd31-enriched-donor7
+SRS5281882	SRR9990690	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor7	NA	Late	Peripheral-12mm-cd31-enriched-donor7
+SRS5281881	SRR9990683	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor6	NA	Late	Peripheral-12mm-cd31-enriched-donor6
+SRS5281881	SRR9990686	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor6	NA	Late	Peripheral-12mm-cd31-enriched-donor6
+SRS5281881	SRR9990684	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor6	NA	Late	Peripheral-12mm-cd31-enriched-donor6
+SRS5281881	SRR9990685	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor6	NA	Late	Peripheral-12mm-cd31-enriched-donor6
+SRS5281869	SRR9990634	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990631	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990647	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990629	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990650	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990646	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990632	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990640	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990638	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990636	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990641	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990649	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990628	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990648	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990635	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990642	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990633	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990644	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990645	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990630	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990639	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990643	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990637	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281869	SRR9990627	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Macula-8mm-rpe-cho-donor1
+SRS5281877	SRR9990787	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor6	NA	Late	Macula-12mm-cd31-enriched-donor6
+SRS5281877	SRR9990789	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor6	NA	Late	Macula-12mm-cd31-enriched-donor6
+SRS5281877	SRR9990788	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor6	NA	Late	Macula-12mm-cd31-enriched-donor6
+SRS5281877	SRR9990790	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor6	NA	Late	Macula-12mm-cd31-enriched-donor6
+SRS5281872	SRR9990714	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990711	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990725	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990718	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990708	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990730	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990720	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990717	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990723	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990726	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990727	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990728	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990716	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990721	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990719	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990713	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990715	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990709	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990710	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990722	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990712	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990729	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990724	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281872	SRR9990707	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor1	NA	Late	Peripheral-8mm-rpe-cho-donor1
+SRS5281873	SRR9990753	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990751	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990752	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990745	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990735	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990740	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990734	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990736	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990741	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990731	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990733	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990737	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990754	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990747	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990739	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990750	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990738	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990746	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990742	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990743	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990732	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990749	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990744	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281873	SRR9990748	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Peripheral-8mm-rpe-cho-donor2
+SRS5281870	SRR9990673	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990672	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990655	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990663	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990665	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990656	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990657	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990670	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990651	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990664	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990662	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990661	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990667	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990653	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990668	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990654	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990658	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990671	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990660	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990669	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990659	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990674	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990652	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281870	SRR9990666	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor2	NA	Late	Macula-8mm-rpe-cho-donor2
+SRS5281874	SRR9990768	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990763	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990756	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990777	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990757	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990760	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990767	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990772	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990764	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990761	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990766	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990758	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990775	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990769	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990755	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990770	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990773	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990759	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990762	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990776	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990774	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990778	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990771	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281874	SRR9990765	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Peripheral-8mm-rpe-cho-donor3
+SRS5281875	SRR9990782	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor4	NA	Late	Macula-12mm-cd31-enriched-donor4
+SRS5281875	SRR9990779	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor4	NA	Late	Macula-12mm-cd31-enriched-donor4
+SRS5281875	SRR9990780	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor4	NA	Late	Macula-12mm-cd31-enriched-donor4
+SRS5281875	SRR9990781	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor4	NA	Late	Macula-12mm-cd31-enriched-donor4
+SRS5281876	SRR9990783	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor5	NA	Late	Macula-12mm-cd31-enriched-donor5
+SRS5281876	SRR9990784	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor5	NA	Late	Macula-12mm-cd31-enriched-donor5
+SRS5281876	SRR9990786	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor5	NA	Late	Macula-12mm-cd31-enriched-donor5
+SRS5281876	SRR9990785	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor5	NA	Late	Macula-12mm-cd31-enriched-donor5
+SRS5281871	SRR9990701	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990697	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990706	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990680	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990694	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990682	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990698	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990693	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990676	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990705	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990691	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990692	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990704	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990703	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990699	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990677	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990681	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990700	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990702	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990695	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990679	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990696	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990675	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281871	SRR9990678	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor3	NA	Late	Macula-8mm-rpe-cho-donor3
+SRS5281878	SRR9990794	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor7	NA	Late	Macula-12mm-cd31-enriched-donor7
+SRS5281878	SRR9990793	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor7	NA	Late	Macula-12mm-cd31-enriched-donor7
+SRS5281878	SRR9990792	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor7	NA	Late	Macula-12mm-cd31-enriched-donor7
+SRS5281878	SRR9990791	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor7	NA	Late	Macula-12mm-cd31-enriched-donor7
+SRS5281879	SRR9990795	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor4	NA	Late	Peripheral-12mm-cd31-enriched-donor4
+SRS5281879	SRR9990796	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor4	NA	Late	Peripheral-12mm-cd31-enriched-donor4
+SRS5281879	SRR9990797	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor4	NA	Late	Peripheral-12mm-cd31-enriched-donor4
+SRS5281879	SRR9990798	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor4	NA	Late	Peripheral-12mm-cd31-enriched-donor4
+SRS5281880	SRR9990799	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor5	NA	Late	Peripheral-12mm-cd31-enriched-donor5
+SRS5281880	SRR9990802	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor5	NA	Late	Peripheral-12mm-cd31-enriched-donor5
+SRS5281880	SRR9990800	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor5	NA	Late	Peripheral-12mm-cd31-enriched-donor5
+SRS5281880	SRR9990801	PAIRED	Homo sapiens	10xv3	YES	SRP218652	RPE	donor5	NA	Late	Peripheral-12mm-cd31-enriched-donor5
+ERS2852885	ERR2854358	PAIRED	Homo sapiens	10xv2	YES	E-MTAB-7316	Retina	Donor1	NA	Late	female           
+ERS2852886	ERR2854359	PAIRED	Homo sapiens	10xv2	YES	E-MTAB-7316	Retina	Donor2	NA	Late	male
+ERS2852887	ERR2854360	PAIRED	Homo sapiens	10xv2	YES	E-MTAB-7316	Retina	Donor2	NA	Late	male
+ERS2852888	ERR2854361	PAIRED	Homo sapiens	10xv2	YES	E-MTAB-7316	Retina	Donor3	NA	Late	female
+ERS2852889	ERR2854362	PAIRED	Homo sapiens	10xv2	YES	E-MTAB-7316	Retina	Donor3	NA	Late	female
+SRS6517606	SRR11587802	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
+SRS6517606	SRR11587805	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
+SRS6517606	SRR11587808	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
+SRS6517606	SRR11587806	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
+SRS6517606	SRR11587804	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
+SRS6517606	SRR11587809	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
+SRS6517606	SRR11587807	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
+SRS6517606	SRR11587803	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_22	NA	Late	donor_22_mac_CD31_neg
+SRS6517607	SRR11587811	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
+SRS6517607	SRR11587816	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
+SRS6517607	SRR11587817	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
+SRS6517607	SRR11587815	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
+SRS6517607	SRR11587812	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
+SRS6517607	SRR11587810	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
+SRS6517607	SRR11587814	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
+SRS6517607	SRR11587813	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_23	NA	Late	donor_23_mac_CD31_pos
+SRS6517609	SRR11587830	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
+SRS6517609	SRR11587833	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
+SRS6517609	SRR11587831	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
+SRS6517609	SRR11587826	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
+SRS6517609	SRR11587828	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
+SRS6517609	SRR11587829	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
+SRS6517609	SRR11587832	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
+SRS6517609	SRR11587827	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_24	NA	Late	donor_24_mac_CD31_pos
+SRS6517612	SRR11587854	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
+SRS6517612	SRR11587852	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
+SRS6517612	SRR11587857	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
+SRS6517612	SRR11587850	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
+SRS6517612	SRR11587853	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
+SRS6517612	SRR11587855	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
+SRS6517612	SRR11587851	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
+SRS6517612	SRR11587856	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_25	NA	Late	donor_25_mac_CD31_neg
+SRS6517605	SRR11587801	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
+SRS6517605	SRR11587798	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
+SRS6517605	SRR11587799	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
+SRS6517605	SRR11587794	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
+SRS6517605	SRR11587800	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
+SRS6517605	SRR11587797	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
+SRS6517605	SRR11587796	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
+SRS6517605	SRR11587795	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_22	NA	Late	donor_22_mac_CD31_pos
+SRS6517608	SRR11587818	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
+SRS6517608	SRR11587823	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
+SRS6517608	SRR11587821	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
+SRS6517608	SRR11587824	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
+SRS6517608	SRR11587819	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
+SRS6517608	SRR11587820	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
+SRS6517608	SRR11587825	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
+SRS6517608	SRR11587822	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_23	NA	Late	donor_23_mac_CD31_neg
+SRS6517611	SRR11587846	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
+SRS6517611	SRR11587844	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
+SRS6517611	SRR11587847	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
+SRS6517611	SRR11587845	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
+SRS6517611	SRR11587843	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
+SRS6517611	SRR11587842	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
+SRS6517611	SRR11587849	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
+SRS6517611	SRR11587848	PAIRED	Homo sapiens	10xv3	YES	SRP257883	Choroid	donor_25	NA	Late	donor_25_mac_CD31_pos
+SRS6517610	SRR11587840	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
+SRS6517610	SRR11587841	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
+SRS6517610	SRR11587839	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
+SRS6517610	SRR11587834	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
+SRS6517610	SRR11587836	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
+SRS6517610	SRR11587837	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
+SRS6517610	SRR11587838	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
+SRS6517610	SRR11587835	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor_24	NA	Late	donor_24_mac_CD31_neg
+SRS5878923	SRR10759475	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	60	Early	Organoid
 SRS5878924	SRR10759476	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	90	Early	Organoid
 SRS5878927	SRR10759479	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	205	Early	Organoid
-SRS5878933	SRR10759485	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	82	Early	Fetal
+#SRS5878933	SRR10759485	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	82	Early	Fetal
 SRS5878934	SRR10759486	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	105	Early	Fetal
 SRS5878938	SRR10759490	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	76	Early	Cell Culture
 SRS5878922	SRR10759474	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	60	Early	Organoid
-SRS5878925	SRR10759477	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	104		Early	Organoid
+SRS5878925	SRR10759477	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	104	Early	Organoid
 SRS5878940	SRR10759492	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	122	Early	Cell Culture
 SRS5878939	SRR10759491	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	91	Early	Cell Culture
 SRS5878921	SRR10759473	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	45	Early	Organoid
-SRS5878928	SRR10759480	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	59	Early	Fetal
-SRS5878936	SRR10759488	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	125	Early	Fetal
+#SRS5878928	SRR10759480	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	59	Early	Fetal
+#SRS5878936	SRR10759488	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	125	Early	Fetal
 SRS5878926	SRR10759478	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	110	Early	Organoid
 SRS5878930	SRR10759483	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	80	Early	Fetal
 SRS5878937	SRR10759489	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	78	Early	Cell Culture
 SRS5878929	SRR10759481	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	80	Early	Fetal
 SRS5878942	SRR10759494	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	134	Early	Cell Culture
 SRS5878931	SRR10759482	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	80	Early	Fetal
-SRS5878935	SRR10759487	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	125	Early	Fetal
+#SRS5878935	SRR10759487	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	125	Early	Fetal
 SRS5878941	SRR10759493	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	134	Early	Cell Culture
-SRS5878932	SRR10759484	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	82	Early	Fetal
-SRS5030712	SRR9604262	PAIRED	Mus	musculus	10xv2	YES	SRP212151	Retina	NA	NA	Late	NA
-SRS5030713	SRR9604263	PAIRED	Mus	musculus	10xv2	YES	SRP212151	Retina	NA	NA	Late	NA
-SRS5030711	SRR9604261	PAIRED	Mus	musculus	10xv2	YES	SRP212151	Retina	NA	NA	Late	NA
-SRS5030710	SRR9604259	PAIRED	Mus	musculus	10xv2	YES	SRP212151	Retina	NA	NA	Late	NA
-SRS5030714	SRR9604264	PAIRED	Mus	musculus	10xv2	YES	SRP212151	Retina	NA	NA	Late	NA
-SRS5030716	SRR9604266	PAIRED	Mus	musculus	10xv2	YES	SRP212151	Retina	NA	NA	Late	NA
-SRS5030707	SRR9604257	PAIRED	Mus	musculus	10xv2	YES	SRP212151	Retina	NA	NA	Late	NA
-SRS5030708	SRR9604258	PAIRED	Mus	musculus	10xv2	YES	SRP212151	Retina	NA	NA	Late	NA
-SRS5030715	SRR9604265	PAIRED	Mus	musculus	10xv2	YES	SRP212151	Retina	NA	NA	Late	NA
-SRS5030709	SRR9604260	PAIRED	Mus	musculus	10xv2	YES	SRP212151	Retina	NA	NA	Late	NA
+#SRS5878932	SRR10759484	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	82	Early	Fetal
+SRS5030712	SRR9604262	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch2	NA	Late	NA
+SRS5030713	SRR9604263	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch3	NA	Late	NA
+SRS5030711	SRR9604261	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch2	NA	Late	NA
+SRS5030710	SRR9604259	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch2	NA	Late	NA
+SRS5030714	SRR9604264	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch3	NA	Late	NA
+SRS5030716	SRR9604266	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch3	NA	Late	NA
+SRS5030707	SRR9604257	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch1	NA	Late	NA
+SRS5030708	SRR9604258	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch1	NA	Late	NA
+SRS5030715	SRR9604265	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch3	NA	Late	NA
+SRS5030709	SRR9604260	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch2	NA	Late	NA
 SRS2728731	SRR6338874	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	RPE	Rep1	63	Early	NA
 SRS2728685	SRR6338828	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep1	49	Early	NA
 SRS2728720	SRR6338863	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	161	Early	NA
@@ -267,7 +443,7 @@ SRS1467438	SRR3587707	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP075720	Retina	Batch1
 SRS1467450	SRR3587720	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP075720	Retina	Batch1	17	Late	NA
 SRS1467455	SRR3587724	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP075720	Retina	Batch2	17	Late	NA
 SRS1467462	SRR3587731	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP075720	Retina	Batch2	17	Late	NA
-RS1467469	SRR3587738	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP075720	Retina	Batch2	17	Late	NA
+SRS1467469	SRR3587738	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP075720	Retina	Batch2	17	Late	NA
 SRS1467506	SRR3587775	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP075720	Retina	Batch2	17	Late	NA
 SRS1467509	SRR3587778	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP075720	Retina	Batch2	17	Late	NA
 SRS1467518	SRR3587787	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP075720	Retina	Batch2	17	Late	NA

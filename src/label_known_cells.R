@@ -33,6 +33,55 @@ macosko_labels <- macosko_labels %>%
   mutate(label = gsub('_.*','', Cell),
          UMI = gsub('\\w\\d_','', Cell))
 
+# wong retina
+cell_info <- read_tsv('cell_info.tsv') %>% select(-TissueNote)
+cell_info <- cell_info %>% filter(study_accession == 'E-MTAB-7316') %>%
+				mutate(UMI = gsub('_\\w+', '', value)) %>%
+				mutate(sample = case_when(sample_accession == 'ERS2852885' ~ '5',
+											sample_accession == 'ERS2852886' ~ '3',
+											sample_accession == 'ERS2852887' ~ '4',
+											sample_accession == 'ERS2852888' ~ '1',
+											sample_accession == 'ERS2852889' ~ '2'))
+												
+retina_wong <- read_csv('~/git/massive_integrated_eye_scRNA/data/retina_wong_cellbc_cellid.csv') %>%
+				mutate(CellType = gsub(' C\\d+', '', cell.id.orig)) %>% dplyr::select(`cell.bc`, CellType) %>%
+				mutate(CellType = case_when(grepl('RGC', CellType) ~ 'Retinal Ganglion Cells',
+											grepl('Amacrine', CellType) ~ 'Amacrine Cells',
+											grepl('Bipolar', CellType) ~ 'Bipolar Cells',
+											grepl('Cone', CellType) ~ 'Cones',
+											grepl('Horizontal', CellType) ~ 'Horizontal Cells',
+											grepl('MG', CellType) ~ 'Muller Glia',
+											grepl('Rod', CellType) ~ 'Rods',
+											TRUE ~ CellType)) %>%
+				filter(!is.na(CellType)) %>% 
+				filter(CellType != 'Others') %>% 
+				separate(`cell.bc`, c('UMI', 'sample'), sep = '-') 
+
+meta_mtab7316 <- cell_info %>% left_join(., retina_wong, by = c('UMI','sample')) %>% mutate(Paper = 'Lukowski et al.')
+
+# sanes mouse rgc crush labels
+rgc_crush <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sanes__RGC_Atlas_coordinates.txt')
+rgc_crush <- rgc_crush[-1,]
+rgc_crush <- rgc_crush %>% 
+				separate(NAME, c('sample', 'UMI'), sep = '_') %>%
+				mutate(UMI = gsub('-\\d+','',UMI))
+rgc_crush$CellType <- 'Retinal Ganglion Cells'
+## load cell info
+cell_info <- read_tsv('cell_info.tsv') %>% select(-TissueNote)
+cell_info <- cell_info %>% mutate(UMI = gsub('_\\w+', '', value)) %>%
+  mutate(sample = case_when(sample_accession == 'SRS5030712' ~ 'aRGC6',
+							sample_accession == 'SRS5030713' ~ 'aRGC7',
+							sample_accession == 'SRS5030711' ~ 'aRGC5',
+							sample_accession == 'SRS5030710' ~ 'aRGC3',
+							sample_accession == 'SRS5030714' ~ 'aRGC8',
+							sample_accession == 'SRS5030716' ~ 'aRGC10',
+							sample_accession == 'SRS5030707' ~ 'aRGC1',
+							sample_accession == 'SRS5030708' ~ 'aRGC2',
+							sample_accession == 'SRS5030715' ~ 'aRGC9',
+							sample_accession == 'SRS5030709' ~ 'aRGC4'))
+meta_SRP212151 <- cell_info %>% filter(study_accession == 'SRP212151') %>%
+	left_join(., rgc_crush %>% select(sample, UMI, CellType, SubCellType = Cluster), by = c('sample', 'UMI')) %>% 
+	select(value:batch,SubCellType, CellType) %>% mutate(Paper = 'Tran et al. 2019')
 ## rgc / bipolar cell labels from karthik shekhar sanes 
 # SRP075719
 karthik <- read_tsv('~/git/massive_integrated_eye_scRNA/data/shekhar_sanes_ClustAssignFile.txt')
@@ -255,9 +304,50 @@ meta_mennon <- cell_info %>% filter(study_accession %in% c('SRP222001','SRP22295
               filter(!grepl(',', CellType))) %>% 
   mutate(Paper = 'Mennon et al. 2019')
 
+# SRP257883
+# choroid/vasculature scheetz/mullins
+load('~/git/massive_integrated_eye_scRNA/data/SRP257883_GSE_meta.Rdata')
+SRP257883_GSE_meta <- SRP257883_GSE_meta %>% 
+  mutate(CellType = case_when(celltype == 'smc' ~ 'Smooth Muscle Cell',
+                              celltype == 'RBC' ~ 'Red Blood Cells',
+                              celltype == 'fibroblast' ~ 'Fibroblasts',
+                              celltype == 'macrophage' ~ 'Macrophages',
+                              TRUE ~ stringr::str_to_title(celltype))) %>% 
+  filter(!CellType %in% c('Rod_rpe')) %>% 
+  select(-celltype)
+cell_info <- read_tsv('cell_info.tsv') %>%  
+	filter(study_accession == 'SRP257883') %>%
+	mutate(UMI = gsub('_\\w+', '', value)) %>%
+	mutate(donor = case_when(sample_accession == 'SRS6517605' ~ 'donor_22_mac_CD31_pos',
+								sample_accession == 'SRS6517606' ~ 'donor_22_mac_CD31_neg',
+								sample_accession == 'SRS6517607' ~ 'donor_23_mac_CD31_pos',
+								sample_accession == 'SRS6517608' ~ 'donor_23_mac_CD31_neg',
+								sample_accession == 'SRS6517609' ~ 'donor_24_mac_CD31_pos',
+								sample_accession == 'SRS6517610' ~ 'donor_24_mac_CD31_neg',
+								sample_accession == 'SRS6517611' ~ 'donor_25_mac_CD31_pos',
+								sample_accession == 'SRS6517612' ~ 'donor_25_mac_CD31_neg'))
+							
+meta_SRP257883 <- cell_info %>% left_join(., SRP257883_GSE_meta %>% 
+												mutate(UMI = gsub('_.*','',barcode)), 
+											by = c('UMI', 'donor')) %>%
+								unique() %>%
+								mutate(Paper = 'Voigt et al. 2020')
+# SRP218652 mullins/scheetz RPE
+cell_info <- read_tsv('cell_info.tsv') %>%
+    filter(study_accession == 'SRP218652') %>%
+    mutate(UMI = gsub('_\\w+', '', value))
+load('~/git/massive_integrated_eye_scRNA/data/SRP218652__meta.Rdata')
+SRP218652 <- SRP218652 %>%  select(Barcode, sample_accession, CellType) %>% 
+	mutate(UMI =  gsub('_\\w+', '', Barcode),
+			UMI = gsub('-\\d+', '', UMI))
+meta_SRP218652 <- cell_info %>% left_join(., SRP218652, by = c('UMI', 'sample_accession'))
 
-meta_SRP <- bind_rows(meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, meta_mennon)
 
+meta_SRP <- bind_rows(meta_SRP218652, meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883) %>%
+	mutate(CellType = gsub('Melanotype', 'Melanocytes', CellType),
+			CellType = gsub('B-cell', 'B-Cell', CellType),
+			CellType = gsub('Macrophages', 'Macrophage', CellType),
+			CellType = gsub('Pericyte$', 'Pericytes', CellType))
 cell_info_labels <- bind_rows(meta_SRP, 
                               cell_info %>% select(value:batch) %>% 
                                 filter(!value %in% meta_SRP$value) %>% 
