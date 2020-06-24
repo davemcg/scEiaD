@@ -33,6 +33,24 @@ dbWriteTable(anthology_2020_v01, 'diff_testing_C', coefficient_table, overwrite 
 db_create_index(anthology_2020_v01, table = 'diff_testing_C', columns = c('gene_short_name'))
 db_create_index(anthology_2020_v01, table = 'diff_testing_C', columns = c('term'))
 
+# E
+load(paste0(prefix1, '.E.diff.coef_table.Rdata'))
+load(paste0(prefix2, '__CellType.sceWilcox_summary.Rdata'))
+coefficient_table <- coefficient_table %>% filter(grepl('CellType', term)) %>% mutate(term = gsub('CellType','',term))
+coefficient_table <- coefficient_table %>% left_join(markers_summary, by = c('term' = 'cluster', 'gene_short_name' = 'gene'))
+dbWriteTable(anthology_2020_v01, 'diff_testing_E', coefficient_table, overwrite = TRUE)
+db_create_index(anthology_2020_v01, table = 'diff_testing_E', columns = c('gene_short_name'))
+db_create_index(anthology_2020_v01, table = 'diff_testing_E', columns = c('term'))
+
+# G 
+load(paste0(prefix1, '.G.SC.diff.coef_table.Rdata'))
+load(paste0(prefix2, '__subcluster.sceWilcox_summary.Rdata'))
+coefficient_table <- coefficient_table %>% filter(grepl('seuratSubCluster', term)) %>% mutate(term = gsub('seuratSubCluster','',term))
+coefficient_table <- coefficient_table %>% left_join(markers_summary, by = c('term' = 'cluster', 'gene_short_name' = 'gene'))
+dbWriteTable(anthology_2020_v01, 'diff_testing_G', coefficient_table, overwrite = TRUE)
+db_create_index(anthology_2020_v01, table = 'diff_testing_G', columns = c('gene_short_name'))
+db_create_index(anthology_2020_v01, table = 'diff_testing_G', columns = c('term'))
+
 # doublets
 load(args[4])
 dbWriteTable(anthology_2020_v01, 'doublets', doublet_call_table, overwrite = TRUE)
