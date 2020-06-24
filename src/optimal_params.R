@@ -144,7 +144,7 @@ x10 = '.*n_features10000.*count.*scVI'
 
 # process ari / silhouette / etc data 
 perf_all <- list()
-for (x in c('.*onlyDROPLET.*')){
+for (x in c('.*onlyDROPLET.*', '.*onlyWELL.*')){
   print(x)
   # load all clustering params -----
   files <- list.files('perf_metrics',
@@ -174,7 +174,7 @@ for (x in c('.*onlyDROPLET.*')){
 	table_score$knn <- knn
 	table_score$method <- method	
 	table_score$normalization <- norm
-
+	table_score$subset <- x
 	perf_all[[i]] <- table_score
   }
   #perf_all <- perf_all %>% bind_rows()
