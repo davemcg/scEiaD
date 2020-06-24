@@ -86,8 +86,8 @@ make_seurat_obj <- function(m,
                             nfeatures = nfeatures,
 							keep_well = TRUE,
 							keep_droplet = TRUE){
-  well_m <- m[,cell_info %>% filter(value %in% colnames(m), UMI == 'NO') %>% pull(value)]
-  droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), UMI == 'YES') %>% pull(value)]
+  well_m <- m[,cell_info %>% filter(value %in% colnames(m), !Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
+  droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   if (keep_well){
  	 seurat_well <- CreateSeuratObject(well_m)
   } 
