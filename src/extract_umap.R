@@ -13,9 +13,9 @@ integrated_obj@meta.data$subcluster <- subcluster
 # load labelled cell data
 load(args[3])
 # load predicted cell data (+ labelled)
-load(args[4])
+#load(args[4])
 # method
-method <- args[6]
+method <- args[5]
 
 if (method == 'CCA'){
   reduction <- 'pca'
@@ -58,14 +58,14 @@ umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'B
   left_join(., cell_info_labels %>% 
               dplyr::rename(Barcode = value) %>% select(-study_accession, -Age, -batch),
             by = 'Barcode') %>% 
-  left_join(., predictions %>% 
-              as_tibble(rownames = 'Barcode') %>% 
-              select(Barcode, CellType_predict = `predicted.id`)) %>% 
-  mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
-                                      TRUE ~ CellType_predict))
+#  left_join(., predictions %>% 
+#              as_tibble(rownames = 'Barcode') %>% 
+#              select(Barcode, CellType_predict = `predicted.id`)) %>% 
+#  mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
+#                                      TRUE ~ CellType_predict))
 
 umap$Method <- method
-if (args[7] == 'UMAP'){
+if (args[6] == 'UMAP'){
 colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 } else {
   colnames(umap)[2:3] <- c('TSNE_1', 'TSNE_2')
@@ -102,6 +102,6 @@ colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 
 #umap <-   left_join(umap, core_expression, by = 'Barcode')
 
-save(umap, file = args[5])
+save(umap, file = args[4])
 
 

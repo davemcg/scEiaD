@@ -137,7 +137,7 @@ covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens']
 dims = [4,6,8,10,20,25,30,50,75,100,200]
-model = ['A', 'B', 'C', 'D'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
+model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 wildcard_constraints:
 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
 	method = '|'.join(method),
@@ -162,36 +162,15 @@ rule all:
 				dist = [0.001,0.1, 0.3],
 				neighbors = [15, 30, 50, 100, 500]),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-				transform = ['counts'], \
-				method = ['scVI'], \
+				transform = ['sqrt','libSize','scran', 'standard'], \
+				method = ['insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['onlyDROPLET'], \
-				n_features = [1000, 2000, 5000], \
-				covariate = ['batch'], \
-				dims = [200],
-				dist = [0.001,0.1, 0.3],
-				neighbors = [15, 30, 50, 100, 500]),
-		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-				transform = ['sqrt','libSize','scran', 'standard'], \
-				method = ['magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['onlyDROPLET', 'onlyWELL'], \
 				n_features = [2000], \
 				covariate = ['batch'], \
-				dims = [30],
+				dims = [8, 30],
 				dist = [0.3],
 				neighbors = [30]),
-		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-				transform = ['sqrt','libSize','scran', 'standard'], \
-				method = ['insct'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['onlyDROPLET', 'onlyWELL'], \
-				n_features = [2000], \
-				covariate = ['batch'], \
-				dims = [4,6,8,10,30],
-				dist = [0.3],
-				neighbors = [30]),
-		'plots/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__desc__dims30__preFilter__mindist0.3__nneighbors30.big_plot.png',
 		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 				transform = ['counts'], \
 				method = ['scVI'], \
@@ -202,57 +181,37 @@ rule all:
 				dims = [4,6,8,10,20,30,50,100],
 				knn = [4, 5, 7, 10]),
 		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
+				transform = ['libSize','sqrt','scran', 'standard'], \
+				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['onlyDROPLET','onlyWELL'], \
+				n_features = [2000], \
+				covariate = ['batch'], \
+				dims = [8, 30],
+				knn = [7]),
+		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				n_features = [1000, 2000, 5000, 10000], \
 				transform = ['counts'], \
+				partition = ['onlyDROPLET'], \
+				covariate = ['batch'], \
 				method = ['scVI'], \
+				dims = [4,6,8,10,20,30,50,100], \
+				dist = [0.1], \
+				neighbors = [500], \
+				knn = [4,5,7,10]),
+		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
+				transform = ['libSize','sqrt','scran', 'standard'], \
+				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['onlyDROPLET'], \
-				n_features = [1000, 2000, 5000], \
-				covariate = ['batch'], \
-				dims = [200],
-				knn = [4, 5, 7, 10]),
-		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-				transform = ['libSize','sqrt','scran', 'standard'], \
-				method = ['magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['onlyDROPLET','onlyWELL'], \
 				n_features = [2000], \
 				covariate = ['batch'], \
-				dims = [30],
-				knn = [7]),
-		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-				transform = ['counts', 'libSize','sqrt','scran', 'standard'], \
-				method = ['insct'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['onlyDROPLET','onlyWELL'], \
-				n_features = [2000], \
-				covariate = ['batch'], \
-				dims = [4,6,8,10,30],
-				knn = [7]),
-		'perf_metrics/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__desc__dims30__preFilter__knn7.Rdata',
-		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
-			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-			n_features = [1000, 2000, 5000], \
-			transform = ['counts'], \
-			partition = ['onlyDROPLET'], \
-			covariate = ['batch'], \
-			method = ['scVI'], \
-			dims = [200], \
-			dist = [0.1], \
-			neighbors = [500], \
-			knn = [4,5,7,10]),
-		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
-			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-			n_features = [1000, 2000, 5000, 10000], \
-			transform = ['counts'], \
-			partition = ['onlyDROPLET'], \
-			covariate = ['batch'], \
-			method = ['scVI'], \
-			dims = [4,6,8,10,20,30,50,100], \
-			dist = [0.1], \
-			neighbors = [500], \
-			knn = [4,5,7,10])
-
-		#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-50-0.1-500-7.sqlite.gz',
+				dims = [8, 30], \
+				knn = [7], \
+				dist = [0.3], \
+				neighbors = [30]),
+		#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-6-0.1-500-10.sqlite.gz',
 
 ## mouse, human, macaque fasta and gtf
 rule download_references:
@@ -636,8 +595,8 @@ rule extract_umap:
 	input:
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
 		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn7.cluster.Rdata',
-		'cell_info_labelled.Rdata',
-		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
+		'cell_info_labelled.Rdata'
+		#'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 	output:
 		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	shell:
@@ -651,8 +610,8 @@ rule extract_tsne:
 	input:
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata',
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn7.cluster.seuratV3.Rdata',
-		'cell_info_labelled.Rdata',
-		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
+		'cell_info_labelled.Rdata'
+		#'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 	output:
 		'tsne/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata'
 	shell:
@@ -701,11 +660,22 @@ rule monocle_diff_testing:
 	input:
 		'monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
 	output:
-		'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.{piece}.{model}.diff.Rdata'
+		temp('diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.{piece}.{model}.diff.Rdata')
 	shell:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_monocle.R {input} 200 {wildcards.piece} {wildcards.model} {output}
+		"""
+
+rule monocle_diff_testing_subcluster:
+	input:
+		'monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
+	output:
+		temp('diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.G.{cluster_chunk}.diff.Rdata')
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_monocle_subcluster.R {input} 200 {wildcards.cluster_chunk} G {output}
 		"""
 
 rule monocle_diff_merge:
@@ -720,6 +690,17 @@ rule monocle_diff_merge:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_diff_monocle.R {output} {wildcards.model} {input}
+		"""
+
+rule monocle_diff_merge_subcluster:
+	input:
+		expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__{{dims}}__{{dist}}__{{knn}}__{{neighbors}}.G.{cluster_chunk}.diff.Rdata', cluster_chunk = list(range(1,41)))
+	output:
+		'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.G.SC.diff.coef_table.Rdata',
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_diff_monocle_subcluster.R {output} G {input}
 		"""
 
 rule monocle_marker_test:
@@ -789,7 +770,7 @@ rule make_h5ad_object:
 		'anndata/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad'
 	shell:
 		"""
-		module load R
+		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad.R {input} {output}
 		"""
 
@@ -801,11 +782,12 @@ rule scIB_stats:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/scIB_stats.R {input} {wildcards.dims} {output}
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
 		"""
 
 rule make_sqlite:
 	input:
+		predictions = 'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata',
 		seurat = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
 		meta = 'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
 		cluster = 'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata'
@@ -820,6 +802,7 @@ rule make_sqlite:
 			{input.seurat} \
 			{input.meta} \
 			{input.cluster} \
+			{input.predictions} \
 			{params} \
 			{wildcards.correction}
 		pigz -p 32 {params}
@@ -829,9 +812,10 @@ rule sqlite_add_tables:
 	input:
 		sqlite = 'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz',
 		diff_wilcox = expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__{{knn}}__{{neighbors}}__{{dist}}__{group}.sceWilcox.Rdata', \
-					group = ['cluster','CellType_predict']),
+					group = ['subcluster', 'cluster','CellType_predict','CellType']),
 		diff_glm = expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__{{dims}}__{{dist}}__{{knn}}__{{neighbors}}.{model}.diff.coef_table.Rdata', \
-					model = ['A','C']),
+					model = ['A','C', 'E']),
+		diff_glm_subcluster = 'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.G.SC.diff.coef_table.Rdata',
 		marker_monocle = expand('diff_test/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{{knn}}__{group}.monocleTopMarker.Rdata', \
 					group = ['seuratCluster','CellType_predict']),
 		doublet = 'doublet_calls/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.doublets.Rdata'

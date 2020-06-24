@@ -32,7 +32,7 @@ sc_data <- list()
 droplet_samples <- list()
 for (i in seq(1,length(rdata_files))){
   file = rdata_files[i]
-  sample_accession = str_extract(file, '(SRS|iPSC_RPE_scRNA_)\\d+')
+  sample_accession = str_extract(file, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
   droplet_samples <- c(droplet_samples, sample_accession)
   load(file)
   #if (species != "Macaca_fascicularis") {
@@ -59,7 +59,7 @@ if (species != "Macaca_fascicularis"){
 m <- m[row.names(m) != 'fill.x', ] 
 # create sample table
 cell_info <- colnames(m) %>% enframe() %>% 
-  mutate(sample_accession = str_extract(value, 'SRS\\d+')) %>% 
+  mutate(sample_accession = str_extract(value, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')) %>% 
   left_join(metadata %>% select(-run_accession) %>% unique()) %>% 
   data.frame()
 row.names(cell_info) <- cell_info$value
