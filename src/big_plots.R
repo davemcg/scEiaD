@@ -24,19 +24,19 @@ if (!"cluster" %in% colnames(umap)){
 
 # filter
 umap <- umap %>% 
-  rename(Stage = integration_group) %>% 
+  #rename(Stage = integration_group) %>% 
   mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', !!as.symbol(celltype_col))) %>% 
   filter(!is.na(CellType), 
          !is.na(study_accession), 
-         !CellType %in% c('Astrocytes', 'Horizontal Cells', 'Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
-         !grepl('RPE|Vascul', CellType))  %>% 
+         !CellType %in% c('Doublet', 'Doublets'),
+         !grepl('Mesenchyme/Lens', CellType))  %>% 
   mutate(Size = case_when(organism == 'Homo sapiens' ~ 0.015,
                           TRUE ~ 0.01)) 
 
 # attach colors to cell types
 cell_types <- umap %>% 
   pull(CellType) %>% unique() %>% sort()
-type_val <- setNames(pals::alphabet(n = cell_types %>% length()), cell_types)
+type_val <- setNames(c(pals::alphabet(), pals::alphabet2())[1:length(cell_types)], cell_types)
 type_col <- scale_colour_manual(values = type_val)
 type_fill <- scale_fill_manual(values = type_val)
 
@@ -54,17 +54,17 @@ plot1 <- umap %>%
   xlab(paste(red, '1')) + ylab(paste(red, '2'))
 
 # Age
-plot2 <- umap %>% 
-  ggplot() + 
-  geom_scattermore(aes(x = umap[,paste0(red,'_1')] %>% pull(1), 
-                       y = umap[,paste0(red,'_2')] %>% pull(1),  
-                       colour = Stage), pointsize = ptsize, alpha = 0.1) + 
-  guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
-  theme_cowplot() + 
-  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
-  scale_color_manual(values = as.vector(pals::alphabet()) %>% tail(2)) + 
-  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
-  xlab(paste(red, '1')) + ylab(paste(red, '2'))
+#plot2 <- umap %>% 
+#  ggplot() + 
+#  geom_scattermore(aes(x = umap[,paste0(red,'_1')] %>% pull(1), 
+#                       y = umap[,paste0(red,'_2')] %>% pull(1),  
+#                       colour = Stage), pointsize = ptsize, alpha = 0.1) + 
+#  guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
+#  theme_cowplot() + 
+#  #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num )) +
+#  scale_color_manual(values = as.vector(pals::alphabet()) %>% tail(2)) + 
+#  theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
+#  xlab(paste(red, '1')) + ylab(paste(red, '2'))
 
 # facet by organism
 plot3 <- umap %>% 

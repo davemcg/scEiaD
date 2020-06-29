@@ -37,7 +37,7 @@
 	},
 	"make_seurat_objs" :
 	{
-		"mem" : "400G",
+		"mem" : "600G",
 		"partition" : "largemem",
 		"time" : "8:00:00",
 		"extra" : " --gres=lscratch:100"
@@ -79,7 +79,7 @@
 	},
 	"calculate_umap" : 
 	{
-		"mem" : "100G",
+		"mem" : "200G",
 		"partition" : "norm",
 		"time" : "16:00:00",
 		"extra" : " --gres=lscratch:100"
@@ -122,9 +122,9 @@
 	},
 	"predict_missing_cell_types_00" :
 	{
-		"mem" : "250G",
+		"mem" : "300G",
 		"time" : "30:00:00",
-		"partition" : "largemem",
+		"partition" : "norm",
 		"extra" : " --gres=lscratch:2"
 	},
 	"monocle_diff_testing" :
@@ -150,8 +150,8 @@
 	"perf_metrics" :
 	{
 		"partition" : "norm",
-		"mem" : "150G",
-		"time" : "04:30:00"
+		"mem" : "300G",
+		"time" : "08:00:00"
 	},
 	"monocle_diff_merge" :
 	{
@@ -160,9 +160,21 @@
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:100"
 	},
+	"monocle_diff_merge" :
+	{
+		"mem" : "120G",
+		"extra" : " --gres=lscratch:10"
+	},
+	"monocle_diff_merge_subcluster" :
+	{
+		"mem" : "120G",
+		"time" : "4:00:00",
+		"partition" : "quick",
+		"extra" : " --gres=lscratch:2"
+	},
 	"make_h5ad_object" :
 	{
-		"mem" : "100G",
+		"mem" : "200G",
 		"time" : "4:00:00",
 		"partition" : "quick"
 	},
@@ -197,7 +209,7 @@
 		"mem" : "350G",
 		"time" : "12:00:00",
 		"partition" : "largemem",
-		"extra" : " --gres=lscratch:20"
+		"extra" : " --gres=lscratch:50"
 	},
 	"sqlite_add_tables:" :
 	{
