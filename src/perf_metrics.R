@@ -18,49 +18,55 @@ umap$cluster <- meta %>% pull(2)
 print(args[2])
 
 if (grepl('onlyWELL', args[2])){
-    umap$CellType <- umap$CellType_predict
-} 
-umap <- umap %>%  mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType))
-umap$SubCellType[grepl('^RB|Rods|Peri|^MG$|^Mic$', umap$SubCellType)] <- NA
+	cutdown <- umap %>% rowid_to_column('ID')
+	cutdownSUB <- umap %>% rowid_to_column('ID')
+	scores <- list()
+	reductions <- names(integrated_obj@reductions)
+    reductions <- reductions[!grepl('UMA', reductions, ignore.case = TRUE)]
+    if (length(reductions) == 1 && reductions == 'PCA'){
+        reduction <- 'PCA'
+    } else { reduction = reductions[reductions != 'PCA'][1]
+    }
+} else {
+	umap <- umap %>%  mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType))
+	umap$SubCellType[grepl('^RB|Rods|Peri|^MG$|^Mic$', umap$SubCellType)] <- NA
 
-#if (!"cluster" %in% colnames(umap)){
-#    umap$cluster <- umap$clusters
-#}
-# find proper embedding to use
-reductions <- names(integrated_obj@reductions)
-reductions <- reductions[!grepl('UMA', reductions, ignore.case = TRUE)]
-if (length(reductions) == 1 && reductions == 'PCA'){
-	reduction <- 'PCA'
-} else { reduction = reductions[reductions != 'PCA'][1]
+	reductions <- names(integrated_obj@reductions)
+	reductions <- reductions[!grepl('UMA', reductions, ignore.case = TRUE)]
+	if (length(reductions) == 1 && reductions == 'PCA'){
+		reduction <- 'PCA'
+	} else { reduction = reductions[reductions != 'PCA'][1]
+	}
+	scores <- list()
+	# kBET
+	# devtools::install_github('theislab/kBET')
+	# https://github.com/theislab/kBET
+	set.seed(12534)
+	# take up to 2000 from each organism/celltype
+	print('cutdown begin')
+
+
+	cutdown <- umap %>% 
+	  rowid_to_column('ID') %>% 
+	  filter(!CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+	         !is.na(CellType)) %>% 
+	  group_by(organism, CellType) %>% 
+	  sample_n(2000, replace = TRUE) %>% 
+	  unique()
+	# remove celltypes which have fewer than 100 cells
+	keep <- umap %>% group_by(CellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(CellType)
+	cutdown <- cutdown %>% filter(CellType %in% keep)
+	# cutdown against subcelltype
+	cutdownSUB <- umap %>% 
+	  rowid_to_column('ID') %>% 
+	  filter(!is.na(SubCellType)) %>% 
+	  group_by(organism, SubCellType) %>% 
+	  sample_n(2000, replace = TRUE) %>% 
+	  unique()
+	# remove celltypes which have fewer than 100 cells
+	keep <- umap %>% group_by(SubCellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(SubCellType)
+	cutdownSUB <- cutdownSUB %>% filter(SubCellType %in% keep)
 }
-scores <- list()
-# kBET
-# devtools::install_github('theislab/kBET')
-# https://github.com/theislab/kBET
-set.seed(12534)
-# take up to 2000 from each organism/celltype
-print('cutdown begin')
-cutdown <- umap %>% 
-  rowid_to_column('ID') %>% 
-  filter(!CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
-         !is.na(CellType)) %>% 
-  group_by(organism, CellType) %>% 
-  sample_n(2000, replace = TRUE) %>% 
-  unique()
-# remove celltypes which have fewer than 100 cells
-keep <- umap %>% group_by(CellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(CellType)
-cutdown <- cutdown %>% filter(CellType %in% keep)
-# cutdown against subcelltype
-cutdownSUB <- umap %>% 
-  rowid_to_column('ID') %>% 
-  filter(!is.na(SubCellType)) %>% 
-  group_by(organism, SubCellType) %>% 
-  sample_n(2000, replace = TRUE) %>% 
-  unique()
-# remove celltypes which have fewer than 100 cells
-keep <- umap %>% group_by(SubCellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(SubCellType)
-cutdownSUB <- cutdownSUB %>% filter(SubCellType %in% keep)
-
 # kBET silhouette function
 # user can select what silhoette is calcualted AGAINST 
 # have to subsample input as this requires making a dist obj! 
@@ -83,9 +89,12 @@ silhouette <- function(obj, against = 'batch'){
 print('scoring starts')
 print('silhouette')
 scores$silhouette_batch <- silhouette(cutdown)
-scores$silhouette_celltype <- silhouette(cutdown, against = 'CellType')
+if (grepl('onlyDROPLET', args[2])){
+	scores$silhouette_celltype <- silhouette(cutdown, against = 'CellType')
+	scores$silhouette_subcelltype <- silhouette(cutdownSUB, against = 'SubCellType')
+}
+
 scores$silhouette_cluster <- silhouette(cutdown, against = 'cluster')
-scores$silhouette_subcelltype <- silhouette(cutdownSUB, against = 'SubCellType')
 # run silhouette by cell type
 #print('silhouette by celltype')
 #scores$silhouette_CellType <- cutdown %>% 
@@ -102,12 +111,14 @@ scores$silhouette_subcelltype <- silhouette(cutdownSUB, against = 'SubCellType')
 # generates a score PER CELL which is a metric of number of types of neighbors
 # lower is better (pure cell population within region)
 print('lisi')
-try({scores$LISI_subcelltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdownSUB$ID,], 
+if (grepl('onlyDROPLET', args[2])){	
+	try({scores$LISI_subcelltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdownSUB$ID,], 
                                   cutdownSUB,
                                   'SubCellType') })
-scores$LISI_celltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,], 
+	scores$LISI_celltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,], 
                                   cutdown,
                                   'CellType')
+}
 scores$LISI_batch <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,],
                                   cutdown,
                                   'batch')
