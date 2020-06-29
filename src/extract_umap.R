@@ -46,7 +46,7 @@ if (method == 'CCA'){
 }
 reduction.name <- gsub('_','', reduction.key)
 
-if (args[7] == 'TSNE'){
+if (args[6] == 'TSNE'){
   reduction.key <- gsub('UMAP','TSNE', reduction.key)
   reduction.name <- gsub('UMAP','TSNE', reduction.name)
 }
@@ -55,9 +55,8 @@ if (args[7] == 'TSNE'){
 orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
 umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'Barcode') %>% 
   left_join(., orig_meta) %>% 
-  left_join(., cell_info_labels %>% 
-              dplyr::rename(Barcode = value) %>% select(-study_accession, -Age, -batch),
-            by = 'Barcode') %>% 
+  left_join(., cell_info_labels %>% select(-Barcode) %>% select(-contains(c('study_accession', 'Age', 'batch'))) %>% rename(Barcode = value),
+            by = 'Barcode') 
 #  left_join(., predictions %>% 
 #              as_tibble(rownames = 'Barcode') %>% 
 #              select(Barcode, CellType_predict = `predicted.id`)) %>% 
