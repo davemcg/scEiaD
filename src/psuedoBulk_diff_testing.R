@@ -174,8 +174,6 @@ processed_data2 <- processing(sum_mat2)
 ######################
 # celltype (pre-labelled/published)
 ####################
-
-
 # celltype against remaining, controlling for organism ------
 res_againstAll <- pseudoBulk_testing(processed_data2, 
                                      organism_covariate=TRUE,
@@ -192,26 +190,81 @@ res_organism_celltype <- pseudoBulk_testing(processed_data2,
                                             testing_against = 'var_organism')
 
 
-
+##############################
+# same, but with celltype predict (machine label all cells with label)
+##############################
 info <- DataFrame(sample=as.factor(umap$batch),
                   celltype = as.factor(umap$CellType_predict),
                   organism = as.factor(umap$organism))
 sum_mat3 <- sumCountsAcrossCells(mat, info, BPPARAM = multicoreParam)
 
-#processed_data1 <- processing(sum_mat1)
 processed_data3 <- processing(sum_mat3)
-
-##############################
-# same, but with celltype predict
-##############################
-# celltype against remaining, controlling for organism ------
+# CellType_predict against remaining, controlling for organism ------
 res_againstAll <- pseudoBulk_testing(processed_data3, 
                                      organism_covariate=TRUE,
                                      pairwise=FALSE)
-# celltype against each celltype (pairwise), controlling for organism ----------
+# CellType_predict against each celltype (pairwise), controlling for organism ----------
 res_pairwise <- pseudoBulk_testing(processed_data3, 
                                    organism_covariate=TRUE,
                                    pairwise=TRUE)
+# species against species, WITHIN A CELLTYPE_PREDICT
+res_organism_celltype <- pseudoBulk_testing(processed_data3, 
+                                            organism_covariate=FALSE,
+                                            pairwise=TRUE, 
+                                            testing_against_internal_organism = TRUE,
+                                            testing_against = 'var_organism')
+
+
+##############################
+# now against cluster
+##############################
+info <- DataFrame(sample=as.factor(umap$batch),
+                  cluster = as.factor(umap$cluster),
+                  organism = as.factor(umap$organism))
+sum_mat4 <- sumCountsAcrossCells(mat, info, BPPARAM = multicoreParam)
+
+processed_data4 <- processing(sum_mat4, 
+                              testing_against = 'cluster')
+# cluster against remaining, controlling for organism ------
+res_againstAll <- pseudoBulk_testing(processed_data3, 
+                                     organism_covariate=TRUE,
+                                     pairwise=FALSE,
+                                     testing_against = 'cluster')
+# cluster against each celltype (pairwise), controlling for organism ----------
+res_pairwise <- pseudoBulk_testing(processed_data3, 
+                                   organism_covariate=TRUE,
+                                   pairwise=TRUE,
+                                   testing_against = 'cluster')
+# species against species, WITHIN A CELLTYPE
+res_organism_celltype <- pseudoBulk_testing(processed_data3, 
+                                            organism_covariate=FALSE,
+                                            pairwise=TRUE, 
+                                            testing_against_internal_organism = TRUE,
+                                            testing_against = 'var_organism')
+
+
+##############################
+# SubCluster
+# all testing only done within a cluster
+##############################
+info <- DataFrame(sample=as.factor(umap$batch),
+                  cluster = as.factor(umap$SubCluster),
+                  organism = as.factor(umap$organism))
+#for (cluster in umap)
+sum_mat5 <- sumCountsAcrossCells(mat, info, BPPARAM = multicoreParam)
+
+processed_data5 <- processing(sum_mat5, 
+                              testing_against = 'cluster')
+# cluster against remaining, controlling for organism ------
+res_againstAll <- pseudoBulk_testing(processed_data3, 
+                                     organism_covariate=TRUE,
+                                     pairwise=FALSE,
+                                     testing_against = 'cluster')
+# cluster against each celltype (pairwise), controlling for organism ----------
+res_pairwise <- pseudoBulk_testing(processed_data3, 
+                                   organism_covariate=TRUE,
+                                   pairwise=TRUE,
+                                   testing_against = 'cluster')
 # species against species, WITHIN A CELLTYPE
 res_organism_celltype <- pseudoBulk_testing(processed_data3, 
                                             organism_covariate=FALSE,
