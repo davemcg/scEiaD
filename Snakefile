@@ -163,7 +163,7 @@ rule all:
 				neighbors = [15, 30, 50, 100, 500]),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['sqrt','libSize','scran', 'standard'], \
-				method = ['insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
+				method = ['insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['onlyDROPLET'], \
 				n_features = [2000], \
@@ -182,7 +182,7 @@ rule all:
 				knn = [4, 5, 7, 10]),
 		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 				transform = ['libSize','sqrt','scran', 'standard'], \
-				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
+				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['onlyDROPLET','onlyWELL'], \
 				n_features = [2000], \
@@ -202,7 +202,7 @@ rule all:
 				knn = [4,5,7,10]),
 		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
 				transform = ['libSize','sqrt','scran', 'standard'], \
-				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
+				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['onlyDROPLET'], \
 				n_features = [2000], \
@@ -764,7 +764,7 @@ rule make_h5ad_object:
 		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
 		'cell_info_labelled.Rdata',
-		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
+		#'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 		#'monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
 	output:
 		'anndata/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad'
