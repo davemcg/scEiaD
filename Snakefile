@@ -211,7 +211,8 @@ rule all:
 				knn = [7], \
 				dist = [0.3], \
 				neighbors = [30]),
-		#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-6-0.1-500-10.sqlite.gz',
+		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-8-0.1-500-10.sqlite.gz',
+		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-50-0.1-500-10.sqlite.gz',
 
 ## mouse, human, macaque fasta and gtf
 rule download_references:
@@ -808,16 +809,30 @@ rule make_sqlite:
 		pigz -p 32 {params}
 		"""
 
+rule pseudoBulk_DGE:
+	input:
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
+		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'	
+	output:
+		'psuedoBulk_DGE/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{pseudoTest}.Rdata'
+	shell:
+		"""
+		module load R/4.0
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/psuedoBulk_diff_testing.R {input} {output}		"""
+
+
 rule sqlite_add_tables:
 	input:
 		sqlite = 'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz',
-		diff_wilcox = expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__{{knn}}__{{neighbors}}__{{dist}}__{group}.sceWilcox.Rdata', \
-					group = ['subcluster', 'cluster','CellType_predict','CellType']),
-		diff_glm = expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__{{dims}}__{{dist}}__{{knn}}__{{neighbors}}.{model}.diff.coef_table.Rdata', \
-					model = ['A','C', 'E']),
-		diff_glm_subcluster = 'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.G.SC.diff.coef_table.Rdata',
-		marker_monocle = expand('diff_test/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{{knn}}__{group}.monocleTopMarker.Rdata', \
-					group = ['seuratCluster','CellType_predict']),
+		#diff_wilcox = expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__{{knn}}__{{neighbors}}__{{dist}}__{group}.sceWilcox.Rdata', \
+		#			group = ['subcluster', 'cluster','CellType_predict','CellType']),
+		#diff_glm = expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__{{dims}}__{{dist}}__{{knn}}__{{neighbors}}.{model}.diff.coef_table.Rdata', \
+		#			model = ['A','C', 'E']),
+		#diff_glm_subcluster = 'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.G.SC.diff.coef_table.Rdata',
+		#marker_monocle = expand('diff_test/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{{knn}}__{group}.monocleTopMarker.Rdata', \
+		#			group = ['seuratCluster','CellType_predict']),
+		pseudoBulk = expand('psuedoBulk_DGE/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{pseudoTest}.Rdata', pseudoTest = ['A','B','C','D']),
 		doublet = 'doublet_calls/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.doublets.Rdata'
 	output:
 		'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
