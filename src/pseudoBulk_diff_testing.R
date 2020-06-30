@@ -11,8 +11,12 @@ args <- commandArgs(trailingOnly = TRUE)
 
 load(args[1]) #load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.seuratObj.Rdata')
 load(args[2]) # load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.umap.Rdata')
-
-
+load(args[3]) # celltype predictions
+umap <- umap %>% left_join(., predictions %>%
+								as_tibble(rownames = 'Barcode' %>%
+								select(Barcode, CellType_predict = `predicted.id`)) %>%
+				mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
+													TRUE ~ CellType_predict))
 ###############
 # functions -------
 ###############
@@ -189,7 +193,7 @@ if (comp == 'A'){
                                                         testing_against = 'var_organism')
   
   save(CELLTYPE__res_againstAll, CELLTYPE__res_pairwise, CELLTYPE__res_organism_celltype, 
-       file = args[3])
+       file = args[4])
 } else if (comp == 'B'){
   ##############################
   # same, but with celltype predict (machine label all cells with label) ----------
@@ -215,7 +219,7 @@ if (comp == 'A'){
                                                                testing_against_internal_organism = TRUE,
                                                                testing_against = 'var_organism')
   save(CELLTYPEPREDICT__res_againstAll, CELLTYPEPREDICT__res_pairwise, CELLTYPEPREDICT__res_organism_celltype, 
-       file = args[3])
+       file = args[4])
 } else if (comp == 'C') {
   ##############################
   # now against cluster ---------
@@ -244,7 +248,7 @@ if (comp == 'A'){
                                                        testing_against_internal_organism = TRUE,
                                                        testing_against = 'var_organism')
   save(CLUSTER__res_againstAll, CLUSTER__res_pairwise, CLUSTER__res_organism_celltype, 
-       file = args[3])
+       file = args[4])
 } else if (comp == 'D'){
   
   ##############################
@@ -284,7 +288,7 @@ if (comp == 'A'){
   SUBCLUSTER__res_pairwise <- SUBCLUSTER__res_pairwise_list %>% bind_rows()
   SUBCLUSTER__res_organism_celltype <- SUBCLUSTER__res_organism_celltype_list %>% bind_rows()
   save(SUBCLUSTER__res_againstAll, SUBCLUSTER__res_pairwise, SUBCLUSTER__res_organism_celltype, 
-       file = args[3])
+       file = args[4])
 }
 
 
