@@ -89,8 +89,7 @@ metadata <- metadata %>% rename(Stage = integration_group) %>%
 meta_filter <- metadata %>% 
   filter(!is.na(CellType_predict), 
          !is.na(study_accession), 
-         !CellType_predict %in% c('Astrocytes', 'Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
-         !grepl('RPE|Vascul', CellType_predict))
+         !CellType_predict %in% c('Doublet', 'Doublets'))
 
 dbWriteTable(pool, "metadata", metadata, overwrite = TRUE)
 db_create_index(pool, table = 'metadata', columns = c('Barcode'))
