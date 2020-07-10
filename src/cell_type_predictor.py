@@ -1,3 +1,4 @@
+# requires --gres=gpu:v100x:1, and module load CUDA/10.1 && module load cuDNN/7.6.5/CUDA-10.1 
 # %%
 import pandas as pd 
 import numpy as np
@@ -10,7 +11,7 @@ import argparse
 import warnings
 import pickle
 warnings.filterwarnings("ignore")
-#%%
+
 class SklDataObj:
     def __init__(self, X_data, feature_cols,  lab2id,name=None, sampling_method = None, k=None):
         self.label2id = lab2id
@@ -111,7 +112,6 @@ def encode_age(stld):
     stld = stld.drop(columns = categorical_columns).join(cat_col_df)
     return stld
 
-
 parser = argparse.ArgumentParser(description = 'train cell type predictor or predict cell types')
 parser.add_argument('mode',action = 'store', choices = ['train', 'predict'])
 parser.add_argument('--workingDir', action = 'store', default = None, help = 'change directory to here (must be an absolute path)')
@@ -175,7 +175,6 @@ def predict(args, non_feature_cols, bad_cell_types):
     full_pred_df = pd.DataFrame({'Barcode':barcodes,  'cell_type_id' : preds_class }).merge(cell_type2id).merge(pred_probs_df)
     full_pred_df.to_csv(args.predictions, sep = '\t', index = False)
 
-    
 if args.mode == 'train':
     train(args,  non_feature_cols, bad_cell_types)
 elif args.mode == 'predict':
