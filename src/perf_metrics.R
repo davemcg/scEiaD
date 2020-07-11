@@ -48,10 +48,10 @@ if (grepl('onlyWELL', args[2])){
 
 	cutdown <- umap %>% 
 	  rowid_to_column('ID') %>% 
-	  filter(!CellType %in% c('Doublet', 'Doublets', 'Fibroblasts', 'Red Blood Cells'),
+	  filter(!CellType %in% c('Doublet', 'Doublets'),
 	         !is.na(CellType)) %>% 
 	  group_by(organism, CellType) %>% 
-	  sample_n(2000, replace = TRUE) %>% 
+	  sample_n(1000, replace = TRUE) %>% 
 	  unique()
 	# remove celltypes which have fewer than 100 cells
 	keep <- umap %>% group_by(CellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(CellType)
@@ -61,7 +61,7 @@ if (grepl('onlyWELL', args[2])){
 	  rowid_to_column('ID') %>% 
 	  filter(!is.na(SubCellType)) %>% 
 	  group_by(organism, SubCellType) %>% 
-	  sample_n(2000, replace = TRUE) %>% 
+	  sample_n(1000, replace = TRUE) %>% 
 	  unique()
 	# remove celltypes which have fewer than 100 cells
 	keep <- umap %>% group_by(SubCellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(SubCellType)
@@ -89,7 +89,7 @@ silhouette <- function(obj, against = 'batch'){
 print('scoring starts')
 print('silhouette')
 scores$silhouette_batch <- silhouette(cutdown)
-if (grepl('onlyDROPLET', args[2])){
+if (!grepl('onlyWELL', args[2])){
 	scores$silhouette_celltype <- silhouette(cutdown, against = 'CellType')
 	scores$silhouette_subcelltype <- silhouette(cutdownSUB, against = 'SubCellType')
 }
@@ -111,7 +111,7 @@ scores$silhouette_cluster <- silhouette(cutdown, against = 'cluster')
 # generates a score PER CELL which is a metric of number of types of neighbors
 # lower is better (pure cell population within region)
 print('lisi')
-if (grepl('onlyDROPLET', args[2])){	
+if (!grepl('onlyWELL', args[2])){	
 	try({scores$LISI_subcelltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdownSUB$ID,], 
                                   cutdownSUB,
                                   'SubCellType') })
