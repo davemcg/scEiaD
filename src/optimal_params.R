@@ -1,6 +1,6 @@
 library(tidyverse)
-library(cowplot)
-library(splancs)
+#library(cowplot)
+#library(splancs)
 # load annotations
 # load('cell_info_labelled.Rdata')
 # calculate of matrix of points
@@ -144,25 +144,34 @@ x10 = '.*n_features10000.*count.*scVI'
 
 # process ari / silhouette / etc data 
 perf_all <- list()
-for (x in c('.*onlyDROPLET.*', '.*onlyWELL.*')){
+for (x in c('.*TabulaDroplet.*', '.*onlyWELL.*')){
   print(x)
   # load all clustering params -----
   files <- list.files('perf_metrics',
                       pattern = paste0(x, '.*Rdata'),
                       full.names = TRUE)
   for (i in files){
+	print(i)
     load(i)
+	if (x == '.*onlyWELL.*') {
+	table_score <- rbind(c('LISI', scores$LISI_batch %>% pull(1) %>% mean(), 'Batch'),
+								c('LISI', scores$LISI_cluster %>% pull(1) %>% mean(), 'Cluster'),
+								c('Silhouette', scores$silhouette_batch, 'Batch'),
+								c('Silhouette', scores$silhouette_cluster, 'Cluster'),
+								scores$RI %>% enframe(name = 'score') %>% mutate('Cell Type' = 'CellType-Cluster'))
+	} else {
 	table_score <- rbind(c('LISI', scores$LISI_batch %>% pull(1) %>% mean(), 'Batch'),
 								c('LISI', scores$LISI_celltype %>% pull(1) %>% mean(), 'CellType'),
 								c('LISI', scores$LISI_cluster %>% pull(1) %>% mean(), 'Cluster'),
+								c('LISI', scores$LISI_subcelltype %>% pull(1) %>% mean(), 'SubCellType'),
 								c('Silhouette', scores$silhouette_batch, 'Batch'),
 								c('Silhouette', scores$silhouette_celltype, 'CellType'),
 								c('Silhouette', scores$silhouette_cluster, 'Cluster'),
+								c('Silhouette', scores$silhouette_subcelltype, 'SubCellType'),
 								scores$RI %>% enframe(name = 'score') %>% mutate('Cell Type' = 'CellType-Cluster'))
-							
+	}
 	colnames(table_score) <- c('Score', 'Value', 'Group')
 	table_score$Value <- as.numeric(as.character(table_score$Value))
-
 
 	norm = str_extract(i, 'n_features\\d+__[^\\W_]+') %>% gsub('n_features\\d+__','',.)
 	nf = str_extract(i, 'n_features\\d+') %>% gsub('n_features', '', .) %>% as.numeric()
@@ -175,6 +184,7 @@ for (x in c('.*onlyDROPLET.*', '.*onlyWELL.*')){
 	table_score$method <- method	
 	table_score$normalization <- norm
 	table_score$subset <- x
+	table_score$set <- str_extract(i, 'TabulaDroplet|universe|onlyDROPLET|onlyWELL')
 	perf_all[[i]] <- table_score
   }
   #perf_all <- perf_all %>% bind_rows()
@@ -197,6 +207,7 @@ for (i in files){
     table_score$knn <- knn
     table_score$method <- method
     table_score$normalization <- norm
+	table_score$set <- str_extract(i, 'TabulaDroplet|universe|onlyDROPLET|onlyWELL')
 	colnames(table_score)[1:2] <- c('Score', 'Value')
 	data[[i]] <- table_score
 }
@@ -210,4 +221,4 @@ perf_two <- data %>% bind_rows() %>%
 			mutate(Score = toupper(Score))
 
 perf <- bind_rows(perf_one %>% filter(Score != 'ARI'), perf_two)
-save(perf, file = 'metrics_onlyDROPLET_2020_06_02.Rdata')
+save(perf, file = 'metrics_onlyDROPLET_2020_07_08.Rdata')
