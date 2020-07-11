@@ -342,12 +342,53 @@ SRP218652 <- SRP218652 %>%  select(Barcode, sample_accession, CellType) %>%
 			UMI = gsub('-\\d+', '', UMI))
 meta_SRP218652 <- cell_info %>% left_join(., SRP218652, by = c('UMI', 'sample_accession'))
 
+# tabula muris
+cell_info <- read_tsv('cell_info.tsv') %>% select(-TissueNote) %>% filter(study_accession == 'SRP131661') 
+tm <- data.table::fread('~/git/massive_integrated_eye_scRNA/data/tabula_muris_meta.tsv.gz') %>%
+			dplyr::rename(TabulaMurisCellType = CellType) %>% 
+  			mutate(CellType = case_when(TabulaMurisCellType == 'B cell' ~ 'B-Cell',
+                              TabulaMurisCellType == 'blood cell' ~ 'Red Blood Cells',
+                              TabulaMurisCellType == 'T cell' ~ 'T-Cell',
+                              TabulaMurisCellType == 'fibroblast' ~ 'Fibroblasts',
+                              grepl('endoth', TabulaMurisCellType, ignore.case = TRUE) ~ 'Endothelial')) %>% 
+			select(value, Paper, CellType, TabulaMurisCellType)
+meta_TM <- cell_info %>% left_join(., tm, by = 'value' )
 
-meta_SRP <- bind_rows(meta_SRP218652, meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883) %>%
+## Yan ... Sanes retina rod/cone 
+cell_info <- read_tsv('cell_info.tsv') %>%
+    filter(study_accession == 'SRP255195')
+sample_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv') %>% filter(study_accession == 'SRP255195')
+yan_pr <- read_csv('~/git/massive_integrated_eye_scRNA/data/yan_sanes_PR____Human_retina_combined_all_meta.csv')
+yan_pr <- yan_pr %>% 
+  mutate(CellType = case_when(Cluster == 'Astrocytes' ~ 'Astrocytes',
+                              grepl('^DB|FMB|IMB|RB1|OFFx|BB', Cluster) ~ 'Bipolar Cells',
+                              Cluster == 'Endothelium' ~ 'Endothelium',
+                              grepl('Gaba|Gly', Cluster) ~ 'Amacrine Cells',
+                              grepl('H1|H2', Cluster) ~ 'Horizontal Cells',
+                              grepl('MG_|Muller', Cluster) ~ 'Muller Glia',
+                              grepl('MG_OFF|MG_ON|RGC|PG_|IMB', Cluster) ~ 'Retinal Ganglion Cells',
+                              grepl('Cone', Cluster) ~ 'Cone',
+                              grepl('Rod', Cluster) ~ 'Rods',
+                              Cluster == 'MicroGlia' ~ 'Microglia'),
+         SubCellType = Cluster,
+         sample = str_extract(NAME, 'H\\d+\\w+S\\d')) %>% 
+  filter(!is.na(CellType)) %>% left_join(sample_meta %>%
+                                           mutate(sample = str_extract(TissueNote, 'H\\d+\\w+S\\d')), 
+                                         by = 'sample') %>% 
+  filter(!is.na(sample_accession)) %>% 
+  separate(NAME, into = c('samp','UMI','lane'), sep = "[_|-]") %>% 
+  mutate(value = paste0(sample_accession, '_', UMI)) %>%
+  mutate(Paper = 'Yan et al. 2020')
+meta_SRP255195 <- cell_info %>% left_join(., yan_pr %>% select(value, Paper, CellType, SubCellType), by = 'value')
+
+
+meta_SRP <- bind_rows(meta_SRP218652, meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, 
+						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195) %>%
 	mutate(CellType = gsub('Melanotype', 'Melanocytes', CellType),
 			CellType = gsub('B-cell', 'B-Cell', CellType),
 			CellType = gsub('Macrophages', 'Macrophage', CellType),
-			CellType = gsub('Pericyte$', 'Pericytes', CellType))
+			CellType = gsub('Pericyte$', 'Pericytes', CellType),
+			CellType = gsub('T/NK-cell', 'T-Cell', CellType))
 cell_info_labels <- bind_rows(meta_SRP, 
                               cell_info %>% select(value:batch) %>% 
                                 filter(!value %in% meta_SRP$value) %>% 
@@ -361,7 +402,6 @@ cell_info_labels <- cell_info_labels %>%
          Paper = case_when(study_accession == 'SRP166660' ~ "Rueda et al. 2019",
                            study_accession == 'SRP186407' ~ "O'Koren et al. 2019",
                            TRUE ~ Paper))
-
 
 
 # label internal iPSC RPE data
