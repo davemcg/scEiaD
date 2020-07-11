@@ -50,13 +50,13 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                                map(ncol) %>% 
                                map(enframe) %>%
                                bind_rows(.id = 'ID') %>% 
-                               filter(value < 1000) %>% 
+                               filter(value < 100) %>% 
                                pull(ID)] <- NULL
 	  # keep getting cholmod errors, so trying to use the Clark Blackshaw mouse and the Sanes macaque as ref
       ref_index <- which(names(seurat_obj$seurat_list) %in% refs)
 	  anchors <- FindIntegrationAnchors(object.list = seurat_obj$seurat_list, dims = 1:20, normalization.method = 'SCT',
-                                        anchor.features = seurat_obj$study_data_features, 
- 										reference = ref_index)
+                                        anchor.features = seurat_obj$study_data_features) 
+ 										#reference = ref_index)
       obj <- IntegrateData(anchorset = anchors, verbose = TRUE, normalization.method = 'SCT')
     } else {
       seurat_list <- SplitObject(obj, split.by = covariate)
@@ -64,7 +64,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                     map(ncol) %>% 
                     map(enframe) %>%
                     bind_rows(.id = 'ID') %>% 
-                    filter(value < 1000) %>% 
+                    filter(value < 100) %>% 
                     pull(ID)] <- NULL
       ref_index <- which(names(seurat_list) %in% refs)
       anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20, 
@@ -255,7 +255,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     n_epochs = 5 # use 1e6/# cells of epochs
     lr = 0.001 
     #use_batches = 'True'
-    use_cuda = 'False'
+    use_cuda = 'True'
     n_hidden = 128 
     n_latent = latent
     n_layers = 2 
@@ -268,32 +268,30 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_hidden,
                          n_latent,
                          n_layers,
-						 FALSE)
+						 'FALSE')
     # run scVI     
 	print(scVI_command) 
     system(scVI_command)
     # import reduced dim (latent)
     latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
-	normalized_values <- fread(paste0(out, '.normalized.csv'), header = FALSE) %>% 
-	  as.matrix()  
+	#normalized_values <- fread(paste0(out, '.normalized.csv'), header = FALSE) %>% 
+	#  as.matrix()  
 	if (latent_dims[1,1] == 'NaN'){
 		print('scVI fail, rerunning with fewer hidden dims')
-		    scVI_command = paste('/data/mcgaugheyd/conda/envs/scVI/bin/./python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scVI.py',
-                         out,
-                         n_epochs,
-                         lr,
-                         use_cuda,
-                         64,
-                         n_latent,
-                         n_layers,
-						 FALSE)
+		    scVI_command = paste('/data/mcgaugheyd/conda/envs/scVI/bin/./python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scVI.py', 
+							out, n_epochs, lr, use_cuda, 64, n_latent, n_layers, 'FALSE')
     	# run scVI
-   	 	print(scVI_command)
-	    system(scVI_command)
-		latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
-		if (latent_dims[1,1] == 'NaN'){print("scVI fail again!"); stop()}
-	    normalized_values <- fread(paste0(out, '.normalized.csv'), header = FALSE) %>% 
-			as.matrix() 
+   	 	print(scVI_command);  system(scVI_command); latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
+		if (latent_dims[1,1] == 'NaN'){
+			print('scVI fail, rerunning with even fewer hidden dims')
+			 scVI_command = paste('/data/mcgaugheyd/conda/envs/scVI/bin/./python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scVI.py',
+                            out, n_epochs, lr, use_cuda, 50, n_latent, n_layers, 'FALSE')
+			# run scVI
+        print(scVI_command);  system(scVI_command); latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
+			 if (latent_dims[1,1] == 'NaN'){print("scVI fail again! One more try!"); stop()}
+		}
+	#   normalized_values <- fread(paste0(out, '.normalized.csv'), header = FALSE) %>% 
+	#		as.matrix() 
 	}
 
     row.names(latent_dims) <- colnames(seurat_obj)
@@ -301,7 +299,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     
     seurat_obj[["scVI"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "scVI_", assay = DefaultAssay(seurat_obj))
    	#seurat_obj <- SetAssayData(object = seurat_obj, slot = 'scale.data', new.data = normalized_values)
-	save(normalized_values, file = gsub('.seuratV3.Rdata', '.scVI_scaled.Rdata', args[6]), compress = FALSE)
+	#save(normalized_values, file = gsub('.seuratV3.Rdata', '.scVI_scaled.Rdata', args[6]), compress = FALSE)
 	system(paste0('rm ', out, '.normalized.csv'))
 	obj <- seurat_obj 
     
