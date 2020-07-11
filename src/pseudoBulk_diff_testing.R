@@ -5,21 +5,27 @@ library(scater)
 library(Seurat)
 library(edgeR)
 library(BiocParallel)
-multicoreParam <- MulticoreParam(workers = 8)
+multicoreParam <- MulticoreParam(workers = 12)
 
 args <- commandArgs(trailingOnly = TRUE)
 
 load(args[1]) #load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.seuratObj.Rdata')
 load(args[2]) # load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.umap.Rdata')
 load(args[3]) # celltype predictions
+comp <- args[4]
+partition = args[5] %>% as.numeric()
+out <- args[6]
 umap <- umap %>% left_join(., predictions %>%
-								as_tibble(rownames = 'Barcode' %>%
-								select(Barcode, CellType_predict = `predicted.id`)) %>%
+								as_tibble(rownames = 'Barcode') %>%
+								dplyr::select(Barcode, CellType_predict = `predicted.id`)) %>%
 				mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
 													TRUE ~ CellType_predict))
 ###############
 # functions -------
 ###############
+
+chunk <- function(x,n) split(x, factor(sort(rank(x) %% n)))
+
 processing <- function(sum_mat, testing_against = 'celltype'){
   colData <- sum_mat@colData
   cts <- sum_mat@assays@data$sum
@@ -30,10 +36,11 @@ processing <- function(sum_mat, testing_against = 'celltype'){
   colData <- colData[!discarded,]
   cts <- cts[,!discarded]
   
-  
-  # rename rod bipolar to bipolar
-  colData[,'celltype'] <- gsub('Rod Bipolar Cells', 'Bipolar Cells', colData[,'celltype'] )
-  
+ 
+  if ('celltype' %in% colnames(colData)){ 
+  	# rename rod bipolar to bipolar
+  	colData[,'celltype'] <- gsub('Rod Bipolar Cells', 'Bipolar Cells', colData[,'celltype'] )
+  }
   # remove celltypes/var of interest with 1 or fewer remaining replicates
   celltypes_to_retain <-  grep('Doubl|Margin', (colData[,testing_against] %>% table() )[(colData[,testing_against] %>% table() ) > 1] %>% names(), value = TRUE, invert = TRUE)
   cts <- cts[,(colData[,testing_against] %in% celltypes_to_retain)]
@@ -62,7 +69,9 @@ pseudoBulk_testing <- function(processed_data,
                                pairwise = FALSE,
                                testing_against_internal_organism = FALSE,
                                regex_pattern = '\\s+|/', 
-                               testing_against = 'celltype'){
+                               testing_against = 'celltype',
+							   pieces = 10,
+                               partition){
   
   
   # all pairwise combinations
@@ -93,6 +102,13 @@ pseudoBulk_testing <- function(processed_data,
     combinations <- processed_data$colData[,testing_against] %>% unique() %>% gsub(regex_pattern,'', .) %>% sort() %>% unique() %>% data.frame() %>% t()
   }
   
+  # break into n pieces for parallelization faciliation on b2
+  # take the n partition
+  # skip for subcluster (partition set to FALSE)
+  if (partition){
+    combinations <- combinations[,chunk(1:ncol(combinations), pieces)[[partition]]]
+    if (!pairwise){combinations <- combinations %>% t() %>% data.frame()}
+  }
   # build factor for design matrix
   group <- as.factor(processed_data$colData[,testing_against] %>% gsub(regex_pattern,'', .))
   # study_covariate <- as.factor(colData_g1g2 %>% 
@@ -143,21 +159,26 @@ pseudoBulk_testing <- function(processed_data,
         cont0['Musmusculus'] = 0
       }
     }
-    try({res <- glmQLFTest(fit, contrast = cont0)})
-    
-    if (pairwise){
-      results[[i]] <- topTags(res, n = 10000000) %>% 
-        data.frame() %>% 
-        as_tibble(rownames = 'Gene') %>% 
-        mutate(test = paste0(combinations_fancy[,i][1], ' vs ', combinations_fancy[,i][2])) %>% 
-        mutate(comparison = res$comparison)
-    } else {
-      results[[i]] <- topTags(res, n = 10000000) %>% 
-        data.frame() %>% 
-        as_tibble(rownames = 'Gene') %>% 
-        mutate(test = combinations[,i]) %>% 
-        mutate(comparison = res$comparison)
-    }
+    res <- try({glmQLFTest(fit, contrast = cont0)})
+    if (class(res) == 'try-error') {
+      if (pairwise){test = paste0(combinations_fancy[,i][1], ' vs ', combinations_fancy[,i][2])} else {test = combinations[,i]}
+      comparison = 'failure'
+      results <- data.frame(cbind(test, failure)) %>% as_tibble()
+    } else { 
+      if (pairwise){
+        results[[i]] <- topTags(res, n = 10000000) %>% 
+          data.frame() %>% 
+          as_tibble(rownames = 'Gene') %>% 
+          mutate(test = paste0(combinations_fancy[,i][1], ' vs ', combinations_fancy[,i][2])) %>% 
+          mutate(comparison = res$comparison)
+      } else {
+        results[[i]] <- topTags(res, n = 10000000) %>% 
+          data.frame() %>% 
+          as_tibble(rownames = 'Gene') %>% 
+          mutate(test = combinations[,i]) %>% 
+          mutate(comparison = res$comparison)
+      }
+   }
   }
   results %>% bind_rows()
 } 
@@ -166,7 +187,7 @@ pseudoBulk_testing <- function(processed_data,
 
 mat <- integrated_obj@assays$RNA@counts
 
-if (comp == 'A'){
+if (grepl('A', comp)){
   ######################
   # celltype (pre-labelled/published) -------
   ####################
@@ -177,24 +198,32 @@ if (comp == 'A'){
   
   #processed_data1 <- processing(sum_mat1)
   processed_data2 <- processing(sum_mat2)
+  
+  if (grepl('1', comp)){
   # celltype against remaining, controlling for organism ------
   CELLTYPE__res_againstAll <- pseudoBulk_testing(processed_data2, 
                                                  organism_covariate=TRUE,
-                                                 pairwise=FALSE)
+                                                 pairwise=FALSE,
+												 partition = partition)
+  save(CELLTYPE__res_againstAll, file = out)
+  } else if (grepl('2', comp)){
   # celltype against each celltype (pairwise), controlling for organism ----------
   CELLTYPE__res_pairwise <- pseudoBulk_testing(processed_data2, 
                                                organism_covariate=TRUE,
-                                               pairwise=TRUE)
+                                               pairwise=TRUE,
+											   partition = partition)
+  save(CELLTYPE__res_pairwise, file = out)
+  } else if (grepl('3', comp)){
   # species against species, WITHIN A CELLTYPE
   CELLTYPE__res_organism_celltype <- pseudoBulk_testing(processed_data2, 
                                                         organism_covariate=FALSE,
                                                         pairwise=TRUE, 
                                                         testing_against_internal_organism = TRUE,
-                                                        testing_against = 'var_organism')
-  
-  save(CELLTYPE__res_againstAll, CELLTYPE__res_pairwise, CELLTYPE__res_organism_celltype, 
-       file = args[4])
-} else if (comp == 'B'){
+                                                        testing_against = 'var_organism',
+								                        partition = partition)
+  save(CELLTYPE__res_organism_celltype, file = out)
+  }
+} else if (grepl('B', comp)){
   ##############################
   # same, but with celltype predict (machine label all cells with label) ----------
   ##############################
@@ -204,23 +233,31 @@ if (comp == 'A'){
   sum_mat3 <- sumCountsAcrossCells(mat, info, BPPARAM = multicoreParam)
   
   processed_data3 <- processing(sum_mat3)
+  if (grepl('1', comp)){
   # CellType_predict against remaining, controlling for organism ------
   CELLTYPEPREDICT__res_againstAll <- pseudoBulk_testing(processed_data3, 
                                                         organism_covariate=TRUE,
-                                                        pairwise=FALSE)
+                                                        pairwise=FALSE,
+												        partition = partition)
+  save(CELLTYPEPREDICT__res_againstAll, file = out)
+  } else if (grepl('2', comp)){
   # CellType_predict against each celltype (pairwise), controlling for organism ----------
   CELLTYPEPREDICT__res_pairwise <- pseudoBulk_testing(processed_data3, 
                                                       organism_covariate=TRUE,
-                                                      pairwise=TRUE)
+                                                      pairwise=TRUE,
+      												  partition = partition)
+  save(CELLTYPEPREDICT__res_pairwise, file = out)
+  } else if (grepl('3', comp)){
   # species against species, WITHIN A CELLTYPE_PREDICT
   CELLTYPEPREDICT__res_organism_celltype <- pseudoBulk_testing(processed_data3, 
                                                                organism_covariate=FALSE,
                                                                pairwise=TRUE, 
                                                                testing_against_internal_organism = TRUE,
-                                                               testing_against = 'var_organism')
-  save(CELLTYPEPREDICT__res_againstAll, CELLTYPEPREDICT__res_pairwise, CELLTYPEPREDICT__res_organism_celltype, 
-       file = args[4])
-} else if (comp == 'C') {
+                                                               testing_against = 'var_organism',
+															   partition = partition)
+  save(CELLTYPEPREDICT__res_organism_celltype, file = out)
+  }
+} else if (grepl('C', comp)){
   ##############################
   # now against cluster ---------
   ##############################
@@ -231,25 +268,33 @@ if (comp == 'A'){
   
   processed_data4 <- processing(sum_mat4, 
                                 testing_against = 'cluster')
+  if (grepl('1', comp)){
   # cluster against remaining, controlling for organism ------
-  CLUSTER__res_againstAll <- pseudoBulk_testing(processed_data3, 
+  CLUSTER__res_againstAll <- pseudoBulk_testing(processed_data4, 
                                                 organism_covariate=TRUE,
                                                 pairwise=FALSE,
-                                                testing_against = 'cluster')
+                                                testing_against = 'cluster',
+											    partition = partition)
+  save(CLUSTER__res_againstAll, file = out)
+  } else if (grepl('2', comp)){
   # cluster against each celltype (pairwise), controlling for organism ----------
-  CLUSTER__res_pairwise <- pseudoBulk_testing(processed_data3, 
+  CLUSTER__res_pairwise <- pseudoBulk_testing(processed_data4, 
                                               organism_covariate=TRUE,
                                               pairwise=TRUE,
-                                              testing_against = 'cluster')
+                                              testing_against = 'cluster',
+											  partition = partition)
+  save(CLUSTER__res_pairwise, file = out)
+  } else if (grepl('3', comp)){
   # species against species, WITHIN A CELLTYPE
-  CLUSTER__res_organism_celltype <- pseudoBulk_testing(processed_data3, 
+  CLUSTER__res_organism_celltype <- pseudoBulk_testing(processed_data4, 
                                                        organism_covariate=FALSE,
                                                        pairwise=TRUE, 
                                                        testing_against_internal_organism = TRUE,
-                                                       testing_against = 'var_organism')
-  save(CLUSTER__res_againstAll, CLUSTER__res_pairwise, CLUSTER__res_organism_celltype, 
-       file = args[4])
-} else if (comp == 'D'){
+                                                       testing_against = 'var_organism',
+												       partition = partition)
+  save(CLUSTER__res_organism_celltype, file = out)
+  }
+} else if (grepl('D', comp)){
   
   ##############################
   # SubCluster -------------
@@ -258,37 +303,54 @@ if (comp == 'A'){
   SUBCLUSTER__res_againstAll_list <- list()
   SUBCLUSTER__res_pairwise_list <- list()
   SUBCLUSTER__res_organism_celltype_list <- list()
-  for (i in unique(umap$cluster)){
+  for (i in chunk(1:length(unique(umap$cluster)), 10)[[partition]]){
     umapT <- umap %>% filter(cluster == i)
+	matT <- mat[,umapT$Barcode]
     info <- DataFrame(sample=as.factor(umapT$batch),
-                      cluster = as.factor(umapT$SubCluster),
+                      cluster = as.factor(umapT$subcluster),
                       organism = as.factor(umapT$organism))
-    sum_mat5 <- sumCountsAcrossCells(mat, info, BPPARAM = multicoreParam)
+    sum_mat5 <- sumCountsAcrossCells(matT, info, BPPARAM = multicoreParam)
     
-    processed_data5 <- processing(sum_mat5, 
-                                  testing_against = 'cluster')
+    processed_data5 <- try({processing(sum_mat5, 
+                                  testing_against = 'cluster') })
+
     # subcluster against remaining, controlling for organism ------
-    SUBCLUSTER__res_againstAll_list[[i]] <- pseudoBulk_testing(processed_data3, 
+    if (grepl('1', comp) && class(processed_data5) != 'try-error'){
+    SUBCLUSTER__res_againstAll_list[[i]] <- try({pseudoBulk_testing(processed_data5, 
                                                                organism_covariate=TRUE,
                                                                pairwise=FALSE,
-                                                               testing_against = 'cluster')
+                                                               testing_against = 'cluster',
+											                   partition = FALSE) })
+    } else if (grepl('2', comp) && class(processed_data5) != 'try-error'){
     # subcluster against each subcluster (pairwise), controlling for organism ----------
-    SUBCLUSTER__res_pairwise_list[[i]] <- pseudoBulk_testing(processed_data3, 
+    SUBCLUSTER__res_pairwise_list[[i]] <- try({pseudoBulk_testing(processed_data5, 
                                                              organism_covariate=TRUE,
                                                              pairwise=TRUE,
-                                                             testing_against = 'cluster')
+                                                             testing_against = 'cluster',
+														     partition = FALSE) })
+    } else if (grepl('3', comp) && class(processed_data5) != 'try-error'){
     # species against species, WITHIN A SUBCLUSTER
-    SUBCLUSTER__res_organism_celltype_list[[i]] <- pseudoBulk_testing(processed_data3, 
+    SUBCLUSTER__res_organism_celltype_list[[i]] <- try({pseudoBulk_testing(processed_data5, 
                                                                       organism_covariate=FALSE,
                                                                       pairwise=TRUE, 
                                                                       testing_against_internal_organism = TRUE,
-                                                                      testing_against = 'var_organism')
+                                                                      testing_against = 'var_organism',
+																	  partition = FALSE) })
+    }
   }
-  SUBCLUSTER__res_againstAll <- SUBCLUSTER__res_againstAll_list %>% bind_rows()
-  SUBCLUSTER__res_pairwise <- SUBCLUSTER__res_pairwise_list %>% bind_rows()
-  SUBCLUSTER__res_organism_celltype <- SUBCLUSTER__res_organism_celltype_list %>% bind_rows()
-  save(SUBCLUSTER__res_againstAll, SUBCLUSTER__res_pairwise, SUBCLUSTER__res_organism_celltype, 
-       file = args[4])
+  if (grepl('1', comp)){
+	for (i in seq_along(1:length(SUBCLUSTER__res_againstAll_list))){if (class(SUBCLUSTER__res_againstAll_list[[i]]) == 'try-error'){ SUBCLUSTER__res_againstAll_list[[i]] <- NULL  } }
+    SUBCLUSTER__res_againstAll <- SUBCLUSTER__res_againstAll_list %>% bind_rows()
+    save(SUBCLUSTER__res_againstAll, file = out)
+  } else if (grepl('2', comp)){
+	for (i in seq_along(1:length(SUBCLUSTER__res_pairwise_list))){if (class(SUBCLUSTER__res_pairwise_list[[i]]) == 'try-error'){ SUBCLUSTER__res_pairwise_list[[i]] <- NULL  } }
+    SUBCLUSTER__res_pairwise <- SUBCLUSTER__res_pairwise_list %>% bind_rows()
+	save(SUBCLUSTER__res_pairwise, file = out)
+  } else if (grepl('3', comp)){ 
+    for (i in seq_along(1:length(SUBCLUSTER__res_organism_celltype_list))){if (class(SUBCLUSTER__res_organism_celltype_list[[i]]) == 'try-error'){ SUBCLUSTER__res_organism_celltype_list[[i]] <- NULL  } } 
+	SUBCLUSTER__res_organism_celltype <- SUBCLUSTER__res_organism_celltype_list %>% bind_rows()
+    save(SUBCLUSTER__res_organism_celltype, out)
+  }
 }
 
 
