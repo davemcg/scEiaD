@@ -144,7 +144,7 @@ x10 = '.*n_features10000.*count.*scVI'
 
 # process ari / silhouette / etc data 
 perf_all <- list()
-for (x in c('.*TabulaDroplet.*', '.*onlyWELL.*')){
+for (x in c('.*TabulaDroplet.*', '.*onlyWELL.*', '.*universe.*')){
   print(x)
   # load all clustering params -----
   files <- list.files('perf_metrics',
