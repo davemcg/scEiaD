@@ -417,7 +417,8 @@ rule cat_cell_info:
 	shell:
 		"""
 		cat {input} | head -n 1 > header
-		cat header <( grep -hv "^value" {input}) > {output}
+		mv header {output}
+		grep -hv "^value" {input} >> {output}
 		"""
 		
 rule make_seurat_objs:
@@ -865,7 +866,16 @@ rule merge_stats:
 				knn = [7]),
 		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 				transform = ['libSize','sqrt','scran', 'standard'], \
-				method = ['insct','magic', 'scVI', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none'], \
+				method = ['insct','magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['onlyWELL'], \
+				n_features = [2000], \
+				covariate = ['batch'], \
+				dims = [8, 30],
+				knn = [7]),
+		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
+				transform = ['counts'], \
+				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['onlyWELL'], \
 				n_features = [2000], \
