@@ -37,10 +37,10 @@
 	},
 	"make_seurat_objs" :
 	{
-		"mem" : "600G",
+		"mem" : "800G",
 		"partition" : "largemem",
-		"time" : "8:00:00",
-		"extra" : " --gres=lscratch:100"
+		"time" : "16:00:00",
+		"extra" : " --gres=lscratch:10"
 	},
 	"make_seurat_objs_filtered" :
 	{
@@ -122,7 +122,7 @@
 	},
 	"predict_missing_cell_types_00" :
 	{
-		"mem" : "300G",
+		"mem" : "340G",
 		"time" : "30:00:00",
 		"partition" : "norm",
 		"extra" : " --gres=lscratch:2"
@@ -149,9 +149,15 @@
 	},
 	"perf_metrics" :
 	{
+		"partition" : "quick",
+		"mem" : "150G",
+		"time" : "04:00:00"
+	},
+	"pseudoBulk_DGE" :
+	{
 		"partition" : "norm",
-		"mem" : "300G",
-		"time" : "08:00:00"
+		"mem" : "50G",
+		"time" : "12:00:00"
 	},
 	"monocle_diff_merge" :
 	{
@@ -175,7 +181,7 @@
 	"make_h5ad_object" :
 	{
 		"mem" : "200G",
-		"time" : "4:00:00",
+		"time" : "1:00:00",
 		"partition" : "quick"
 	},
 	"diff_test_wilcox" :
@@ -201,8 +207,8 @@
 	"scIB_stats" :
 	{
 		"mem" : "30G",
-		"time" : "2:00:00",
-		"partition" : "norm"
+		"time" : "1:00:00",
+		"partition" : "quick"
 	},
 	"make_sqlite" :
 	{

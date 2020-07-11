@@ -96,11 +96,11 @@ def well_and_droplet_input(organism, reference):
 def REF_idx(ref, data_to_return):
 	organism = SRS_dict[SRS]['organism']
 	if ref == 'mm':
-		idx = 'references/kallisto_idx/gencode.vM22.pc_transcripts.fa.gz.idx'
-		txnames = 'references/gencode.vM22.metadata.MGI_tx_mapping.tsv'
+		idx = 'references/kallisto_idx/gencode.vM25.pc_transcripts.fa.gz.idx'
+		txnames = 'references/gencode.vM25.metadata.MGI_tx_mapping.tsv'
 	elif ref == 'hs':
-		idx = 'references/kallisto_idx/gencode.v31.pc_transcripts.fa.gz.idx'
-		txnames = 'references/gencode.v31.metadata.HGNC_tx_mapping.tsv'
+		idx = 'references/kallisto_idx/gencode.v34.pc_transcripts.fa.gz.idx'
+		txnames = 'references/gencode.v34.metadata.HGNC_tx_mapping.tsv'
 	elif ref == 'mf':
 		idx = 'references/kallisto_idx/Macaca_mulatta.Mmul_10.cdna.all.fa.gz.idx'
 		txnames = 'references/Macaca_mulatta.Mmul_10.cdna.all_tx_mapping.tsv'
@@ -131,11 +131,11 @@ for SRS in SRS_dict.keys():
 	elif SRS_dict[SRS]['tech'] != 'BULK':
 		SRS_nonUMI_samples.append(SRS)
 
-method = ['insct','desc', 'magic', 'scVI','CCA', 'scanorama', 'harmony', 'liger', 'fastMNN', 'combat', 'none']
+method = ['insct','magic', 'scVI','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none']
 transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
-combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens']
+combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe']
 dims = [4,6,8,10,20,25,30,50,75,100,200]
 model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 wildcard_constraints:
@@ -155,79 +155,50 @@ rule all:
 				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['onlyDROPLET'], \
+				partition = ['universe'], \
+				n_features = [2000, 5000, 10000], \
+				covariate = ['batch'], \
+				dims = [30,50,100],
+				dist = [0.1],
+				neighbors = [100]),
+		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
+				transform = ['counts'], \
+				method = ['scVI'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['TabulaDroplet'], \
 				n_features = [1000, 2000, 5000, 10000], \
 				covariate = ['batch'], \
 				dims = [4,6,8,10,20,30,50,100],
-				dist = [0.001,0.1, 0.3],
+				dist = [0.001,0.1],
 				neighbors = [15, 30, 50, 100, 500]),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['sqrt','libSize','scran', 'standard'], \
 				method = ['insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['onlyDROPLET'], \
+				partition = ['TabulaDroplet'], \
 				n_features = [2000], \
 				covariate = ['batch'], \
 				dims = [8, 30],
 				dist = [0.3],
 				neighbors = [30]),
-		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-				transform = ['counts'], \
-				method = ['scVI'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['onlyDROPLET'], \
-				n_features = [1000, 2000, 5000, 10000], \
-				covariate = ['batch'], \
-				dims = [4,6,8,10,20,30,50,100],
-				knn = [4, 5, 7, 10]),
-		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-				transform = ['libSize','sqrt','scran', 'standard'], \
-				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['onlyDROPLET','onlyWELL'], \
-				n_features = [2000], \
-				covariate = ['batch'], \
-				dims = [8, 30],
-				knn = [7]),
-		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				n_features = [1000, 2000, 5000, 10000], \
-				transform = ['counts'], \
-				partition = ['onlyDROPLET'], \
-				covariate = ['batch'], \
-				method = ['scVI'], \
-				dims = [4,6,8,10,20,30,50,100], \
-				dist = [0.1], \
-				neighbors = [500], \
-				knn = [4,5,7,10]),
-		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
-				transform = ['libSize','sqrt','scran', 'standard'], \
-				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none'], \
-				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-				partition = ['onlyDROPLET'], \
-				n_features = [2000], \
-				covariate = ['batch'], \
-				dims = [8, 30], \
-				knn = [7], \
-				dist = [0.3], \
-				neighbors = [30]),
-		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-8-0.1-500-10.sqlite.gz',
-		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-50-0.1-500-10.sqlite.gz',
+		'merged_stats_2020_07_06.Rdata',
+		#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-8-0.1-500-10.sqlite.gz',
+		#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-50-0.1-500-10.sqlite.gz',
 
 ## mouse, human, macaque fasta and gtf
 rule download_references:
 	output:
-		mouse_fasta = 'references/gencode.vM22.pc_transcripts.fa.gz',
+		mouse_fasta = 'references/gencode.vM25.pc_transcripts.fa.gz',
 		macaque_fasta = 'references/Macaca_mulatta.Mmul_10.cdna.all.fa.gz',
-		human_fasta = 'references/gencode.v31.pc_transcripts.fa.gz'
+		human_fasta = 'references/gencode.v34.pc_transcripts.fa.gz'
 	shell:
 		"""
 		mkdir -p references
-		wget ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M22/gencode.vM22.pc_transcripts.fa.gz  
+		wget ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/gencode.vM25.pc_transcripts.fa.gz  
 		#wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/364/345/GCF_000364345.1_Macaca_fascicularis_5.0/GCF_000364345.1_Macaca_fascicularis_5.0_rna.fna.gz
 		wget ftp://ftp.ensembl.org/pub/release-98/fasta/macaca_fascicularis/cdna/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz
 		wget ftp://ftp.ensembl.org/pub/release-99/fasta/macaca_mulatta/cdna/Macaca_mulatta.Mmul_10.cdna.all.fa.gz
-		wget ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_31/gencode.v31.pc_transcripts.fa.gz
+		wget ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.pc_transcripts.fa.gz
 		mv *fa*gz references/
 		"""
 
@@ -248,14 +219,14 @@ rule kallisto_index:
 # ENST ENSG gene_name
 rule tx_gene_mapping:
 	input:
-		'references/gencode.vM22.pc_transcripts.fa.gz'
+		'references/gencode.vM25.pc_transcripts.fa.gz'
 	output:
 		mf = 'references/Macaca_mulatta.Mmul_10.cdna.all_tx_mapping.tsv',
-		hs = 'references/gencode.v31.metadata.HGNC_tx_mapping.tsv',
-		mm = 'references/gencode.vM22.metadata.MGI_tx_mapping.tsv'
+		hs = 'references/gencode.v34.metadata.HGNC_tx_mapping.tsv',
+		mm = 'references/gencode.vM25.metadata.MGI_tx_mapping.tsv'
 	shell:
 		"""
-		zgrep "^>" references/gencode.vM22.pc_transcripts.fa.gz | \
+		zgrep "^>" references/gencode.vM25.pc_transcripts.fa.gz | \
 			sed 's/>//g' | \
 			awk 'BEGIN {{OFS = "\t"; FS = "|"}}; {{print $0, $2, $6}}' > {output.mm}
 
@@ -270,7 +241,7 @@ rule tx_gene_mapping:
 		#	awk -v OFS="\t" 'BEGIN {{FS="\t"}}; {{print $11,$15,$14}}' > {output.mf}
 		#rm GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz
 
-		zgrep "^>" references/gencode.v31.pc_transcripts.fa.gz | \
+		zgrep "^>" references/gencode.v34.pc_transcripts.fa.gz | \
 			sed 's/>//g' | \
 			awk 'BEGIN {{OFS = "\t"; FS = "|"}}; {{print $0, $2, $6}}' > {output.hs}
 		"""
@@ -453,7 +424,7 @@ rule make_seurat_objs:
 	input:
 		'cell_info.tsv',
 		expand('quant/{organism}/full_sparse_matrix.Rdata', \
-			 organism = organism)
+			 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'])
 	output:
 		seurat = ('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata')
 	shell:
@@ -768,7 +739,7 @@ rule make_h5ad_object:
 		#'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 		#'monocle_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
 	output:
-		'anndata/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad'
+		temp('anndata/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad')
 	shell:
 		"""
 		module load R/3.6
@@ -811,15 +782,16 @@ rule make_sqlite:
 
 rule pseudoBulk_DGE:
 	input:
-		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
 		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
 		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'	
 	output:
-		'psuedoBulk_DGE/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{pseudoTest}.Rdata'
+		'pseudoBulk_DGE/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{pseudoTest}__{piece}.Rdata'
 	shell:
 		"""
 		module load R/4.0
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/psuedoBulk_diff_testing.R {input} {output}		"""
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_diff_testing.R {input} {wildcards.pseudoTest} {wildcards.piece} {output}		
+		"""
 
 
 rule sqlite_add_tables:
@@ -832,7 +804,7 @@ rule sqlite_add_tables:
 		#diff_glm_subcluster = 'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.G.SC.diff.coef_table.Rdata',
 		#marker_monocle = expand('diff_test/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{{knn}}__{group}.monocleTopMarker.Rdata', \
 		#			group = ['seuratCluster','CellType_predict']),
-		pseudoBulk = expand('psuedoBulk_DGE/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{pseudoTest}.Rdata', pseudoTest = ['A','B','C','D']),
+		pseudoBulk = expand('pseudoBulk_DGE/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{pseudoTest}__{piece}.Rdata', pseudoTest = ['A1','A2','A3','B1','B2','B3','C1','C2','C3','D1','D2','D3'], piece = range(1,11)),
 		doublet = 'doublet_calls/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.doublets.Rdata'
 	output:
 		'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
@@ -851,4 +823,90 @@ rule sqlite_add_tables:
 		mv {input.sqlite} {output}
 		"""
 		
-			
+rule merge_stats:
+	input:	
+		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
+				transform = ['counts'], \
+				method = ['scVI'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['universe'], \
+				n_features = [2000, 5000, 10000], \
+				covariate = ['batch'], \
+				dims = [30,50,100],
+				knn= [7]),
+		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				n_features = [2000, 5000, 10000], \
+				transform = ['counts'], \
+				partition = [ 'universe'], \
+				covariate = ['batch'], \
+				method = ['scVI'], \
+				dims = [30,50,100], \
+				dist = [0.1], \
+				neighbors = [100], \
+				knn = [7]),
+		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
+				transform = ['counts'], \
+				method = ['scVI'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['TabulaDroplet'], \
+				n_features = [1000, 2000, 5000, 10000], \
+				covariate = ['batch'], \
+				dims = [4,6,8,10,20,30,50,100],
+				knn = [4, 5, 7, 10]),
+		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
+				transform = ['libSize','sqrt','scran', 'standard'], \
+				method = ['insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['TabulaDroplet'], \
+				n_features = [2000], \
+				covariate = ['batch'], \
+				dims = [8, 30],
+				knn = [7]),
+		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
+				transform = ['libSize','sqrt','scran', 'standard'], \
+				method = ['insct','magic', 'scVI', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['onlyWELL'], \
+				n_features = [2000], \
+				covariate = ['batch'], \
+				dims = [8, 30],
+				knn = [7]),
+		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
+				transform = ['SCT'], \
+				method = ['CCA'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['onlyWELL'], \
+				n_features = [2000], \
+				covariate = ['batch'], \
+				dims = [8, 30],
+				knn = [7]),
+		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				n_features = [1000, 2000, 5000, 10000], \
+				transform = ['counts'], \
+				partition = [ 'TabulaDroplet'], \
+				covariate = ['batch'], \
+				method = ['scVI'], \
+				dims = [4,6,8,10,20,30,50,100], \
+				dist = [0.1], \
+				neighbors = [500], \
+				knn = [4,5,7,10]),
+		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
+				transform = ['libSize','sqrt','scran', 'standard'], \
+				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['TabulaDroplet'], \
+				n_features = [2000], \
+				covariate = ['batch'], \
+				dims = [8, 30], \
+				knn = [7], \
+				dist = [0.3], \
+				neighbors = [30])
+	output:
+		'merged_stats_2020_07_06.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/optimal_params.R
+		"""
