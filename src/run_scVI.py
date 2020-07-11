@@ -56,8 +56,8 @@ with open(args[1] + ".csv", 'wb') as f:
 	np.savetxt(f, latent, delimiter=",")
 if args[8] == 'TRUE':
 	np.savetxt(args[1] + ".imputed.csv.gz", imputed_values, delimiter=",")
-with open(args[1] + ".normalized.csv", 'wb') as f2:
-	np.savetxt(f2, normalized_values, delimiter=",")
+#with open(args[1] + ".normalized.csv", 'wb') as f2:
+#	np.savetxt(f2, normalized_values, delimiter=",")
 
 
 
