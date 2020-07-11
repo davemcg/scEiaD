@@ -7,7 +7,28 @@ args = commandArgs(trailingOnly=TRUE)
 load(args[1])
 load(args[2])
 load(args[3])
-load{args[4])
+load(args[4])
+
+metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, nCount_RNA, nFeature_RNA, percent_mt = `percent.mt`, batch, sample_accession, study_accession, Age, library_layout, organism, Platform, UMI, Covariate, CellType, SubCellType, Paper, integration_group) %>% 
+		mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType)) %>%
+	  	left_join(., predictions %>%
+              as_tibble(rownames = 'Barcode') %>%
+              select(Barcode, CellType_predict = `predicted.id`)) %>%
+		  mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
+                                      TRUE ~ CellType_predict)) %>%
+			left_join(., meta, by = 'Barcode')
+		metadata$SubCellType[grepl('^RB|Rods|Peri|^MG$|^Mic$', metadata$SubCellType)] <- NA
+
+colnames(metadata)[ncol(metadata)] <- 'subcluster'
+colnames(metadata)[(ncol(metadata) - 1)] <- 'cluster'
+metadata <- metadata %>% rename(Stage = integration_group) %>% 
+  mutate(cluster = as.character(cluster))
+
+meta_filter <- metadata %>% 
+  filter(!is.na(CellType_predict), 
+         !is.na(study_accession), 
+         !CellType_predict %in% c('Doublet', 'Doublets'))
+
 
 cpm <- RelativeCounts(integrated_obj@assays$RNA@counts, scale.factor= 1e6)
 chunk_num = 20
@@ -65,31 +86,13 @@ if (args[6] == 'TRUE'){
 rm(integrated_obj)
 
 long <- bind_rows(long_data)
-pool <- dbPool(RSQLite::SQLite(), dbname = args[])
+pool <- dbPool(RSQLite::SQLite(), dbname = args[5])
 dbWriteTable(pool, "cpm", long, overwrite = TRUE)
 db_create_index(pool, table = 'cpm', columns = c('Gene'))
 db_create_index(pool, table = 'cpm', columns = c('Barcode'))
 
-metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, nCount_RNA, nFeature_RNA, percent_mt = `percent.mt`, batch, sample_accession, study_accession, Age, library_layout, organism, Platform, UMI, Covariate, CellType, SubCellType, CellType_predict, Paper, integration_group) %>% 
-							 left_join(., meta, by = 'Barcode') %>%
-	mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType)) %>%
-	  left_join(., predictions %>%
-              as_tibble(rownames = 'Barcode') %>%
-              select(Barcode, CellType_predict = `predicted.id`)) %>%
-  mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
-                                      TRUE ~ CellType_predict))
-metadata$SubCellType[grepl('^RB|Rods|Peri|^MG$|^Mic$', metadata$SubCellType)] <- NA
 
 
-colnames(metadata)[ncol(metadata)] <- 'subcluster'
-colnames(metadata)[(ncol(metadata) - 1)] <- 'cluster'
-metadata <- metadata %>% rename(Stage = integration_group) %>% 
-  mutate(cluster = as.character(cluster))
-
-meta_filter <- metadata %>% 
-  filter(!is.na(CellType_predict), 
-         !is.na(study_accession), 
-         !CellType_predict %in% c('Doublet', 'Doublets'))
 
 dbWriteTable(pool, "metadata", metadata, overwrite = TRUE)
 db_create_index(pool, table = 'metadata', columns = c('Barcode'))
