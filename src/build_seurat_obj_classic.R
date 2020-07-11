@@ -11,11 +11,12 @@ library(tidyverse)
 library(Seurat)
 library(scran)
 library(future)
+library(quminorm)
 plan(strategy = "multicore", workers = 4)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 500000 * 1024^2)
-
+print('load args')
 set = args[2] # early, late, full, downsampled
 covariate = args[3] # study_accession, batch, etc.
 transform = args[4] # SCT or standard seurat
@@ -24,6 +25,7 @@ n_features = args[6] %>% as.numeric()
 cell_info <- read_tsv(args[7]) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
+print('cell info import')
 cell_info <- cell_info %>% 
   mutate(batch = case_when(study_accession == 'SRP125998' ~ paste0(study_accession, "_", Platform, '_NA'),
                            TRUE ~ batch)) %>% 
@@ -39,6 +41,75 @@ for (i in rdata_files){
 if (combination == 'Mus_musculus'){
   file <- grep('Mus_mus', names(rdata), value = TRUE)
   m <- rdata[[file]]
+} else if (combination == 'MacaMusHomoMuris') {
+  #  mito naming in macaque missing the 'MT-' part....
+  # also call CO1 and CO2 -> COX1 and COX2
+  # sigh
+  mf_gene <- rdata[["quant/Macaca_fascicularis/full_sparse_matrix.Rdata"]] %>% row.names()
+  mf_gene <- mf_gene %>% enframe() %>% mutate(value = case_when(grepl('^ND\\d', value) ~ paste0('MT-', value),
+                                                     value == 'COX1' ~ 'MT-CO1',
+                                                     value == 'COX2' ~ 'MT-CO2',
+                                                     value == 'COX3' ~ 'MT-CO3',
+                                                     value == 'ATP6' ~ 'MT-ATP6',
+                                                     value == 'ATP8' ~ 'MT-ATP8',
+                                                     TRUE ~ value ))
+  row.names(rdata[["quant/Macaca_fascicularis/full_sparse_matrix.Rdata"]]) <- mf_gene$value
+  load('tabula_muris_combined.Rdata') 
+  # update gene symbols
+  mgi <- read_tsv('~/git/massive_integrated_eye_scRNA/data/MGIBatchReport_20200701_114356.txt')
+  new_names <- row.names(facs_mat) %>% toupper() %>% as_tibble() %>% left_join(mgi, by = c('value' = 'Input')) %>% mutate(nname = case_when(is.na(Symbol) ~ value, TRUE ~ toupper(Symbol))) %>% group_by(value) %>% summarise(nname = head(nname, 1))
+  row.names(facs_mat) <- new_names$nname
+  new_names <- row.names(droplet_mat) %>% toupper() %>% as_tibble() %>% left_join(mgi, by = c('value' = 'Input')) %>% mutate(nname = case_when(is.na(Symbol) ~ value, TRUE ~ toupper(Symbol))) %>% group_by(value) %>% summarise(nname = head(nname, 1))
+  row.names(droplet_mat) <- new_names$nname
+
+  shared_genes <- rdata %>% map(row.names) %>% purrr::reduce(intersect)
+  missing_in_muris <- shared_genes[!(shared_genes %in% row.names(facs_mat))]
+
+  empty <- Matrix(0, nrow = length(missing_in_muris), ncol = ncol(facs_mat), sparse = TRUE)
+  row.names(empty) <- missing_in_muris
+  facs_mat <- rbind(facs_mat, empty)
+
+  empty <- Matrix(0, nrow = length(missing_in_muris), ncol = ncol(droplet_mat), sparse = TRUE)
+  row.names(empty) <- missing_in_muris
+  droplet_mat <- rbind(droplet_mat, empty)
+
+  if (set == 'onlyDROPLET'){
+	print('Adding Tabula Muris Droplet')
+    rdata[['droplet_muris']] <- droplet_mat
+    cell_info <- bind_rows(cell_info, 
+							droplet_meta %>% mutate( 
+								batch = paste0('TabulaMuris_', `mouse.id`),
+								organism = 'Mus musculus',
+ 								Tissue = tissue,
+								sample_accession = paste0('TabulaMuris_', tissue),
+								study_accession = 'TabulaMuris',
+								UMI = 'YES',
+								library_layout = 'PAIRED',
+								integration_group = 'Late',
+								Platform = '10xv2') %>%
+							select(value, batch:Platform))
+  } else if (set == 'onlyWELL') { 
+	print('Adding Tabula Muris FACS')
+    rdata[['facs_muris']] <- facs_mat
+    cell_info <- bind_rows(cell_info, 
+							facs_meta %>% mutate( 
+								batch = paste0('TabulaMuris_', `mouse.id`),
+								organism = 'Mus musculus',
+ 								Tissue = tissue,
+								sample_accession = paste0('TabulaMuris_', tissue),
+								study_accession = 'TabulaMuris',
+								UMI = 'NO',
+								library_layout = 'PAIRED',
+								integration_group = 'Late',
+								Platform = 'SMARTSeq_v2') %>%
+							select(value, batch:Platform))
+  }
+  file_cut_down <- list()
+  mito_list <- list()
+  for (i in names(rdata)){
+    file_cut_down[[i]] <- rdata[[i]][shared_genes,]
+  }
+  m <- file_cut_down %>% purrr::reduce(cbind)
 } else {
  
   #  mito naming in macaque missing the 'MT-' part....
@@ -63,15 +134,15 @@ if (combination == 'Mus_musculus'){
   m <- file_cut_down %>% purrr::reduce(cbind)
 }
 
-
-# split by two groups
-# early (< 10 days) and late (>10 days)
-# Only one study (Clark ... Blackshaw is present for the early stage)
+print('Splitting time')
+# custom combos
 m_early <- m[,cell_info %>% filter(Age < 10) %>% pull(value)]
 m_late <- m[,cell_info %>% filter(Age >= 10) %>% pull(value)]
 m_test <- m[,sample(1:ncol(m), 10000)]
-m_onlyDROPLET <-  m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
-m_onlyWELL <- m[,cell_info %>% filter(!Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
+m_onlyDROPLET <-  m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
+m_TABULA_DROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
+m_onlyWELL <- m[,cell_info %>% filter(!Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
+
 downsample_samples <- 
   cell_info %>% 
   group_by(batch) %>% 
@@ -85,7 +156,8 @@ make_seurat_obj <- function(m,
                             split.by = 'study_accession',
                             nfeatures = nfeatures,
 							keep_well = TRUE,
-							keep_droplet = TRUE){
+							keep_droplet = TRUE,
+							qumi = FALSE){
   well_m <- m[,cell_info %>% filter(value %in% colnames(m), !Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   if (keep_well){
@@ -98,18 +170,29 @@ make_seurat_obj <- function(m,
   # FILTER STEP!!!!
   # keep cells with < 10% mito genes, and more than 200 and less than 3000 detected genes for UMI
   # for well, drop the 3000 gene top end filter as there shouldn't be any droplets
-  if (keep_well){
+  if (keep_well & !qumi){
+	print('No QUMI')
     seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
+  } else if (keep_well && qumi) {
+	print('QUMINORM!!')
+    seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
+	qumi_counts <- quminorm(seurat_well@assays$RNA@counts)
+  	seurat_well <- CreateSeuratObject(qumi_counts)
+	seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
+	print('QUMI DONE!')
   }
   if (keep_droplet){
     seurat_droplet <- subset(seurat_droplet, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 )
   }
   # cells to keep
   if (!keep_well & keep_droplet){
+    print('removing well')
 	cells_to_keep <- row.names(seurat_droplet@meta.data)
   } else if (keep_well & !keep_droplet) {
+    print('removing droplet')
 	cells_to_keep <- row.names(seurat_well@meta.data)
   } else {
+	print('keeping well and droplet')
     cells_to_keep <- c(row.names(seurat_droplet@meta.data), row.names(seurat_well@meta.data))
   }
 
@@ -132,6 +215,11 @@ make_seurat_obj <- function(m,
                                         row.names() %>% enframe(), 
                                       cell_info, by = 'value') %>% 
     pull(Age)
+  seurat_m@meta.data$TechType <- left_join(seurat_m@meta.data %>% 
+                                        row.names() %>% enframe(), 
+                                      cell_info, by = 'value') %>% 
+    pull(Platform)
+  
   # scale data and regress
   seurat_m <- NormalizeData(seurat_m)
   # find var features
@@ -281,12 +369,17 @@ if (set == 'early'){
 } else if (set == 'onlyDROPLET'){
   print("Running onlyDROPLET (remove well based)")
   seurat__standard <- make_seurat_obj(m_onlyDROPLET, split.by = covariate, keep_well = FALSE)
+}  else if (set == 'TabulaDroplet'){
+  print("Running onlyDROPLET with Tabula Muris (no well)")
+  seurat__standard <- make_seurat_obj(m_TABULA_DROPLET, split.by = covariate, keep_well = FALSE)
 } else if (set == 'onlyWELL'){
   print("Running onlyWELL (remove droplet based)") 
   seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE)
 } else if (set == 'downsample'){
   print("Running downsample")
   seurat__standard <- make_seurat_obj(m_downsample, split.by = covariate)
+} else if (set == 'universe'){
+  seurat__standard <- make_seurat_obj(m, split.by = covariate, qumi = TRUE)
 }
 
 if (transform == 'SCT'){
