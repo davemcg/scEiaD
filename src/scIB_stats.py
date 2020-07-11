@@ -13,10 +13,10 @@ adata_filterSUB = adata[adata.obs['SubCellType'] != 'NA']
 
 #lisi = scIB.metrics.lisi(adata = adata, batch_key = 'batch', label_key = 'CellType') # 8 hours
 ari = scIB.metrics.ari(adata_filter, 'CellType', 'cluster')
-ari_sub = scIB.metrics.ari(adata_filterSUB, 'SubCellType', 'cluster')
+ari_sub = scIB.metrics.ari(adata_filterSUB, 'SubCellType', 'subcluster')
 
 nmi = scIB.metrics.nmi(adata_filter, 'CellType', 'cluster')
-nmi_sub = scIB.metrics.nmi(adata_filterSUB, 'SubCellType', 'cluster')
+nmi_sub = scIB.metrics.nmi(adata_filterSUB, 'SubCellType', 'subcluster')
 
 sc.pp.pca(adata, n_comps = int(args[3]))
 before = scIB.metrics.pcr(adata, 'batch', embed = 'X_pca', recompute_pca = False)
