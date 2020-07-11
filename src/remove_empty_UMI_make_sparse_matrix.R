@@ -21,7 +21,10 @@ dim(raw_matrix)
 tot_counts <- Matrix::colSums(raw_matrix)
 
 
-bc_rank <- barcodeRanks(raw_matrix)
+bc_rank <- try({ barcodeRanks(raw_matrix) })
+if (class(bc_rank) == 'try-error') {
+  bc_rank <- barcodeRanks(raw_matrix, lower = 50)
+}
 # qplot(bc_rank$total, bc_rank$rank, geom = "line") +
 #   geom_vline(xintercept = metadata(bc_rank)$knee, color = "blue", linetype = 2) +
 #   geom_vline(xintercept = metadata(bc_rank)$inflection, color = "green", linetype = 2) +
