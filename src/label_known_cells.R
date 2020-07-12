@@ -377,7 +377,7 @@ yan_pr <- yan_pr %>%
                                          by = 'sample') %>% 
   filter(!is.na(sample_accession)) %>% 
   separate(NAME, into = c('samp','UMI','lane'), sep = "[_|-]") %>% 
-  mutate(value = paste0(sample_accession, '_', UMI)) %>%
+  mutate(value = paste0(UMI, '_', sample_accession)) %>%
   mutate(Paper = 'Yan et al. 2020')
 meta_SRP255195 <- cell_info %>% left_join(., yan_pr %>% select(value, Paper, CellType, SubCellType), by = 'value')
 
