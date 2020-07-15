@@ -161,6 +161,16 @@ rule all:
 				dims = [30,50,100],
 				dist = [0.1],
 				neighbors = [100]),
+		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plotPredictions.png', \
+				transform = ['libSize'], \
+				method = ['fastMNN'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['onlyWELL'], \
+				n_features = [2000], \
+				covariate = ['batch'], \
+				dims = [30],
+				dist = [0.1],
+				neighbors = [50]),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 				transform = ['counts'], \
 				method = ['scVI'], \
@@ -182,8 +192,9 @@ rule all:
 				dist = [0.3],
 				neighbors = [30]),
 		'merged_stats_2020_07_06.Rdata',
-		#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-8-0.1-500-10.sqlite.gz',
-		#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-50-0.1-500-10.sqlite.gz',
+		#site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
+		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-TabulaDroplet-batch-scVI-6-0.1-500-10.sqlite.gz',
+		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-50-0.1-15-7.sqlite.gz',
 
 ## mouse, human, macaque fasta and gtf
 rule download_references:
@@ -416,9 +427,11 @@ rule cat_cell_info:
 		'cell_info.tsv'
 	shell:
 		"""
-		cat {input} | head -n 1 > header
-		mv header {output}
-		grep -hv "^value" {input} >> {output}
+		#cat {input} | head -n 1 > header
+		#mv header {output}
+		#grep -hv "^value" {input} >> {output}
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/cat_cell_info.R {input}
 		"""
 		
 rule make_seurat_objs:
@@ -499,6 +512,19 @@ rule predict_missing_cell_types_00:
 		sp.run("echo \"" +  command + "\"\n", shell = True)
 		sp.run(command, shell=True)
 
+
+rule celltype_predict_VS_xgboost:
+	input:
+		('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'),
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+	output:
+		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.Rdata',
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umapPredictions.Rdata'		
+	shell:
+		"""
+		module load R/3.6
+		Rscript  /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/celltype_predict_wrapper.R {input} {output}
+		"""
 
 rule doublet_ID:
 	input:
@@ -616,6 +642,18 @@ rule plot_integration:
 		"""
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R UMAP {input} {output}
+		"""
+
+rule plot_integration_PREDICT:
+	input:
+		umap = 'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
+		celltype_predict = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__universe__batch__scVI__dims30__preFilter__mindist0.1__nneighbors100.umapPredictions.Rdata'	
+	output:
+		'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plotPredictions.png'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R UMAP {input.umap} {output} {input.celltype_predict}
 		"""
 
 rule plot_integration_tsne:
@@ -758,11 +796,11 @@ rule scIB_stats:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
 		"""
 
+
 rule make_sqlite:
 	input:
-		predictions = 'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata',
 		seurat = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		meta = 'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
+		meta = 'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umapPredictions.Rdata',
 		cluster = 'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata'
 	params:
 		'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite'
@@ -775,7 +813,6 @@ rule make_sqlite:
 			{input.seurat} \
 			{input.meta} \
 			{input.cluster} \
-			{input.predictions} \
 			{params} \
 			{wildcards.correction}
 		pigz -p 32 {params}
@@ -784,8 +821,7 @@ rule make_sqlite:
 rule pseudoBulk_DGE:
 	input:
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
-		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		'predictions/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'	
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umapPredictions.Rdata',
 	output:
 		'pseudoBulk_DGE/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{pseudoTest}__{piece}.Rdata'
 	shell:
@@ -805,7 +841,7 @@ rule sqlite_add_tables:
 		#diff_glm_subcluster = 'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.G.SC.diff.coef_table.Rdata',
 		#marker_monocle = expand('diff_test/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{{knn}}__{group}.monocleTopMarker.Rdata', \
 		#			group = ['seuratCluster','CellType_predict']),
-		pseudoBulk = expand('pseudoBulk_DGE/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{pseudoTest}__{piece}.Rdata', pseudoTest = ['A1','A2','A3','B1','B2','B3','C1','C2','C3','D1','D2','D3'], piece = range(1,11)),
+		pseudoBulk = expand('pseudoBulk_DGE/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{pseudoTest}__{piece}.Rdata', pseudoTest = ['A1','A2','A3','B1','B2','B3','C1','C2','C3'], piece = range(1,21)),
 		doublet = 'doublet_calls/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.doublets.Rdata'
 	output:
 		'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
@@ -854,7 +890,7 @@ rule merge_stats:
 				n_features = [1000, 2000, 5000, 10000], \
 				covariate = ['batch'], \
 				dims = [4,6,8,10,20,30,50,100],
-				knn = [4, 5, 7, 10]),
+				knn = [5, 7, 10]),
 		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 				transform = ['libSize','sqrt','scran', 'standard'], \
 				method = ['insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
@@ -901,7 +937,7 @@ rule merge_stats:
 				dims = [4,6,8,10,20,30,50,100], \
 				dist = [0.1], \
 				neighbors = [500], \
-				knn = [4,5,7,10]),
+				knn = [5,7,10]),
 		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
 				transform = ['libSize','sqrt','scran', 'standard'], \
 				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none'], \
