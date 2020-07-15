@@ -39,7 +39,7 @@ shinyUI(
                                                             selectizeInput('gene_filter_cat', strong('Filter Category: '),
                                                                            choices = NULL, selected = NULL)),
                                                      column(5,
-                                                            selectizeInput('gene_filter_on', strong('Filter on: '),
+                                                            selectizeInput('gene_filter_on', strong('Filter On: '),
                                                                            choices = NULL, selected = NULL, multiple = TRUE)))),
                                      # Meta Plot ------
                                      column(6,
@@ -107,11 +107,9 @@ shinyUI(
                                  column(12,
                                         fluidRow(
                                           column(3, 
-                                                 fluidRow(selectizeInput('exp_plot_genes', strong('Gene(s): '),
+                                                 (selectizeInput('exp_plot_genes', strong('Gene(s): '),
                                                                          choices = NULL, multiple = TRUE))),
-                                          column(3,
-                                                 fluidRow(selectizeInput('exp_plot_groups', strong('Grouping feature(s): '),
-                                                                         choices = NULL, multiple = TRUE))),
+                                          
                                           
                                           column(2,
                                                  selectizeInput('exp_plot_height', strong('Plot Height: '),
@@ -121,8 +119,17 @@ shinyUI(
                                                  selectInput('exp_plot_ylab', strong('Value: '),
                                                              choices = c('Mean CPM', '% of Cells Detected')))),
                                         fluidRow(
+                                          column(3, selectizeInput('exp_filter_cat', strong('Filter Category: '),
+                                                                    choices = NULL, multiple = FALSE)),
+                                          column(3, selectizeInput('exp_filter_on', strong('Filter On: '),
+                                                                   choices = NULL, multiple = TRUE)),
                                           column(3,
-                                                 fluidRow(checkboxInput('exp_plot_facet', 'Facet on 1st Group', TRUE)))
+                                                 (selectizeInput('exp_plot_groups', strong('Grouping feature(s): '),
+                                                                         choices = NULL, multiple = TRUE))),
+                                        ),
+                                        fluidRow(
+                                          column(3,
+                                                 (checkboxInput('exp_plot_facet', 'Facet on 1st Group', TRUE)))
                                           
                                         ),
                                         fluidRow(column(10, actionButton('BUTTON_draw_exp_plot','Draw Plot', icon = icon("arrow-down"),
@@ -213,14 +220,15 @@ shinyUI(
                         fluidRow(column(width = 8, offset = 1, h2('scAnthology v0.23'))),
                         br(),
                         fluidRow(column(width = 8, offset = 1, h2('Overview'))),
-                        fluidRow(column(width = 8, offset = 1, 'The light-sensitive portion of the mammalian eye is the retina. The retina itself is not a monolithic tissue - there are, depending on how you count, over 10 major cell types. The cones and rods which convert light into signal are supported by a wide variety of neural cell types with distinct roles in interpretting and transmitting the signals to the brain. scAnthology is a meta-analysis project over 900,000 single-cell transcriptomes across 15 studies and 3 species across the retina cell types. Deep metadata minining, rigorous quality control analysis, differential gene expression testing, and deep learning based batch effect correction in a unified bioinformatic framework allow the universe of retina single cell expression information to be analyzed in one location.')),
+                        fluidRow(column(width = 8, offset = 1, 'The light-sensitive portion of the mammalian eye is the retina. The retina itself is not a monolithic tissue - there are over 10 major cell types. The cones and rods which convert light into signal are supported by a wide variety of neural cell types with distinct roles in interpretting and transmitting the signals to the brain. Behind the retina is the RPE and vasculature, which supports the high energetic needs of the rods and cones. scAnthology is a meta-analysis project over 1.2 million single-cell transcriptomes across 15 studies and 3 species encompassing the back of the eye. Deep metadata minining, rigorous quality control analysis, differential gene expression testing, and deep learning based batch effect correction in a unified bioinformatic framework allow the universe of retina single cell expression information to be analyzed in one location.')),
                         fluidRow(column(width = 8, offset = 1, h2('Data Sources'))),
                         fluidRow(column(width = 8, offset = 1, formattableOutput("formattable01"))),
                         fluidRow(column(width = 8, offset = 1, h2('Cell Types'))),
                         fluidRow(column(width = 6, offset = 1, formattableOutput("formattable02"))),
                         br(),
                         fluidRow(column(width = 8, offset = 1, h2('Change log'))),
-                        fluidRow(column(width = 8, offset = 1, '0.23 (2020-06-16): Remove low N cell type from diff expression tables, tweak Overview with br() and updated text.')),
+                        fluidRow(column(width = 8, offset = 1, '0.30 (2020-07-20): Huge update. Hundreds of thousands of cells added. The Tabula Muris project data (pan mouse) has been added to faciliate non-eye comparison. Filtering options added to most of the plotting views to allow for quick slicing into this huge dataset.')),
+                        fluidRow(column(width = 8, offset = 1, '0.23 (2020-06-16): Remove low N cell type from diff expression tables, tweak Overview with spacing alterations and updated text.')),
                         fluidRow(column(width = 8, offset = 1, '0.22 (2020-06-15): Added expression plot by user selected groups plot view. Fixed bug in mean cpm expression calculation for Viz -> UMAP - Table gene tables')),
                         fluidRow(column(width = 8, offset = 1, '0.21 (2020-06-15): Added subcluster diff testing tables, temporal gene expression by celltype plot section.')),
                         fluidRow(column(width = 8, offset = 1, '0.20 (2020-06-06): New 2D UMAP projection that includes the full Yu - Clark Human scRNA dataset. Added tables to "Overview" section showing data stats. Added "filtering" functionality to UMAP plot section.')),

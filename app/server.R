@@ -72,7 +72,6 @@ shinyServer(function(input, output, session) {
                            selected = '',
                            server = TRUE)
     }
-    
     observeEvent(input$gene_filter_cat, {
       if (input$gene_filter_cat == ''){
         choice = ''
@@ -83,7 +82,6 @@ shinyServer(function(input, output, session) {
                            choices = choice,
                            server = TRUE)
     })
-    
     
     # meta plot updateSelectizeInput ------
     if (is.null(query[['meta_column']])){
@@ -162,14 +160,32 @@ shinyServer(function(input, output, session) {
                            selected = c('PAX6','POU4F2','CRX','NRL'),
                            server = TRUE)
     }    
-    # meta plot category filtering ----
+    if (is.null(query[['exp_filter_cat']])){
+      updateSelectizeInput(session, 'exp_filter_cat',
+                           choices = meta_filter %>% 
+                             dplyr::select(nCount_RNA:doublet_score_scran) %>% colnames() %>% sort(),
+                           selected = '',
+                           server = TRUE)
+    }
+    observeEvent(input$exp_filter_cat, {
+      if (input$exp_filter_cat == ''){
+        choice = ''
+      } else {
+        choice = meta_filter[,input$exp_filter_cat] %>% pull(1) %>% unique() %>% sort()
+      }
+      updateSelectizeInput(session, 'exp_filter_on',
+                           choices = choice,
+                           server = TRUE)
+    })
     if (is.null(query[['exp_plot_groups']])){
       updateSelectizeInput(session, 'exp_plot_groups',
                            choices = meta_filter %>% 
-                             dplyr::select(nCount_RNA:doublet_score_scran) %>% colnames() %>% sort(),
+                             dplyr::select_if(negate(is.numeric)) %>% select(-Barcode, -subcluster) %>%  colnames() %>% sort(),
                            selected = c('organism','CellType'),
                            server = TRUE)
     }
+    
+    
     
     # temporal plot updateSelect -----
     if (is.null(query[['temporal_gene']])){
@@ -494,14 +510,30 @@ shinyServer(function(input, output, session) {
     exp_plot <- eventReactive(input$BUTTON_draw_exp_plot, {
       cat(file=stderr(), paste0(Sys.time(), ' Exp Plot Call\n'))
       gene <- input$exp_plot_genes
+      
       grouping_features <- input$exp_plot_groups
-      box_data <- anthology_2020_v01 %>% tbl('grouped_stats') %>% 
-        filter(Gene %in% gene) %>%
+      
+      if (input$exp_filter_cat != ''){
+        box_data <- anthology_2020_v01 %>% tbl('grouped_stats') %>% 
+          filter(Gene %in% gene) %>% 
+          as_tibble() %>% 
+          filter(!!as.symbol(input$exp_filter_cat) %in% input$exp_filter_on)
+        
+      } else {
+        box_data <- anthology_2020_v01 %>% tbl('grouped_stats') %>% 
+          filter(Gene %in% gene) %>% 
+          as_tibble()
+      }
+      validate(
+        need(input$exp_plot_groups != '', "Please select at least one grouping feature")
+      )
+      
+      
+      box_data <- box_data %>%
         #filter(!is.na(!!as.symbol(grouping_features))) %>% 
         group_by_at(vars(one_of(c('Gene', grouping_features)))) %>% 
         summarise(cpm = sum(cpm * cell_exp_ct) / sum(cell_exp_ct),
                   cell_exp_ct = sum(cell_exp_ct, na.rm = TRUE)) %>% 
-        as_tibble() %>% 
         full_join(., meta_filter %>% 
                     group_by_at(vars(one_of(grouping_features))) %>% 
                     summarise(Count = n())) %>% 
@@ -516,7 +548,8 @@ shinyServer(function(input, output, session) {
                `% of Cells Detected` = `%`) %>% 
         tidyr::drop_na()
       box_data$Group <- box_data[,c(2:(length(grouping_features)+1))] %>% tidyr::unite(x, sep = ' ') %>% pull(1)
-      plot <-       box_data %>% 
+      
+      plot <- box_data %>% 
         ggplot(aes(x=Group, y = !!as.symbol(input$exp_plot_ylab), color = Gene)) +
         geom_point(size = 2) + 
         cowplot::theme_cowplot() + 
@@ -525,15 +558,15 @@ shinyServer(function(input, output, session) {
       if (input$exp_plot_facet){
         plot + facet_wrap(ncol = 3, scales = 'free_x', vars(!!as.symbol(grouping_features[1])))
       } else {plot}
-
+      
     })
     
     output$exp_plot <- renderPlot({
       exp_plot()
     }, height = eventReactive(input$BUTTON_draw_exp_plot, {as.numeric(input$exp_plot_height)}))
-
-      
-      
+    
+    
+    
     ## temporal plot -----------
     temporal_plot <- eventReactive(input$BUTTON_draw_temporal, {
       cat(file=stderr(), paste0(Sys.time(), ' Temporal Plot Call\n'))
@@ -563,28 +596,28 @@ shinyServer(function(input, output, session) {
                                is.na(Age) ~ 65,
                                Age == 31360 ~ 65,
                                TRUE ~ Age))
-
-
+      
+      
       suppressWarnings(temporal_human <-  temporal_data %>% 
-        filter(organism == 'Homo sapiens') %>% 
-        ggplot(aes(x=Age, y = !!as.symbol(y_val), color = Gene)) + 
-        geom_point(stat = 'identity') +
-        ggtitle('Human') +
-        geom_line() + ylab(input$temporal_y_val) +
-        cowplot::theme_cowplot() + xlab('Age (days from birth)') +
-        facet_wrap(vars(!!as.symbol(grouping))) +
-        theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-        scale_colour_manual(values = rep(c(pals::alphabet() %>% unname()))))
+                         filter(organism == 'Homo sapiens') %>% 
+                         ggplot(aes(x=Age, y = !!as.symbol(y_val), color = Gene)) + 
+                         geom_point(stat = 'identity') +
+                         ggtitle('Human') +
+                         geom_line() + ylab(input$temporal_y_val) +
+                         cowplot::theme_cowplot() + xlab('Age (days from birth)') +
+                         facet_wrap(vars(!!as.symbol(grouping))) +
+                         theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+                         scale_colour_manual(values = rep(c(pals::alphabet() %>% unname()))))
       suppressWarnings(temporal_mouse <- temporal_data %>%
-        filter(organism == 'Mus musculus') %>%
-        ggplot(aes(x=Age, y = !!as.symbol(y_val), color = Gene)) +
-        geom_point(stat = 'identity') +
-        ggtitle('Mouse') +
-        geom_line() + ylab(input$temporal_y_val) +
-        cowplot::theme_cowplot() + xlab('Age (days from birth)') +
-        facet_wrap(vars(!!as.symbol(grouping))) +
-        theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-        scale_colour_manual(values = rep(c(pals::alphabet() %>% unname()))))
+                         filter(organism == 'Mus musculus') %>%
+                         ggplot(aes(x=Age, y = !!as.symbol(y_val), color = Gene)) +
+                         geom_point(stat = 'identity') +
+                         ggtitle('Mouse') +
+                         geom_line() + ylab(input$temporal_y_val) +
+                         cowplot::theme_cowplot() + xlab('Age (days from birth)') +
+                         facet_wrap(vars(!!as.symbol(grouping))) +
+                         theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+                         scale_colour_manual(values = rep(c(pals::alphabet() %>% unname()))))
       # draw plot
       temporal_human + temporal_mouse + plot_layout(ncol = 1)
     })
