@@ -1,5 +1,5 @@
 # requires --gres=gpu:v100x:1, and module load CUDA/10.1 && module load cuDNN/7.6.5/CUDA-10.1 
-# %%
+
 import pandas as pd 
 import numpy as np
 import os 
@@ -16,10 +16,9 @@ class SklDataObj:
     def __init__(self, X_data, feature_cols,  lab2id,name=None, sampling_method = None, k=None):
         self.label2id = lab2id
         if sampling_method is None:
-            X_arr = X_data.filter(feature_cols).to_numpy()# first test on scvi only 
             Y_arr = X_data['cell_type_id'].to_numpy()
-            X_train, X_test, Y_train, Y_test =train_test_split(X_arr,Y_arr,
-                                                             test_size=.22222, random_state=42,stratify=Y_arr)
+            X_train, X_test, Y_train, Y_test =train_test_split(X_data,Y_arr,
+                                                             test_size=.25, random_state=42,stratify=Y_arr)
 
         elif sampling_method == 'downsample': 
             X_data_ds, removed_data = self.down_sampler(X_data, k)
@@ -28,14 +27,16 @@ class SklDataObj:
             remove_x_arr = removed_data.filter(feature_cols).to_numpy()
             remove_y_arr = removed_data['cell_type_id'].to_numpy()
             X_train, X_tmp, Y_train, Y_tmp =train_test_split(X_arr,Y_arr,
-                                                             test_size=.22222, random_state=42,stratify=Y_arr)
+                                                             test_size=.25, random_state=42,stratify=Y_arr)
             X_test = np.concatenate([X_tmp, remove_x_arr])
             Y_test  = np.concatenate([Y_tmp, remove_y_arr])
 
         
-        self.X_train=X_train
+        self.X_train=X_train.filter(feature_cols).to_numpy()
+        self.train_bc = X_train['Barcode'].to_numpy()
         self.Y_train=Y_train
-        self.X_test=X_test
+        self.X_test=X_test.filter(feature_cols).to_numpy()
+        self.test_bc = X_test['Barcode'].to_numpy()
         self.Y_test=Y_test
         self.name=name
         self.model = None
@@ -56,12 +57,15 @@ class SklDataObj:
         diff = end - start
         print(f'\nTraining Time: {int(diff/60)} min {diff%60} seconds\n')
         self.model_name = model_name
-    def test(self, test_ext_data=False, X=None, Y=None):
+    def test(self, test_ext_data=False, X=None, test_threshold = None, Y=None):
         if test_ext_data:
             self.X_test = X
             self.Y_test = Y
         start = time.time()
-        self.Y_test_predicted =  self.model.predict(self.X_test)
+        if test_threshold is None:
+            self.Y_test_predicted =  self.model.predict(self.X_test)
+        else:
+            self.Y_test_predicted  = [np.argmax(i) if np.max(i) > test_threshold else -1 for i in self.model.predict_proba(self.X_test)  ]
         end = time.time()
         diff = end - start
         print(f'Test Time: {int(diff/60)} min {diff%60} seconds\n')
@@ -118,6 +122,8 @@ parser.add_argument('--workingDir', action = 'store', default = None, help = 'ch
 parser.add_argument('--inputMatrix', action = 'store', default=None, help = 'input .tsv matrix to train / predict on ')
 parser.add_argument('--featureCols', action = 'store', default = None, help = 'Optional file with newline seperated feature names to train on')
 parser.add_argument('--trainedModelFile', action = 'store', default = 'cell_type_predictor.xgb', help = 'file to save or load trained model')
+parser.add_argument('--generateProb', action = 'store_true', default = None, help = 'generate probabilities for training and test data(used for plots')
+parser.add_argument('--predProbThresh', action = 'store', type = float, default = None, help = 'minimum threshold for sample to consider belonging to a class. Default: .5')
 parser.add_argument('--predictions', action = 'store', default='predictions.tsv', help = 'output .tsv file to save predictions')
 args = parser.parse_args()
 if args.workingDir is not None:
@@ -128,6 +134,18 @@ non_feature_cols = ['cluster', 'batch', 'cluster', 'subcluster', 'sample_accessi
                       'study_accession', 'SubCellType','TissueNote', 'orig.ident', 'Tissue', 'organism', 'Age']
 
 bad_cell_types = ["RPE/Margin/Periocular Mesenchyme/Lens Epithelial Cells", "Droplet", "Droplets", 'Doublet', 'Doublets', 'Mast']
+
+
+def prob2df(pred_probs, barcodes, cell_type2id, true_class=None):
+    preds_class = np.asarray([np.argmax(i) for i in pred_probs] )
+    pred_probs_df = pd.DataFrame(pred_probs, columns = list(cell_type2id['CellType']))
+    pred_probs_df['Barcode'] = barcodes
+    pred_probs_df['cell_type_id'] = preds_class
+    if true_class is not None:
+        pred_probs_df['true_cell_id'] = true_class
+    full_pred_df = pred_probs_df.merge(cell_type2id)
+    return full_pred_df
+
 def train(args, non_feature_cols, bad_cell_types):
     all_data = pd.read_csv(args.inputMatrix, sep = '\t')
     is_bad_celltype = (all_data.CellType.isin(bad_cell_types)) |(all_data.CellType.isnull())
@@ -149,12 +167,25 @@ def train(args, non_feature_cols, bad_cell_types):
     xgbc_gpu = XGBClassifier(tree_method = 'gpu_hist', gpu_id = 0)
     data_obj.train(xgbc_gpu)
     data_obj.test()
+    if args.predProbThresh is not None:
+        print(f'\n\n\n\nRe-testing with minimum class probability  > {str(args.predProbThresh)}')
+        data_obj.test(test_threshold = args.predProbThresh)
     trained_model = data_obj.model
     with open(args.trainedModelFile, 'wb+') as modelfile:
         pickle.dump((trained_model, feature_cols, cell_type2id ),modelfile )
-    
+    if args.generateProb:
+        ## generate probabilities for training and test data 
+        test_probs = data_obj.model.predict_proba(data_obj.X_test)
+        test_pred_df =  prob2df(test_probs, data_obj.test_bc, cell_type2id,data_obj.Y_test )
+        test_pred_df.to_csv('data/cell_type_predictor_test_data_probabilities.csv.gz', index = False)
+        #### generate training data probabilities with k fold CV 
+        predictor =  XGBClassifier(tree_method = 'gpu_hist', gpu_id = 0)
+        training_probs = cross_val_predict(predictor, data_obj.X_train, data_obj.Y_train, method = 'predict_proba')
+        training_probs_df = prob2df(training_probs, data_obj.train_bc, cell_type2id, data_obj.Y_train)
+        training_probs_df.to_csv('data/cell_type_predictor_training_data_probabilities.csv.gz', index = False)
+
 def predict(args, non_feature_cols, bad_cell_types):
-    print('Loading Data...\n')
+    print('\nLoading Data...\n')
     with open(args.trainedModelFile, 'rb') as modelfile:
         model_info= pickle.load(modelfile )
         trained_model = model_info[0]
@@ -169,10 +200,13 @@ def predict(args, non_feature_cols, bad_cell_types):
     X = all_data.filter(feature_cols).to_numpy()
     print('Predicting Data...\n')
     pred_probs = trained_model.predict_proba(X)
-    preds_class = np.asarray([np.argmax(i) for i in pred_probs] )
-    pred_probs_df = pd.DataFrame(pred_probs, columns = cell_type2id['CellType'])
-    pred_probs_df['Barcode'] = barcodes
-    full_pred_df = pd.DataFrame({'Barcode':barcodes,  'cell_type_id' : preds_class }).merge(cell_type2id).merge(pred_probs_df)
+    if args.predProbThresh is None:
+        args.predProbThresh = .5
+    full_pred_df =  prob2df(pred_probs, barcodes, cell_type2id)
+    max_prob_below_threshold = full_pred_df[list(cell_type2id['CellType']) ].max(axis = 1)  < args.predProbThresh
+    print(f'{sum(max_prob_below_threshold)} samples Failed to meet classification threshold of {args.predProbThresh}')
+    full_pred_df.loc[max_prob_below_threshold, 'cell_type_id']=-1
+    full_pred_df.loc[max_prob_below_threshold, 'CellType']='None'
     full_pred_df.to_csv(args.predictions, sep = '\t', index = False)
 
 if args.mode == 'train':
