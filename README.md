@@ -44,11 +44,11 @@ Milestones:
        - onlyDroplet (major viz)
        - onlyWell (alt. viz)
        - universe (droplet + well) just to project celltypes onto well data
-  - Internal (NEI) deploy of scAnthology Shiny app, April 2020
-    - Thanks (mostly) to [scattermore](https://github.com/exaexa/scattermore)
-    - [INSERT GIF?]
-  - BIG ONE:
-    - Process Tabula Muris Mouse Atlas data to provide non-retina cell type "comparison" (droplet only as of 2020-07)
+    - Internal (NEI) deploy of scAnthology Shiny app, April 2020
+      - Thanks (mostly) to [scattermore](https://github.com/exaexa/scattermore)
+      - [INSERT GIF?]
+    - BIG ONE:
+      - Process Tabula Muris Mouse Atlas data to provide non-retina cell type "comparison" (droplet only as of 2020-07)
   - To do:
     - [Velocity](https://bustools.github.io/BUS_notebooks_R/velocity.html) 
     - Cell Cycle ID
