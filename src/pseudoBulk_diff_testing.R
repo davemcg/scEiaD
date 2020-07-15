@@ -11,15 +11,9 @@ args <- commandArgs(trailingOnly = TRUE)
 
 load(args[1]) #load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.seuratObj.Rdata')
 load(args[2]) # load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.umap.Rdata')
-load(args[3]) # celltype predictions
-comp <- args[4]
-partition = args[5] %>% as.numeric()
-out <- args[6]
-umap <- umap %>% left_join(., predictions %>%
-								as_tibble(rownames = 'Barcode') %>%
-								dplyr::select(Barcode, CellType_predict = `predicted.id`)) %>%
-				mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
-													TRUE ~ CellType_predict))
+comp <- args[3]
+partition = args[4] %>% as.numeric()
+out <- args[5]
 ###############
 # functions -------
 ###############
@@ -70,7 +64,7 @@ pseudoBulk_testing <- function(processed_data,
                                testing_against_internal_organism = FALSE,
                                regex_pattern = '\\s+|/', 
                                testing_against = 'celltype',
-							   pieces = 10,
+							   pieces = 20,
                                partition){
   
   
@@ -186,6 +180,8 @@ pseudoBulk_testing <- function(processed_data,
 
 
 mat <- integrated_obj@assays$RNA@counts
+mat <- mat[,umap$Barcode]
+rm(integrated_obj)
 
 if (grepl('A', comp)){
   ######################
@@ -303,7 +299,7 @@ if (grepl('A', comp)){
   SUBCLUSTER__res_againstAll_list <- list()
   SUBCLUSTER__res_pairwise_list <- list()
   SUBCLUSTER__res_organism_celltype_list <- list()
-  for (i in chunk(1:length(unique(umap$cluster)), 10)[[partition]]){
+  for (i in chunk(1:length(unique(umap$cluster)), 20)[[partition]]){
     umapT <- umap %>% filter(cluster == i)
 	matT <- mat[,umapT$Barcode]
     info <- DataFrame(sample=as.factor(umapT$batch),
