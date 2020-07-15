@@ -372,7 +372,10 @@ if (set == 'early'){
 }  else if (set == 'TabulaDroplet'){
   print("Running onlyDROPLET with Tabula Muris (no well)")
   seurat__standard <- make_seurat_obj(m_TABULA_DROPLET, split.by = covariate, keep_well = FALSE)
-} else if (set == 'onlyWELL'){
+} else if (set == 'onlyWELL' & transform == 'counts'){
+  print("Running onlyWELL with quminorm (remove droplet based)") 
+  seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE, qumi = TRUE)
+} else if (set == 'onlyWELL') {
   print("Running onlyWELL (remove droplet based)") 
   seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE)
 } else if (set == 'downsample'){
