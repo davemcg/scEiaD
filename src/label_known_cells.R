@@ -362,12 +362,12 @@ yan_pr <- read_csv('~/git/massive_integrated_eye_scRNA/data/yan_sanes_PR____Huma
 yan_pr <- yan_pr %>% 
   mutate(CellType = case_when(Cluster == 'Astrocytes' ~ 'Astrocytes',
                               grepl('^DB|FMB|IMB|RB1|OFFx|BB', Cluster) ~ 'Bipolar Cells',
-                              Cluster == 'Endothelium' ~ 'Endothelium',
+                              Cluster == 'Endothelium' ~ 'Endothelial',
                               grepl('Gaba|Gly', Cluster) ~ 'Amacrine Cells',
                               grepl('H1|H2', Cluster) ~ 'Horizontal Cells',
                               grepl('MG_|Muller', Cluster) ~ 'Muller Glia',
                               grepl('MG_OFF|MG_ON|RGC|PG_|IMB', Cluster) ~ 'Retinal Ganglion Cells',
-                              grepl('Cone', Cluster) ~ 'Cone',
+                              grepl('Cone', Cluster) ~ 'Cones',
                               grepl('Rod', Cluster) ~ 'Rods',
                               Cluster == 'MicroGlia' ~ 'Microglia'),
          SubCellType = Cluster,
@@ -381,6 +381,7 @@ yan_pr <- yan_pr %>%
   mutate(Paper = 'Yan et al. 2020')
 meta_SRP255195 <- cell_info %>% left_join(., yan_pr %>% select(value, Paper, CellType, SubCellType), by = 'value')
 
+cell_info <- read_tsv('cell_info.tsv')
 
 meta_SRP <- bind_rows(meta_SRP218652, meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, 
 						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195) %>%
@@ -388,7 +389,8 @@ meta_SRP <- bind_rows(meta_SRP218652, meta_srp223254, meta_SRP158081, meta_SRP05
 			CellType = gsub('B-cell', 'B-Cell', CellType),
 			CellType = gsub('Macrophages', 'Macrophage', CellType),
 			CellType = gsub('Pericyte$', 'Pericytes', CellType),
-			CellType = gsub('T/NK-cell', 'T-Cell', CellType))
+			CellType = gsub('T/NK-cell', 'T-Cell', CellType),
+			CellType = gsub('Vascular Endothelium', 'Endothelial', CellType))
 cell_info_labels <- bind_rows(meta_SRP, 
                               cell_info %>% select(value:batch) %>% 
                                 filter(!value %in% meta_SRP$value) %>% 
@@ -408,15 +410,22 @@ cell_info_labels <- cell_info_labels %>%
 cell_info_labels <- cell_info_labels %>% 
   mutate(CellType = case_when(grepl('iPSC_RPE_scRNA_01', value) ~ 'iPSC',
                               grepl('iPSC_RPE_scRNA_02', value) ~ 'RPE',
-                              grepl('iPSC_RPE_scRNA_03', value) ~ 'RPE (Transwell)',
+                              grepl('iPSC_RPE_scRNA_03', value) ~ 'RPE',
                               TRUE ~ CellType),
          Paper = case_when(grepl('iPSC_RPE_scRNA', value) ~ 'Hufnagel 2020',
                            TRUE ~ Paper))
 
-if ((cell_info_labels$value %>% duplicated) %>% sum() == 0) {
+
+if ( sum(is.na(cell_info_labels$study_accession)) > 0 ) {
+	print('Join error, check data frame!')
+	stop()
+}
+
+if (((cell_info_labels$value %>% duplicated) %>% sum() == 0) & 
+	(nrow(cell_info) == nrow(cell_info_labels))) {
 	save(cell_info_labels, file = 'cell_info_labelled.Rdata')
 } else {
-	print("Doubled cell labels! Check data frame!")
+	print("Doubled or missing cells! Check data frame!")
 }
 
 
