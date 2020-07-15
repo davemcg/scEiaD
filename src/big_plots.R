@@ -11,7 +11,12 @@ load(args[2])
 ptsize = 4
 
 if (grepl('onlyWELL', args[2])){
- 	celltype_col <- 'CellType_predict'
+	umapO <- umap
+	load(args[4])
+	umapO <- umapO %>% left_join(umap %>% select(Barcode, CellType_predict), by = 'Barcode')
+	umapO$CellType <- umapO$CellType_predict
+	umap <- umapO
+ 	celltype_col <- 'CellType'
  	print('woo')
     ptsize = 20
  } else { 
