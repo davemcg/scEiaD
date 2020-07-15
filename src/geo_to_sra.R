@@ -36,6 +36,7 @@ gse_prj <- data.frame(matrix(ncol = 4, nrow = 0))
 # extract GEO ID and SRA project ID from web page
 colnames(gse_prj) <- c("GSE", "SRA_PROJECT_ID", "Summary", "Design")
 for (i in GEO_ids){
+  print(i)
   search_url <- paste0(base_url, i)
   # load GEO search page to extract GSE
   page <- GET(search_url) %>% httr::content(., type = 'text', encoding = 'UTF-8')
@@ -45,10 +46,10 @@ for (i in GEO_ids){
   
 
   gse <- acc[grepl('GSE', acc)] %>% unique() 
-  line <- gse_info_maker(gse)
+  line <- gse_info_maker(gse[1])
   
 
-  gse_prj <- bind_rows(gse_prj, line)
+  gse_prj <- rbind(gse_prj, rbind(line)) %>% as_tibble() %>% mutate_all(as.character)
 }
 # super-series
 # some GSE are a bigger collection of other GSE....yay thanks GEO
@@ -70,7 +71,7 @@ for (gse in (gse_prj %>% filter(grepl('SuperSeries', Summary)) %>% pull(GSE))){
     print(gse_ID)
     line <- gse_info_maker(gse_ID)
     print(line)
-    gse_prj_2 <- bind_rows(gse_prj_2, line)
+    gse_prj_2 <- rbind(gse_prj_2, rbind(line)) %>% as_tibble() %>% mutate_all(as.character)
   }
 }
 
@@ -80,7 +81,7 @@ for (gse in (gse_prj %>% filter(grepl('SuperSeries', Summary)) %>% pull(GSE))){
 # GSE81905 is a super-series and grabbed by gse_prj_2
 gse_prj %>% filter(is.na(SRA_PROJECT_ID))
 # merge back together
-gse_prj <- bind_rows(gse_prj, gse_prj_2) %>% 
+gse_prj <- rbind(gse_prj, gse_prj_2) %>% as_tibble() %>% mutate_all(as.character) %>% 
   filter(!is.na(SRA_PROJECT_ID), !grepl('bulk RNA', Summary)) %>% # hand remove GSE81902 as this is bulk RNA-seq
   unique()
 
@@ -145,27 +146,37 @@ sra_metadata <- left_join(sra_metadata, tech) %>%
                               TRUE ~ Platform),
          UMI = case_when(study_accession == 'SRP158081' & grepl('Cell', title) ~ 'NO',
                               TRUE ~ UMI))
+#############################
+# HAND ADD TO ~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv
+##############################
 
-save(sra_metadata, file = 'data/sra_metadata.Rdata')
-write_tsv(gse_prj %>% rename(study_accession = 'SRA_PROJECT_ID'), path = 'data/GEO_Study_Level_Metadata.tsv')
+# Example line to partially format data
+# sra_metadata %>% select(sample_accession, run_accession, library_layout, organism, Platform, UMI, study_accession, biosample_title) %>% mutate(Tissue = case_when(grepl('pos', biosample_title) ~ 'Choroid', TRUE ~ 'RPE'), Covariate = str_extract(biosample_title, 'donor-\\d+'), Age = 'NA', integration_group = 'Late', TissueNote = biosample_title) %>% select(-biosample_title)
+
+###########################
+# OLD BITS FOR REFERENCE
+#########################
+
+# save(sra_metadata, file = 'data/sra_metadata.Rdata')
+# write_tsv(gse_prj %>% rename(study_accession = 'SRA_PROJECT_ID'), path = 'data/GEO_Study_Level_Metadata.tsv')
 # hand add our internal RPE samples
-core_rpe = data.frame(sample_accession = c(rep('iPSC_RPE_scRNA_01', 24), rep('iPSC_RPE_scRNA_02', 24), rep('iPSC_RPE_scRNA_03', 24)),
-             run_accession = c('scRNA_01_S1_L001_HL7H3BCX2','scRNA_01_S1_L001_HLCLYBCX2','scRNA_01_S1_L001_HLFW7BCX2','scRNA_01_S1_L002_HL7H3BCX2','scRNA_01_S1_L002_HLCLYBCX2','scRNA_01_S1_L002_HLFW7BCX2','scRNA_01_S2_L001_HL7H3BCX2','scRNA_01_S2_L001_HLCLYBCX2','scRNA_01_S2_L001_HLFW7BCX2','scRNA_01_S2_L002_HL7H3BCX2','scRNA_01_S2_L002_HLCLYBCX2','scRNA_01_S2_L002_HLFW7BCX2','scRNA_01_S3_L001_HL7H3BCX2','scRNA_01_S3_L001_HLCLYBCX2','scRNA_01_S3_L001_HLFW7BCX2','scRNA_01_S3_L002_HL7H3BCX2','scRNA_01_S3_L002_HLCLYBCX2','scRNA_01_S3_L002_HLFW7BCX2','scRNA_01_S4_L001_HL7H3BCX2','scRNA_01_S4_L001_HLCLYBCX2','scRNA_01_S4_L001_HLFW7BCX2','scRNA_01_S4_L002_HL7H3BCX2','scRNA_01_S4_L002_HLCLYBCX2','scRNA_01_S4_L002_HLFW7BCX2','scRNA_02_S5_L001_HL7H3BCX2','scRNA_02_S5_L001_HLCLYBCX2','scRNA_02_S5_L001_HLFW7BCX2','scRNA_02_S5_L002_HL7H3BCX2','scRNA_02_S5_L002_HLCLYBCX2','scRNA_02_S5_L002_HLFW7BCX2','scRNA_02_S6_L001_HL7H3BCX2','scRNA_02_S6_L001_HLCLYBCX2','scRNA_02_S6_L001_HLFW7BCX2','scRNA_02_S6_L002_HL7H3BCX2','scRNA_02_S6_L002_HLCLYBCX2','scRNA_02_S6_L002_HLFW7BCX2','scRNA_02_S7_L001_HL7H3BCX2','scRNA_02_S7_L001_HLCLYBCX2','scRNA_02_S7_L001_HLFW7BCX2','scRNA_02_S7_L002_HL7H3BCX2','scRNA_02_S7_L002_HLCLYBCX2','scRNA_02_S7_L002_HLFW7BCX2','scRNA_02_S8_L001_HL7H3BCX2','scRNA_02_S8_L001_HLCLYBCX2','scRNA_02_S8_L001_HLFW7BCX2','scRNA_02_S8_L002_HL7H3BCX2','scRNA_02_S8_L002_HLCLYBCX2','scRNA_02_S8_L002_HLFW7BCX2','scRNA_03_S10_L001_HL7H3BCX2','scRNA_03_S10_L001_HLCLYBCX2','scRNA_03_S10_L001_HLFW7BCX2','scRNA_03_S10_L002_HL7H3BCX2','scRNA_03_S10_L002_HLCLYBCX2','scRNA_03_S10_L002_HLFW7BCX2','scRNA_03_S11_L001_HL7H3BCX2','scRNA_03_S11_L001_HLCLYBCX2','scRNA_03_S11_L001_HLFW7BCX2','scRNA_03_S11_L002_HL7H3BCX2','scRNA_03_S11_L002_HLCLYBCX2','scRNA_03_S11_L002_HLFW7BCX2','scRNA_03_S12_L001_HL7H3BCX2','scRNA_03_S12_L001_HLCLYBCX2','scRNA_03_S12_L001_HLFW7BCX2','scRNA_03_S12_L002_HL7H3BCX2','scRNA_03_S12_L002_HLCLYBCX2','scRNA_03_S12_L002_HLFW7BCX2','scRNA_03_S9_L001_HL7H3BCX2','scRNA_03_S9_L001_HLCLYBCX2','scRNA_03_S9_L001_HLFW7BCX2','scRNA_03_S9_L002_HL7H3BCX2','scRNA_03_S9_L002_HLCLYBCX2','scRNA_03_S9_L002_HLFW7BCX2'),
-             library_layout = rep('PAIRED', 72),
-             organism = rep('Homo sapiens', 72),
-             Platform = rep('10xv2', 72),
-             UMI = rep('YES', 72),
-             study_accession = rep('OGVFB_Hufnagel_iPSC_RPE', 72),
-             stringsAsFactors = FALSE)
-             
+# core_rpe = data.frame(sample_accession = c(rep('iPSC_RPE_scRNA_01', 24), rep('iPSC_RPE_scRNA_02', 24), rep('iPSC_RPE_scRNA_03', 24)),
+             # run_accession = c('scRNA_01_S1_L001_HL7H3BCX2','scRNA_01_S1_L001_HLCLYBCX2','scRNA_01_S1_L001_HLFW7BCX2','scRNA_01_S1_L002_HL7H3BCX2','scRNA_01_S1_L002_HLCLYBCX2','scRNA_01_S1_L002_HLFW7BCX2','scRNA_01_S2_L001_HL7H3BCX2','scRNA_01_S2_L001_HLCLYBCX2','scRNA_01_S2_L001_HLFW7BCX2','scRNA_01_S2_L002_HL7H3BCX2','scRNA_01_S2_L002_HLCLYBCX2','scRNA_01_S2_L002_HLFW7BCX2','scRNA_01_S3_L001_HL7H3BCX2','scRNA_01_S3_L001_HLCLYBCX2','scRNA_01_S3_L001_HLFW7BCX2','scRNA_01_S3_L002_HL7H3BCX2','scRNA_01_S3_L002_HLCLYBCX2','scRNA_01_S3_L002_HLFW7BCX2','scRNA_01_S4_L001_HL7H3BCX2','scRNA_01_S4_L001_HLCLYBCX2','scRNA_01_S4_L001_HLFW7BCX2','scRNA_01_S4_L002_HL7H3BCX2','scRNA_01_S4_L002_HLCLYBCX2','scRNA_01_S4_L002_HLFW7BCX2','scRNA_02_S5_L001_HL7H3BCX2','scRNA_02_S5_L001_HLCLYBCX2','scRNA_02_S5_L001_HLFW7BCX2','scRNA_02_S5_L002_HL7H3BCX2','scRNA_02_S5_L002_HLCLYBCX2','scRNA_02_S5_L002_HLFW7BCX2','scRNA_02_S6_L001_HL7H3BCX2','scRNA_02_S6_L001_HLCLYBCX2','scRNA_02_S6_L001_HLFW7BCX2','scRNA_02_S6_L002_HL7H3BCX2','scRNA_02_S6_L002_HLCLYBCX2','scRNA_02_S6_L002_HLFW7BCX2','scRNA_02_S7_L001_HL7H3BCX2','scRNA_02_S7_L001_HLCLYBCX2','scRNA_02_S7_L001_HLFW7BCX2','scRNA_02_S7_L002_HL7H3BCX2','scRNA_02_S7_L002_HLCLYBCX2','scRNA_02_S7_L002_HLFW7BCX2','scRNA_02_S8_L001_HL7H3BCX2','scRNA_02_S8_L001_HLCLYBCX2','scRNA_02_S8_L001_HLFW7BCX2','scRNA_02_S8_L002_HL7H3BCX2','scRNA_02_S8_L002_HLCLYBCX2','scRNA_02_S8_L002_HLFW7BCX2','scRNA_03_S10_L001_HL7H3BCX2','scRNA_03_S10_L001_HLCLYBCX2','scRNA_03_S10_L001_HLFW7BCX2','scRNA_03_S10_L002_HL7H3BCX2','scRNA_03_S10_L002_HLCLYBCX2','scRNA_03_S10_L002_HLFW7BCX2','scRNA_03_S11_L001_HL7H3BCX2','scRNA_03_S11_L001_HLCLYBCX2','scRNA_03_S11_L001_HLFW7BCX2','scRNA_03_S11_L002_HL7H3BCX2','scRNA_03_S11_L002_HLCLYBCX2','scRNA_03_S11_L002_HLFW7BCX2','scRNA_03_S12_L001_HL7H3BCX2','scRNA_03_S12_L001_HLCLYBCX2','scRNA_03_S12_L001_HLFW7BCX2','scRNA_03_S12_L002_HL7H3BCX2','scRNA_03_S12_L002_HLCLYBCX2','scRNA_03_S12_L002_HLFW7BCX2','scRNA_03_S9_L001_HL7H3BCX2','scRNA_03_S9_L001_HLCLYBCX2','scRNA_03_S9_L001_HLFW7BCX2','scRNA_03_S9_L002_HL7H3BCX2','scRNA_03_S9_L002_HLCLYBCX2','scRNA_03_S9_L002_HLFW7BCX2'),
+             # library_layout = rep('PAIRED', 72),
+             # organism = rep('Homo sapiens', 72),
+             # Platform = rep('10xv2', 72),
+             # UMI = rep('YES', 72),
+             # study_accession = rep('OGVFB_Hufnagel_iPSC_RPE', 72),
+             # stringsAsFactors = FALSE)
+             # 
 # remove BULK RNA-seq and SRP149898 which is missing the crucial paired end reads (need to contact author)
-write_tsv(bind_rows(sra_metadata %>% 
-            select(sample_accession, run_accession, library_layout, organism, Platform, UMI, study_accession) %>% 
-            filter(Platform != 'BULK', 
-                   study_accession != 'SRP149898'), 
-            core_rpe),
-          path = 'data/sample_run_layout_organism_tech.tsv')
-write_tsv(sra_metadata %>% group_by(organism, Platform) %>% sample_n(1) %>% select(sample_accession, run_accession, library_layout, organism, Platform, UMI), path = 'data/sample_run_layout_organism_tech_for_svg.tsv')
+# write_tsv(bind_rows(sra_metadata %>% 
+#             select(sample_accession, run_accession, library_layout, organism, Platform, UMI, study_accession) %>% 
+#             filter(Platform != 'BULK', 
+#                    study_accession != 'SRP149898'), 
+#             core_rpe),
+#           path = 'data/sample_run_layout_organism_tech.tsv')
+# write_tsv(sra_metadata %>% group_by(organism, Platform) %>% sample_n(1) %>% select(sample_accession, run_accession, library_layout, organism, Platform, UMI), path = 'data/sample_run_layout_organism_tech_for_svg.tsv')
 
 
 
