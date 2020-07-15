@@ -37,7 +37,7 @@
 	},
 	"make_seurat_objs" :
 	{
-		"mem" : "800G",
+		"mem" : "500G",
 		"partition" : "largemem",
 		"time" : "16:00:00",
 		"extra" : " --gres=lscratch:10"
@@ -65,9 +65,9 @@
 	},
 	"integrate_00" :
 	{
-		"mem" : "200G",
+		"mem" : "240G",
 		"partition" : "gpu",
-		"time" : "8:00:00",
+		"time" : "48:00:00",
 		"extra" : " --gres=gpu:k80:1,lscratch:5"
 	},
 	"integrate_01" :
@@ -75,7 +75,7 @@
 		"mem" : "600G",
 		"partition" : "largemem",
 		"time" : "72:00:00",
-		"extra" : " --gres=lscratch:100"
+		"extra" : " --gres=gpu:v100x:1,lscratch:5"
 	},
 	"calculate_umap" : 
 	{
@@ -83,6 +83,13 @@
 		"partition" : "norm",
 		"time" : "16:00:00",
 		"extra" : " --gres=lscratch:100"
+	},
+	"celltype_predict_VS_xgboost" :
+	{
+		"mem" : "50G",
+		"partition" : "gpu",
+		"time" : "2:00:00",
+		"extra" : " --gres=gpu:v100x:1,lscratch:5"
 	},
 	"calculate_tsne" : 
 	{
@@ -150,13 +157,13 @@
 	"perf_metrics" :
 	{
 		"partition" : "quick",
-		"mem" : "150G",
+		"mem" : "175G",
 		"time" : "04:00:00"
 	},
 	"pseudoBulk_DGE" :
 	{
 		"partition" : "norm",
-		"mem" : "50G",
+		"mem" : "75G",
 		"time" : "12:00:00"
 	},
 	"monocle_diff_merge" :
