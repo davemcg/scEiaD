@@ -7,15 +7,9 @@ args = commandArgs(trailingOnly=TRUE)
 load(args[1])
 load(args[2])
 load(args[3])
-load(args[4])
 
-metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, nCount_RNA, nFeature_RNA, percent_mt = `percent.mt`, batch, sample_accession, study_accession, Age, library_layout, organism, Platform, UMI, Covariate, CellType, SubCellType, Paper, integration_group) %>% 
+metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, nCount_RNA, nFeature_RNA, percent_mt = `percent.mt`, batch, sample_accession, study_accession, Age, library_layout, organism, Platform, UMI, Covariate, CellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, SubCellType, Paper, integration_group) %>% 
 		mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType)) %>%
-	  	left_join(., predictions %>%
-              as_tibble(rownames = 'Barcode') %>%
-              select(Barcode, CellType_predict = `predicted.id`)) %>%
-		  mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
-                                      TRUE ~ CellType_predict)) %>%
 			left_join(., meta, by = 'Barcode')
 		metadata$SubCellType[grepl('^RB|Rods|Peri|^MG$|^Mic$', metadata$SubCellType)] <- NA
 
@@ -37,7 +31,7 @@ genes <- row.names(cpm) %>% enframe(value = 'Gene') %>% dplyr::select(-name) %>%
 
 long_data <- list()
 
-if (args[6] == 'TRUE'){
+if (args[5] == 'TRUE'){
 	seurat_meta <- integrated_obj@meta.data
 	seurat_meta <- seurat_meta %>% as_tibble(rownames = 'Barcode') %>% left_join(., umap %>% select(Barcode, organism, CellType_predict), by = 'Barcode')
 	for (i in seq(1:chunk_num)){
@@ -86,7 +80,7 @@ if (args[6] == 'TRUE'){
 rm(integrated_obj)
 
 long <- bind_rows(long_data)
-pool <- dbPool(RSQLite::SQLite(), dbname = args[5])
+pool <- dbPool(RSQLite::SQLite(), dbname = args[4])
 dbWriteTable(pool, "cpm", long, overwrite = TRUE)
 db_create_index(pool, table = 'cpm', columns = c('Gene'))
 db_create_index(pool, table = 'cpm', columns = c('Barcode'))
@@ -114,6 +108,6 @@ meta_only_grouped_stats <- long %>% group_by(batch, study_accession, library_lay
                         summarise(cell_ct = n())
 dbWriteTable(pool, 'meta_only_grouped_stats', grouped_stats, overwrite = TRUE)
 
-args[7] <- Sys.Date()
+args[6] <- Sys.Date()
 dbWriteTable(pool, 'input_data', args %>% enframe(), overwrite = TRUE)
 poolClose(pool)
