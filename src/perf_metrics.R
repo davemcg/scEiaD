@@ -60,6 +60,8 @@ if (grepl('onlyWELL', args[2])){
 	cutdownSUB <- umap %>% 
 	  rowid_to_column('ID') %>% 
 	  filter(!is.na(SubCellType)) %>% 
+	  filter(!grepl('Cone|Rod|MG|Muller|RBC|Endo|Peri', SubCellType)) %>% 
+      mutate(SubCellType = gsub('f_', '', SubCellType)) %>% mutate(SubCellType = gsub('p_', '', SubCellType)) %>%
 	  group_by(organism, SubCellType) %>% 
 	  sample_n(1000, replace = TRUE) %>% 
 	  unique()
