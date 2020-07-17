@@ -55,7 +55,7 @@ cat(file=stderr(), ' seconds.\n')
 shinyServer(function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
-    ## server help queries ------
+    # server help queries ------
     # gene plot updateSelectizeInput -------
     if (is.null(query[['Gene']])){
       updateSelectizeInput(session, 'Gene',
@@ -131,7 +131,23 @@ shinyServer(function(input, output, session) {
                            selected = c('CellType_predict','organism'),
                            server = TRUE)
     }
-    
+    if (is.null(query[['dotplot_filter_cat']])){
+      updateSelectizeInput(session, 'dotplot_filter_cat',
+                           choices = meta_filter %>% 
+                             dplyr::select(nCount_RNA:doublet_score_scran) %>% colnames() %>% sort(),
+                           selected = '',
+                           server = TRUE)
+    }
+    observeEvent(input$dotplot_filter_cat, {
+      if (input$dotplot_filter_cat == ''){
+        choice = ''
+      } else {
+        choice = meta_filter[,input$dotplot_filter_cat] %>% pull(1) %>% unique() %>% sort()
+      }
+      updateSelectizeInput(session, 'dotplot_filter_on',
+                           choices = choice,
+                           server = TRUE)
+    })
     
     # 
     if (is.null(query[['grouping_features']])){
@@ -630,7 +646,23 @@ shinyServer(function(input, output, session) {
     make_dotplot <- eventReactive(input$BUTTON_draw_dotplot, {
       gene <- input$dotplot_Gene
       grouping_features <- input$dotplot_groups
-      dotplot_data <- anthology_2020_v01 %>% tbl('grouped_stats') %>% 
+
+      if (input$dotplot_filter_cat != ''){
+        dotplot_data <- anthology_2020_v01 %>% tbl('grouped_stats') %>% 
+          filter(Gene %in% gene) %>% 
+          as_tibble() %>% 
+          filter(!!as.symbol(input$dotplot_filter_cat) %in% input$dotplot_filter_on)
+        
+      } else {
+        dotplot_data <- anthology_2020_v01 %>% tbl('grouped_stats') %>% 
+          filter(Gene %in% gene) %>% 
+          as_tibble()
+      }
+      validate(
+        need(input$dotplot_groups != '', "Please select at least one grouping feature")
+      )
+      
+      dotplot_data <- dotplot_data %>% 
         filter(Gene %in% gene) %>%
         group_by_at(vars(one_of(c('Gene', grouping_features)))) %>% 
         summarise(cell_exp_ct = sum(cell_exp_ct, na.rm = TRUE),

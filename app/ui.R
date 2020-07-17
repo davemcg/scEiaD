@@ -181,12 +181,18 @@ shinyUI(
                         tabPanel('Dotplot', # Dotplot ---------
                                  column(8,
                                         fluidRow(
-                                          column(5, selectizeInput('dotplot_Gene', strong('Genes: '),
+                                          column(4, selectizeInput('dotplot_Gene', strong('Genes: '),
                                                                    choices=NULL, multiple=TRUE)),
+                                          column(4, selectizeInput('dotplot_height', strong('Plot Height: '),
+                                                                   choices = seq(400, 2000, by = 100), selected = 800))),
+                                        fluidRow(
                                           column(4, selectizeInput('dotplot_groups', strong('Group by (two max): '),
                                                                    choices=NULL, multiple=TRUE)),
-                                          column(3, selectizeInput('dotplot_height', strong('Plot Height: '),
-                                                                   choices = seq(400, 2000, by = 100), selected = 800))),
+                                          column(4, selectizeInput('dotplot_filter_cat', strong('Filter category: '),
+                                                                   choices=NULL, multiple=FALSE)),
+                                          column(4, selectizeInput('dotplot_filter_on', strong('Filter on: '),
+                                                                   choices=NULL, multiple=TRUE)),
+                                        ),
                                         actionButton('BUTTON_draw_dotplot','Draw Dotplot!', icon = icon("arrow-down"),
                                                      style='background-color: #3399ff; color: #ffffff'),
                                         br(), br(),
