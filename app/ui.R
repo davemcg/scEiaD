@@ -217,7 +217,7 @@ shinyUI(
                                        div(DT::dataTableOutput('make_diff_table'), style='font-size:75%')))),
              tabPanel('Overview', # Overview ------
                       fluidPage(
-                        fluidRow(column(width = 8, offset = 1, h2('scAnthology v0.23'))),
+                        fluidRow(column(width = 8, offset = 1, h2('scAnthology v0.30'))),
                         br(),
                         fluidRow(column(width = 8, offset = 1, h2('Overview'))),
                         fluidRow(column(width = 8, offset = 1, 'The light-sensitive portion of the mammalian eye is the retina. The retina itself is not a monolithic tissue - there are over 10 major cell types. The cones and rods which convert light into signal are supported by a wide variety of neural cell types with distinct roles in interpretting and transmitting the signals to the brain. Behind the retina is the RPE and vasculature, which supports the high energetic needs of the rods and cones. scAnthology is a meta-analysis project over 1.2 million single-cell transcriptomes across 15 studies and 3 species encompassing the back of the eye. Deep metadata minining, rigorous quality control analysis, differential gene expression testing, and deep learning based batch effect correction in a unified bioinformatic framework allow the universe of retina single cell expression information to be analyzed in one location.')),
