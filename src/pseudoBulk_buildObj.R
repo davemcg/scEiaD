@@ -10,9 +10,10 @@ multicoreParam <- MulticoreParam(workers = 12)
 
 args <- commandArgs(trailingOnly = TRUE)
 
-load(args[1]) #edgeR obj with fit, dispersions, and processed data
-comp <- args[2]
-partition = args[3] %>% as.numeric()
+load(args[1]) #load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.seuratObj.Rdata')
+load(args[2]) # load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.umap.Rdata')
+comp <- args[3]
+#partition = args[4] %>% as.numeric()
 out <- args[4]
 ###############
 # functions -------
@@ -21,110 +22,109 @@ out <- args[4]
 source('~/git/massive_integrated_eye_scRNA/src/pseudoBulk_functions.R')
 #####################
 
-processed_data <- edgeR_obj$processed_data
+
+mat <- integrated_obj@assays$RNA@counts
+mat <- mat[,umap$Barcode]
+rm(integrated_obj)
 
 if (grepl('A', comp)){
   ######################
   # celltype (pre-labelled/published) -------
   ####################
+  info <- DataFrame(sample=as.factor(umap$batch),
+                    celltype = as.factor(umap$CellType),
+                    organism = as.factor(umap$organism))
+  sum_mat2 <- sumCountsAcrossCells(mat, info, BPPARAM = multicoreParam)
   
-  #processed_data <- processing(sum_mat1)
+  #processed_data1 <- processing(sum_mat1)
+  processed_data2 <- processing(sum_mat2)
   
   if (grepl('1', comp)){
   # celltype against remaining, controlling for organism ------
-  CELLTYPE__res_againstAll <- pseudoBulk_testing(processed_data, 
+  edgeR_obj <- pseudoBulk_testing(processed_data2, 
                                                  organism_covariate=TRUE,
                                                  pairwise=FALSE,
-												 edgeR_obj = edgeR_obj,
-														partition = partition)
-  save(CELLTYPE__res_againstAll, file = out)
+												 save_edgeR_obj = TRUE)
   } else if (grepl('2', comp)){
   # celltype against each celltype (pairwise), controlling for organism ----------
-  CELLTYPE__res_pairwise <- pseudoBulk_testing(processed_data, 
+  edgeR_obj <- pseudoBulk_testing(processed_data2, 
                                                organism_covariate=TRUE,
                                                pairwise=TRUE,
-											   edgeR_obj = edgeR_obj,
-														partition = partition)
-  save(CELLTYPE__res_pairwise, file = out)
+											   save_edgeR_obj = TRUE)
   } else if (grepl('3', comp)){
   # species against species, WITHIN A CELLTYPE
-  CELLTYPE__res_organism_celltype <- try({pseudoBulk_testing(processed_data, 
+  edgeR_obj <- try({pseudoBulk_testing(processed_data2, 
                                                         organism_covariate=FALSE,
                                                         pairwise=TRUE, 
                                                         testing_against_internal_organism = TRUE,
                                                         testing_against = 'var_organism',
-								                        edgeR_obj = edgeR_obj,
-														partition = partition) })
-  save(CELLTYPE__res_organism_celltype, file = out)
+								                        save_edgeR_obj = TRUE) })
   }
 } else if (grepl('B', comp)){
   ##############################
   # same, but with celltype predict (machine label all cells with label) ----------
   ##############################
+  info <- DataFrame(sample=as.factor(umap$batch),
+                    celltype = as.factor(umap$CellType_predict),
+                    organism = as.factor(umap$organism))
+  sum_mat3 <- sumCountsAcrossCells(mat, info, BPPARAM = multicoreParam)
   
+  processed_data3 <- processing(sum_mat3)
   if (grepl('1', comp)){
   # CellType_predict against remaining, controlling for organism ------
-  CELLTYPEPREDICT__res_againstAll <- pseudoBulk_testing(processed_data, 
+  edgeR_obj <- pseudoBulk_testing(processed_data3, 
                                                         organism_covariate=TRUE,
                                                         pairwise=FALSE,
-												        edgeR_obj = edgeR_obj,
-														partition = partition)
-  save(CELLTYPEPREDICT__res_againstAll, file = out)
+												        save_edgeR_obj = TRUE)
   } else if (grepl('2', comp)){
   # CellType_predict against each celltype (pairwise), controlling for organism ----------
-  CELLTYPEPREDICT__res_pairwise <- pseudoBulk_testing(processed_data, 
+  edgeR_obj <- pseudoBulk_testing(processed_data3, 
                                                       organism_covariate=TRUE,
                                                       pairwise=TRUE,
-      												  edgeR_obj = edgeR_obj,
-														partition = partition)
-  save(CELLTYPEPREDICT__res_pairwise, file = out)
+      												  save_edgeR_obj = TRUE)
   } else if (grepl('3', comp)){
   # species against species, WITHIN A CELLTYPE_PREDICT
-  CELLTYPEPREDICT__res_organism_celltype <- pseudoBulk_testing(processed_data, 
+  edgeR_obj <- pseudoBulk_testing(processed_data3, 
                                                                organism_covariate=FALSE,
                                                                pairwise=TRUE, 
                                                                testing_against_internal_organism = TRUE,
                                                                testing_against = 'var_organism',
-															   edgeR_obj = edgeR_obj,
-														partition = partition)
-  save(CELLTYPEPREDICT__res_organism_celltype, file = out)
+															   save_edgeR_obj = TRUE)
   }
 } else if (grepl('C', comp)){
   ##############################
   # now against cluster ---------
   ##############################
+  info <- DataFrame(sample=as.factor(umap$batch),
+                    cluster = as.factor(umap$cluster),
+                    organism = as.factor(umap$organism))
+  sum_mat4 <- sumCountsAcrossCells(mat, info, BPPARAM = multicoreParam)
   
-  processed_data <- processing(sum_mat4, 
+  processed_data4 <- processing(sum_mat4, 
                                 testing_against = 'cluster')
   if (grepl('1', comp)){
   # cluster against remaining, controlling for organism ------
-  CLUSTER__res_againstAll <- pseudoBulk_testing(processed_data, 
+  edgeR_obj <- pseudoBulk_testing(processed_data4, 
                                                 organism_covariate=TRUE,
                                                 pairwise=FALSE,
                                                 testing_against = 'cluster',
-											    edgeR_obj = edgeR_obj,
-														partition = partition)
-  save(CLUSTER__res_againstAll, file = out)
+											    save_edgeR_obj = TRUE)
   } else if (grepl('2', comp)){
   # cluster against each cluster (pairwise), controlling for organism ----------
-  CLUSTER__res_pairwise <- pseudoBulk_testing(processed_data, 
+  edgeR_obj <- pseudoBulk_testing(processed_data4, 
                                               organism_covariate=TRUE,
                                               pairwise=TRUE,
                                               testing_against = 'cluster',
 											  pieces = 500,
-											  edgeR_obj = edgeR_obj,
-														partition = partition)
-  save(CLUSTER__res_pairwise, file = out)
+											  save_edgeR_obj = TRUE)
   } else if (grepl('3', comp)){
   # species against species, WITHIN A CLUSTER
-  CLUSTER__res_organism_celltype <- pseudoBulk_testing(processed_data, 
+  edgeR_obj <- pseudoBulk_testing(processed_data4, 
                                                        organism_covariate=FALSE,
                                                        pairwise=TRUE, 
                                                        testing_against_internal_organism = TRUE,
                                                        testing_against = 'var_organism',
-												       edgeR_obj = edgeR_obj,
-														partition = partition)
-  save(CLUSTER__res_organism_celltype, file = out)
+												       save_edgeR_obj = TRUE)
   }
 } else if (grepl('D', comp)){
   
@@ -132,9 +132,7 @@ if (grepl('A', comp)){
   # SubCluster -------------
   # all testing only done within a cluster
   ##############################
-  SUBCLUSTER__res_againstAll_list <- list()
-  SUBCLUSTER__res_pairwise_list <- list()
-  SUBCLUSTER__res_organism_celltype_list <- list()
+  edgeR_obj <- list()
   for (i in chunk(1:length(unique(umap$cluster)), 20)[[partition]]){
     umapT <- umap %>% filter(cluster == i)
 	matT <- mat[,umapT$Barcode]
@@ -143,49 +141,33 @@ if (grepl('A', comp)){
                       organism = as.factor(umapT$organism))
     sum_mat5 <- sumCountsAcrossCells(matT, info, BPPARAM = multicoreParam)
     
-    processed_data <- try({processing(sum_mat5, 
+    processed_data5 <- try({processing(sum_mat5, 
                                   testing_against = 'cluster') })
 
     # subcluster against remaining, controlling for organism ------
-    if (grepl('1', comp) && class(processed_data) != 'try-error'){
-    SUBCLUSTER__res_againstAll_list[[i]] <- try({pseudoBulk_testing(processed_data, 
+    if (grepl('1', comp) && class(processed_data5) != 'try-error'){
+    edgeR_obj[[i]] <- try({pseudoBulk_testing(processed_data5, 
                                                                organism_covariate=TRUE,
                                                                pairwise=FALSE,
                                                                testing_against = 'cluster',
-											                   edgeR_obj = edgeR_obj,
-														partition = FALSE) })
-    } else if (grepl('2', comp) && class(processed_data) != 'try-error'){
+											                   save_edgeR_obj = TRUE) })
+    } else if (grepl('2', comp) && class(processed_data5) != 'try-error'){
     # subcluster against each subcluster (pairwise), controlling for organism ----------
-    SUBCLUSTER__res_pairwise_list[[i]] <- try({pseudoBulk_testing(processed_data, 
+    edgeR_obj[[i]] <- try({pseudoBulk_testing(processed_data5, 
                                                              organism_covariate=TRUE,
                                                              pairwise=TRUE,
                                                              testing_against = 'cluster',
-														     edgeR_obj = edgeR_obj,
-														partition = FALSE) })
-    } else if (grepl('3', comp) && class(processed_data) != 'try-error'){
+														     save_edgeR_obj = TRUE) })
+    } else if (grepl('3', comp) && class(processed_data5) != 'try-error'){
     # species against species, WITHIN A SUBCLUSTER
-    SUBCLUSTER__res_organism_celltype_list[[i]] <- try({pseudoBulk_testing(processed_data, 
+    edgeR_obj[[i]] <- try({pseudoBulk_testing(processed_data5, 
                                                                       organism_covariate=FALSE,
                                                                       pairwise=TRUE, 
                                                                       testing_against_internal_organism = TRUE,
                                                                       testing_against = 'var_organism',
-																	  edgeR_obj = edgeR_obj,
-														partition = FALSE) })
+																	  save_edgeR_obj = TRUE) })
     }
-  }
-  if (grepl('1', comp)){
-	for (i in seq_along(1:length(SUBCLUSTER__res_againstAll_list))){if (class(SUBCLUSTER__res_againstAll_list[[i]]) == 'try-error'){ SUBCLUSTER__res_againstAll_list[[i]] <- NULL  } }
-    SUBCLUSTER__res_againstAll <- SUBCLUSTER__res_againstAll_list %>% bind_rows()
-    save(SUBCLUSTER__res_againstAll, file = out)
-  } else if (grepl('2', comp)){
-	for (i in seq_along(1:length(SUBCLUSTER__res_pairwise_list))){if (class(SUBCLUSTER__res_pairwise_list[[i]]) == 'try-error'){ SUBCLUSTER__res_pairwise_list[[i]] <- NULL  } }
-    SUBCLUSTER__res_pairwise <- SUBCLUSTER__res_pairwise_list %>% bind_rows()
-	save(SUBCLUSTER__res_pairwise, file = out)
-  } else if (grepl('3', comp)){ 
-    for (i in seq_along(1:length(SUBCLUSTER__res_organism_celltype_list))){if (class(SUBCLUSTER__res_organism_celltype_list[[i]]) == 'try-error'){ SUBCLUSTER__res_organism_celltype_list[[i]] <- NULL  } } 
-	SUBCLUSTER__res_organism_celltype <- SUBCLUSTER__res_organism_celltype_list %>% bind_rows()
-    save(SUBCLUSTER__res_organism_celltype, out)
   }
 }
 
-
+save(edgeR_obj, file = out)

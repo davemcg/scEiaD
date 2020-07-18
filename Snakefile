@@ -192,9 +192,7 @@ rule all:
 				dist = [0.3],
 				neighbors = [30]),
 		'merged_stats_2020_07_06.Rdata',
-		#site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
-		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-TabulaDroplet-batch-scVI-6-0.1-500-10.sqlite.gz',
-		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-50-0.1-15-7.sqlite.gz',
+		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-30-0.1-15-7.sqlite.gz',
 
 ## mouse, human, macaque fasta and gtf
 rule download_references:
@@ -647,7 +645,7 @@ rule plot_integration:
 rule plot_integration_PREDICT:
 	input:
 		umap = 'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		celltype_predict = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__universe__batch__scVI__dims30__preFilter__mindist0.1__nneighbors100.umapPredictions.Rdata'	
+		celltype_predict = 'umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__universe__batch__scVI__dims100__preFilter__mindist0.1__nneighbors100.umapPredictions.Rdata'	
 	output:
 		'plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plotPredictions.png'
 	shell:
@@ -818,16 +816,50 @@ rule make_sqlite:
 		pigz -p 32 {params}
 		"""
 
-rule pseudoBulk_DGE:
+rule pseudoBulk_DGE_buildObj:
 	input:
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
 		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umapPredictions.Rdata',
+	output:
+		'pseudoBulk_DGE/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{pseudoTest}__edgeR_obj.Rdata'
+	threads: 6
+	shell:
+		"""
+		module load R/4.0
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_buildObj.R {input} {wildcards.pseudoTest} {output}		
+		"""
+
+rule pseudoBulk_DGE_difftest:
+	input:
+		'pseudoBulk_DGE/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{pseudoTest}__edgeR_obj.Rdata'
 	output:
 		'pseudoBulk_DGE/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{pseudoTest}__{piece}.Rdata'
 	shell:
 		"""
 		module load R/4.0
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_diff_testing.R {input} {wildcards.pseudoTest} {wildcards.piece} {output}		
+		"""
+	
+rule merge_pseudoBulk_ABC:
+	input:
+		pseudoBulk = expand('pseudoBulk_DGE/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{pseudoTest}__{piece}.Rdata', pseudoTest = ['A1','A2','A3','B1','B2','B3','C1','C3'], piece = range(1,21))
+	output:
+		'pseudoBulk_DGE/merge/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__ABC.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_merge.R {input} {output}
+		"""
+
+rule merge_pseudoBulk_C2:
+	input:
+		pseudoBulk = expand('pseudoBulk_DGE/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{pseudoTest}__{piece}.Rdata', pseudoTest = ['C2'], piece = range(1,501))
+	output:
+		'pseudoBulk_DGE/merge/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__C2.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_merge.R {input} {output}
 		"""
 
 
@@ -841,7 +873,8 @@ rule sqlite_add_tables:
 		#diff_glm_subcluster = 'diff_testing/{combination}__{n_features}__{transform}__{partition}__{covariate}__{method}__{dims}__{dist}__{knn}__{neighbors}.G.SC.diff.coef_table.Rdata',
 		#marker_monocle = expand('diff_test/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{{knn}}__{group}.monocleTopMarker.Rdata', \
 		#			group = ['seuratCluster','CellType_predict']),
-		pseudoBulk = expand('pseudoBulk_DGE/{{combination}}__n_features{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__preFilter__mindist{{dist}}__nneighbors{{neighbors}}__{pseudoTest}__{piece}.Rdata', pseudoTest = ['A1','A2','A3','B1','B2','B3','C1','C2','C3'], piece = range(1,21)),
+		ABC = 'pseudoBulk_DGE/merge/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__ABC.Rdata',
+		C2 = 'pseudoBulk_DGE/merge/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__C2.Rdata',
 		doublet = 'doublet_calls/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.doublets.Rdata'
 	output:
 		'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
@@ -853,8 +886,8 @@ rule sqlite_add_tables:
 		module load R/3.6
 		pigz -d -p {threads} {input.sqlite}
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/sqlite_add_diff_tables.R {params} \
-			'diff_testing/{wildcards.combination}__{wildcards.n_features}__{wildcards.transform}__{wildcards.partition}__{wildcards.covariate}__{wildcards.method}__{wildcards.dims}__{wildcards.dist}__{wildcards.knn}__{wildcards.neighbors}' \
-			'diff_testing/{wildcards.combination}__{wildcards.n_features}__{wildcards.transform}__{wildcards.partition}__{wildcards.covariate}__{wildcards.method}__dims{wildcards.dims}__{wildcards.knn}__{wildcards.neighbors}__{wildcards.dist}'	\
+			{input.ABC} \
+			{input.C2} \
 			{input.doublet}
 		pigz -p {threads} {params}
 		mv {input.sqlite} {output}
