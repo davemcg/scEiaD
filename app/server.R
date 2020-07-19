@@ -15,10 +15,12 @@ library(pool)
 library(RSQLite)
 library(dplyr)
 library(formattable)
-anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-6-0.1-500-10.sqlite", idleTimeout = 3600000)
+#anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-onlyDROPLET-batch-scVI-6-0.1-500-10.sqlite", idleTimeout = 3600000)
+
+anthology_2020_v01 <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-30-0.1-15-7.sqlite", idleTimeout = 3600000)
 
 # fancy tables
-# they come from `tables.Rmd` in analyis/
+# they come from `tables.Rmd` in analysis/
 load('www/formattables.Rdata')
 # filter
 meta_filter <- left_join(anthology_2020_v01 %>% tbl('metadata_filter'), 
@@ -239,14 +241,14 @@ shinyServer(function(input, output, session) {
                            selected = 'CRX',
                            server = TRUE)
     }
-    if (is.null(query[['diff_term']])){
-      updateSelectizeInput(session, 'diff_term',
-                           choices = anthology_2020_v01 %>% tbl(diff_table()) %>%
-                             as_tibble() %>% pull(term) %>% unique() %>% sort(),
-                           options = list(placeholder = 'Type to search'),
-                           server = TRUE)
-    }
-    
+    # if (is.null(query[['diff_term']])){
+    #   updateSelectizeInput(session, 'diff_term',
+    #                        choices = anthology_2020_v01 %>% tbl(diff_table()) %>%
+    #                          as_tibble() %>% pull(term) %>% unique() %>% sort(),
+    #                        options = list(placeholder = 'Type to search'),
+    #                        server = TRUE)
+    # }
+    # 
     # BREAK -------
     # gene scatter plot ------------
     gene_scatter_ranges <- reactiveValues(x = c(meta_filter$UMAP_1 %>% min(), meta_filter$UMAP_1 %>% max()), 
@@ -565,12 +567,19 @@ shinyServer(function(input, output, session) {
         tidyr::drop_na()
       box_data$Group <- box_data[,c(2:(length(grouping_features)+1))] %>% tidyr::unite(x, sep = ' ') %>% pull(1)
       
+      if (input$exp_plot_axis == 1){
+        x_is <- 'Group'
+      } else { x_is <- 'Gene' }
+      if (input$exp_plot_color == 1){
+        color_is <- 'Group'
+      } else {color_is <- 'Gene'}
+      
       plot <- box_data %>% 
-        ggplot(aes(x=Group, y = !!as.symbol(input$exp_plot_ylab), color = Gene)) +
-        geom_point(size = 2) + 
+        ggplot(aes(x=!!as.symbol(x_is), y = !!as.symbol(input$exp_plot_ylab), color = !!as.symbol(color_is))) +
+        ggbeeswarm::geom_quasirandom(size = 3) + 
         cowplot::theme_cowplot() + 
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-        scale_colour_manual(values = rep(c(pals::alphabet() %>% unname())))
+        scale_colour_manual(values = rep(c(pals::alphabet() %>% unname()), 20))
       if (input$exp_plot_facet){
         plot + facet_wrap(ncol = 3, scales = 'free_x', vars(!!as.symbol(grouping_features[1])))
       } else {plot}
@@ -646,7 +655,7 @@ shinyServer(function(input, output, session) {
     make_dotplot <- eventReactive(input$BUTTON_draw_dotplot, {
       gene <- input$dotplot_Gene
       grouping_features <- input$dotplot_groups
-
+      
       if (input$dotplot_filter_cat != ''){
         dotplot_data <- anthology_2020_v01 %>% tbl('grouped_stats') %>% 
           filter(Gene %in% gene) %>% 
@@ -773,37 +782,36 @@ shinyServer(function(input, output, session) {
   })
   
   ## diff testing table ----
-  diff_table <- reactive({
-    req(input$diff_table_select)
-    if (input$diff_table_select == 'Cluster'){
-      out <- 'diff_testing_A'
-    } else if (input$diff_table_select == 'CellType') {
-      out <- 'diff_testing_E'
-    } else if (input$diff_table_select == 'SubCluster') {
-      out <- 'diff_testing_G'
-    } else {out <- 'diff_testing_C'}
-    return(out)
-  })
+  # diff_table <- reactive({
+  #   req(input$diff_table_select)
+  #   if (input$diff_table_select == 'Cluster'){
+  #     out <- 'diff_testing_A'
+  #   } else if (input$diff_table_select == 'CellType') {
+  #     out <- 'diff_testing_E'
+  #   } else if (input$diff_table_select == 'SubCluster') {
+  #     out <- 'diff_testing_G'
+  #   } else {out <- 'diff_testing_C'}
+  #   return(out)
+  # })
   
   output$make_diff_table <- DT::renderDataTable(server = TRUE, {
     gene <- input$diff_gene
     #cat(diff_table)
     if (input$search_by == 'Gene'){
-      out <- anthology_2020_v01 %>% tbl(diff_table()) %>% 
-        filter(gene_short_name %in% gene) %>% 
-        arrange(-abs(normalized_effect)) 
+      out <- anthology_2020_v01 %>% tbl('PB_results') %>% 
+        filter(Gene %in% gene) 
     } else {
       filter_term <- input$diff_term
-      out <- anthology_2020_v01 %>% tbl(diff_table()) %>% 
-        filter(term %in% filter_term) %>% 
-        arrange(-abs(normalized_effect)) 
+      out <- anthology_2020_v01 %>% tbl('PB_results') %>% 
+        filter(PB_Test %in% filter_term) 
     }
     out %>% 
-      mutate(`AUC Score` = round(count / 55, 1),
-             mean_auc = round(mean_auc, 2)) %>% 
-      select(-status, -model_component, -count, -med_auc, -estimate, -test_val, -p_value) %>% 
-      collect() %>% 
-      filter(!grepl('Doub|RPE|Astro|Red|Vascular', term)) %>% 
+      # mutate(`AUC Score` = round(count / 55, 1),
+      #        mean_auc = round(mean_auc, 2)) %>% 
+      # select(-status, -model_component, -count, -med_auc, -estimate, -test_val, -p_value) %>% 
+      # collect() %>% 
+      # filter(!grepl('Doub|RPE|Astro|Red|Vascular', term)) %>% 
+      as_tibble() %>% select(-comparison) %>% 
       DT::datatable(extensions = 'Buttons', rownames = F, 
                     filter = list(position = 'bottom', clear = FALSE),
                     options = list(pageLength = 10, dom = 'frtBip', buttons = c('pageLength','copy', 'csv')))

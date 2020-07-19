@@ -108,28 +108,36 @@ shinyUI(
                                         fluidRow(
                                           column(3, 
                                                  (selectizeInput('exp_plot_genes', strong('Gene(s): '),
-                                                                         choices = NULL, multiple = TRUE))),
+                                                                 choices = NULL, multiple = TRUE))),
                                           
                                           
-                                          column(2,
+                                          column(3,
                                                  selectizeInput('exp_plot_height', strong('Plot Height: '),
                                                                 choices = seq(200, 2000, by = 100),
                                                                 selected = 400, multiple = FALSE)),
-                                          column(2,
+                                          column(3,
                                                  selectInput('exp_plot_ylab', strong('Value: '),
                                                              choices = c('Mean CPM', '% of Cells Detected')))),
                                         fluidRow(
-                                          column(3, selectizeInput('exp_filter_cat', strong('Filter Category: '),
-                                                                    choices = NULL, multiple = FALSE)),
-                                          column(3, selectizeInput('exp_filter_on', strong('Filter On: '),
-                                                                   choices = NULL, multiple = TRUE)),
                                           column(3,
                                                  (selectizeInput('exp_plot_groups', strong('Grouping feature(s): '),
-                                                                         choices = NULL, multiple = TRUE))),
+                                                                 choices = NULL, multiple = TRUE))),
+                                          column(3, selectizeInput('exp_filter_cat', strong('Filter Category: '),
+                                                                   choices = NULL, multiple = FALSE)),
+                                          column(3, selectizeInput('exp_filter_on', strong('Filter On: '),
+                                                                   choices = NULL, multiple = TRUE)),
                                         ),
                                         fluidRow(
                                           column(3,
-                                                 (checkboxInput('exp_plot_facet', 'Facet on 1st Group', TRUE)))
+                                                 (checkboxInput('exp_plot_facet', 'Facet on 1st Group', TRUE))),
+                                          column(3,
+                                                 (radioButtons('exp_plot_axis', inline =  TRUE, 'X axis is: ', 
+                                                               choices = list("Grouping Features" = 1, "Gene" = 2),
+                                                               selected = 1))),
+                                          column(3,
+                                                 (radioButtons('exp_plot_color', inline = TRUE, 'Color is: ', 
+                                                               choices = list("Grouping Features" = 1, "Gene" = 2),
+                                                               selected = 2)))
                                           
                                         ),
                                         fluidRow(column(10, actionButton('BUTTON_draw_exp_plot','Draw Plot', icon = icon("arrow-down"),
@@ -198,25 +206,23 @@ shinyUI(
                                         br(), br(),
                                         plotOutput('dotplot')))
              ),
-             # diff testing  tables ------------
+             # # diff testing  tables ------------
              tabPanel('Diff Testing',
                       fluidPage(column(8,
                                        fluidRow(
-                                         selectInput('diff_table_select', strong('Differential testing by: '),
-                                                     choices = c('Cluster', 'SubCluster', 'CellType', 'CellType (predict)')),
-                                         selectInput('search_by', strong('Search by: '), 
-                                                     choices = c('Gene','Term'), 
+                                         selectInput('search_by', strong('Search by: '),
+                                                     choices = c('Gene','Test'),
                                                      selected = 'Gene')
                                        )),
                                 column(8,
                                        fluidRow(
                                          conditionalPanel("input.search_by == 'Gene'",
-                                                          selectizeInput('diff_gene', strong('Genes: '), 
+                                                          selectizeInput('diff_gene', strong('Genes: '),
                                                                          choices =  NULL,
                                                                          multiple = TRUE)),
-                                         conditionalPanel("input.search_by == 'Term'",
-                                                          selectizeInput('diff_term', strong('Term: '), 
-                                                                         choices =  NULL,
+                                         conditionalPanel("input.search_by == 'Test'",
+                                                          selectizeInput('diff_term', strong('Term: '),
+                                                                         choices =  c("CellType (Predict) against Remaining","CellType against Remaining", "Cluster against Remaining","Organism against Organism within CellType", "Organism against Organism within CellType (Predict)", "Organism against Organism within Cluster", "Pairwise CellType (Predict) against CellType (Predict)", "Pairwise CellType against CellType", "Pairwise Cluster against Cluster"),
                                                                          multiple = TRUE))
                                        )),
                                 column(8,
