@@ -37,7 +37,7 @@
 	},
 	"make_seurat_objs" :
 	{
-		"mem" : "500G",
+		"mem" : "800G",
 		"partition" : "largemem",
 		"time" : "16:00:00",
 		"extra" : " --gres=lscratch:10"
@@ -160,11 +160,19 @@
 		"mem" : "175G",
 		"time" : "04:00:00"
 	},
-	"pseudoBulk_DGE" :
+	"pseudoBulk_DGE_buildObj" :
 	{
 		"partition" : "norm",
 		"mem" : "75G",
-		"time" : "12:00:00"
+		"time" : "8:00:00",
+		"extra" : " --gres=lscratch:2"
+	},
+	"pseudoBulk_DGE_difftest" :
+	{
+		"partition" : "norm",
+		"mem" : "8G",
+		"time" : "8:00:00",
+		"extra" : " --gres=lscratch:2"
 	},
 	"monocle_diff_merge" :
 	{
