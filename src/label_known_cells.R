@@ -65,7 +65,8 @@ rgc_crush <- rgc_crush[-1,]
 rgc_crush <- rgc_crush %>% 
 				separate(NAME, c('sample', 'UMI'), sep = '_') %>%
 				mutate(UMI = gsub('-\\d+','',UMI))
-rgc_crush$CellType <- 'Retinal Ganglion Cells'
+#rgc_crush$CellType <- 'Retinal Ganglion Cells'
+rgc_crush$CellType <- NA
 ## load cell info
 cell_info <- read_tsv('cell_info.tsv') %>% select(-TissueNote)
 cell_info <- cell_info %>% mutate(UMI = gsub('_\\w+', '', value)) %>%
@@ -397,20 +398,21 @@ cell_info_labels <- bind_rows(meta_SRP,
                                 mutate(Paper = NA, TissueNote = NA))
 # this is crude, but SRP16660 has selected Muller Glia via FACS of R26R mouse line
 # SRP186407 uses Cx3cr1+ FACS to select Microglia
-cell_info_labels <- cell_info_labels %>% 
-  mutate(CellType = case_when(study_accession == 'SRP166660' ~ "Muller Glia",
-                              study_accession == 'SRP186407' ~ "Microglia",
-                              TRUE ~ CellType),
-         Paper = case_when(study_accession == 'SRP166660' ~ "Rueda et al. 2019",
-                           study_accession == 'SRP186407' ~ "O'Koren et al. 2019",
-                           TRUE ~ Paper))
+#cell_info_labels <- cell_info_labels %>% 
+#  mutate(CellType = case_when(study_accession == 'SRP166660' ~ "Muller Glia",
+#                              study_accession == 'SRP186407' ~ "Microglia",
+#                              TRUE ~ CellType),
+#         Paper = case_when(study_accession == 'SRP166660' ~ "Rueda et al. 2019",
+#                           study_accession == 'SRP186407' ~ "O'Koren et al. 2019",
+#                           TRUE ~ Paper))
 
 
 # label internal iPSC RPE data
+high_ttr_huf <- read_tsv('~/git/massive_integrated_eye_scRNA/data/hufnagel_iPSC_RPE_03_highTTR_barcodes.txt')
 cell_info_labels <- cell_info_labels %>% 
-  mutate(CellType = case_when(grepl('iPSC_RPE_scRNA_01', value) ~ 'iPSC',
-                              grepl('iPSC_RPE_scRNA_02', value) ~ 'RPE',
-                              grepl('iPSC_RPE_scRNA_03', value) ~ 'RPE',
+  mutate(CellType = case_when(#grepl('iPSC_RPE_scRNA_01', value) ~ 'iPSC',
+                              #grepl('iPSC_RPE_scRNA_02', value) ~ 'RPE',
+                              value %in% high_ttr_huf$value ~ 'RPE',
                               TRUE ~ CellType),
          Paper = case_when(grepl('iPSC_RPE_scRNA', value) ~ 'Hufnagel 2020',
                            TRUE ~ Paper))

@@ -37,7 +37,7 @@
 	},
 	"make_seurat_objs" :
 	{
-		"mem" : "800G",
+		"mem" : "400G",
 		"partition" : "largemem",
 		"time" : "16:00:00",
 		"extra" : " --gres=lscratch:10"
@@ -89,7 +89,7 @@
 		"mem" : "50G",
 		"partition" : "gpu",
 		"time" : "2:00:00",
-		"extra" : " --gres=gpu:v100x:1,lscratch:5"
+		"extra" : " --gres=gpu:p100:1,lscratch:5"
 	},
 	"calculate_tsne" : 
 	{

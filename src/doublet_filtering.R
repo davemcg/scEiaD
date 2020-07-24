@@ -51,6 +51,8 @@ cluster_low_n <- meta %>%
 umap <- meta %>% 
   filter(!subcluster %in% subC_remove) %>% 
   filter(!cluster %in% cluster_remove) %>% 
-  filter(`Doublet Probability` < 0.8, doublet_score_scran < 1e6) %>% 
+  filter(`Doublet Probability` < 0.8, doublet_score_scran < 1e6) 
 
-save(umap, file = args[3])
+umapDoubs <- meta %>% filter(!Barcode %in% umap$Barcode)
+
+save(umap, umapDoubs, file = args[3])
