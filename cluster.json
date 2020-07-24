@@ -232,7 +232,7 @@
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:50"
 	},
-	"sqlite_add_tables:" :
+	"sqlite_add_tables" :
 	{
 		"mem" : "50G",
 		"time" : "2:00:00",

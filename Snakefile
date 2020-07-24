@@ -131,7 +131,7 @@ for SRS in SRS_dict.keys():
 	elif SRS_dict[SRS]['tech'] != 'BULK':
 		SRS_nonUMI_samples.append(SRS)
 
-method = ['insct','magic', 'scVI','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none']
+method = ['insct','magic', 'scVI','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
 transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
@@ -182,7 +182,7 @@ rule all:
 				dist = [0.001,0.1],
 				neighbors = [15, 30, 50, 100, 500]),
 		expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-				transform = ['sqrt','libSize','scran', 'standard'], \
+				transform = ['sqrt','libSize','scran', 'standard', 'SCT'], \
 				method = ['insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['TabulaDroplet'], \
@@ -794,16 +794,27 @@ rule scIB_stats:
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
 		"""
 
+rule doublet_filtering:
+	input:
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umapPredictions.Rdata',
+		'doublet_calls/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.doublets.Rdata'
+	output:
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umapPredictions.filter2.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/doublet_filtering.R {input} {output}
+		"""
 
 rule make_sqlite:
 	input:
 		seurat = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		meta = 'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umapPredictions.Rdata',
+		meta = 'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umapPredictions.filter2.Rdata',
 		cluster = 'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata'
 	params:
 		'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite'
 	output:
-		'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
+		'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite'
 	shell:
 		"""
 		module load R/3.6
@@ -811,15 +822,15 @@ rule make_sqlite:
 			{input.seurat} \
 			{input.meta} \
 			{input.cluster} \
-			{params} \
+			{output} \
 			{wildcards.correction}
-		pigz -p 32 {params}
+		#pigz -p 32 {params}
 		"""
 
 rule pseudoBulk_DGE_buildObj:
 	input:
 		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
-		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umapPredictions.Rdata',
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umapPredictions.filter2.Rdata',
 	output:
 		'pseudoBulk_DGE/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{pseudoTest}__edgeR_obj.Rdata'
 	threads: 6
@@ -865,7 +876,7 @@ rule merge_pseudoBulk_C2:
 
 rule sqlite_add_tables:
 	input:
-		sqlite = 'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz',
+		sqlite = 'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite',
 		#diff_wilcox = expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__{{knn}}__{{neighbors}}__{{dist}}__{group}.sceWilcox.Rdata', \
 		#			group = ['subcluster', 'cluster','CellType_predict','CellType']),
 		#diff_glm = expand('diff_testing/{{combination}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__{{dims}}__{{dist}}__{{knn}}__{{neighbors}}.{model}.diff.coef_table.Rdata', \
@@ -884,13 +895,13 @@ rule sqlite_add_tables:
 	shell:
 		"""
 		module load R/3.6
-		pigz -d -p {threads} {input.sqlite}
+		#pigz -d -p {threads} {input.sqlite}
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/sqlite_add_diff_tables.R {params} \
 			{input.ABC} \
 			{input.C2} \
 			{input.doublet}
 		pigz -p {threads} {params}
-		mv {input.sqlite} {output}
+		mv {input.sqlite}.gz {output}
 		"""
 		
 rule merge_stats:
@@ -935,7 +946,7 @@ rule merge_stats:
 				knn = [7]),
 		expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 				transform = ['libSize','sqrt','scran', 'standard'], \
-				method = ['insct','magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none'], \
+				method = ['insct','magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['onlyWELL'], \
 				n_features = [2000], \
@@ -973,7 +984,7 @@ rule merge_stats:
 				knn = [5,7,10]),
 		expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
 				transform = ['libSize','sqrt','scran', 'standard'], \
-				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none'], \
+				method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'CCA', 'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 				partition = ['TabulaDroplet'], \
 				n_features = [2000], \

@@ -21,3 +21,26 @@ db_create_index(anthology_2020_v01, table = 'PB_results', columns = c('PB_Test')
 load(args[4])
 dbWriteTable(anthology_2020_v01, 'doublets', doublet_call_table, overwrite = TRUE)
 db_create_index(anthology_2020_v01, table = 'doublets', columns = c('Barcode'))
+
+# extract pseudobulk tests and terms 
+PB_Test_terms <- anthology_2020_v01 %>% 
+  tbl('PB_results') %>% 
+  select(PB_Test) %>% 
+  distinct() %>% 
+  as_tibble()
+
+terms <- list()
+for(i in PB_Test_terms %>% pull(1)){
+  print(i)
+  terms[[i]] <- anthology_2020_v01 %>% 
+    tbl('PB_results') %>% 
+    filter(PB_Test == i) %>% 
+    select(test) %>% 
+    distinct() %>% 
+    pull(1) %>% sort() %>% 
+    paste(collapse = '___')
+}
+
+PB_Test_terms$terms <- terms %>% unlist()
+dbWriteTable(anthology_2020_v01, name = 'PB_Test_terms', PB_Test_terms, overwrite = TRUE)
+

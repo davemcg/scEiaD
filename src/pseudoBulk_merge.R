@@ -43,7 +43,7 @@ for (i in input){
 binder <- function(list_obj){
 	temp <- list()
 	for (i in seq_along(1:length(list_obj))){
-		if (sum(grepl('data.frame', class(i))) == 1 ){
+		if (sum(grepl('data.frame', class(list_obj[[i]]))) == 1 ){
 			temp[[i]] <- list_obj[[i]]
 		}
 	}
@@ -60,7 +60,7 @@ if (grepl('ABC', output)) {
 	DE__CELLTYPE__res_pairwise <- binder(DE__CELLTYPE__res_pairwise) %>% mutate(PB_Test = 'Pairwise CellType against CellType')
 	DE__CELLTYPE__res_organism_celltype <- binder(DE__CELLTYPE__res_organism_celltype) %>% mutate(PB_Test = 'Organism against Organism within CellType')
 	DE__CLUSTER__res_againstAll <- binder(DE__CLUSTER__res_againstAll) %>% mutate(PB_Test = 'Cluster against Remaining')
-	DE__CLUSTER__res_organism_celltype <- binder(DE__CLUSTER__res_organism_celltype) %>% mutate('Organism against Organism within Cluster')
+	DE__CLUSTER__res_organism_celltype <- binder(DE__CLUSTER__res_organism_celltype) %>% mutate(PB_Test = 'Organism against Organism within Cluster')
 
 	PB_resultsABC <- bind_rows(DE__CELLTYPEPREDICT__res_againstAll,
 									DE__CELLTYPEPREDICT__res_pairwise,

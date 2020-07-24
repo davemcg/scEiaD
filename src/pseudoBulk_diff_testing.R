@@ -94,8 +94,6 @@ if (grepl('A', comp)){
   # now against cluster ---------
   ##############################
   
-  processed_data <- processing(sum_mat4, 
-                                testing_against = 'cluster')
   if (grepl('1', comp)){
   # cluster against remaining, controlling for organism ------
   CLUSTER__res_againstAll <- pseudoBulk_testing(processed_data, 
