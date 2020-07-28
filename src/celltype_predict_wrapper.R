@@ -16,7 +16,27 @@ out_tm <- out_tm %>% filter(!CellType %in% remove_low)
 #cpm <- RelativeCounts(counts, scale.factor= 1e6) %>% as.matrix() %>% t()
 
 #out <- cbind(out, cpm)
-run_xgboost_py <- function(embeddings, temp_name, tm = FALSE){
+
+# remove celltype outliers
+rm_outlier <- function(out, TM = FALSE){
+	bc_retain <- list()
+	for (i in out$CellType %>% unique){
+		print(i)
+		temp <- out %>% filter(CellType == i) %>% select(contains('scVI_')) %>% as.matrix()
+		row.names(temp) <- out %>% filter(CellType == i) %>% pull(Barcode)
+		scVI_mean <- colMeans(temp)
+		euc_dist <- function(x1, x2) sqrt(sum((x1 - x2) ^ 2))
+		D <- apply(as.matrix(temp), 1, function(x) euc_dist(scVI_mean, x))
+		cutoff = sd(D) * 4
+		bc_retain[[i]] <- D[D < cutoff] %>% names()
+	}
+	out %>% filter(Barcode %in% (bc_retain %>% unlist()))
+}
+
+out <- rm_outlier(out)
+out_tm <- rm_outlier(out_tm)
+
+run_xgboost_py <- function(embeddings, temp_name, tm = FALSE, probThresh = 0.8){
 	rand_num <- sample(1e5:1e6, 1)
 	embeddings_file <- paste0(rand_num, '_', temp_name)
 	write_tsv(embeddings, path = embeddings_file)
@@ -34,11 +54,11 @@ run_xgboost_py <- function(embeddings, temp_name, tm = FALSE){
 
 	# train on pre-labelled cells
 	pickle <- paste0(temp_name, '_', rand_num, '.pickle' )
-	system(paste0('/data/mcgaugheyd/conda/envs/integrate_scRNA/bin/python3.6 ~/git/massive_integrated_eye_scRNA/src/cell_type_predictor.py train --predProbThresh 0.3 --workingDir /data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA --inputMatrix ', embeddings_file, ' --trainedModelFile ', pickle, ' --featureCols ', write_features_file))
+	system(paste0('/data/mcgaugheyd/conda/envs/integrate_scRNA/bin/python3.6 ~/git/massive_integrated_eye_scRNA/src/cell_type_predictor.py train --predProbThresh ', probThresh, ' --workingDir /data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA --inputMatrix ', embeddings_file, ' --trainedModelFile ', pickle, ' --featureCols ', write_features_file))
 
 	# apply model to predict labels for all cells
 	predictions_file <- temp_name
-	system(paste0('/data/mcgaugheyd/conda/envs/integrate_scRNA/bin/python3.6 ~/git/massive_integrated_eye_scRNA/src/cell_type_predictor.py predict --predProbThresh 0.3 --workingDir /data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA --inputMatrix ', embeddings_file, ' --trainedModelFile ', pickle, ' --predictions ', predictions_file))
+	system(paste0('/data/mcgaugheyd/conda/envs/integrate_scRNA/bin/python3.6 ~/git/massive_integrated_eye_scRNA/src/cell_type_predictor.py predict --predProbThresh ', probThresh, ' --workingDir /data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA --inputMatrix ', embeddings_file, ' --trainedModelFile ', pickle, ' --predictions ', predictions_file))
 
 	# import in predictions
 	predictions <- read_tsv(predictions_file)
