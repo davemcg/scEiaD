@@ -54,18 +54,25 @@ pseudoBulk_testing <- function(processed_data,
                                testing_against_internal_organism = FALSE,
                                regex_pattern = '\\s+|/', 
                                testing_against = 'celltype',
-							   pieces = 20,
+							   pieces = 25,
                                partition = NA,
 							   edgeR_obj = NA,
 							   save_edgeR_obj = FALSE){
   
-  
+  ocular_celltypes <- c('AC/HC_Precurs','Amacrine','Cells','Artery','Astrocytes','B-Cell','Bipolar','Cells','Choriocapillaris','Cones','Early','RPCs','Endothelial','Fibroblasts','Horizontal','Cells','Late','RPCs','Macrophage','Mast','Melanocytes','Microglia','Muller','Glia','Neurogenic','Cells','Pericytes','Photoreceptor','Precursors','Red','Blood','Cells','Retinal','Ganglion','Cells','Rod','Bipolar','Cells','Rods','RPCs','RPE','Schwann','Smooth','Muscle','Cell','T-Cell','Vein') 
   # all pairwise combinations
   # remove white-space to facilitate contrast based results extraction
   if (pairwise){
     combinations <- combn(processed_data$colData[,testing_against] %>% unique() %>% gsub(regex_pattern,'', .), 2)
     combinations_fancy <- combn(processed_data$colData[,testing_against] %>% unique() %>% as.character(), 2) # for naming
-    # set up naming for testing for org specific genes changes
+    
+	# remove non-ocular vs non-ocular tests
+	if (testing_against == 'celltype'){
+		c2 <- combinations[,apply(combinations, 2, function(x) sum(x %in% ocular_celltypes)) > 0 ]
+		c2_fancy <- combinations_fancy[,apply(combinations, 2, function(x) sum(x %in% ocular_celltypes)) > 0 ]
+		combinations <- c2; combinations_fancy <- c2_fancy
+	}
+	# set up naming for testing for org specific genes changes
     # WITHIN a celltype (or cluster, etc)
     # e.g. cone human vs cone macaque
     if (testing_against_internal_organism) {

@@ -8,7 +8,9 @@ load(args[1])
 load(args[2])
 load(args[3])
 
-metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, nCount_RNA, nFeature_RNA, percent_mt = `percent.mt`, batch, sample_accession, study_accession, Age, library_layout, organism, Platform, UMI, Covariate, CellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, SubCellType, Paper, integration_group) %>% 
+study_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GEO_Study_Level_Metadata.tsv')
+umap <- umap %>% left_join(., study_meta, by = c('study_accession'))
+metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, nCount_RNA, nFeature_RNA, Phase, percent_mt = `percent.mt`, batch, sample_accession, study_accession, Age, library_layout, organism, Platform, UMI, Covariate, CellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, SubCellType, GSE, Summary, Design, Citation, PMID, integration_group) %>% 
 		mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType)) %>%
 			left_join(., meta, by = 'Barcode')
 		metadata$SubCellType[grepl('^RB|Rods|Peri|^MG$|^Mic$', metadata$SubCellType)] <- NA
@@ -97,14 +99,14 @@ db_create_index(pool, table = 'metadata_filter', columns = c('Barcode'))
 dbWriteTable(pool, "genes", genes, overwrite = TRUE)
 
 
-long <- left_join(long, meta_filter %>% select(Barcode, batch, study_accession, library_layout, organism, Platform, Covariate, CellType, SubCellType, CellType_predict, Paper, Stage, cluster, subcluster), by = 'Barcode') 
+long <- left_join(long, meta_filter %>% select(Barcode, batch, study_accession, library_layout, organism, Platform, Covariate, CellType, SubCellType, CellType_predict, GSE, Summary, Design, Citation, PMID, Stage, cluster, subcluster), by = 'Barcode') 
 
-grouped_stats <- long %>% group_by(Gene, batch, study_accession, library_layout, organism, Platform, Covariate, CellType, SubCellType, CellType_predict, Paper, Stage, cluster, subcluster) %>%
+grouped_stats <- long %>% group_by(Gene, batch, study_accession, library_layout, organism, Platform, Covariate, CellType, SubCellType, CellType_predict, GSE, Summary, Design, Citation, PMID, Stage, cluster, subcluster) %>%
 						summarise(cell_ct = n(), cell_exp_ct = sum(cpm > 0), cpm = mean(cpm))
 dbWriteTable(pool, 'grouped_stats', grouped_stats, overwrite = TRUE)
 db_create_index(pool, table = 'grouped_stats', columns = c('Gene'))
 
-meta_only_grouped_stats <- long %>% group_by(batch, study_accession, library_layout, organism, Platform, Covariate, CellType, SubCellType, CellType_predict, Paper, Stage, cluster, subcluster) %>%
+meta_only_grouped_stats <- long %>% group_by(batch, study_accession, library_layout, organism, Platform, Covariate, CellType, SubCellType, CellType_predict, GSE, Summary, Design, Citation, PMID, Stage, cluster, subcluster) %>%
                         summarise(cell_ct = n())
 dbWriteTable(pool, 'meta_only_grouped_stats', grouped_stats, overwrite = TRUE)
 

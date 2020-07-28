@@ -3,19 +3,28 @@ args <- commandArgs(trailingOnly = TRUE)
 library(Seurat)
 library(tidyverse)
 # load cluster data
-load(args[2])
+load(args[3])
 cluster <- meta %>% pull(2)
 subcluster <- meta %>% pull(3)
-# load integrated seurat obj
+# load pre int seurat obj, calc cell cycle
 load(args[1])
+s.genes <- cc.genes$s.genes
+g2m.genes <- cc.genes$g2m.genes
+integrated_obj <- CellCycleScoring(integrated_obj, s.features = s.genes, g2m.features = g2m.genes)
+meta <- integrated_obj@meta.data
+# load integrated seurat obj
+load(args[2])
+integrated_obj@meta.data$`S.Score` <- meta$`S.Score`
+integrated_obj@meta.data$`G2M.Score` <- meta$`G2M.Score`
+integrated_obj@meta.data$`Phase` <- meta$`Phase`
 integrated_obj@meta.data$cluster <- cluster
 integrated_obj@meta.data$subcluster <- subcluster
 # load labelled cell data
-load(args[3])
+load(args[4])
 # load predicted cell data (+ labelled)
 #load(args[4])
 # method
-method <- args[5]
+method <- args[6]
 
 if (method == 'CCA'){
   reduction <- 'pca'
@@ -64,7 +73,7 @@ umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'B
 #                                      TRUE ~ CellType_predict))
 
 umap$Method <- method
-if (args[6] == 'UMAP'){
+if (args[7] == 'UMAP'){
 colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 } else {
   colnames(umap)[2:3] <- c('TSNE_1', 'TSNE_2')
@@ -101,6 +110,6 @@ colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 
 #umap <-   left_join(umap, core_expression, by = 'Barcode')
 
-save(umap, file = args[4])
+save(umap, file = args[5])
 
 

@@ -222,4 +222,4 @@ perf_two <- data %>% bind_rows() %>%
 			mutate(Score = toupper(Score))
 
 perf <- bind_rows(perf_one %>% filter(Score != 'ARI'), perf_two)
-save(perf, file = 'metrics_2020_07_15.Rdata')
+save(perf, file = 'metrics_2020_07_24.Rdata')

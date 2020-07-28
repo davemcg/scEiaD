@@ -27,12 +27,22 @@ mat <- integrated_obj@assays$RNA@counts
 mat <- mat[,umap$Barcode]
 rm(integrated_obj)
 
+umap <- umap %>% 
+	mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>%
+	mutate(CellType_predict = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType_predict)) %>%
+	mutate(CTall = case_when(!is.na(CellType) ~ CellType, 
+							!is.na(TabulaMurisCellType) ~ TabulaMurisCellType)) %>%
+	mutate(CT_p_all = case_when(!is.na(CellType_predict) ~ CellType, 
+							!is.na(TabulaMurisCellType_predict) ~ TabulaMurisCellType)) %>%
+	mutate(CTall = case_when(!grepl('Doub|Margin', CTall) ~ CTall)) %>%
+	mutate(CT_p_all = case_when(!grepl('Doub|Margin', CT_p_all) ~ CT_p_all)) 
+
 if (grepl('A', comp)){
   ######################
   # celltype (pre-labelled/published) -------
   ####################
   info <- DataFrame(sample=as.factor(umap$batch),
-                    celltype = as.factor(umap$CellType),
+                    celltype = as.factor(umap$CTall),
                     organism = as.factor(umap$organism))
   sum_mat2 <- sumCountsAcrossCells(mat, info, BPPARAM = multicoreParam)
   
@@ -65,7 +75,7 @@ if (grepl('A', comp)){
   # same, but with celltype predict (machine label all cells with label) ----------
   ##############################
   info <- DataFrame(sample=as.factor(umap$batch),
-                    celltype = as.factor(umap$CellType_predict),
+                    celltype = as.factor(umap$CT_p_all),
                     organism = as.factor(umap$organism))
   sum_mat3 <- sumCountsAcrossCells(mat, info, BPPARAM = multicoreParam)
   

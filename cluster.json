@@ -37,9 +37,9 @@
 	},
 	"make_seurat_objs" :
 	{
-		"mem" : "400G",
+		"mem" : "800G",
 		"partition" : "largemem",
-		"time" : "16:00:00",
+		"time" : "66:00:00",
 		"extra" : " --gres=lscratch:10"
 	},
 	"make_seurat_objs_filtered" :
@@ -114,7 +114,7 @@
 	},
 	"extract_umap" :
 	{
-		"mem" : "80G",
+		"mem" : "140G",
 		"time" : "00:30:00"
 	},
 	"extract_tsne" :
@@ -164,14 +164,14 @@
 	{
 		"partition" : "norm",
 		"mem" : "75G",
-		"time" : "8:00:00",
+		"time" : "10:00:00",
 		"extra" : " --gres=lscratch:2"
 	},
 	"pseudoBulk_DGE_difftest" :
 	{
 		"partition" : "norm",
 		"mem" : "8G",
-		"time" : "8:00:00",
+		"time" : "12:00:00",
 		"extra" : " --gres=lscratch:2"
 	},
 	"monocle_diff_merge" :
