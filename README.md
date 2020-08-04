@@ -47,13 +47,16 @@ Milestones:
     - Internal (NEI) deploy of scAnthology Shiny app, April 2020
       - Thanks (mostly) to [scattermore](https://github.com/exaexa/scattermore)
       - [INSERT GIF?]
+     - Cell Cycle ID (Done 2020-07. Stupid easy with Seurat.)
+     - Doublet ID (done with scrublet and scran as of ~2020/04/25)
+       - Have tried super hard to get solo to work, but it is too damn slow, which is surprising as it uses scVI
     - BIG ONE:
       - Process Tabula Muris Mouse Atlas data to provide non-retina cell type "comparison" (droplet only as of 2020-07)
   - To do:
     - [Velocity](https://bustools.github.io/BUS_notebooks_R/velocity.html) 
-    - Cell Cycle ID
+    
     - Trajectory with [slingshot](https://bioconductor.org/packages/release/bioc/html/slingshot.html)
-    - ~~Doublet ID~~ (done with scrublet as of ~2020/04/25)
+
     - Diff testing
       - Diff testing on subclustering (2020-07: part "D" explodes into flames too often)
     - CellType prediction
