@@ -79,6 +79,18 @@ colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
   colnames(umap)[2:3] <- c('TSNE_1', 'TSNE_2')
 }
 
+# https://www.sciencedirect.com/science/article/pii/S1534580720303075?via%3Dihub
+# In mice, the transition from early and late-stage RPCs occurs rapidly between E16 and E18 (Clark et al., 2019), but in humans this process occurs between 11 and 15 GW (Figure S2B) and likely reflects the differences in the timing of human retina development between central and peripheral regions (Diaz-Araya and Provis, 1992, van Driel et al., 1990).
+umap <- umap %>% mutate(integration_group = case_when(organism == 'Homo sapiens' & Age <= -175 ~ 'Early Dev.',
+												organism == 'Homo sapiens' & Age <= 0 ~ 'Late Dev.',
+												organism == 'Homo sapiens' & Age <= 360 ~ 'Maturing',
+												organism == 'Homo sapiens' ~ 'Mature', 
+												organism == 'Mus musculus' & Age < -2 ~ 'Early Dev.',
+												organism == 'Mus musculus' & Age <= 0 ~ 'Late Dev.',
+												organism == 'Mus musculus' & Age < 14 ~ 'Maturing',
+												organism == 'Mus musculus' ~ 'Mature',
+												organism == 'Macaca fascicularis' ~ 'Mature'))
+
 # add core markers
 # Rho for rods
 # Opn1sw for cones
