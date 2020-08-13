@@ -65,10 +65,10 @@
 	},
 	"integrate_00" :
 	{
-		"mem" : "240G",
-		"partition" : "gpu",
+		"mem" : "400G",
+		"partition" : "largemem"
 		"time" : "48:00:00",
-		"extra" : " --gres=gpu:k80:1,lscratch:5"
+		"extra" : " --gres=lscratch:5"
 	},
 	"integrate_01" :
 	{
@@ -227,10 +227,10 @@
 	},
 	"make_sqlite" :
 	{
-		"mem" : "350G",
+		"mem" : "750G",
 		"time" : "12:00:00",
 		"partition" : "largemem",
-		"extra" : " --gres=lscratch:50"
+		"extra" : " --gres=lscratch:100"
 	},
 	"sqlite_add_tables" :
 	{
