@@ -12,31 +12,64 @@ args <- commandArgs(trailingOnly = TRUE)
 
 load(args[1]) #load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.seuratObj.Rdata')
 load(args[2]) # load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.umap.Rdata')
-comp <- args[3]
+load(args[3])
+comp <- args[4]
 #partition = args[4] %>% as.numeric()
-out <- args[4]
+out <- args[5]
 ###############
 # functions -------
 ###############
 
 source('~/git/massive_integrated_eye_scRNA/src/pseudoBulk_functions.R')
 #####################
+umap_well <- well_metadata <- seurat_obj@meta.data %>% 
+				as_tibble() %>%
+		 		select(-contains('RNA_snn'), -cluster) %>% 
+				dplyr::rename(cluster = seurat_clusters, CellType_predict = CellType)  %>%
+				mutate(CellType = NA, cluster = as.numeric(as.character(cluster)), CellType_predict = gsub('Muller Glia Progenitor' ,'RPCs', CellType_predict))
+umap_all <- bind_rows(umap, umap_well)
 
+mat_drop <- integrated_obj@assays$RNA@counts
+mat_well <- seurat_obj@assays$RNA@counts
+if (sum(!(row.names(mat_drop) == row.names(mat_well)) ) == 0) {
+	mat = cbind(mat_drop, mat_well)
+} else {
+	stop('Row names do not line up!')
+}
+print('grep time')
+if (grepl('Cw', comp)){
+	mat = mat_well
+	umap = umap_well
+} else if (grepl('C\\d', comp)) {
+	mat = mat_drop
+	umap = umap
+} else {
+	umap = umap_all
+	mat = mat
+}
 
-mat <- integrated_obj@assays$RNA@counts
 mat <- mat[,umap$Barcode]
 rm(integrated_obj)
 
+if (grepl('w', comp)){
+  umap <- umap %>% 
+	#mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>%
+	#mutate(CellType_predict = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType_predict)) %>%
+	mutate(CTall = CellType) %>% 
+	mutate(CT_p_all = CellType_predict) %>%  
+	mutate(CTall = case_when(!grepl('Doub|Margin', CTall) ~ CTall)) %>%
+	mutate(CT_p_all = case_when(!grepl('Doub|Margin', CT_p_all) ~ CT_p_all)) 
+} else {
 umap <- umap %>% 
-	mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>%
-	mutate(CellType_predict = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType_predict)) %>%
+	#mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType)) %>%
+	#mutate(CellType_predict = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType_predict)) %>%
 	mutate(CTall = case_when(!is.na(CellType) ~ CellType, 
 							!is.na(TabulaMurisCellType) ~ TabulaMurisCellType)) %>%
 	mutate(CT_p_all = case_when(!is.na(CellType_predict) ~ CellType, 
 							!is.na(TabulaMurisCellType_predict) ~ TabulaMurisCellType)) %>%
 	mutate(CTall = case_when(!grepl('Doub|Margin', CTall) ~ CTall)) %>%
 	mutate(CT_p_all = case_when(!grepl('Doub|Margin', CT_p_all) ~ CT_p_all)) 
-
+}
 if (grepl('A', comp)){
   ######################
   # celltype (pre-labelled/published) -------
@@ -112,12 +145,19 @@ if (grepl('A', comp)){
   
   processed_data4 <- processing(sum_mat4, 
                                 testing_against = 'cluster')
+
+  piece = 500
+  if (grepl('w', comp)){
+	piece = 1
+  }
+
   if (grepl('1', comp)){
   # cluster against remaining, controlling for organism ------
   edgeR_obj <- pseudoBulk_testing(processed_data4, 
                                                 organism_covariate=TRUE,
                                                 pairwise=FALSE,
                                                 testing_against = 'cluster',
+								                pieces = piece,
 											    save_edgeR_obj = TRUE)
   } else if (grepl('2', comp)){
   # cluster against each cluster (pairwise), controlling for organism ----------
@@ -125,7 +165,7 @@ if (grepl('A', comp)){
                                               organism_covariate=TRUE,
                                               pairwise=TRUE,
                                               testing_against = 'cluster',
-											  pieces = 500,
+											  pieces = piece,
 											  save_edgeR_obj = TRUE)
   } else if (grepl('3', comp)){
   # species against species, WITHIN A CLUSTER
@@ -133,6 +173,7 @@ if (grepl('A', comp)){
                                                        organism_covariate=FALSE,
                                                        pairwise=TRUE, 
                                                        testing_against_internal_organism = TRUE,
+													   pieces = piece,
                                                        testing_against = 'var_organism',
 												       save_edgeR_obj = TRUE)
   }

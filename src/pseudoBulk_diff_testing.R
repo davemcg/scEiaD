@@ -93,13 +93,18 @@ if (grepl('A', comp)){
   ##############################
   # now against cluster ---------
   ##############################
-  
+  if (grepl('w', comp)){
+	piece = 1
+  } else if (comp == 'C2') {
+	piece = 500 
+  } else {piece = 25} 
   if (grepl('1', comp)){
   # cluster against remaining, controlling for organism ------
   CLUSTER__res_againstAll <- pseudoBulk_testing(processed_data, 
                                                 organism_covariate=TRUE,
                                                 pairwise=FALSE,
                                                 testing_against = 'cluster',
+									            pieces =  piece,
 											    edgeR_obj = edgeR_obj,
 														partition = partition)
   save(CLUSTER__res_againstAll, file = out)
@@ -109,7 +114,7 @@ if (grepl('A', comp)){
                                               organism_covariate=TRUE,
                                               pairwise=TRUE,
                                               testing_against = 'cluster',
-											  pieces = 500,
+											  pieces = piece,
 											  edgeR_obj = edgeR_obj,
 														partition = partition)
   save(CLUSTER__res_pairwise, file = out)
@@ -120,6 +125,7 @@ if (grepl('A', comp)){
                                                        pairwise=TRUE, 
                                                        testing_against_internal_organism = TRUE,
                                                        testing_against = 'var_organism',
+													   pieces = piece,
 												       edgeR_obj = edgeR_obj,
 														partition = partition)
   save(CLUSTER__res_organism_celltype, file = out)

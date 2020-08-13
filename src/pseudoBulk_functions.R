@@ -59,7 +59,7 @@ pseudoBulk_testing <- function(processed_data,
 							   edgeR_obj = NA,
 							   save_edgeR_obj = FALSE){
   
-  ocular_celltypes <- c('AC/HC_Precurs','Amacrine','Cells','Artery','Astrocytes','B-Cell','Bipolar','Cells','Choriocapillaris','Cones','Early','RPCs','Endothelial','Fibroblasts','Horizontal','Cells','Late','RPCs','Macrophage','Mast','Melanocytes','Microglia','Muller','Glia','Neurogenic','Cells','Pericytes','Photoreceptor','Precursors','Red','Blood','Cells','Retinal','Ganglion','Cells','Rod','Bipolar','Cells','Rods','RPCs','RPE','Schwann','Smooth','Muscle','Cell','T-Cell','Vein') 
+  ocular_celltypes <- c('AC/HC_Precurs','Amacrine Cells','Artery','Astrocytes','B-Cell','Bipolar Cells','Choriocapillaris','Cones','Early RPCs','Endothelial','Fibroblasts','Horizontal Cells','Late RPCs','Macrophage','Mast','Melanocytes','Microglia','Muller Glia','Neurogenic Cells','Pericytes','Photoreceptor Precursors','Red Blood Cells','Retinal Ganglion Cells','Rod Bipolar Cells','Rods','RPCs','RPE','Schwann','Smooth Muscle Cell','T-Cell','Vein') 
   # all pairwise combinations
   # remove white-space to facilitate contrast based results extraction
   if (pairwise){
@@ -168,10 +168,14 @@ pseudoBulk_testing <- function(processed_data,
       } else { # and the one vs all test
         cont0[1:length(cont0)] = -(1/(length(levels(group))-1))
         cont0[combinations[,i]] = 1
-        if (organism_covariate){
+        if (organism_covariate &
+				sum(grepl('Maca', processed_data$colData$var_organism %>% 
+					unique()) %>% sum() ) != 0){
           cont0['Macacafascicularis'] = 0
           cont0['Musmusculus'] = 0
-        }
+        } else {
+		  cont0['Musmusculus'] = 0
+		}
       }
       tic(); res <- try({glmQLFTest(fit, contrast = cont0)}); toc()
       if (class(res) == 'try-error') {
