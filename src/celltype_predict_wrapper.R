@@ -33,14 +33,17 @@ rm_outlier <- function(out, TM = FALSE){
 	out %>% filter(Barcode %in% (bc_retain %>% unlist()))
 }
 
+full_out <- out
+full_tm <- out_tm
 out <- rm_outlier(out)
 out_tm <- rm_outlier(out_tm)
 
-run_xgboost_py <- function(embeddings, temp_name, tm = FALSE, probThresh = 0.8){
+run_xgboost_py <- function(embeddings, full_embeddings, temp_name, tm = FALSE, probThresh = 0.8){
 	rand_num <- sample(1e5:1e6, 1)
 	embeddings_file <- paste0(rand_num, '_', temp_name)
+	full_embeddings_file <- paste0(rand_num, '_FULL', temp_name)
 	write_tsv(embeddings, path = embeddings_file)
-	
+	write_tsv(full_embeddings, path = full_embeddings_file)
 	write_features_file <- paste0(rand_num, '_features.txt')
 	if (!tm) {
 		features <- c(grep('scVI', colnames(embeddings), value = TRUE),
@@ -58,7 +61,7 @@ run_xgboost_py <- function(embeddings, temp_name, tm = FALSE, probThresh = 0.8){
 
 	# apply model to predict labels for all cells
 	predictions_file <- temp_name
-	system(paste0('/data/mcgaugheyd/conda/envs/integrate_scRNA/bin/python3.6 ~/git/massive_integrated_eye_scRNA/src/cell_type_predictor.py predict --predProbThresh ', probThresh, ' --workingDir /data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA --inputMatrix ', embeddings_file, ' --trainedModelFile ', pickle, ' --predictions ', predictions_file))
+	system(paste0('/data/mcgaugheyd/conda/envs/integrate_scRNA/bin/python3.6 ~/git/massive_integrated_eye_scRNA/src/cell_type_predictor.py predict --predProbThresh ', probThresh, ' --workingDir /data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA --inputMatrix ', full_embeddings_file, ' --trainedModelFile ', pickle, ' --predictions ', predictions_file))
 
 	# import in predictions
 	predictions <- read_tsv(predictions_file)
@@ -67,13 +70,13 @@ run_xgboost_py <- function(embeddings, temp_name, tm = FALSE, probThresh = 0.8){
 }
 
 # full data set
-predictions <- run_xgboost_py(out, 'fullTemp', tm = FALSE)
+predictions <- run_xgboost_py(out, full_out, 'fullTemp', tm = FALSE, probThresh = 0.5)
 umapX <- left_join(umap, predictions %>% select(Barcode, CellType_predict = CellType), by = 'Barcode')
 ## remove tabula muris
 umapX <- umapX %>% filter(study_accession != 'SRP131661')
 
 # just tabula muris to fill in missing "TabulaMurisCellType"
-predictions_tm <- run_xgboost_py(out_tm, 'tmTemp', tm = TRUE)
+predictions_tm <- run_xgboost_py(out_tm, full_tm, 'tmTemp', tm = TRUE, probThresh = 0.5)
 umapX2 <- left_join(umap %>% filter(study_accession == 'SRP131661'), predictions_tm %>% select(Barcode, TabulaMurisCellType_predict = CellType), by = 'Barcode')
 
 # glue together
