@@ -231,7 +231,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     } else {
       matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
     }
-    out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', latent, '.loom')
+	rand <- sample(1e7:9e7,1)
+    out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', rand, '_',  latent, '.loom')
 	
 	# add count to one cell if all are zero
 	vfeature_num <- length(vfeatures)
@@ -300,7 +301,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     seurat_obj[["scVI"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "scVI_", assay = DefaultAssay(seurat_obj))
    	#seurat_obj <- SetAssayData(object = seurat_obj, slot = 'scale.data', new.data = normalized_values)
 	#save(normalized_values, file = gsub('.seuratV3.Rdata', '.scVI_scaled.Rdata', args[6]), compress = FALSE)
-	system(paste0('rm ', out, '.normalized.csv'))
+	# system(paste0('rm ', out, '.normalized.csv'))
 	obj <- seurat_obj 
     
   } else if (method == 'harmony'){
