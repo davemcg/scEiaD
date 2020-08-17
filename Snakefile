@@ -203,7 +203,7 @@ else:
 					method = ['scVI'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods'], \
-					n_features = [100, 500, 1000, 2000], \
+					n_features = [ 1000, 2000], \
 					covariate = ['batch'], \
 					dims = [4,6,10,30],
 					dist = [0.1],
@@ -909,20 +909,47 @@ rule sqlite_add_tables:
 		C2 = 'pseudoBulk_DGE/merge/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__C2.Rdata',
 		doublet = 'doublet_calls/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.doublets.Rdata'
 	output:
-		'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
+		uncompressed = 'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite',
+		comp = 'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
 	params:
-		inp = 'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite' 
+		inp = 'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite',
+		uncompressed = 'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite'
 	threads: 16
 	shell:
 		"""
 		module load R/3.6
-		#pigz -d -p {threads} {input.sqlite}
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/sqlite_add_diff_tables.R {params} \
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/sqlite_add_diff_tables.R {params.inp} \
 			{input.ABC} \
 			{input.C2} \
 			{input.doublet}
-		pigz -p {threads} {params}
-		mv {input.sqlite}.gz {output}
+		pigz -c -p {threads} {params.inp} > {output.compressed}
+		mv {input.sqlite} {params.uncomprssed}
+		"""
+
+rule make_PLAE_objs:
+	input:
+		'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite',
+		'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features1000__counts__raw__batch__preFilter.seuratV3.Rdata'
+	output:
+		'site/scEiaD_droplet_seurat_v3.Rdata',
+		'site/scEiaD_well_seurat_v3.Rdata',
+		'site/counts_unfiltered.Rdata',
+		'site/counts.Rdata',
+		'site/cpm.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript ~/git/massive_integrated_eye_scRNA/src/output_objs_for_plae.R
+
+		Rscript ~/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad_core.R site/scEiaD_droplet_seurat_v3.Rdata scEiaD_droplet site/scEiaD_droplet_anndata.h5ad
+		Rscript ~/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad_core.R site/scEiaD_well_seurat_v3.Rdata scEiaD_well site/scEiaD_well_anndata.h5ad
+
+		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__A1__edgeR_obj.Rdata site/pseudoBulk_celltype.tsv.gz
+		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__B1__edgeR_obj.Rdata site/pseudoBulk_celltypePredict.tsv.gz
+		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__C1__edgeR_obj.Rdata site/pseudoBulk_clusterDroplet.tsv.gz
+		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__Cw1__edgeR_obj.Rdata site/pseudoBulk_clusterWell.tsv.gz
+
+		Rscript ~/git/massive_integrated_eye_scRNA/src/build_QC_stats.R
 		"""
 
 
@@ -1032,7 +1059,7 @@ else:
 					method = ['scVI'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods'], \
-					n_features = [100, 500, 1000, 2000], \
+					n_features = [ 1000, 2000], \
 					covariate = ['batch'], \
 					dims = [4,6,10,30],
 					knn = [7, 10, 15]),
@@ -1041,7 +1068,7 @@ else:
 					method = ['scVI'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods'], \
-					n_features = [100, 500, 1000, 2000], \
+					n_features = [ 1000, 2000], \
 					covariate = ['batch'], \
 					dims = [4,6,10,30], \
 					knn = [7, 10, 15], \

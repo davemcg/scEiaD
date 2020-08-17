@@ -141,27 +141,28 @@ m_late <- m[,cell_info %>% filter(Age >= 10) %>% pull(value)]
 m_test <- m[,sample(1:ncol(m), 10000)]
 
 
+precursors <- c('AC/HC_Precurs', 'Early RPCs', 'Late RPCs', 'Neurogenic Cells', 'Photoreceptor Precursors', 'RPCs')
 load('/data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA/umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15.umapFilter.predictions.Rdata')
 if (set == 'cones') {
-	m_subset = m[, umap %>% filter(CellType_predict == 'Cones') %>% pull(Barcode)]
+	m_subset = m[, umap %>% filter(CellType_predict %in% c('Cones', precursors)) %>% pull(Barcode)]
 }
 if (set == 'bipolar') {
-	m_subset = m[, umap %>% filter(CellType_predict == 'Bipolar Cells') %>% pull(Barcode)]
+	m_subset = m[, umap %>% filter(CellType_predict %in% c('Bipolar Cells', precursors)) %>% pull(Barcode)]
 }
 if (set == 'rods') {
-	m_subset = m[, umap %>% filter(CellType_predict == 'Rods') %>% pull(Barcode)]
+	m_subset = m[, umap %>% filter(CellType_predict %in% c('Rods', precursors)) %>% pull(Barcode)]
 }
 if (set == 'mullerglia') {
-	m_subset = m[, umap %>% filter(CellType_predict == 'Muller Glia') %>% pull(Barcode)]
+	m_subset = m[, umap %>% filter(CellType_predict %in% c('Muller Glia', precursors)) %>% pull(Barcode)]
 }
 if (set == 'amacrine') {
-	m_subset = m[, umap %>% filter(CellType_predict == 'Amacrine Cells') %>% pull(Barcode)]
+	m_subset = m[, umap %>% filter(CellType_predict %in% c('Amacrine Cells', precursors)) %>% pull(Barcode)]
 }
 if (set == 'rgc') {
-	m_subset = m[, umap %>% filter(CellType_predict == 'Retinal Ganglion Cells') %>% pull(Barcode)]
+	m_subset = m[, umap %>% filter(CellType_predict %in% c('Retinal Ganglion Cells', precursors)) %>% pull(Barcode)]
 }
 if (set == 'hc') {
-	m_subset = m[, umap %>% filter(CellType_predict == 'Horizontal Cells') %>% pull(Barcode)]
+	m_subset = m[, umap %>% filter(CellType_predict %in% c('Horizontal Cells', precursors)) %>% pull(Barcode)]
 }
 
 
@@ -207,6 +208,8 @@ if (set == 'early'){
   seurat__standard <- make_seurat_obj(m, split.by = covariate, qumi = TRUE)
 } else if (set %in% c('cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods' )){
   seurat__standard <- make_seurat_obj(m_subset, split.by = covariate, keep_well = FALSE)
+} else if (set == 'raw') {
+  seurat__standard <- m
 }
 
 if (transform == 'SCT'){

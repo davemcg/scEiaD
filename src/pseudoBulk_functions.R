@@ -20,11 +20,6 @@ processing <- function(sum_mat, testing_against = 'celltype'){
   colData <- colData[!discarded,]
   cts <- cts[,!discarded]
   
- 
-  if ('celltype' %in% colnames(colData)){ 
-  	# rename rod bipolar to bipolar
-  	colData[,'celltype'] <- gsub('Rod Bipolar Cells', 'Bipolar Cells', colData[,'celltype'] )
-  }
   # remove celltypes/var of interest with 1 or fewer remaining replicates
   celltypes_to_retain <-  grep('Doubl|Margin', (colData[,testing_against] %>% table() )[(colData[,testing_against] %>% table() ) > 1] %>% names(), value = TRUE, invert = TRUE)
   cts <- cts[,(colData[,testing_against] %in% celltypes_to_retain)]
@@ -32,7 +27,7 @@ processing <- function(sum_mat, testing_against = 'celltype'){
   
   # add combo testing_against(e.g. celltype)_organism column
   colData$var_organism <- 
-    paste0(colData[,testing_against], '_', colData[,'organism'])
+    paste0(colData[,testing_against], '__', colData[,'organism'])
   #keep <- edgeR::filterByExpr(cts, group = colData[,testing_against])
   #cts <- cts[keep,]
   
