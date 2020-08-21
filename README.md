@@ -22,13 +22,13 @@ Milestones:
  - "Completed" tasks:
    - Integration / Clustering:
      - Droplet only right now (see below for discussion)
-     - Using CCA, combat, fastMNN, harmony, liger, magic, scanorama, scVI, insct 
+     - Using CCA, combat, fastMNN, harmony, liger, magic, scanorama, scVI, insct , bbknn
        - CCA dropped (2020-07) for full integration as it runs too slowly / requires too much memory
        - still trying CCA with the well only data
      - Benchmarking with ARI, LISI, Silhouette
      - scVI better than the rest
      - Tested wide range of parameters (features, dimensions, knn, normalization) to pick best params for scVI
-     - As of July 2020: 5000 features, 50 dims, knn 7
+     - As of August 2020: 5000 features, 8 dims, knn 7
      - Hand compared walktrap with jaccard/louvain; the latter works better (visual inspection of cluster <-> umap)
      - Testing "subclustering" (higher resolution?) by running louvain again *within* a cluster
    - Diff testing:
