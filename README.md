@@ -43,7 +43,9 @@ Milestones:
      - 2020-07 approach: three integrations:
        - onlyDroplet (major viz)
        - onlyWell (alt. viz)
+         - using this approach. still optimizing the parameteres for well only (2020-08)
        - universe (droplet + well) just to project celltypes onto well data
+         - this doesn't work
     - Internal (NEI) deploy of scAnthology Shiny app, April 2020
       - Thanks (mostly) to [scattermore](https://github.com/exaexa/scattermore)
       - [INSERT GIF?]
