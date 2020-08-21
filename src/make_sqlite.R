@@ -8,15 +8,17 @@ load(args[1])
 load(args[2])
 load(args[3])
 load(args[4])
+load(args[5])
 
 # add study meta
 study_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GEO_Study_Level_Metadata.tsv')
+umap <- umap %>% left_join(phate_2D$embedding %>% as_tibble(rownames = 'Barcode'))
 umap <- umap %>% left_join(., study_meta, by = c('study_accession'))
 well_metadata <- seurat_obj@meta.data %>% as_tibble() %>% select(-contains('RNA_snn'), -barcode, -cluster) %>% rename(cluster = seurat_clusters, CellType_predict = CellType)
 well_metadata <- well_metadata %>% left_join(., study_meta, by = c('study_accession'))
 
 # make metadata
-metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, nCount_RNA, nFeature_RNA, Phase, percent_mt = `percent.mt`, S_Score = `S.Score`, G2M_Score = `G2M.Score`, batch, sample_accession, study_accession, Age, library_layout, organism, Platform, UMI, Covariate, CellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, SubCellType, GSE, Summary, Citation, PMID, Design) %>% 
+metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, PHATE1, PHATE2, nCount_RNA, nFeature_RNA, Phase, percent_mt = `percent.mt`, S_Score = `S.Score`, G2M_Score = `G2M.Score`, batch, sample_accession, study_accession, Age, library_layout, organism, Platform, UMI, Covariate, CellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, SubCellType, GSE, Summary, Citation, PMID, Design) %>% 
 		mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType)) %>%
 			left_join(., meta, by = 'Barcode')
 
@@ -63,7 +65,7 @@ genes <- row.names(cpm) %>% enframe(value = 'Gene') %>% dplyr::select(-name) %>%
 
 long_data <- list()
 
-if (args[6] == 'TRUE'){
+if (args[7] == 'TRUE'){
 	seurat_meta <- integrated_obj@meta.data
 	seurat_meta <- seurat_meta %>% as_tibble(rownames = 'Barcode') %>% left_join(., umap %>% select(Barcode, organism, CellType_predict), by = 'Barcode')
 	for (i in seq(1:chunk_num)){
@@ -112,7 +114,7 @@ if (args[6] == 'TRUE'){
 rm(integrated_obj)
 
 long <- bind_rows(long_data)
-pool <- dbPool(RSQLite::SQLite(), dbname = args[5])
+pool <- dbPool(RSQLite::SQLite(), dbname = args[6])
 dbWriteTable(pool, "cpm", long, overwrite = TRUE)
 db_create_index(pool, table = 'cpm', columns = c('Gene'))
 db_create_index(pool, table = 'cpm', columns = c('Barcode'))
@@ -140,6 +142,6 @@ db_create_index(pool, table = 'grouped_stats', columns = c('Gene'))
 #                        summarise(cell_ct = n())
 #dbWriteTable(pool, 'meta_only_grouped_stats', grouped_stats, overwrite = TRUE)
 
-args[7] <- Sys.Date()
+args[8] <- Sys.Date()
 dbWriteTable(pool, 'input_data', args %>% enframe(), overwrite = TRUE)
 poolClose(pool)
