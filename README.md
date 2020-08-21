@@ -50,18 +50,7 @@ Milestones:
      - Cell Cycle ID (Done 2020-07. Stupid easy with Seurat.)
      - Doublet ID (done with scrublet and scran as of ~2020/04/25)
        - Have tried super hard to get solo to work, but it is too damn slow, which is surprising as it uses scVI
-    - BIG ONE:
-      - Process Tabula Muris Mouse Atlas data to provide non-retina cell type "comparison" (droplet only as of 2020-07)
-  - To do:
-    - [Velocity](https://bustools.github.io/BUS_notebooks_R/velocity.html) 
-    
-    - Trajectory with [slingshot](https://bioconductor.org/packages/release/bioc/html/slingshot.html)
+    - Tabula Muris
+      - Integrated Tabula Muris Mouse Atlas data to provide non-retina cell type "comparison" (droplet only as of 2020-07)
 
-    - Diff testing
-      - Diff testing on subclustering (2020-07: part "D" explodes into flames too often)
-    - CellType prediction
-      - predict rarer (SubCellTypes) cells (mostly Sanes)
-      - compare performance against Seurat (and others???)
-    - Do isoform-level tx calling with well data
-      - Crib from [Sina's](https://www.biorxiv.org/content/10.1101/2020.03.05.977991v3) paper
  
