@@ -41,7 +41,47 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
   # otherwise weird-ness may happen
   # the scaling happens at this level
   # e.g. DO NOT use 'batch' in build_seurat_obj.R then 'study_accession' here
-  if (method == 'CCA'){
+ if (method == 'bbknn'){
+    if (transform == 'SCT'){
+	  assay <- 'SCT'
+      vfeatures <- grep('^MT-', seurat_obj@assays$SCT@var.features, invert =TRUE, value = TRUE)
+      matrix = seurat_obj@assays$SCT@scale.data[vfeatures, ] %>% t()    
+	} else {
+    assay <- 'RNA'
+    vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
+    matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ] %>% t()
+	}
+	rand <- sample(1e7:9e7,1)
+    out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', rand, '_',  latent, '.loom')
+	create(filename= out, 
+           overwrite = TRUE,
+           data = matrix, 
+           cell.attrs = list(batch = seurat_obj@meta.data[,covariate],
+                             batch_indices = seurat_obj@meta.data[,covariate] %>% 
+                               as.factor() %>% 
+                               as.numeric()))
+    # connect to new loom file, then disconnect...otherwise python call gets borked for 
+    # as we are connected into the file on create
+    loom <- connect(out, mode = 'r')
+    loom$close_all() 
+	
+
+	bbknn_command = paste('/data/mcgaugheyd/conda/envs/bbknn/bin/./python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_bbknn.py',
+                         out,
+						 latent)
+    # run scVI
+    print(bbknn_command)
+    system(bbknn_command)
+	# import batch corrected dims	
+    latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
+	latent_dims <- latent_dims[2:nrow(latent_dims),2:ncol(latent_dims)]
+    row.names(latent_dims) <- colnames(seurat_obj)
+    colnames(latent_dims) <- paste0("bbknn_", 1:ncol(latent_dims))
+    
+    seurat_obj[["bbknn"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "bbknn_", assay = DefaultAssay(seurat_obj))
+	obj <- seurat_obj 
+ } 
+ if (method == 'CCA'){
 	refs = c('SRP158081_10xv2_Rep1', 'SRP166660_10xv2_run2', 'SRP158528_10xv2_Macaque2')
     obj <- seurat_obj
     if (transform == 'SCT'){
