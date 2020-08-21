@@ -63,10 +63,14 @@
 		"time" : "4:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
+	"calculate_phate" :
+	{
+		"mem" : "100G"
+	},
 	"integrate_00" :
 	{
 		"mem" : "400G",
-		"partition" : "largemem"
+		"partition" : "largemem",
 		"time" : "48:00:00",
 		"extra" : " --gres=lscratch:5"
 	},
