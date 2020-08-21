@@ -194,7 +194,7 @@ if config['subset_clustering'] == 'False':
 					dist = [0.3],
 					neighbors = [30]),
 			'merged_stats_2020_07_06.Rdata',
-			'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite.gz',
+			#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite.gz',
 else:
 	rule all:
 		input:	
@@ -577,6 +577,18 @@ rule calculate_tsne:
 			{wildcards.method} {wildcards.dims} {wildcards.perplexity} {input} {output}
 		"""
 
+rule calculate_phate:
+	input:
+		obj = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+	output:
+		'phate/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.phate.Rdata'
+	threads: 16
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_phate.R {input} {output}
+		"""
+		
 rule calculate_cluster:
 	input:
 		obj = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
@@ -587,21 +599,6 @@ rule calculate_cluster:
 		module load R/3.6
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
 			{wildcards.method} {wildcards.dims} 1 1 {wildcards.knn} TRUE FALSE {input} {output}
-		"""
-
-rule run_phate:
-	input:
-		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
-	output:
-		'phate/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.phate.Rdata'
-	threads: 24
-	shell:
-		"""
-		module load R/3.6
-		module load python/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_phate.R \
-			seurat_obj/{wildcards.combination}__n_features{wildcards.n_features}__{wildcards.transform}__{wildcards.partition}__{wildcards.covariate}__{wildcards.method}__dims{wildcards.dims}.scVI_scaled.Rdata \
-			{output}
 		"""
 
 rule extract_umap:
@@ -828,7 +825,8 @@ rule make_sqlite:
 		seurat = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
 		meta = 'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umapFilter.predictions.Rdata',
 		cluster = 'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
-		well_data =  'well_data_seurat_obj_labelled.Rdata'
+		well_data =  'well_data_seurat_obj_labelled.Rdata',
+		phate = 'phate/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.phate.Rdata'
 	params:
 		'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite'
 	output:
@@ -841,6 +839,7 @@ rule make_sqlite:
 			{input.meta} \
 			{input.cluster} \
 			{input.well_data} \
+			{input.phate} \
 			{output} \
 			{wildcards.correction}
 		#pigz -p 32 {params}
@@ -910,7 +909,7 @@ rule sqlite_add_tables:
 		doublet = 'doublet_calls/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}.doublets.Rdata'
 	output:
 		uncompressed = 'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite',
-		comp = 'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
+		compressed = 'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
 	params:
 		inp = 'site/anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite',
 		uncompressed = 'site/MOARTABLES__anthology_limma{correction}___{combination}-{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite'
@@ -923,7 +922,7 @@ rule sqlite_add_tables:
 			{input.C2} \
 			{input.doublet}
 		pigz -c -p {threads} {params.inp} > {output.compressed}
-		mv {input.sqlite} {params.uncomprssed}
+		mv {input.sqlite} {params.uncompressed}
 		"""
 
 rule make_PLAE_objs:
@@ -999,27 +998,27 @@ if config['subset_clustering'] == 'False':
 					method = ['insct','magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['onlyWELL'], \
-					n_features = [2000], \
+					n_features = [500, 1000, 2000], \
 					covariate = ['batch'], \
-					dims = [8, 30],
+					dims = [4, 8, 30],
 					knn = [7]),
 			expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 					transform = ['counts'], \
 					method = ['scVI'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['onlyWELL'], \
-					n_features = [2000], \
+					n_features = [500, 1000, 2000], \
 					covariate = ['batch'], \
-					dims = [8, 30],
+					dims = [4, 8, 30],
 					knn = [7]),
 			expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 					transform = ['SCT'], \
 					method = ['CCA'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['onlyWELL'], \
-					n_features = [2000], \
+					n_features = [500, 1000, 2000], \
 					covariate = ['batch'], \
-					dims = [8, 30],
+					dims = [4, 8, 30],
 					knn = [7]),
 			expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
