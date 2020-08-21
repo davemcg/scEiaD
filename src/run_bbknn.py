@@ -5,7 +5,7 @@ import pandas as pd
 import scanpy as sc
 
 args = sys.argv
-latent = args[2]
+latent = int(args[2])
 adata = sc.read_loom(args[1], sparse = True)
 sc.tl.pca(adata, latent)
 bb.bbknn(adata, batch_key = 'batch')

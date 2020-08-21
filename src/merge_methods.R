@@ -45,11 +45,11 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     if (transform == 'SCT'){
 	  assay <- 'SCT'
       vfeatures <- grep('^MT-', seurat_obj@assays$SCT@var.features, invert =TRUE, value = TRUE)
-      matrix = seurat_obj@assays$SCT@scale.data[vfeatures, ] %>% t()    
+      matrix = seurat_obj@assays$SCT@scale.data[vfeatures, ]     
 	} else {
     assay <- 'RNA'
     vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
-    matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ] %>% t()
+    matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
 	}
 	rand <- sample(1e7:9e7,1)
     out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', rand, '_',  latent, '.loom')
@@ -69,7 +69,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 	bbknn_command = paste('/data/mcgaugheyd/conda/envs/bbknn/bin/./python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_bbknn.py',
                          out,
 						 latent)
-    # run scVI
+    # run bbknn 
     print(bbknn_command)
     system(bbknn_command)
 	# import batch corrected dims	

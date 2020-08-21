@@ -131,7 +131,7 @@ for SRS in SRS_dict.keys():
 	elif SRS_dict[SRS]['tech'] != 'BULK':
 		SRS_nonUMI_samples.append(SRS)
 
-method = ['bbknn', 'bbknn','insct','magic', 'scVI','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
+method = [ 'insct','magic', 'scVI','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
 transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
@@ -185,7 +185,7 @@ if config['subset_clustering'] == 'False':
 					neighbors = [15, 30, 50, 100, 500]),
 			expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 					transform = ['sqrt','libSize','scran', 'standard', 'SCT'], \
-					method = ['bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
+					method = ['insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['TabulaDroplet'], \
 					n_features = [2000], \
@@ -986,7 +986,7 @@ if config['subset_clustering'] == 'False':
 					knn = [5, 7, 10]),
 			expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 					transform = ['libSize','sqrt','scran', 'standard'], \
-					method = ['bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
+					method = ['insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['TabulaDroplet'], \
 					n_features = [2000], \
@@ -995,7 +995,7 @@ if config['subset_clustering'] == 'False':
 					knn = [7]),
 			expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 					transform = ['libSize','sqrt','scran', 'standard'], \
-					method = ['bbknn','insct','magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
+					method = ['insct','magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['onlyWELL'], \
 					n_features = [500, 1000, 2000], \
@@ -1033,7 +1033,7 @@ if config['subset_clustering'] == 'False':
 					knn = [5,7,10]),
 			expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
 					transform = ['libSize','sqrt','scran', 'standard'], \
-					method = ['bbknn','insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'CCA', 'none'], \
+					method = ['insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'CCA', 'none'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['TabulaDroplet'], \
 					n_features = [2000], \
