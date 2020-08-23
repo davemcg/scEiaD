@@ -23,7 +23,7 @@ load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_inf
 # load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/fastMNN_umap_full.Rdata')
 study_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GEO_Study_Level_Metadata.tsv')
 
-scEiaD <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite", idleTimeout = 3600000)
+scEiaD <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/scEiaD__2020_08_13__Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite", idleTimeout = 3600000)
 meta <- scEiaD %>% tbl('metadata') %>% as_tibble()
 
 stats <- meta %>% group_by(study_accession, Platform) %>% summarise(Counts = n())
@@ -38,27 +38,28 @@ Information on number/composition of studies
 
 `r table01$Citation %>% unique() %>% length() + table01 %>% filter(Citation == '') %>% nrow()` unique studies
 
+Colors from https://personal.sron.nl/~pault/#sec:qualitative
 ```{r}
 color_bar_factor <- formatter("span",
                               style = function(x) style(
                                 display = "block",
-                                color = "white",
+                                color = "black",
                                 border.radius = "4px",
-                                background = c("#E69F00", "#56B4E9", "#009E73")[factor(as.character(x))]))
+                                background = c("#44BB99", "#EE8866", "#BBCC33")[factor(as.character(x))]))
 
 color_bar_factor2 <- formatter("span",
-                              style = function(x) style(
-                                display = "block",
-                                color = "white",
-                                border.radius = "4px",
-                                background = c("#0072B2", "#D55E00")[factor(as.character(x))]))
+                               style = function(x) style(
+                                 display = "block",
+                                 color = "black",
+                                 border.radius = "4px",
+                                 background = c("#DDDDDD", "#FFAABB")[factor(as.character(x))]))
 
 color_bar_factor3 <- formatter("span", width = "5px",
-                              style = function(x) style(
-                                display = "block",
-                                color = "white",
-                                border.radius = "4px",
-                                background = type_val[factor(as.character(x))]))
+                               style = function(x) style(
+                                 display = "block",
+                                 color = "black",
+                                 border.radius = "4px",
+                                 background = type_val[factor(as.character(x))]))
 
 export_formattable <- function(f, file, width = "100%", height = NULL, 
                                background = "white", delay = 0.2)
@@ -73,9 +74,9 @@ export_formattable <- function(f, file, width = "100%", height = NULL,
 }
 
 post <- stats %>% rename(`Post QC<br/>Count` = Counts) %>% 
-              select(study_accession, Platform, `Post QC<br/>Count`) %>% 
-              group_by(study_accession, Platform) %>% 
-              summarise(`Post QC<br/>Count` = sum(`Post QC<br/>Count`))
+  select(study_accession, Platform, `Post QC<br/>Count`) %>% 
+  group_by(study_accession, Platform) %>% 
+  summarise(`Post QC<br/>Count` = sum(`Post QC<br/>Count`))
 
 table01 <- cell_info_labels %>% 
   filter(!is.na(study_accession)) %>% 
@@ -87,7 +88,7 @@ table01 <- cell_info_labels %>%
                           TRUE ~ PMID),
          `SRA Accession` = study_accession,
          Labels = case_when(!is.na(CellType) ~ 'Yes',
-                              TRUE ~ 'No')) %>% 
+                            TRUE ~ 'No')) %>% 
   group_by(Citation, PMID, `SRA Accession`, organism, Platform) %>% 
   summarise(Count = n(), Labels = unique(Labels) %>% sort() %>% tail(1)) %>% 
   arrange(organism, -Count) %>% 
@@ -122,8 +123,8 @@ table02 <- cell_info_labels %>%
          !CellType %in% c('Doublet', 'Doublets'),
          !grepl('RPE|Vascul', CellType)) %>% 
   mutate(organism = case_when(grepl('Homo', organism) ~ 'HS',
-                             grepl('Mus', organism) ~ 'MM',
-                             TRUE ~ 'MF')) %>% 
+                              grepl('Mus', organism) ~ 'MM',
+                              TRUE ~ 'MF')) %>% 
   group_by(CellType,organism, study_accession) %>% 
   summarise(Count = n()) %>% 
   summarise(Studies = length(study_accession), Count = sum(Count)) %>% 
@@ -139,30 +140,41 @@ save(formattable_01, formattable_02, file = 'formattables.Rdata')
 
 # Table 3 
 Alluvial plot of Labelled CellTypes and Projected CellTypes
-```{r}
+```{r, fig.height=8, fig.width=2.5}
 library(ggalluvial)
-
+# not_common <- meta %>% group_by(CellType) %>% count() %>% filter(n<2000) %>% pull(CellType)
+# meta <- meta %>% mutate(CellType_rare = case_when(CellType %in% not_common ~ CellType))
 meta %>% 
+  #filter(CellType %in% common) %>% 
+  filter(!(!Platform %in% c('10xv2','10xv3','DropSeq') & CellType_predict == 'Unlabelled'  )) %>% 
+  filter(!(!Platform %in% c('10xv2','10xv3','DropSeq') & CellType_predict == 'Muller Glia Progenitor'  )) %>% 
   mutate(CellType = case_when(is.na(CellType) ~ 'Unlabelled', TRUE ~ CellType)) %>% 
+  mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unlabelled', TRUE ~ CellType_predict)) %>% 
   select(CellType, CellType_predict) %>% 
   group_by(CellType, CellType_predict) %>% 
   summarise(Count = n()) %>% 
-  ggplot(aes(y = log2(Count), axis1 = CellType, axis2 = CellType_predict, )) +
+  ggplot(aes(y = sqrt(Count), axis1 = CellType, axis2 = CellType_predict)) +
   geom_alluvium(aes(fill = `CellType`), alpha = 0.8) +
   geom_stratum(alpha = 0) +
-  # ggrepel::geom_text_repel(stat = "stratum", 
-  #                          label.strata = TRUE, 
-  #                          direction = "y",
-  #                          nudge_x = c(rep(c(-10),32), rep(c(10),32))) +
-  ggfittext::geom_fit_text(stat = "stratum", width = 1/4, min.size = 2,
-                           aes(label = CellType_predict)) +
-  ggfittext::geom_fit_text(stat = "stratum", width = 1/4, min.size = 2,
-                           aes(label = CellType)) +
+  ggrepel::geom_text_repel(stat = "stratum",
+                           label.strata = TRUE,
+                           direction = "y", size = 2.7,
+                           aes(label = CellType),
+                           nudge_x = c(rep(c(-10),32))) +
+  ggrepel::geom_text_repel(stat = "stratum",
+                           label.strata = TRUE,
+                           direction = "y", size = 2.7,
+                           aes(label = CellType_predict),
+                           nudge_x = c(rep(c(10),32))) +
+  # ggfittext::geom_fit_text(stat = "stratum", width = 1/4, min.size = 2,
+  #                          aes(label = CellType_predict)) +
+  # #ggfittext::geom_fit_text(stat = "stratum", width = 1/4, min.size = 2,
+  # #                         aes(label = CellType)) +
   coord_cartesian(xlim = c(0.5,2.5)) +
   theme_void() +
   scale_fill_manual(values = c(pals::polychrome() %>% unname(),
-                    pals::alphabet() %>% unname())) +
-   theme(legend.title = element_blank())
+                               pals::alphabet() %>% unname())) +
+  theme(legend.position = "none")
 
 
 ```
@@ -200,6 +212,9 @@ meta %>%
   formattable(., list(Count = normalize_bar("lightblue")), width = "0.5")
 
 ```
+
+
+
 # Session Info
 ```{r}
 devtools::session_info()
