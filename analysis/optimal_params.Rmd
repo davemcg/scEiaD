@@ -16,16 +16,21 @@ Pick optimal knn, nfeatures, nneighbors, dims based upon:
 ```{r}
 library(tidyverse)
 library(cowplot)
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/metrics_onlyDROPLET_2020_06_02.Rdata')
+load('/Volumes/OGVFB_BG/scEiaD/metrics_2020_08_20.Rdata')
 
 
-perf_well <- perf %>% unique() %>% filter(grepl('WELL', subset)) %>% 
-  select(Score, Group, Value, dims:normalization) %>% 
+perf_well <- perf %>% unique() %>% filter(set == 'onlyWELL') %>% 
+  select(Score, Group, Value, set, dims:normalization) %>% 
   filter(Score %in% c('LISI','Silhouette')) 
 
 
-perf <- perf %>% unique() %>% filter(!grepl('WELL', subset)) %>% 
+perf_uni <- perf %>% unique() %>% filter(set == 'universe') %>% 
   select(Score, Group, Value, dims:normalization) %>% 
+  filter(Score %in% c('LISI','Silhouette', 'ARI', 'PCR', 'NMI')) 
+
+
+perf <- perf %>% unique() %>% filter(set == 'TabulaDroplet') %>% 
+  select(Score, Group, Value, set, dims:normalization) %>% 
   filter(Score %in% c('LISI','Silhouette', 'ARI', 'PCR', 'NMI')) 
 
 
@@ -46,7 +51,7 @@ perf %>%
 # ARI
 ```{r}
 perf %>% 
-  filter(Score == 'ARI', nf == 2000, dims %in% c(10,30), knn == 7) %>%
+  filter(Score == 'ARI', Group == 'CellType-Cluster', nf == 2000, dims %in% c(10, 30), knn == 7) %>%
   ggplot(aes(y=Value, x=normalization)) + geom_point(aes(color=method), size = 5) +
   cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname()) + ylab('ARI (higher is better)')
 ```
@@ -54,24 +59,27 @@ perf %>%
 # Silhouette Metric
 Want Batch as low as possible (-1 is perfect mixing) and Cluster as high as possible (1 is perfect purity of cluster types near each cell). Notice how the y-axis has been "flipped" by multiply by -1.
 ```{r}
-perf %>% filter(Score == 'Silhouette') %>% 
+perf %>% filter(Score == 'Silhouette', nf == 2000, dims %in% c(10,30), knn == 7) %>% 
     pivot_wider(values_from = Value, names_from = c('Group')) %>% 
   ggplot(aes(y=-Batch, x=Cluster, shape = normalization)) + geom_point(aes(color=method), size = 5) +
   cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname())
 ```
 
 # Table
+## TabulaDroplet
 Use Z scaling to get `sumZScale` score where the highest value is, overall across all the metrics, the best performer
 ```{r}
 perf %>% 
   pivot_wider(names_from = c('Score','Group'), values_from = Value) %>% 
   mutate(sumZScale = 
            -scale(LISI_CellType)[,1] +
+           -scale(LISI_SubCellType)[,1] +
            scale(Silhouette_CellType)[,1] +
+           #scale(Silhouette_SubCellType)[,1] +
            scale(`NMI_CellType-Cluster`)[,1] +
-           scale(`NMI_SubCellType-Cluster`)[,1] +
+           #scale(`NMI_SubCellType-Cluster`)[,1] +
            scale(`ARI_CellType-Cluster`)[,1] +
-           scale(`ARI_SubCellType-Cluster`)[,1] +
+           #scale(`ARI_SubCellType-Cluster`)[,1] +
            
            scale(LISI_Batch)[,1] + # Z score
            -scale(LISI_Cluster)[,1] +
@@ -80,12 +88,49 @@ perf %>%
            scale(`PCR_After-Before`)[,1]
            ) %>% 
   arrange(-sumZScale) %>% DT::datatable()
+```
 
+## onlyWELL
+Use Z scaling to get `sumZScale` score where the highest value is, overall across all the metrics, the best performer
+```{r}
+perf_well %>% 
+  pivot_wider(names_from = c('Score','Group'), values_from = Value) %>% 
+  mutate(sumZScale = 
+         
+           scale(LISI_Batch)[,1] + # Z score
+           2 * -scale(LISI_Cluster)[,1] + 
+           -scale(Silhouette_Batch)[,1] + # Z score
+           2 * scale(Silhouette_Cluster)[,1] 
+           ) %>% 
+  arrange(-sumZScale) %>% DT::datatable()
+```
+## Universe 
+(well and droplet and tabula muris)
+```{r}
+perf_uni %>% 
+  pivot_wider(names_from = c('Score','Group'), values_from = Value) %>% 
+  mutate(sumZScale = 
+           -scale(LISI_CellType)[,1] +
+           #-scale(LISI_SubCellType)[,1] +
+           scale(Silhouette_CellType)[,1] +
+           #scale(Silhouette_SubCellType)[,1] +
+           scale(`NMI_CellType-Cluster`)[,1] +
+           #scale(`NMI_SubCellType-Cluster`)[,1] +
+           scale(`ARI_CellType-Cluster`)[,1] +
+           #scale(`ARI_SubCellType-Cluster`)[,1] +
+           
+           scale(LISI_Batch)[,1] + # Z score
+           -scale(LISI_Cluster)[,1] +
+           -scale(Silhouette_Batch)[,1] + # Z score
+           scale(Silhouette_Cluster)[,1] +
+           scale(`PCR_After-Before`)[,1]
+           ) %>% 
+  arrange(-sumZScale) %>% DT::datatable()
 ```
 
 ```{r}
 devtools::session_info()
-save.image(file = paste0('../data/',Sys.Date(), 'optimal_params.Rdata'))
+#save.image(file = paste0('../data/',Sys.Date(), 'optimal_params.Rdata'))
 ```
 
 
