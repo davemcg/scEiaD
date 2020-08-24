@@ -137,6 +137,7 @@ covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe']
 dims = [4,6,8,10,20,25,30,50,75,100,200]
+knn = [0.2,0,4,0.6, 5, 7, 10, 15]
 model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 wildcard_constraints:
 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
@@ -983,7 +984,7 @@ if config['subset_clustering'] == 'False':
 					n_features = [1000, 2000, 5000, 10000], \
 					covariate = ['batch'], \
 					dims = [4,6,8,10,20,30,50,100],
-					knn = [5, 7, 10]),
+					knn = [0.2,0.4,0.6,5, 7, 10]),
 			expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 					transform = ['libSize','sqrt','scran', 'standard'], \
 					method = ['bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
@@ -1030,7 +1031,7 @@ if config['subset_clustering'] == 'False':
 					dims = [4,6,8,10,20,30,50,100], \
 					dist = [0.1], \
 					neighbors = [500], \
-					knn = [5,7,10]),
+					knn = [0.2,0.4,0.6,5,7,10]),
 			expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
 					transform = ['libSize','sqrt','scran', 'standard'], \
 					method = ['bbknn','insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'CCA', 'none'], \

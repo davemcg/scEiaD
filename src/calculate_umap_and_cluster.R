@@ -65,39 +65,57 @@ create_umap_and_cluster <- function(integrated_obj,
   # but also potentially not so valid
   # if you use, drop knn MUCH lower 0.6-1 or so
   if (cluster){
-    print("Clustering begining!")
-    #reduction = paste0(reduction.name, '3D')
-    #max_dims = 3
-    # switch to scran / igraph method as it is about 5X faster
-	for (k in knn){
-      graph <- buildSNNGraph(Embeddings(integrated_obj, reduction = reduction), 
-		transposed = TRUE, k = k, d = max_dims, type = 'jaccard')
-      cluster <- igraph::cluster_louvain(graph)$membership
-      integrated_obj@meta.data[,paste0('cluster_knn', k)] <- cluster
-	  integrated_obj@misc[[paste0("Graph_knn", k)]] <- graph
+	if (knn >= 2){
+	
+   		 print("Clustering begining!")
+   	 	#reduction = paste0(reduction.name, '3D')
+   	 	#max_dims = 3
+   	 	# switch to scran / igraph method as it is about 5X faster
+		for (k in knn){
+  	 	  graph <- buildSNNGraph(Embeddings(integrated_obj, reduction = reduction), 
+		  transposed = TRUE, k = k, d = max_dims, type = 'jaccard')
+   	  	  cluster <- igraph::cluster_louvain(graph)$membership
+   	 	  integrated_obj@meta.data[,paste0('cluster_knn', k)] <- cluster
+		  integrated_obj@misc[[paste0("Graph_knn", k)]] <- graph
 
-	  # do subclustering on each cluster
-	  meta <- cbind(integrated_obj@meta.data %>% row.names(), cluster) %>% data.frame()
-	  colnames(meta) <- c('Barcode','cluster')
-      k <- 20
-	  subcluster <- list()
-	  for (i in unique(meta$cluster)){
-  	    bc <- meta %>% 
-				as_tibble() %>% 
-		        filter(cluster == i) %>% 
-			    pull(Barcode) %>% 
-				as.character()
-        graph <- buildSNNGraph(Embeddings(integrated_obj, reduction = reduction)[bc,],
-                         transposed = TRUE, k = k, d = max_dims, type = 'jaccard')
-        c_bc <- igraph::cluster_louvain(graph)$membership
-        sub <- cbind(bc, c_bc) %>% data.frame()
-        colnames(sub) <- c('Barcode','subcluster')
-        subcluster[[i]] <- sub
+		  # do subclustering on each cluster
+		  meta <- cbind(integrated_obj@meta.data %>% row.names(), cluster) %>% data.frame()
+	 	 colnames(meta) <- c('Barcode','cluster')
+    	  k <- 20
+	    	subcluster <- list()
+	  	 for (i in unique(meta$cluster)){
+  	   		 bc <- meta %>% 
+					as_tibble() %>% 
+			        filter(cluster == i) %>% 
+				    pull(Barcode) %>% 
+					as.character()
+       		 graph <- buildSNNGraph(Embeddings(integrated_obj, reduction = reduction)[bc,],
+       	                  transposed = TRUE, k = k, d = max_dims, type = 'jaccard')
+       		 c_bc <- igraph::cluster_louvain(graph)$membership
+        	sub <- cbind(bc, c_bc) %>% data.frame()
+        	colnames(sub) <- c('Barcode','subcluster')
+       		 subcluster[[i]] <- sub
       }
 	  subcluster <- subcluster %>% bind_rows(.id = 'supercluster')  %>%
 						mutate(supersubcluster = paste0(supercluster, '.', subcluster))
 	  subcluster <- left_join(integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode'), subcluster, by = 'Barcode')
 	  integrated_obj@meta.data[,paste0('subcluster_knn', k)] <- subcluster$supersubcluster
+	}
+	} else {
+		# run parc
+		out_embeddings_file = paste(method, max_dims, dist, neighbors, knn, '.csv', sep = '_') 
+		in_embeddings_file = paste0(out_embeddings_file, 'RUN')
+		write.csv(Embeddings(integrated_obj, reduction = reduction), file = out_embeddings_file)
+		system(paste('/data/mcgaugheyd/conda/envs/parc/bin/python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_parc.py', out_embeddings_file, knn, in_embeddings_file))
+		clusters = read.csv(in_embeddings_file)
+		integrated_obj@meta.data[,paste0('cluster_knn', knn)] <- clusters[,2]	
+		integrated_obj@misc[[paste0("Graph_knn", knn)]] <- NA
+		parc_k = knn + 2
+		system(paste('/data/mcgaugheyd/conda/envs/parc/bin/python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_parc.py', out_embeddings_file, parc_k, in_embeddings_file))
+		clusters = read.csv(in_embeddings_file)
+		integrated_obj@meta.data[,paste0('subcluster_knn', parc_k)] <- clusters[,2]
+		system(paste0('rm ', out_embeddings_file))
+		system(paste0('rm ', in_embeddings_file))
 	}
 } else {
     #integrated_obj@meta.data$cluster <- NA
