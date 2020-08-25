@@ -71,26 +71,26 @@ for x in SRS_dict:
 			srs.append(x)
 			organism_droplet_dict[organism] = srs
 
-def lookup_run_from_SRS(SRS):
+def lookup_run_from_SRS(SRS, fqp):
 	SRR_files=SRS_dict[SRS]['SRR']
 	out = []
 	for SRR in SRR_files:
 		if SRS_dict[SRS]['paired']:
 			#PE
-			out.append('fastq/{}_1.fastq.gz'.format(SRR))
-			out.append('fastq/{}_2.fastq.gz'.format(SRR))
+			out.append(f'{fqp}/fastq/{SRR}_1.fastq.gz')
+			out.append(f'{fqp}/fastq/{SRR}_2.fastq.gz')
 		else:
 			#SE
-			out.append('fastq/{}.fastq.gz'.format(SRR))
+			out.append(f'{fqp}/fastq/{SRR}.fastq.gz')
 	return(out)
 
 # return dummy well file for macaca ,as there is no well data at this time
-def well_and_droplet_input(organism, reference):
+def well_and_droplet_input(organism, reference, quant_path):
 	if organism == 'Macaca_fascicularis':
-		out = ['quant/' + x + '/' + reference + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
+		out = [quant_path +'/quant/' + x + '/' + reference + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
 	else:
-		out = ['quant/' + organism + '/' + reference + '__counts.Rdata']	+ \
-				['quant/' + x + '/' + reference + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
+		out = [quant_path +'/quant/' + organism + '/' + reference + '__counts.Rdata']	+ \
+				[quant_path +'/quant/' + x + '/' + reference + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
 	return(out)
 
 def REF_idx(ref, data_to_return):
@@ -127,7 +127,9 @@ git_dir = config['git_dir']
 bustools_path = config['bustools_path']
 working_dir = config['working_dir']
 conda_dir = config['conda_dir']
-
+fastq_path = config['fastq_path']
+fi_tsne_dir = config['fi_tsne_dir']
+quant_path = config['quant_path']
 SRS_UMI_samples = []
 SRS_nonUMI_samples = []
 for SRS in SRS_dict.keys():
@@ -158,7 +160,7 @@ wildcard_constraints:
 if config['subset_clustering'] == 'False': 
 	rule all:
 		input:
-			expand('quant/{sample}/hs/output.bus', sample = SRS_UMI_samples),	
+			expand(quant_path +'/quant/{sample}/hs/output.bus', sample = SRS_UMI_samples),	
 			expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 					transform = ['counts'], \
 					method = ['scVI'], \
@@ -280,12 +282,12 @@ rule tx_gene_mapping:
 # this does the pseudoalignment for UMI data (e.g. 10x)
 rule kallisto_bus:
 	input:
-		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS),
+		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS, fastq_path),
 		idx = lambda wildcards: REF_idx(wildcards.reference, 'idx')
 	output:
-		bus = 'quant/{SRS}/{reference}/output.bus',
-		ec = 'quant/{SRS}/{reference}/matrix.ec',
-		tx_name = 'quant/{SRS}/{reference}/transcripts.txt'
+		bus = quant_path + '/quant/{SRS}/{reference}/output.bus',
+		ec = quant_path + '/quant/{SRS}/{reference}/matrix.ec',
+		tx_name = quant_path + '/quant/{SRS}/{reference}/transcripts.txt'
 	threads: 4
 	params:
 		tech = lambda wildcards: SRS_dict[wildcards.SRS]['tech'],
@@ -311,10 +313,10 @@ rule kallisto_bus:
 # pseudoaligment for nonUMI data (e.g. smartseq)
 rule kallisto_quant:
 	input:
-		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS),
+		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS, fastq_path),
 		idx = lambda wildcards: REF_idx(wildcards.reference, 'idx')
 	output:
-		quant = 'quant/{SRS}/{reference}/abundance.tsv.gz'
+		quant = quant_path +'/quant/{SRS}/{reference}/abundance.tsv.gz'
 	params:
 		paired = lambda wildcards: SRS_dict[wildcards.SRS]['paired']
 	threads: 8
@@ -342,9 +344,9 @@ rule kallisto_quant:
 # make these temp files
 rule bustools_sort:
 	input:
-		'quant/{SRS}/{reference}/output.bus'
+		quant_path + '/quant/{SRS}/{reference}/output.bus'
 	output:
-		temp('quant/{SRS}/{reference}/output.sorted.bus')
+		temp(quant_path +'/quant/{SRS}/{reference}/output.sorted.bus')
 	threads: 4
 	shell:
 		"""
@@ -357,15 +359,15 @@ rule bustools_sort:
 # make these temp files
 rule bustools_whitelist_correct_count:
 	input:
-		bus = 'quant/{SRS}/{reference}/output.sorted.bus',
-		ec = 'quant/{SRS}/{reference}/matrix.ec',
-		tx_name = 'quant/{SRS}/{reference}/transcripts.txt',
+		bus = quant_path + '/quant/{SRS}/{reference}/output.sorted.bus',
+		ec = quant_path + '/quant/{SRS}/{reference}/matrix.ec',
+		tx_name = quant_path +'/quant/{SRS}/{reference}/transcripts.txt',
 		tx_map = lambda wildcards: REF_idx(wildcards.reference, 'tx')
 	output:
 		whitelist = 'whitelist/{SRS}/{reference}_whitelist',
-		bus_matrix = 'quant/{SRS}/{reference}/genecount/gene.mtx'
+		bus_matrix = quant_path +'/quant/{SRS}/{reference}/genecount/gene.mtx'
 	params:
-		bus_out = 'quant/{SRS}/{reference}/genecount/gene'
+		bus_out = quant_path +'/quant/{SRS}/{reference}/genecount/gene'
 	shell:
 		"""
 		{bustools_path}/./bustools whitelist \
@@ -386,10 +388,10 @@ rule bustools_whitelist_correct_count:
 
 rule create_sparse_matrix:
 	input:
-		'quant/{SRS}/{reference}/genecount/gene.mtx'
+		quant_path +'/quant/{SRS}/{reference}/genecount/gene.mtx'
 	output:
-		stats = 'quant/{SRS}/{reference}/genecount/stats.tsv',
-		matrix = 'quant/{SRS}/{reference}/genecount/matrix.Rdata'
+		stats = quant_path + '/quant/{SRS}/{reference}/genecount/stats.tsv',
+		matrix = quant_path + '/quant/{SRS}/{reference}/genecount/matrix.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -398,7 +400,7 @@ rule create_sparse_matrix:
 
 rule merge_nonUMI_quant_by_organism:
 	input:
-		quant = lambda wildcards: expand('quant/{SRS}/{{reference}}/abundance.tsv.gz', SRS = organism_well_dict[wildcards.organism]),
+		quant = lambda wildcards: expand(quant_path + '/quant/{SRS}/{{reference}}/abundance.tsv.gz', SRS = organism_well_dict[wildcards.organism]),
 		tx_map = lambda wildcards: REF_idx(wildcards.reference, 'tx')
 	output:
 		'quant/{organism}/{reference}__counts.Rdata',
@@ -413,7 +415,7 @@ rule combine_well_and_umi:
 	input:
 		srr_metadata = config['srr_sample_file'],
 		tx_map = lambda wildcards:  REF_idx(wildcards.reference, 'tx'),  # SRS_info(organism_droplet_dict[wildcards.organism][0], 'tx'),
-		counts = lambda wildcards: well_and_droplet_input(wildcards.organism, wildcards.reference)
+		counts = lambda wildcards: well_and_droplet_input(wildcards.organism, wildcards.reference, quant_path)
 	output:
 		cell_info = '{organism}_{reference}_cell_info.tsv',
 		matrix = 'quant/{organism}/{reference}_full_sparse_matrix.Rdata'
@@ -464,9 +466,10 @@ rule make_seurat_objs:
 	shell:
 		"""
 		module load R/3.6
+		export SCIAD_GIT_DIR={git_dir}
 		Rscript {git_dir}/src/build_seurat_obj_classic.R \
 			{output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} \
-			{wildcards.combination} {wildcards.n_features} {input} {git_dir}/src
+			{wildcards.combination} {wildcards.n_features} {input} 
 		"""
 
 rule integrate_00:
@@ -561,7 +564,10 @@ rule celltype_predict_VS_xgboost:
 	shell:
 		"""
 		module load R/3.6
-	*Rscript  {git_dir}/src/celltype_predict_wrapper.R {input} {output}
+		export SCIAD_CONDA_DIR={conda_dir}
+		export SCIAD_GIT_DIR={git_dir}
+		export SCIAD_WORKING_DIR={working_dir}
+		Rscript  {git_dir}/src/celltype_predict_wrapper.R {input} {output}
 		"""
 
 rule doublet_ID:
@@ -572,7 +578,8 @@ rule doublet_ID:
 	shell:
 		"""
 		module load R/3.6
-		*Rscript {git_dir}/src/doublet_ID.R {input} {output}
+		export SCIAD_CONDA_DIR={conda_dir}
+		Rscript {git_dir}/src/doublet_ID.R {input} {output}
 		"""
 
 rule calculate_umap:
@@ -584,7 +591,9 @@ rule calculate_umap:
 	shell:
 		"""
 		module load R/3.6
-		*Rscript {git_dir}/src/calculate_umap_and_cluster.R \
+		export SCIAD_CONDA_DIR={conda_dir}
+		export SCIAD_GIT_DIR={git_dir}
+		Rscript {git_dir}/src/calculate_umap_and_cluster.R \
 			{wildcards.method} {wildcards.dims} {wildcards.dist} {wildcards.neighbors} 1 FALSE TRUE {input} {output}
 		"""
 
@@ -597,7 +606,8 @@ rule calculate_tsne:
 	shell:
 		"""
 		module load R/3.6
-		*Rscript {git_dir}/src/calculate_TSNE.R \
+		export SCIAD_FITSNE_DIR={fi_tsne_dir}
+		Rscript {git_dir}/src/calculate_TSNE.R \
 			{wildcards.method} {wildcards.dims} {wildcards.perplexity} {input} {output}
 		"""
 
@@ -610,7 +620,8 @@ rule calculate_phate:
 	shell:
 		"""
 		module load R/3.6
-		*Rscript {git_dir}/src/run_phate.R {input} {output}
+		export SCIAD_CONDA_DIR={conda_dir}
+		Rscript {git_dir}/src/run_phate.R {input} {output}
 		"""
 		
 rule calculate_cluster:
@@ -802,7 +813,7 @@ rule perf_metrics:
 	shell:
 		"""
 		module load R/3.6
-		?Rscript {git_dir}/src/perf_metrics.R {input} {output}
+		Rscript {git_dir}/src/perf_metrics.R {input} {output}
 		"""
 
 rule make_h5ad_object:
@@ -829,7 +840,9 @@ rule scIB_stats:
 	shell:
 		"""
 		module load R/3.6
-		*Rscript {git_dir}/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
+		export SCIAD_CONDA_DIR={conda_dir}
+		export SCIAD_GIT_DIR={git_dir}
+		Rscript {git_dir}/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
 		"""
 
 rule doublet_filtering:
@@ -858,7 +871,8 @@ rule make_sqlite:
 	shell:
 		"""
 		module load R/3.6
-		*Rscript {git_dir}/src/make_sqlite.R \
+		export SCIAD_GIT_DIR={git_dir}
+		Rscript {git_dir}/src/make_sqlite.R \
 			{input.seurat} \
 			{input.meta} \
 			{input.cluster} \
@@ -880,7 +894,8 @@ rule pseudoBulk_DGE_buildObj:
 	shell:
 		"""
 		module load R/4.0
-		*Rscript {git_dir}/src/pseudoBulk_buildObj.R {input} {wildcards.pseudoTest} {output}		
+		export SCIAD_GIT_DIR={git_dir}
+		Rscript {git_dir}/src/pseudoBulk_buildObj.R {input} {wildcards.pseudoTest} {output}		
 		"""
 
 rule pseudoBulk_DGE_difftest:
@@ -891,7 +906,8 @@ rule pseudoBulk_DGE_difftest:
 	shell:
 		"""
 		module load R/4.0
-		*Rscript {git_dir}/src/pseudoBulk_diff_testing.R {input} {wildcards.pseudoTest} {wildcards.piece} {output}		
+		export SCIAD_GIT_DIR={git_dir}
+		Rscript {git_dir}/src/pseudoBulk_diff_testing.R {input} {wildcards.pseudoTest} {wildcards.piece} {output}		
 		"""
 	
 rule merge_pseudoBulk_ABC:
