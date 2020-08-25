@@ -123,6 +123,11 @@ def ORG_ref(organism):
 		print(organism + ' NO MATCH')
 	return(out)
 
+git_dir = config['git_dir']
+bustools_path = config['bustools_path']
+working_dir = config['working_dir']
+conda_dir = config['conda_dir']
+
 SRS_UMI_samples = []
 SRS_nonUMI_samples = []
 for SRS in SRS_dict.keys():
@@ -259,7 +264,7 @@ rule tx_gene_mapping:
 		zgrep "^>" references/Macaca_mulatta.Mmul_10.cdna.all.fa.gz | \
 			sed 's/>//g' > mf.header
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/macaque_ensembl_fasta_header.R mf.header {output.mf}
+		Rscript {git_dir}/src/macaque_ensembl_fasta_header.R mf.header {output.mf}
 		rm mf.header
 		#wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/364/345/GCF_000364345.1_Macaca_fascicularis_5.0/GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz
 		#zcat GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz | \
@@ -343,7 +348,7 @@ rule bustools_sort:
 	threads: 4
 	shell:
 		"""
-		/home/mcgaugheyd/git/bustools/build/src/./bustools sort -t {threads} -m 16G \
+		{bustools_path}/./bustools sort -t {threads} -m 16G \
 			{input} \
 			-o {output}
 		"""
@@ -363,15 +368,15 @@ rule bustools_whitelist_correct_count:
 		bus_out = 'quant/{SRS}/{reference}/genecount/gene'
 	shell:
 		"""
-		/home/mcgaugheyd/git/bustools/build/src/./bustools whitelist \
+		{bustools_path}/./bustools whitelist \
 			{input.bus} \
 			-o {output.whitelist}
 
-		/home/mcgaugheyd/git/bustools/build/src/./bustools correct \
+		{bustools_path}/./bustools correct \
 			{input.bus} \
 			-w {output.whitelist} \
 			-p | \
-		/home/mcgaugheyd/git/bustools/build/src/./bustools count \
+		{bustools_path}/./bustools count \
 			-o {params.bus_out} \
 			-g {input.tx_map} \
 			-e {input.ec} \
@@ -388,7 +393,7 @@ rule create_sparse_matrix:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {output.matrix} {output.stats}
+		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {output.matrix} {output.stats} {working_dir}
 		"""		
 
 rule merge_nonUMI_quant_by_organism:
@@ -401,7 +406,7 @@ rule merge_nonUMI_quant_by_organism:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.quant} 
+		Rscript {git_dir}/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.quant} 
 		"""
 
 rule combine_well_and_umi:
@@ -415,7 +420,7 @@ rule combine_well_and_umi:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_sparse_matrix.R {wildcards.organism} {output} {input}
+		Rscript {git_dir}/src/build_sparse_matrix.R {wildcards.organism} {output} {input}
 		"""
 
 rule merge_across_references:
@@ -430,7 +435,7 @@ rule merge_across_references:
 		module load R/3.6
 		# script analyzes, for macaque, which gene is more detected when using human or macaque ref
 		# then creates new matrix blending "best" gene from either human or macaque
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/rebuild_macaque_sparse_matrix.R {wildcards.organism} {output} {input}
+		Rscript {git_dir}/src/rebuild_macaque_sparse_matrix.R {wildcards.organism} {output} {input}
 		"""	
 
 localrules: cat_cell_info
@@ -446,7 +451,7 @@ rule cat_cell_info:
 		#mv header {output}
 		#grep -hv "^value" {input} >> {output}
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/cat_cell_info.R {input}
+		?Rscript {git_dir}/src/cat_cell_info.R {input}
 		"""
 		
 rule make_seurat_objs:
@@ -459,9 +464,9 @@ rule make_seurat_objs:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_seurat_obj_classic.R \
+		Rscript {git_dir}/src/build_seurat_obj_classic.R \
 			{output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} \
-			{wildcards.combination} {wildcards.n_features} {input}	
+			{wildcards.combination} {wildcards.n_features} {input} {git_dir}/src
 		"""
 
 rule integrate_00:
@@ -470,18 +475,36 @@ rule integrate_00:
 	output:
 		#temp('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
 		('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
-	threads: 2 
-	run:
-		job = "module load R/3.6; \
-				Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
-				  {method} {transform} {covariate} {dims} {input} {output}".format(\
-						method = wildcards.method, \
-						transform = wildcards.transform, \
-					    covariate = wildcards.covariate, \
-						dims = wildcards.dims, \
-			            output = output, input = input)
-		sp.run("echo \"" +  job + "\"\n", shell = True)
-		sp.run(job, shell = True)
+	threads: 2 	
+	shell:
+		'''
+		module load R/3.6
+		export SCIAD_CONDA_DIR={conda_dir}
+		export SCIAD_GIT_DIR={git_dir}
+		cmd="Rscript {git_dir}/src/merge_methods.R \
+				  {wildcards.method} \
+				  {wildcards.transform} \
+				  {wildcards.covariate} \
+				  {wildcards.dims} \
+				  {input} \
+				  {output}"
+		
+		echo $cmd 
+		eval $cmd
+
+		'''
+	
+	# run:
+	# 	job = f'module load R/3.6; \
+	# 			*Rscript {git_dir}/src/merge_methods.R \
+	# 			  {wildcards.method} \
+	# 			  {wildcards.transform} \
+	# 			  {wildcards.covariate} \
+	# 			  {wildcards.dims} \
+	# 			  {input} \
+	# 			  {output}'
+	# 	sp.run("echo \"" +  job + "\"\n", shell = True)
+	# 	sp.run(job, shell = True)
 
 rule label_known_cells_with_type:
 	input:
@@ -492,7 +515,7 @@ rule label_known_cells_with_type:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/label_known_cells.R 
+		Rscript {git_dir}/src/label_known_cells.R 
 		"""
 
 
@@ -514,13 +537,13 @@ rule predict_missing_cell_types_00:
 	run:
 		if wildcards.partition == 'onlyWELL':
 			command = 'module load R/3.6; ' \
-						'Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels__sep_objs.R \
+						'?Rscript {git_dir}/src/transfer_labels__sep_objs.R \
 							{input} {transform} {output}'.format(input = ' '.join(input),
 																			transform = wildcards.transform,
 																			output = output) 
 		else:
 			command = 'module load R/3.6; ' \
-						'Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels.R \
+						'Rscript {git_dir}/src/transfer_labels.R \
 							{input} {transform} {output}'.format(input = ' '.join(input),
 																			transform = wildcards.transform,
 																			output = output)
@@ -538,7 +561,7 @@ rule celltype_predict_VS_xgboost:
 	shell:
 		"""
 		module load R/3.6
-		Rscript  /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/celltype_predict_wrapper.R {input} {output}
+	*Rscript  {git_dir}/src/celltype_predict_wrapper.R {input} {output}
 		"""
 
 rule doublet_ID:
@@ -549,7 +572,7 @@ rule doublet_ID:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/doublet_ID.R {input} {output}
+		*Rscript {git_dir}/src/doublet_ID.R {input} {output}
 		"""
 
 rule calculate_umap:
@@ -561,7 +584,7 @@ rule calculate_umap:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
+		*Rscript {git_dir}/src/calculate_umap_and_cluster.R \
 			{wildcards.method} {wildcards.dims} {wildcards.dist} {wildcards.neighbors} 1 FALSE TRUE {input} {output}
 		"""
 
@@ -574,7 +597,7 @@ rule calculate_tsne:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_TSNE.R \
+		*Rscript {git_dir}/src/calculate_TSNE.R \
 			{wildcards.method} {wildcards.dims} {wildcards.perplexity} {input} {output}
 		"""
 
@@ -587,7 +610,7 @@ rule calculate_phate:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_phate.R {input} {output}
+		*Rscript {git_dir}/src/run_phate.R {input} {output}
 		"""
 		
 rule calculate_cluster:
@@ -598,7 +621,7 @@ rule calculate_cluster:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
+		Rscript {git_dir}/src/calculate_umap_and_cluster.R \
 			{wildcards.method} {wildcards.dims} 1 1 {wildcards.knn} TRUE FALSE {input} {output}
 		"""
 
@@ -614,7 +637,7 @@ rule extract_umap:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_umap.R \
+		Rscript {git_dir}/src/extract_umap.R \
 			{input} {output} {wildcards.method}	UMAP
 		"""
 
@@ -629,7 +652,7 @@ rule extract_tsne:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_umap.R \
+		Rscript {git_dir}/src/extract_umap.R \
 			{input} {output} {wildcards.method} TSNE
 		"""
 
@@ -642,7 +665,7 @@ rule extract_cluster:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_cluster.R \
+		Rscript {git_dir}/src/extract_cluster.R \
 			{input} {output}
 		"""
 
@@ -654,7 +677,7 @@ rule plot_integration:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R UMAP {input} {output}
+		Rscript {git_dir}/src/big_plots.R UMAP {input} {output}
 		"""
 
 rule plot_integration_PREDICT:
@@ -666,7 +689,7 @@ rule plot_integration_PREDICT:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R UMAP {input.umap} {output} {input.celltype_predict}
+		Rscript {git_dir}/src/big_plots.R UMAP {input.umap} {output} {input.celltype_predict}
 		"""
 
 rule plot_integration_tsne:
@@ -677,7 +700,7 @@ rule plot_integration_tsne:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R TSNE {input} {output}
+		Rscript {git_dir}/src/big_plots.R TSNE {input} {output}
 		"""
 
 rule monocle_diff_testing:
@@ -688,7 +711,7 @@ rule monocle_diff_testing:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_monocle.R {input} 200 {wildcards.piece} {wildcards.model} {output}
+		Rscript {git_dir}/src/diff_testing_monocle.R {input} 200 {wildcards.piece} {wildcards.model} {output}
 		"""
 
 rule monocle_diff_testing_subcluster:
@@ -699,7 +722,7 @@ rule monocle_diff_testing_subcluster:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_monocle_subcluster.R {input} 200 {wildcards.cluster_chunk} G {output}
+		Rscript {git_dir}/src/diff_testing_monocle_subcluster.R {input} 200 {wildcards.cluster_chunk} G {output}
 		"""
 
 rule monocle_diff_merge:
@@ -713,7 +736,7 @@ rule monocle_diff_merge:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_diff_monocle.R {output} {wildcards.model} {input}
+		Rscript {git_dir}/src/merge_diff_monocle.R {output} {wildcards.model} {input}
 		"""
 
 rule monocle_diff_merge_subcluster:
@@ -724,7 +747,7 @@ rule monocle_diff_merge_subcluster:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_diff_monocle_subcluster.R {output} G {input}
+		?Rscript {git_dir}/src/merge_diff_monocle_subcluster.R {output} G {input}
 		"""
 
 rule monocle_marker_test:
@@ -736,7 +759,7 @@ rule monocle_marker_test:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_topMarker_monocle.R {input} {threads} {wildcards.group} {output}
+		Rscript {git_dir}/src/diff_testing_topMarker_monocle.R {input} {threads} {wildcards.group} {output}
 		"""
 
 rule build_monocle_obj:
@@ -751,7 +774,7 @@ rule build_monocle_obj:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/monocle.R {input} {output}
+		Rscript {git_dir}/src/monocle.R {input} {output}
 		"""
 
 rule diff_test_wilcox:
@@ -766,7 +789,7 @@ rule diff_test_wilcox:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_sce_wilcox.R {input} {wildcards.group} {threads} {output}
+		Rscript {git_dir}/src/diff_testing_sce_wilcox.R {input} {wildcards.group} {threads} {output}
 		"""
 
 rule perf_metrics:
@@ -779,7 +802,7 @@ rule perf_metrics:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/perf_metrics.R {input} {output}
+		?Rscript {git_dir}/src/perf_metrics.R {input} {output}
 		"""
 
 rule make_h5ad_object:
@@ -795,7 +818,7 @@ rule make_h5ad_object:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad.R {input} {output}
+		Rscript {git_dir}/src/seurat_to_h5ad.R {input} {output}
 		"""
 
 rule scIB_stats:
@@ -806,7 +829,7 @@ rule scIB_stats:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
+		*Rscript {git_dir}/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
 		"""
 
 rule doublet_filtering:
@@ -818,7 +841,7 @@ rule doublet_filtering:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/doublet_filtering.R {input} {output}
+		Rscript {git_dir}/src/doublet_filtering.R {input} {output}
 		"""
 
 rule make_sqlite:
@@ -835,7 +858,7 @@ rule make_sqlite:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/make_sqlite.R \
+		*Rscript {git_dir}/src/make_sqlite.R \
 			{input.seurat} \
 			{input.meta} \
 			{input.cluster} \
@@ -857,7 +880,7 @@ rule pseudoBulk_DGE_buildObj:
 	shell:
 		"""
 		module load R/4.0
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_buildObj.R {input} {wildcards.pseudoTest} {output}		
+		*Rscript {git_dir}/src/pseudoBulk_buildObj.R {input} {wildcards.pseudoTest} {output}		
 		"""
 
 rule pseudoBulk_DGE_difftest:
@@ -868,7 +891,7 @@ rule pseudoBulk_DGE_difftest:
 	shell:
 		"""
 		module load R/4.0
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_diff_testing.R {input} {wildcards.pseudoTest} {wildcards.piece} {output}		
+		*Rscript {git_dir}/src/pseudoBulk_diff_testing.R {input} {wildcards.pseudoTest} {wildcards.piece} {output}		
 		"""
 	
 rule merge_pseudoBulk_ABC:
@@ -880,7 +903,7 @@ rule merge_pseudoBulk_ABC:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_merge.R {input} {output}
+		Rscript {git_dir}/src/pseudoBulk_merge.R {input} {output}
 		"""
 
 rule merge_pseudoBulk_C2:
@@ -891,7 +914,7 @@ rule merge_pseudoBulk_C2:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_merge.R {input} {output}
+		Rscript {git_dir}/src/pseudoBulk_merge.R {input} {output}
 		"""
 
 
@@ -918,7 +941,7 @@ rule sqlite_add_tables:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/sqlite_add_diff_tables.R {params.inp} \
+		Rscript {git_dir}/src/sqlite_add_diff_tables.R {params.inp} \
 			{input.ABC} \
 			{input.C2} \
 			{input.doublet}
@@ -939,17 +962,17 @@ rule make_PLAE_objs:
 	shell:
 		"""
 		module load R/3.6
-		Rscript ~/git/massive_integrated_eye_scRNA/src/output_objs_for_plae.R
+		Rscript {git_dir}/src/output_objs_for_plae.R
 
-		Rscript ~/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad_core.R site/scEiaD_droplet_seurat_v3.Rdata scEiaD_droplet site/scEiaD_droplet_anndata.h5ad
-		Rscript ~/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad_core.R site/scEiaD_well_seurat_v3.Rdata scEiaD_well site/scEiaD_well_anndata.h5ad
+		Rscript {git_dir}/src/seurat_to_h5ad_core.R site/scEiaD_droplet_seurat_v3.Rdata scEiaD_droplet site/scEiaD_droplet_anndata.h5ad
+		Rscript {git_dir}/src/seurat_to_h5ad_core.R site/scEiaD_well_seurat_v3.Rdata scEiaD_well site/scEiaD_well_anndata.h5ad
 
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__A1__edgeR_obj.Rdata site/pseudoBulk_celltype.tsv.gz
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__B1__edgeR_obj.Rdata site/pseudoBulk_celltypePredict.tsv.gz
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__C1__edgeR_obj.Rdata site/pseudoBulk_clusterDroplet.tsv.gz
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__Cw1__edgeR_obj.Rdata site/pseudoBulk_clusterWell.tsv.gz
+		Rscript {git_dir}/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__A1__edgeR_obj.Rdata site/pseudoBulk_celltype.tsv.gz
+		Rscript {git_dir}/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__B1__edgeR_obj.Rdata site/pseudoBulk_celltypePredict.tsv.gz
+		Rscript {git_dir}/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__C1__edgeR_obj.Rdata site/pseudoBulk_clusterDroplet.tsv.gz
+		Rscript {git_dir}/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__Cw1__edgeR_obj.Rdata site/pseudoBulk_clusterWell.tsv.gz
 
-		Rscript ~/git/massive_integrated_eye_scRNA/src/build_QC_stats.R
+		Rscript {git_dir}/src/build_QC_stats.R
 		"""
 
 
@@ -1048,7 +1071,7 @@ if config['subset_clustering'] == 'False':
 		shell:
 			"""
 			module load R/3.6
-			Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/optimal_params.R
+			Rscript {git_dir}/src/optimal_params.R
 			"""
 
 else: 
@@ -1079,5 +1102,5 @@ else:
 		shell:
 			"""
 			module load R/3.6
-			Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/optimal_params.R
+			Rscript {git_dir}/src/optimal_params.R
 			"""

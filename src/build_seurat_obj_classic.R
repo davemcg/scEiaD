@@ -22,6 +22,7 @@ covariate = args[3] # study_accession, batch, etc.
 transform = args[4] # SCT or standard seurat
 combination = args[5] # mouse, mouse and macaque, mouse and macaque and human
 n_features = args[6] %>% as.numeric()
+git_dir = args[length(args)]
 cell_info <- read_tsv(args[7]) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
@@ -32,7 +33,7 @@ cell_info <- cell_info %>%
   mutate(batch = gsub(' ', '_', batch))
 
 nfeatures = args[7] %>% as.numeric()
-rdata_files = args[8:length(args)]
+rdata_files = args[8:(length(args)-1)]
 rdata <- list()
 for (i in rdata_files){
   load(i)
@@ -178,7 +179,7 @@ downsample_samples <-
   pull(value)
 m_downsample <- m[,downsample_samples]
 
-source('/home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/make_seurat_obj_functions.R')
+source(paste0(git_dir, '/src/make_seurat_obj_functions.R'))
 
 if (set == 'early'){
   print("Running Early")

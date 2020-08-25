@@ -1,2 +1,8 @@
 srr_sample_file: '/home/mcgaugheyd/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv'
 subset_clustering: 'False'
+git_dir: ''
+bustools_path: ''
+working_dir: ''
+repo_dir: ''
+conda_dir: ''
+config_abspath: ''

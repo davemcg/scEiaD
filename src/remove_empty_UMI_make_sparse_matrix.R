@@ -1,7 +1,6 @@
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
-base_dir <- '/data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA/'
-
+base_dir = args[5]
 SRS = args[1]
 REF = args[2]
 matrix_file <- paste0(base_dir, args[3])
