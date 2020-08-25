@@ -12,7 +12,9 @@ library(Seurat)
 library(scran)
 library(future)
 library(quminorm)
+library(glue)
 plan(strategy = "multicore", workers = 4)
+git_dir = Sys.getenv('SCIAD_GIT_DIR')
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 500000 * 1024^2)
@@ -22,7 +24,6 @@ covariate = args[3] # study_accession, batch, etc.
 transform = args[4] # SCT or standard seurat
 combination = args[5] # mouse, mouse and macaque, mouse and macaque and human
 n_features = args[6] %>% as.numeric()
-git_dir = args[length(args)]
 cell_info <- read_tsv(args[7]) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
@@ -33,7 +34,7 @@ cell_info <- cell_info %>%
   mutate(batch = gsub(' ', '_', batch))
 
 nfeatures = args[7] %>% as.numeric()
-rdata_files = args[8:(length(args)-1)]
+rdata_files = args[8:length(args)]
 rdata <- list()
 for (i in rdata_files){
   load(i)
@@ -57,7 +58,7 @@ if (combination == 'Mus_musculus'){
   row.names(rdata[["quant/Macaca_fascicularis/full_sparse_matrix.Rdata"]]) <- mf_gene$value
   load('tabula_muris_combined.Rdata') 
   # update gene symbols
-  mgi <- read_tsv('~/git/massive_integrated_eye_scRNA/data/MGIBatchReport_20200701_114356.txt')
+  mgi <- read_tsv( glue('{git_dir}/data/MGIBatchReport_20200701_114356.txt') )
   new_names <- row.names(facs_mat) %>% toupper() %>% as_tibble() %>% left_join(mgi, by = c('value' = 'Input')) %>% mutate(nname = case_when(is.na(Symbol) ~ value, TRUE ~ toupper(Symbol))) %>% group_by(value) %>% summarise(nname = head(nname, 1))
   row.names(facs_mat) <- new_names$nname
   new_names <- row.names(droplet_mat) %>% toupper() %>% as_tibble() %>% left_join(mgi, by = c('value' = 'Input')) %>% mutate(nname = case_when(is.na(Symbol) ~ value, TRUE ~ toupper(Symbol))) %>% group_by(value) %>% summarise(nname = head(nname, 1))
@@ -179,7 +180,7 @@ downsample_samples <-
   pull(value)
 m_downsample <- m[,downsample_samples]
 
-source(paste0(git_dir, '/src/make_seurat_obj_functions.R'))
+source(glue('{git_dir}/src/make_seurat_obj_functions.R') )
 
 if (set == 'early'){
   print("Running Early")
@@ -235,4 +236,3 @@ if (transform == 'SCT'){
   save(seurat__standard, 
        file = args[1], compress = FALSE)
 }
-

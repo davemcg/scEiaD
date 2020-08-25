@@ -1,6 +1,7 @@
 library(tidyverse)
 library(Seurat)
 library(future)
+fitsne_path = Sys.getenv('SCIAD_FITSNE_DIR')
 #library(scran)
 plan(strategy = "multicore", workers = 4)
 # the first term is roughly the number of MB of RAM you expect to use
@@ -35,7 +36,7 @@ create_TSNE_and_cluster <- function(integrated_obj,
                               learning_rate = 37500,
                               late_exag_coeff = 6,
                               tsne.method = 'FIt-SNE',
-                              fast_tsne_path = '/home/mcgaugheyd/git/FIt-SNE/bin/fast_tsne',
+                              fast_tsne_path = paste0(fitsne_path, '/FIt-SNE/bin/fast_tsne'),
                               initialization = 2,
   							  nthreads = 8,
                               reduction.name = reduction.name,

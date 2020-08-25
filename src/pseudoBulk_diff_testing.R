@@ -7,7 +7,7 @@ library(Seurat)
 library(edgeR)
 library(BiocParallel)
 multicoreParam <- MulticoreParam(workers = 12)
-
+git_dir = Sys.getenv('SCIAD_GIT_DIR')
 args <- commandArgs(trailingOnly = TRUE)
 
 load(args[1]) #edgeR obj with fit, dispersions, and processed data
@@ -18,7 +18,7 @@ out <- args[4]
 # functions -------
 ###############
 
-source('~/git/massive_integrated_eye_scRNA/src/pseudoBulk_functions.R')
+source( paste0(git_dir, '/src/pseudoBulk_functions.R') )
 #####################
 
 processed_data <- edgeR_obj$processed_data
