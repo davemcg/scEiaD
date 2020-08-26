@@ -195,6 +195,7 @@ if config['subset_clustering'] == 'False':
 					dist = [0.3],
 					neighbors = [30]),
 			'merged_stats_2020_07_06.Rdata',
+			'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-TabulaDroplet-batch-scVI-50-0.1-15-7.sqlite.gz'
 			#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite.gz',
 else:
 	rule all:
@@ -984,7 +985,7 @@ if config['subset_clustering'] == 'False':
 					n_features = [1000, 2000, 5000, 10000], \
 					covariate = ['batch'], \
 					dims = [4,6,8,10,20,30,50,100],
-					knn = [0.2,0.4,0.6,5, 7, 10]),
+					knn = [0.8,0.4,0.6,5, 7, 10]),
 			expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 					transform = ['libSize','sqrt','scran', 'standard'], \
 					method = ['bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
@@ -996,7 +997,7 @@ if config['subset_clustering'] == 'False':
 					knn = [7]),
 			expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 					transform = ['libSize','sqrt','scran', 'standard'], \
-					method = ['bbknn','insct','magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'liger', 'none'], \
+					method = ['bbknn','insct','magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['onlyWELL'], \
 					n_features = [500, 1000, 2000], \
@@ -1031,7 +1032,7 @@ if config['subset_clustering'] == 'False':
 					dims = [4,6,8,10,20,30,50,100], \
 					dist = [0.1], \
 					neighbors = [500], \
-					knn = [0.2,0.4,0.6,5,7,10]),
+					knn = [0.8,0.4,0.6,5,7,10]),
 			expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
 					transform = ['libSize','sqrt','scran', 'standard'], \
 					method = ['bbknn','insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'CCA', 'none'], \
