@@ -88,6 +88,9 @@ silhouette <- function(obj, against = 'batch'){
   })
   out
 }
+cluster_count <- meta %>% pull(2) %>% table() %>% as_tibble()
+colnames(cluster_count) <- c('Cluster','Count')
+scores$cluster_count <- cluster_count 
 print('scoring starts')
 print('silhouette')
 scores$silhouette_batch <- silhouette(cutdown)
