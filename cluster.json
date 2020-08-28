@@ -1,7 +1,7 @@
 {
 	"__default__" :
 	{
-		"partition" : "quick",
+		"partition" : "norm",
 		"time" : "04:00:00",
 		"mem" : "8g",
 		"extra" : "",
@@ -22,9 +22,14 @@
 		"time" : "00:20:00",
 		"mem" : "16G"
 	},
+	"kallisto_index":
+	{
+		"time" : "08:00:00",
+		"mem" : "60G"
+	},
 	"kallisto_quant" :
 	{
-		"time" : "00:45:00"
+		"time" : "00:30:00"
 	},
 	"merge_nonUMI_quant_by_organism" : 
 	{
@@ -52,27 +57,20 @@
 	"combine_well_and_umi" :
 	{
 		"mem" : "240G",
-		"partition" : "quick",
+		"partition" : "norm",
 		"time" : "4:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
 	"merge_across_references" :
 	{
 		"mem" : "240G",
-		"partition" : "quick",
+		"partition" : "norm",
 		"time" : "4:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
 	"calculate_phate" :
 	{
 		"mem" : "100G"
-	},
-	"integrate_00" :
-	{
-		"mem" : "400G",
-		"partition" : "largemem",
-		"time" : "48:00:00",
-		"extra" : " --gres=lscratch:5"
 	},
 	"integrate_01" :
 	{
@@ -142,7 +140,7 @@
 	{
 		"mem" : "50G",
 		"time" : "4:00:00",
-		"partition" : "quick",
+		"partition" : "norm",
 		"extra" : " --gres=lscratch:10"
 	},
 	"trajectory" :
@@ -160,7 +158,7 @@
 	},
 	"perf_metrics" :
 	{
-		"partition" : "quick",
+		"partition" : "norm",
 		"mem" : "175G",
 		"time" : "04:00:00"
 	},
@@ -194,14 +192,14 @@
 	{
 		"mem" : "120G",
 		"time" : "4:00:00",
-		"partition" : "quick",
+		"partition" : "norm",
 		"extra" : " --gres=lscratch:2"
 	},
 	"make_h5ad_object" :
 	{
 		"mem" : "200G",
 		"time" : "1:00:00",
-		"partition" : "quick"
+		"partition" : "norm"
 	},
 	"diff_test_wilcox" :
 	{
@@ -227,7 +225,7 @@
 	{
 		"mem" : "30G",
 		"time" : "1:00:00",
-		"partition" : "quick"
+		"partition" : "norm"
 	},
 	"make_sqlite" :
 	{
@@ -240,7 +238,7 @@
 	{
 		"mem" : "50G",
 		"time" : "2:00:00",
-		"partition" : "quick",
+		"partition" : "norm",
 		"extra" : " --gres=lscratch:5"
 	}
 }	
