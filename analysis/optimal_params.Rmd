@@ -66,6 +66,37 @@ perf_tabula %>% filter(Score == 'Silhouette', nf == 2000, dims %in% c(8,10,30), 
   cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname())
 ```
 
+# Sum Scale Bar Plot
+```{r}
+zscore_tabula <- perf_tabula %>% 
+  filter(nf == 2000, dims %in% c(8,30), knn == 7) %>% 
+  pivot_wider(names_from = c('Score','Group'), values_from = Value) %>% 
+  mutate(sumZScale = 
+           -scale(LISI_CellType)[,1] +
+           -scale(LISI_SubCellType)[,1]  +
+           scale(Silhouette_CellType)[,1] +
+           scale(Silhouette_SubCellType)[,1] +
+           scale(`NMI_CellType-Cluster`)[,1] +
+           scale(`NMI_SubCellType-Cluster`)[,1] +
+           scale(`ARI_CellType-Cluster`)[,1] +
+           scale(`ARI_SubCellType-Cluster`)[,1] +
+           
+           scale(LISI_Batch)[,1] + # Z score
+           -scale(LISI_Cluster)[,1] +
+           -scale(Silhouette_Batch)[,1] + # Z score
+           scale(Silhouette_Cluster)[,1] +
+           scale(`PCR_After-Before`)[,1]
+           ) %>% 
+  left_join(cluster_stats) %>% 
+  filter(!is.na(clusterN)) 
+  #filter(clusterMedian < 6000) 
+  
+zscore_tabula  %>% 
+  arrange(-sumZScale) %>% 
+  ggplot(aes(x=method, y = sumZScale, shape = normalization)) + geom_point(aes(color=method), size = 5) +
+  cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname()) + coord_flip()
+```
+
 # Table
 ## TabulaDroplet
 Use Z scaling to get `sumZScale` score where the highest value is, overall across all the metrics, the best performer
