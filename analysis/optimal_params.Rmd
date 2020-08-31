@@ -43,7 +43,7 @@ perf %>% DT::datatable()
 Want Batch as high as possible (mean # of batches near each cell) and Cluster as low as possible (mean # of cluster types near each cell)
 ```{r}
 perf_tabula %>% 
-  filter(Score == 'LISI', nf == 2000, dims %in% c(8,10,30), knn == 7) %>%
+  filter(Score == 'LISI', nf == 2000, dims %in% c(8,30), knn == 7) %>%
   pivot_wider(values_from = Value, names_from = c('Group')) %>% 
   ggplot(aes(y=Batch, x=-Cluster, shape = normalization)) + geom_point(aes(color=method), size = 5) +
   cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname())
@@ -52,7 +52,7 @@ perf_tabula %>%
 # ARI
 ```{r}
 perf_tabula %>% 
-  filter(Score == 'ARI', Group == 'CellType-Cluster', nf == 2000, dims %in% c(8,10, 30), knn == 7) %>%
+  filter(Score == 'ARI', Group == 'CellType-Cluster', nf == 2000, dims %in% c(8, 30), knn == 7) %>%
   ggplot(aes(y=Value, x=normalization)) + geom_point(aes(color=method), size = 5) +
   cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname()) + ylab('ARI (higher is better)')
 ```
@@ -60,7 +60,7 @@ perf_tabula %>%
 # Silhouette Metric
 Want Batch as low as possible (-1 is perfect mixing) and Cluster as high as possible (1 is perfect purity of cluster types near each cell). Notice how the y-axis has been "flipped" by multiply by -1.
 ```{r}
-perf_tabula %>% filter(Score == 'Silhouette', nf == 2000, dims %in% c(8,10,30), knn == 7) %>% 
+perf_tabula %>% filter(Score == 'Silhouette', nf == 2000, dims %in% c(8,30), knn == 7) %>% 
     pivot_wider(values_from = Value, names_from = c('Group')) %>% 
   ggplot(aes(y=-Batch, x=Cluster, shape = normalization)) + geom_point(aes(color=method), size = 5) +
   cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname())
@@ -93,8 +93,8 @@ zscore_tabula <- perf_tabula %>%
   
 zscore_tabula  %>% 
   arrange(-sumZScale) %>% 
-  ggplot(aes(x=method, y = sumZScale, shape = normalization)) + geom_point(aes(color=method), size = 5) +
-  cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname()) + coord_flip()
+  ggplot(aes(x=method, y = sumZScale, shape = normalization)) + geom_point(aes(color=method, size = dims)) +
+  cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname()) + coord_flip() 
 ```
 
 # Table
@@ -102,28 +102,29 @@ zscore_tabula  %>%
 Use Z scaling to get `sumZScale` score where the highest value is, overall across all the metrics, the best performer
 ```{r}
 zscore_tabula <- perf_tabula %>% 
-  filter(knn > 0.4) %>% 
+  #filter(knn > 0.4) %>% 
   filter(method == 'scVI') %>% 
   pivot_wider(names_from = c('Score','Group'), values_from = Value) %>% 
   mutate(sumZScale = 
            -scale(LISI_CellType)[,1] +
-           -scale(LISI_SubCellType)[,1]  +
+           -#(LISI_SubCellType)[,1]  +
            scale(Silhouette_CellType)[,1] +
-           scale(Silhouette_SubCellType)[,1] +
+           #scale(Silhouette_SubCellType)[,1] +
            scale(`NMI_CellType-Cluster`)[,1] +
-           scale(`NMI_SubCellType-Cluster`)[,1] +
+           #scale(`NMI_SubCellType-Cluster`)[,1] +
            scale(`ARI_CellType-Cluster`)[,1] +
-           scale(`ARI_SubCellType-Cluster`)[,1] +
+           #scale(`ARI_SubCellType-Cluster`)[,1] +
            
-           scale(LISI_Batch)[,1] + # Z score
+           scale(LISI_Batch)[,1] + 
            -scale(LISI_Cluster)[,1] +
-           -scale(Silhouette_Batch)[,1] + # Z score
+           -scale(Silhouette_Batch)[,1] + 
            scale(Silhouette_Cluster)[,1] +
+           
            scale(`PCR_After-Before`)[,1]
            ) %>% 
   left_join(cluster_stats) %>% 
-  filter(!is.na(clusterN)) 
-  #filter(clusterMedian < 6000) 
+  filter(!is.na(clusterN)) %>% 
+  filter(clusterMedian < 10000) 
   
 zscore_tabula  %>% 
   arrange(-sumZScale) %>% DT::datatable()
