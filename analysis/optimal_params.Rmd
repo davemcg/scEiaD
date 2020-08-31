@@ -73,28 +73,29 @@ zscore_tabula <- perf_tabula %>%
   pivot_wider(names_from = c('Score','Group'), values_from = Value) %>% 
   mutate(sumZScale = 
            -scale(LISI_CellType)[,1] +
-           -scale(LISI_SubCellType)[,1]  +
+           #-scale(LISI_SubCellType)[,1]  +
            scale(Silhouette_CellType)[,1] +
-           scale(Silhouette_SubCellType)[,1] +
+           #scale(Silhouette_SubCellType)[,1] +
            scale(`NMI_CellType-Cluster`)[,1] +
-           scale(`NMI_SubCellType-Cluster`)[,1] +
+           #scale(`NMI_SubCellType-Cluster`)[,1] +
            scale(`ARI_CellType-Cluster`)[,1] +
-           scale(`ARI_SubCellType-Cluster`)[,1] +
+           #scale(`ARI_SubCellType-Cluster`)[,1] +
            
            scale(LISI_Batch)[,1] + # Z score
            -scale(LISI_Cluster)[,1] +
            -scale(Silhouette_Batch)[,1] + # Z score
            scale(Silhouette_Cluster)[,1] +
-           scale(`PCR_After-Before`)[,1]
-           ) %>% 
+           scale(`PCR_After-Before`)[,1]) %>% 
   left_join(cluster_stats) %>% 
-  filter(!is.na(clusterN)) 
-  #filter(clusterMedian < 6000) 
+  filter(!is.na(clusterN))
   
 zscore_tabula  %>% 
   arrange(-sumZScale) %>% 
-  ggplot(aes(x=method, y = sumZScale, shape = normalization)) + geom_point(aes(color=method, size = dims)) +
-  cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname()) + coord_flip() 
+  ggplot(aes(x=method, y = sumZScale, shape = normalization, group = dims)) + 
+  geom_point(aes(color=method), size = 4, position = position_dodge(width = 1)) +
+  cowplot::theme_cowplot() + 
+  scale_color_manual(values = pals::alphabet() %>% unname()) + 
+  coord_flip() 
 ```
 
 # Table
