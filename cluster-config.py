@@ -6,7 +6,7 @@ import json
 import pickle 
 from snakemake.utils import read_job_properties
 #%%
-cluster_json_file = sys.argv[1]
+cluster_json_file =sys.argv[1]
 jobscript = sys.argv[2]
 custom_config_rules = ['integrate_00']
 #%%
@@ -48,19 +48,21 @@ else:# use default parameters
     params = cluster_json['__default__'] 
 
 #%%
-
-#fill in the command 
+ec_strings = [f"{key}={job_properties['wildcards'][key]}" for key in job_properties['wildcards'] ]
+ec_strings = '-'.join(ec_strings)
+output = f'{rule}.{ec_strings}'
 sbcmd=f'''sbatch --cpus-per-task={params['cpus-per-task']} \
     --mem={params['mem']} \
     --time={params['time']} \
+    --job-name={rule} \
     --partition={params['partition']} \
-    --output={params['output']} \
-    --error={params['error']} \
+    --output=00log/{output}.out \
+    --error=00log/{output}.err \
     {params['extra']} \
     {jobscript}
 
 '''
-
+#print(sbcmd)
 os.system(sbcmd)
 
 # %%
