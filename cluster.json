@@ -8,6 +8,10 @@
 		"output"  : "00log/{rule}_{wildcards}.out",
 		"error" : "00log/{rule}_{wildcards}.err" 
 	},
+	"get_velocity_files" :
+	{
+		"mem": "64G"
+	},
 	"bustools_sort" : 
 	{
 		"mem" : "32G",
@@ -15,7 +19,8 @@
 	},
 	"bustools_whitelist_correct_count" :
 	{
-		"time" : "00:20:00"	
+		"time" : "02:00:00",
+		"mem" : "64G"	
 	},
 	"create_sparse_matrix" : 
 	{
@@ -25,11 +30,16 @@
 	"kallisto_index":
 	{
 		"time" : "08:00:00",
-		"mem" : "60G"
+		"mem" : "120G"
 	},
 	"kallisto_quant" :
 	{
-		"time" : "00:30:00"
+		"mem": "120g",
+		"time" : "01:45:00"
+	},
+	"kallisto_bus": {
+		"mem": "120g",
+		"time": "00:45:00"
 	},
 	"merge_nonUMI_quant_by_organism" : 
 	{
