@@ -1,7 +1,7 @@
 srr_sample_file: '/data/swamyvs/scEiaD/data/sample_run_layout_organism_tech.tsv'
 subset_clustering: 'False'
 git_dir: '/data/swamyvs/scEiaD'
-bustools_path: '/data/swamyvs/bustools'
+bustools_path: '/data/swamyvs/scEiaD/bustools'
 working_dir: '/data/swamyvs/scEiaD'
 conda_dir: '/data/swamyvs/anaconda3'
 config_abspath: '/data/swamyvs/scEiaD/config.yaml'
