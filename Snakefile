@@ -158,6 +158,7 @@ combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus
 dims = [4,6,8,10,20,25,30,50,75,100,200]
 knn = [0.2,0,4,0.6, 5, 7, 10, 15]
 model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
+report: "report.rst"
 wildcard_constraints:
 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
 	method = '|'.join(method),
@@ -294,6 +295,7 @@ rule kallisto_bus:
 		ec = quant_path + '/quant/{SRS}/{tech}/{reference}/matrix.ec',
 		tx_name = quant_path + '/quant/{SRS}/{tech}/{reference}/transcripts.txt'
 	threads: 4
+	group: "bus"
 	params:
 		tech = lambda wildcards: SRS_dict[wildcards.SRS]['tech'],
 		paired_flag = lambda wildcards: '' if SRS_dict[wildcards.SRS]['paired'] else '--single',
@@ -323,6 +325,7 @@ rule kallisto_quant:
 		paired_flag = lambda wildcards: get_kallisto_quant_layout_flag(SRS_dict[wildcards.SRS]['paired']),
 		outdir =lambda wildcards:  f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}'
 	threads: 8
+	group:'quant'
 	shell:
 		'''
 		module load kallisto/0.46.2
@@ -330,7 +333,22 @@ rule kallisto_quant:
 					-i {input.idx} -o {params.outdir} {input.fastq}
 		gzip {params.outdir}/abundance.tsv
 		'''
-	
+rule separate_spliced_unspliced_welldata:
+	input:
+		quant = quant_path + '/quant/{SRS}/{tech}/{reference}/abundance.tsv.gz'
+	output:
+		spliced_quant = quant_path + '/quant/{SRS}/{tech}/{reference}/abundance_spliced.tsv.gz',
+		unspliced_quant = quant_path + '/quant/{SRS}/{tech}/{reference}/abundance_unspliced.tsv.gz'
+	params:
+		quant_uz = lambda wildcards: f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}/abundance.tsv'
+	group:'quant'
+	shell:
+		'''
+		gunzip {input.quant}
+		grep -v '.-I' {params.quant_uz} | gzip -c - > {output.spliced_quant}
+		grep  '.-I' {params.quant_uz} | gzip -c - > {output.unspliced_quant}
+		rm -f {params.quant_uz}
+		'''	
 
 			
 # sorting required for whitelist creation and correction
@@ -341,6 +359,7 @@ rule bustools_sort:
 	output:
 		temp(quant_path +'/quant/{SRS}/{tech}/{reference}/output.sorted.bus')
 	threads: 4
+	group: "bus"
 	shell:
 		"""
 		{bustools_path}/./bustools sort -t {threads} -m 16G \
@@ -363,6 +382,7 @@ rule bustools_whitelist_correct_count:
 	params:
 		bus_out =  lambda wildcards: f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}/genecount/',
 		vref = lambda wildcards: f'references/velocity/{wildcards.tech}/{wildcards.reference}'
+	group: "bus"
 	shell:
 		'''
 		{bustools_path}/./bustools whitelist \
@@ -387,29 +407,34 @@ rule create_sparse_matrix:
 		unspliced = quant_path +'/quant/{SRS}/{tech}/{reference}/genecount/unspliced.mtx', 
 
 	output:
-		stats = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/stats.tsv',
+		stats_spliced = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/stats.tsv',
+		stats_unspliced = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/stats_unspliced.tsv',
 		spliced_matrix = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/matrix.Rdata',
 		unspliced_matrix = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/unspliced_matrix.Rdata'
+	params:
+		bus_out = lambda wildcards: f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}/genecount/'
+	group: "bus"	
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {output.spliced_matrix} {output.stats} {working_dir}
-		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {output.unspliced_matrix} {output.stats} {working_dir}
+		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {params.bus_out} spliced {output.stats_spliced} {working_dir}
+		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {params.bus_out} unspliced {output.stats_unspliced} {working_dir}
 		"""		
 
 
 rule merge_nonUMI_quant_by_organism:
 	input:
-		quant = lambda wildcards: expand(quant_path + '/quant/{SRS}/{{tech}}/{{reference}}/abundance.tsv.gz', 
+		quant = lambda wildcards: expand(quant_path + '/quant/{SRS}/{{tech}}/{{reference}}/abundance_spliced.tsv.gz', 
 										SRS = [srs for srs in organism_well_dict[wildcards.organism] if SRS_dict[srs]['tech'] == wildcards.tech and SRS_dict ] ),
-		tx_map = 'references/velocity/{tech}/{reference}/tr2g.tsv'
+		tx_map = 'references/velocity/{tech}/{reference}/tr2g.tsv',
+		gtf = 'references/gtf/{reference}_anno.gtf.gz'
 	output:
 		quant_path + '/quant/{organism}/{tech}/{reference}__counts.Rdata',
 		quant_path + '/quant/{organism}/{tech}/{reference}__counts_tx.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.quant} 
+		Rscript {git_dir}/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.gtf} {input.quant} 
 		"""
 # 144419
 rule combine_well_and_umi:

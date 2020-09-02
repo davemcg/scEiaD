@@ -21,8 +21,12 @@ job_properties = read_job_properties(jobscript)
 params['cpus-per-task'] = job_properties['threads']# we are setting job properties within the snakefile
 #%%
 
+# add support for groups so we can bundle multiple rules together and stop dropping our job priorities
+if 'rule' in job_properties:
+    rule = job_properties['rule']
+else:
+    rule = job_properties['groupid']
 
-rule = job_properties['rule']
 if rule in cluster_json:
     for key in cluster_json[rule]:
         params[key] = cluster_json[rule][key]
@@ -48,9 +52,14 @@ else:# use default parameters
     params = cluster_json['__default__'] 
 
 #%%
-ec_strings = [f"{key}={job_properties['wildcards'][key]}" for key in job_properties['wildcards'] ]
-ec_strings = '-'.join(ec_strings)
-output = f'{rule}.{ec_strings}'
+#allow for rules that have no wildcards 
+if 'wildcards' in job_properties:
+    ec_strings = [f"{key}={job_properties['wildcards'][key]}" for key in job_properties['wildcards'] ]
+    ec_strings = '-'.join(ec_strings)
+    output = f'{rule}.{ec_strings}'
+else:
+    output = rule
+    
 sbcmd=f'''sbatch --cpus-per-task={params['cpus-per-task']} \
     --mem={params['mem']} \
     --time={params['time']} \
