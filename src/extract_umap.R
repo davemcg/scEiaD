@@ -10,6 +10,9 @@ subcluster <- meta %>% pull(3)
 load(args[1])
 s.genes <- cc.genes$s.genes
 g2m.genes <- cc.genes$g2m.genes
+if (DefaultAssay(integrated_obj) == 'integrated'){
+	DefaultAssay(integrated_obj) <- 'RNA'
+}
 integrated_obj <- CellCycleScoring(integrated_obj, s.features = s.genes, g2m.features = g2m.genes)
 meta <- integrated_obj@meta.data
 # load integrated seurat obj
