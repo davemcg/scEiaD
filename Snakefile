@@ -153,7 +153,7 @@ wildcard_constraints:
 if config['subset_clustering'] == 'False': 
 	rule all:
 		input:
-			expand('quant/{sample}/hs/output.bus', sample = SRS_UMI_samples),	
+			#expand('quant/{sample}/hs/output.bus', sample = SRS_UMI_samples),	
 			expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 					transform = ['counts'], \
 					method = ['scVI'], \
@@ -185,6 +185,16 @@ if config['subset_clustering'] == 'False':
 					dist = [0.001,0.1],
 					neighbors = [15, 30, 50, 100, 500]),
 			expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
+					transform = ['counts'], \
+					method = ['scArches'], \
+					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+					partition = ['TabulaDroplet'], \
+					n_features = [2000], \
+					covariate = ['batch'], \
+					dims = [8, 30],
+					dist = [0.3],
+					neighbors = [30]),
+			expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 					transform = ['sqrt','libSize','scran', 'standard', 'SCT'], \
 					method = ['bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
@@ -194,8 +204,31 @@ if config['subset_clustering'] == 'False':
 					dims = [8, 30],
 					dist = [0.3],
 					neighbors = [30]),
+			expand('trajectory_plot/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.png',
+					transform = ['counts'], \
+					method = ['scVI'], \
+					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+					partition = ['TabulaDroplet'], \
+					n_features = [1000, 2000, 5000, 10000], \
+					covariate = ['batch'], \
+					dims = [4,6,8,10,20,30,50,100], \
+					knn = [0.8,0.4,0.6,5, 7, 10], \
+					dist = [0.1], \
+					neighbors = [30]), 
+			expand('trajectory_plot/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.png',
+					transform = ['libSize','sqrt','scran', 'standard'], \
+					method = ['bbknn','insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'CCA', 'none'], \
+					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+					partition = ['TabulaDroplet'], \
+					n_features = [2000], \
+					covariate = ['batch'], \
+					dims = [8, 30], \
+					knn = [7], \
+					dist = [0.3], \
+					neighbors = [30]),
+			'trajectory_metrics/merged.Rdata',
 			'merged_stats_2020_07_06.Rdata',
-			'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-TabulaDroplet-batch-scVI-50-0.1-15-7.sqlite.gz'
+			#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-TabulaDroplet-batch-scVI-50-0.1-15-0.4.sqlite.gz'
 			#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite.gz',
 else:
 	rule all:
@@ -953,6 +986,73 @@ rule make_PLAE_objs:
 		Rscript ~/git/massive_integrated_eye_scRNA/src/build_QC_stats.R
 		"""
 
+rule quick_trajectory:
+	input:
+		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
+		'cluster/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
+		'umap/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'	
+	output:
+		'trajectory/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
+	shell:
+		"""
+		module load R/4.0
+		Rscript ~/git/massive_integrated_eye_scRNA/src/trajectory_tscan.R {input} {wildcards.method} {output}
+		"""
+
+rule plot_quick_trajectory:
+	input:
+		'trajectory/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
+	output:
+		'trajectory_plot/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.png'
+	shell:
+		"""
+		module load R/4.0
+		Rscript ~/git/massive_integrated_eye_scRNA/src/trajectory_plot.R {input} {output}
+		"""
+
+rule centrality_quick_trajectory:
+	input:
+		'trajectory/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
+	output:
+		'trajectory_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__centrality.tsv'
+	shell:
+		"""
+		module load R/4.0
+		Rscript ~/git/massive_integrated_eye_scRNA/src/trajectory_centrality.R {input} {output}
+		"""
+
+rule centrality_merge:
+	input:
+		expand('trajectory_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__centrality.tsv', \
+					transform = ['counts'], \
+					method = ['scVI'], \
+					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+					partition = ['TabulaDroplet'], \
+					n_features = [1000, 2000, 5000, 10000], \
+					covariate = ['batch'], \
+					dims = [4,6,8,10,20,30,50,100], \
+					knn = [0.8,0.4,0.6,5, 7, 10], \
+					dist = [0.1], \
+					neighbors = [100]),
+			expand('trajectory_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__centrality.tsv',
+					transform = ['libSize','sqrt','scran', 'standard'], \
+					method = ['bbknn','insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'CCA', 'none'], \
+					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+					partition = ['TabulaDroplet'], \
+					n_features = [2000], \
+					covariate = ['batch'], \
+					dims = [8, 30], \
+					knn = [7], \
+					dist = [0.3], \
+					neighbors = [30])
+	output:
+		'trajectory_metrics/merged.Rdata'
+	shell:
+		"""
+		module load R/4.0
+		Rscript  ~/git/massive_integrated_eye_scRNA/src/trajectory_centrality_merge.R {input} {output}
+		"""
+
 
 if config['subset_clustering'] == 'False':	
 	rule merge_stats:
@@ -986,6 +1086,15 @@ if config['subset_clustering'] == 'False':
 					covariate = ['batch'], \
 					dims = [4,6,8,10,20,30,50,100],
 					knn = [0.8,0.4,0.6,5, 7, 10]),
+			expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
+					transform = ['counts'], \
+					method = ['scArches'], \
+					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+					partition = ['TabulaDroplet'], \
+					n_features = [2000], \
+					covariate = ['batch'], \
+					dims = [8, 30],
+					knn = [7]),
 			expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 					transform = ['libSize','sqrt','scran', 'standard'], \
 					method = ['bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \

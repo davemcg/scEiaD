@@ -69,7 +69,7 @@
 	},
 	"integrate_00" :
 	{
-		"mem" : "400G",
+		"mem" : "800G",
 		"partition" : "largemem",
 		"time" : "48:00:00",
 		"extra" : " --gres=lscratch:5"
@@ -227,6 +227,22 @@
 	{
 		"mem" : "30G",
 		"time" : "1:00:00",
+		"partition" : "quick"
+	},
+	"quick_trajectory" :
+	{
+		"mem" : "150G",
+		"time" : "00:30:00",
+		"partition" : "quick"
+	},
+	"plot_quick_trajectory" :
+	{
+		"time" : "00:30:00",
+		"partition" : "quick"
+	},
+	"centrality_quick_trajectory" :
+	{
+		"time" : "00:30:00",
 		"partition" : "quick"
 	},
 	"make_sqlite" :

@@ -258,6 +258,68 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     seurat_obj[["desc"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "desc_", assay = DefaultAssay(seurat_obj))
 	obj <- seurat_obj 
 
+  } else if (method == 'scArches') {
+    # scArches ----
+    assay <- 'RNA'
+    vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
+    if (transform == 'counts'){
+      matrix = seurat_obj@assays$RNA@counts[vfeatures, ]
+    } else if (transform == 'SCT'){
+      assay <- 'SCT'
+      vfeatures <- grep('^MT-', seurat_obj@assays$SCT@var.features, invert =TRUE, value = TRUE)
+      matrix = seurat_obj@assays$SCT@scale.data[vfeatures, ] %>% Matrix(., sparse = TRUE)
+    } else {
+      matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
+    }
+	rand <- sample(1e7:9e7,1)
+    out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', rand, '_',  latent, '.loom')
+	
+	# add count to one cell if all are zero
+	vfeature_num <- length(vfeatures)
+	one0 <- vector(mode = 'numeric', length = vfeature_num)
+	one0[2] <- 1
+	if (sum(colSums(matrix)==0) > 0){
+		matrix[,colSums(matrix) == 0] <- one0
+	}
+	
+	create(filename= out, 
+           overwrite = TRUE,
+           data = matrix, 
+           cell.attrs = list(batch = seurat_obj@meta.data[,covariate],
+                             batch_indices = seurat_obj@meta.data[,covariate] %>% 
+                               as.factor() %>% 
+                               as.numeric()))
+    # connect to new loom file, then disconnect...otherwise python call gets borked for 
+    # as we are connected into the file on create
+    loom <- connect(out, mode = 'r')
+    loom$close_all() 
+    n_epochs = 5 # use 1e6/# cells of epochs
+    lr = 0.001 
+    #use_batches = 'True'
+    use_cuda = 'True'
+    n_hidden = 128 
+    n_latent = latent
+    n_layers = 2 
+    
+    scArches_command = paste('/data/mcgaugheyd/conda/envs/scArches/bin/python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scArches.py',
+                         out,
+                         n_epochs,
+                         lr,
+                         use_cuda,
+                         n_hidden,
+                         n_latent,
+                         n_layers,
+						 'FALSE')
+	print(scArches_command)
+    system(scArches_command)
+    # import reduced dim (latent)
+    latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
+
+    row.names(latent_dims) <- colnames(seurat_obj)
+    colnames(latent_dims) <- paste0("scArches_", 1:ncol(latent_dims))
+    
+    seurat_obj[["scArches"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "scArches_", assay = DefaultAssay(seurat_obj))
+	obj <- seurat_obj 
   } else if (method == 'scVI') {
     # scVI ----
     assay <- 'RNA'
