@@ -10,7 +10,7 @@ scEiaD <- dbPool(drv = SQLite(), dbname = args[1], idleTimeout = 3600000)
 load(args[2])
 load(args[3])
 
-PB_results <- bind_rows(PB_resultsC2, PB_resultsABC)
+PB_results <- bind_rows(PB_resultsC2, PB_resultsABC) %>% arrange(FDR, -abs(logFC))
 
 dbWriteTable(scEiaD, 'PB_results', PB_results, overwrite = TRUE)
 db_create_index(scEiaD, table = 'PB_results', columns = c('Gene'))
