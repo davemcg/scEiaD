@@ -58,7 +58,11 @@ if 'wildcards' in job_properties:
     ec_strings = '-'.join(ec_strings)
     output = f'{rule}.{ec_strings}'
 else:
-    output = rule
+    #inlcude jobid for better error parsing
+    jid=job_properties['jobid']
+    output = f'{rule}-{jid}'
+
+
     
 sbcmd=f'''sbatch --cpus-per-task={params['cpus-per-task']} \
     --mem={params['mem']} \
