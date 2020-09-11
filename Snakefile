@@ -347,7 +347,7 @@ rule separate_spliced_unspliced_welldata:
 		gunzip {input.quant}
 		grep -v '.-I' {params.quant_uz} | gzip -c - > {output.spliced_quant}
 		grep  '.-I' {params.quant_uz} | gzip -c - > {output.unspliced_quant}
-		rm -f {params.quant_uz}
+		gzip {params.quant_uz}
 		'''	
 
 			
