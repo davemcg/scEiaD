@@ -70,6 +70,7 @@ organism_droplet_dict = {}
 for x in SRS_dict:
 	if SRS_dict[x]['UMI'] and SRS_dict[x]['paired']:
 		organism = SRS_dict[x]['organism']
+		tech = SRS_dict[x]['tech']
 		if organism not in organism_droplet_dict:
 			organism_droplet_dict[organism] = [x]
 		else:
@@ -100,35 +101,19 @@ def well_and_droplet_input(organism, reference, quant_path, SRS_dict, otd):
 				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/matrix.Rdata' for srs in organism_droplet_dict[organism]]
 	return(out)
 
-def REF_idx(ref, data_to_return):
-	organism = SRS_dict[SRS]['organism']
-	if ref == 'mm':
-		idx = 'references/kallisto_idx/gencode.vM25.pc_transcripts.fa.gz.idx'
-		txnames = 'references/gencode.vM25.metadata.MGI_tx_mapping.tsv'
-	elif ref == 'hs-homo_sapiens':
-		idx = 'references/kallisto_idx/gencode.v34.pc_transcripts.fa.gz.idx'
-		txnames = 'references/gencode.v34.metadata.HGNC_tx_mapping.tsv'
-	elif ref == 'mf':
-		idx = 'references/kallisto_idx/Macaca_mulatta.Mmul_10.cdna.all.fa.gz.idx'
-		txnames = 'references/Macaca_mulatta.Mmul_10.cdna.all_tx_mapping.tsv'
-	else:
-		print(ref + " NO REF MATCH!")
-	if data_to_return == 'idx':
-		out = idx
-	else:
-		out = txnames
-	return(out)
-
+def REF_idx(organism, ref, org2tech):
+	out = [f'references/velocity/{tech}/{ref}/tr2g.tsv' for tech in org2tech[organism]]
+	return out
 
 
 
 def ORG_ref(organism):
 	if organism.lower() == 'mus_musculus':
-		out = ['mm']
+		out = ['mm-mus_musculus']
 	elif organism.lower() == 'homo_sapiens':
-		out = ['hs']
+		out = ['hs-homo_sapiens']
 	elif organism.lower() == 'macaca_fascicularis':
-		out = ['hs','mf']
+		out = ['hs-homo_sapiens','mf-macaca_mulatta']
 	else:
 		print(organism + ' NO MATCH')
 	return(out)
@@ -171,11 +156,12 @@ wildcard_constraints:
 
 rule all:
 	input:
-		human_hs_quant = well_and_droplet_input('Homo_sapiens', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
-		mouse_mm_quant = well_and_droplet_input('Mus_musculus', 'mm-mus_musculus', quant_path, SRS_dict, organism_welltech_dict),
-		monkey_mf_quant = well_and_droplet_input('Macaca_fascicularis', 'mf-macaca_mulatta', quant_path, SRS_dict, organism_welltech_dict),
-		monkey_hs_quant = well_and_droplet_input('Macaca_fascicularis', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
-		human_dntx_quant = well_and_droplet_input('Homo_sapiens', 'DNTX', quant_path, SRS_dict, organism_welltech_dict)
+		'cell_info.tsv'
+		# human_hs_quant = well_and_droplet_input('Homo_sapiens', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
+		# mouse_mm_quant = well_and_droplet_input('Mus_musculus', 'mm-mus_musculus', quant_path, SRS_dict, organism_welltech_dict),
+		# monkey_mf_quant = well_and_droplet_input('Macaca_fascicularis', 'mf-macaca_mulatta', quant_path, SRS_dict, organism_welltech_dict),
+		# monkey_hs_quant = well_and_droplet_input('Macaca_fascicularis', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
+		# human_dntx_quant = well_and_droplet_input('Homo_sapiens', 'DNTX', quant_path, SRS_dict, organism_welltech_dict)
 		
 
 # if config['subset_clustering'] == 'False': 
@@ -436,11 +422,11 @@ rule merge_nonUMI_quant_by_organism:
 		module load R/3.6
 		Rscript {git_dir}/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.gtf} {input.quant} 
 		"""
-# 144419
+
 rule combine_well_and_umi:
 	input:
 		srr_metadata = config['srr_sample_file'],
-		tx_map = lambda wildcards:  REF_idx(wildcards.reference, 'tx'),  # SRS_info(organism_droplet_dict[wildcards.organism][0], 'tx'),
+		gtf='references/gtf/{reference}_anno.gtf.gz',
 		counts = lambda wildcards: well_and_droplet_input(wildcards.organism, wildcards.reference, quant_path, SRS_dict, organism_welltech_dict)
 	output:
 		cell_info = '{organism}_{reference}_cell_info.tsv',
@@ -457,7 +443,7 @@ rule merge_across_references:
 		matrix = lambda wildcards: expand('quant/{{organism}}/{reference}_full_sparse_matrix.Rdata', reference = ORG_ref(wildcards.organism))
 	output:
 		'quant/{organism}/full_sparse_matrix.Rdata',
-		'{organism}_cell_info.tsv'
+		'pipeline_data/{organism}_cell_info.tsv'
 	shell:
 		"""
 		module load R/3.6
@@ -469,7 +455,7 @@ rule merge_across_references:
 localrules: cat_cell_info
 rule cat_cell_info:
 	input:
-		expand('{organism}_cell_info.tsv', \
+		expand('pipeline_data/{organism}_cell_info.tsv', \
 			organism = organism)
 	output:
 		'cell_info.tsv'
