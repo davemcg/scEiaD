@@ -1,9 +1,17 @@
 library(tidyverse)
-load('~/git/massive_integrated_eye_scRNA/data/sra_metadata_extended.Rdata')
-meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv') %>% select(-TissueNote)
+library(yaml)
+library(glue)
+
+config=read_yaml(Sys.getenv('SCIAD_CONFIG'))
+git_dir=config$git_dir
+working_dir=config$working_dir# this is where cell_info lives 
+setwd(working_dir)
+
+load(glue('{git_dir}/data/sra_metadata_extended.Rdata') )
+meta <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv')) %>% select(-TissueNote)
 # load labelled data from clark et all
 # NO WRONG NOW https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1
-clark_labels <- data.table::fread('GSE118614_barcodes.tsv.gz')
+clark_labels <- data.table::fread(glue('{git_dir}/data/GSE118614_barcodes.tsv.gz'))
 #clark_labels <- read_csv('10x_mouse_retina_development_phenotype.csv')
 
 # extract clark blackshaw fields we1 want
@@ -34,7 +42,7 @@ macosko_labels <- macosko_labels %>%
          UMI = gsub('\\w\\d_','', Cell))
 
 # wong retina
-cell_info <- read_tsv('cell_info.tsv') %>% select(-TissueNote)
+cell_info <- read_tsv(config$cell_info) %>% select(-TissueNote)
 cell_info <- cell_info %>% filter(study_accession == 'E-MTAB-7316') %>%
 				mutate(UMI = gsub('_\\w+', '', value)) %>%
 				mutate(sample = case_when(sample_accession == 'ERS2852885' ~ '5',
@@ -43,7 +51,7 @@ cell_info <- cell_info %>% filter(study_accession == 'E-MTAB-7316') %>%
 											sample_accession == 'ERS2852888' ~ '1',
 											sample_accession == 'ERS2852889' ~ '2'))
 												
-retina_wong <- read_csv('~/git/massive_integrated_eye_scRNA/data/retina_wong_cellbc_cellid.csv') %>%
+retina_wong <- read_csv(glue('{git_dir}/data/retina_wong_cellbc_cellid.csv')) %>%
 				mutate(CellType = gsub(' C\\d+', '', cell.id.orig)) %>% dplyr::select(`cell.bc`, CellType) %>%
 				mutate(CellType = case_when(grepl('RGC', CellType) ~ 'Retinal Ganglion Cells',
 											grepl('Amacrine', CellType) ~ 'Amacrine Cells',
@@ -60,7 +68,7 @@ retina_wong <- read_csv('~/git/massive_integrated_eye_scRNA/data/retina_wong_cel
 meta_mtab7316 <- cell_info %>% left_join(., retina_wong, by = c('UMI','sample')) %>% mutate(Paper = 'Lukowski et al.')
 
 # sanes mouse rgc crush labels
-rgc_crush <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sanes__RGC_Atlas_coordinates.txt')
+rgc_crush <- read_tsv(glue('{git_dir}/data/sanes__RGC_Atlas_coordinates.txt'))
 rgc_crush <- rgc_crush[-1,]
 rgc_crush <- rgc_crush %>% 
 				separate(NAME, c('sample', 'UMI'), sep = '_') %>%
@@ -68,7 +76,7 @@ rgc_crush <- rgc_crush %>%
 #rgc_crush$CellType <- 'Retinal Ganglion Cells'
 rgc_crush$CellType <- NA
 ## load cell info
-cell_info <- read_tsv('cell_info.tsv') %>% select(-TissueNote)
+cell_info <- read_tsv(config$cell_info) %>% select(-TissueNote)
 cell_info <- cell_info %>% mutate(UMI = gsub('_\\w+', '', value)) %>%
   mutate(sample = case_when(sample_accession == 'SRS5030712' ~ 'aRGC6',
 							sample_accession == 'SRS5030713' ~ 'aRGC7',
@@ -85,7 +93,7 @@ meta_SRP212151 <- cell_info %>% filter(study_accession == 'SRP212151') %>%
 	select(value:batch,SubCellType, CellType) %>% mutate(Paper = 'Tran et al. 2019')
 ## rgc / bipolar cell labels from karthik shekhar sanes 
 # SRP075719
-karthik <- read_tsv('~/git/massive_integrated_eye_scRNA/data/shekhar_sanes_ClustAssignFile.txt')
+karthik <- read_tsv(glue('{git_dir}/data/shekhar_sanes_ClustAssignFile.txt'))
 karthik <- karthik %>% 
   # RBC == Rod Bipolar Cell
   mutate(CellType = case_when(CLUSTER == 1 ~ 'Rod Bipolar Cells', 
@@ -114,7 +122,7 @@ karthik <- karthik %>%
          UMI = gsub('.*_','', CELL_NAME)) 
 
 ## load cell info
-cell_info <- read_tsv('cell_info.tsv') %>% select(-TissueNote)
+cell_info <- read_tsv(config$cell_info) %>% select(-TissueNote)
 # see below for how I got the labelling
 cell_info <- cell_info %>% mutate(UMI = gsub('_\\w+', '', value)) %>% 
   mutate(label = case_when(sample_accession == 'SRS866911' ~ 'r2',
@@ -170,8 +178,8 @@ meta_SRP075719 <- cell_info %>%
 
 # lu clark human dev scRNA
 ## load cell info
-cell_info <- read_tsv('cell_info.tsv')  
-lu_clark <- data.table::fread('~/git/massive_integrated_eye_scRNA/data/GSE138002_Final_barcodes.csv.gz') %>%
+cell_info <- read_tsv(config$cell_info)  
+lu_clark <- data.table::fread(glue('{git_dir}/data/GSE138002_Final_barcodes.csv.gz')) %>%
 							mutate(UMI = gsub('^.*\\.','', barcode) %>% gsub('-.*','',.)) %>%
 				dplyr::rename(CellType = umap2_CellType) %>%
 				mutate(CellType = gsub('BC/Photo_Precurs', 'Photoreceptor Precursors', CellType))
@@ -201,8 +209,8 @@ meta_srp223254 <- cell_info %>%
 				by = c('UMI', 'sample')) %>% 
   select(value:batch,CellType) %>% mutate(Paper = 'Lu et al. 2020')
 ## sanes macaque 
-cell_info <- read_tsv('cell_info.tsv') %>% select(-TissueNote)
-sanes_files <- list.files('~/git/massive_integrated_eye_scRNA/data/', "Macaque*", full.names = TRUE)
+cell_info <- read_tsv(config$cell_info) %>% select(-TissueNote)
+sanes_files <- list.files( glue('{git_dir}/data/'), "Macaque*", full.names = TRUE)
 sanes <- sanes_files %>% 
   map(read_csv) %>% 
   set_names(sanes_files) %>% 
@@ -237,7 +245,7 @@ meta_MacaqueSanes <- meta_MacaqueSanes %>%
 # reload
 # meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv') %>% select(-TissueNote)
 # scheetz human fovea
-scheetz_files <- list.files('~/git/massive_integrated_eye_scRNA/data/', pattern = 'GSM.*donor.*gz', full.names = TRUE)
+scheetz_files <- list.files(glue('{git_dir}/data/'), pattern = 'GSM.*donor.*gz', full.names = TRUE)
 scheetz <- scheetz_files %>% 
   map(read_tsv, col_types = cols_only(barcode = col_character(), cluster_label = col_character())) %>% 
   set_names(scheetz_files) %>% 
@@ -264,10 +272,10 @@ meta_SRP194595 <- cell_info %>% filter(study_accession == 'SRP194595') %>%
 
 # mennon et al. 
 # SRP222001, SRP222958
-mennon_seqwell <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GSE137846_Seq-Well_sample_annotations.txt.gz', 
+mennon_seqwell <- read_tsv(glue('{git_dir}/data/GSE137846_Seq-Well_sample_annotations.txt.gz'), 
                            col_names = FALSE, skip = 1) %>% 
   dplyr::select(barcode = X1, Labels = X49)
-mennon_drop <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GSE137537_sample_annotations.tsv.gz') %>% 
+mennon_drop <- read_tsv(glue('{git_dir}/data/GSE137537_sample_annotations.tsv.gz')) %>% 
   dplyr::select(barcode = Barcode, tissue, Labels)
 mennon <- bind_rows(mennon_seqwell, mennon_drop) %>% 
   mutate(CellType = case_when(Labels == 'ACs' ~ 'Amacrine Cells',
@@ -307,7 +315,7 @@ meta_mennon <- cell_info %>% filter(study_accession %in% c('SRP222001','SRP22295
 
 # SRP257883
 # choroid/vasculature scheetz/mullins
-load('~/git/massive_integrated_eye_scRNA/data/SRP257883_GSE_meta.Rdata')
+load(glue('{git_dir}/data/SRP257883_GSE_meta.Rdata'))
 SRP257883_GSE_meta <- SRP257883_GSE_meta %>% 
   mutate(CellType = case_when(celltype == 'smc' ~ 'Smooth Muscle Cell',
                               celltype == 'RBC' ~ 'Red Blood Cells',
@@ -316,7 +324,7 @@ SRP257883_GSE_meta <- SRP257883_GSE_meta %>%
                               TRUE ~ stringr::str_to_title(celltype))) %>% 
   filter(!CellType %in% c('Rod_rpe')) %>% 
   select(-celltype)
-cell_info <- read_tsv('cell_info.tsv') %>%  
+cell_info <- read_tsv(config$cell_info) %>%  
 	filter(study_accession == 'SRP257883') %>%
 	mutate(UMI = gsub('_\\w+', '', value)) %>%
 	mutate(donor = case_when(sample_accession == 'SRS6517605' ~ 'donor_22_mac_CD31_pos',
@@ -334,18 +342,18 @@ meta_SRP257883 <- cell_info %>% left_join(., SRP257883_GSE_meta %>%
 								unique() %>%
 								mutate(Paper = 'Voigt et al. 2020')
 # SRP218652 mullins/scheetz RPE
-cell_info <- read_tsv('cell_info.tsv') %>%
+cell_info <- read_tsv(config$cell_info) %>%
     filter(study_accession == 'SRP218652') %>%
     mutate(UMI = gsub('_\\w+', '', value))
-load('~/git/massive_integrated_eye_scRNA/data/SRP218652__meta.Rdata')
+load(glue('{git_dir}/data/SRP218652__meta.Rdata'))
 SRP218652 <- SRP218652 %>%  select(Barcode, sample_accession, CellType) %>% 
 	mutate(UMI =  gsub('_\\w+', '', Barcode),
 			UMI = gsub('-\\d+', '', UMI))
 meta_SRP218652 <- cell_info %>% left_join(., SRP218652, by = c('UMI', 'sample_accession'))
 
 # tabula muris
-cell_info <- read_tsv('cell_info.tsv') %>% select(-TissueNote) %>% filter(study_accession == 'SRP131661') 
-tm <- data.table::fread('~/git/massive_integrated_eye_scRNA/data/tabula_muris_meta.tsv.gz') %>%
+cell_info <- read_tsv(config$cell_info) %>% select(-TissueNote) %>% filter(study_accession == 'SRP131661') 
+tm <- data.table::fread(glue('{git_dir}/data/tabula_muris_meta.tsv.gz')) %>%
 			dplyr::rename(TabulaMurisCellType = CellType) %>% 
   			mutate(CellType = case_when(TabulaMurisCellType == 'B cell' ~ 'B-Cell',
                               TabulaMurisCellType == 'blood cell' ~ 'Red Blood Cells',
@@ -356,10 +364,10 @@ tm <- data.table::fread('~/git/massive_integrated_eye_scRNA/data/tabula_muris_me
 meta_TM <- cell_info %>% left_join(., tm, by = 'value' )
 
 ## Yan ... Sanes retina rod/cone 
-cell_info <- read_tsv('cell_info.tsv') %>%
+cell_info <- read_tsv(config$cell_info) %>%
     filter(study_accession == 'SRP255195')
-sample_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv') %>% filter(study_accession == 'SRP255195')
-yan_pr <- read_csv('~/git/massive_integrated_eye_scRNA/data/yan_sanes_PR____Human_retina_combined_all_meta.csv')
+sample_meta <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv')) %>% filter(study_accession == 'SRP255195')
+yan_pr <- read_csv(glue('{git_dir}/data/yan_sanes_PR____Human_retina_combined_all_meta.csv'))
 yan_pr <- yan_pr %>% 
   mutate(CellType = case_when(Cluster == 'Astrocytes' ~ 'Astrocytes',
                               grepl('^DB|FMB|IMB|RB1|OFFx|BB', Cluster) ~ 'Bipolar Cells',
@@ -382,7 +390,7 @@ yan_pr <- yan_pr %>%
   mutate(Paper = 'Yan et al. 2020')
 meta_SRP255195 <- cell_info %>% left_join(., yan_pr %>% select(value, Paper, CellType, SubCellType), by = 'value')
 
-cell_info <- read_tsv('cell_info.tsv')
+cell_info <- read_tsv(config$cell_info)
 
 meta_SRP <- bind_rows(meta_SRP218652, meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, 
 						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195) %>%
@@ -408,7 +416,7 @@ cell_info_labels <- bind_rows(meta_SRP,
 
 
 # label internal iPSC RPE data
-high_ttr_huf <- read_tsv('~/git/massive_integrated_eye_scRNA/data/hufnagel_iPSC_RPE_03_highTTR_barcodes.txt')
+high_ttr_huf <- read_tsv(glue('{git_dir}/data/hufnagel_iPSC_RPE_03_highTTR_barcodes.txt') )
 cell_info_labels <- cell_info_labels %>% 
   mutate(CellType = case_when(#grepl('iPSC_RPE_scRNA_01', value) ~ 'iPSC',
                               #grepl('iPSC_RPE_scRNA_02', value) ~ 'RPE',
@@ -425,7 +433,7 @@ if ( sum(is.na(cell_info_labels$study_accession)) > 0 ) {
 
 if (((cell_info_labels$value %>% duplicated) %>% sum() == 0) & 
 	(nrow(cell_info) == nrow(cell_info_labels))) {
-	save(cell_info_labels, file = 'cell_info_labelled.Rdata')
+	save(cell_info_labels, file = 'pipeline_data/rdata/cell_info_labelled.Rdata')
 } else {
 	print("Doubled or missing cells! Check data frame!")
 }
