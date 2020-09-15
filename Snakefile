@@ -107,15 +107,22 @@ def REF_idx(organism, ref, org2tech):
 
 
 
-def ORG_ref(organism):
+def ORG_ref(organism, which_return):
 	if organism.lower() == 'mus_musculus':
-		out = ['mm-mus_musculus']
+		refs = ['mm-mus_musculus']
 	elif organism.lower() == 'homo_sapiens':
-		out = ['hs-homo_sapiens']
+		refs = ['hs-homo_sapiens']
 	elif organism.lower() == 'macaca_fascicularis':
-		out = ['hs-homo_sapiens','mf-macaca_mulatta']
+		refs = ['hs-homo_sapiens','mf-macaca_mulatta']
 	else:
 		print(organism + ' NO MATCH')
+		exit()
+
+	if which_return == 'matrix':
+		out = [f'pipeline_data/clean_quant/{organism}/{ref}_full_sparse_matrix.Rdata' for ref in refs]
+	else:
+		out = [f'pipeline_data/cell_info/{organism}_{ref}_cell_info.tsv' for ref in refs]
+
 	return(out)
 
 git_dir = config['git_dir']
@@ -154,9 +161,9 @@ wildcard_constraints:
 	dims = '|'.join([str(x) for x in dims]),
 	model = '|'.join(model)	
 
-rule all:
-	input:
-		'cell_info.tsv'
+# rule all:
+# 	input:
+# 		'cell_info.tsv'
 		# human_hs_quant = well_and_droplet_input('Homo_sapiens', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
 		# mouse_mm_quant = well_and_droplet_input('Mus_musculus', 'mm-mus_musculus', quant_path, SRS_dict, organism_welltech_dict),
 		# monkey_mf_quant = well_and_droplet_input('Macaca_fascicularis', 'mf-macaca_mulatta', quant_path, SRS_dict, organism_welltech_dict),
@@ -164,52 +171,46 @@ rule all:
 		# human_dntx_quant = well_and_droplet_input('Homo_sapiens', 'DNTX', quant_path, SRS_dict, organism_welltech_dict)
 		
 
-# if config['subset_clustering'] == 'False': 
-# 	rule all:
-# 		input:
-# 			expand(quant_path +'/quant/{sample}/hs/output.bus', sample = SRS_UMI_samples),
-# 			expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-# 					transform = ['counts'], \
-# 					method = ['scVI'], \
-# 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-# 					partition = ['universe'], \
-# 					n_features = [2000, 5000, 10000], \
-# 					covariate = ['batch'], \
-# 					dims = [30,50,100],
-# 					dist = [0.1],
-# 					neighbors = [100]),
-# 			expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plotPredictions.png', \
-# 					transform = ['libSize'], \
-# 					method = ['fastMNN'], \
-# 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-# 					partition = ['onlyWELL'], \
-# 					n_features = [2000], \
-# 					covariate = ['batch'], \
-# 					dims = [30],
-# 					dist = [0.1],
-# 					neighbors = [50]),
-# 			expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-# 					transform = ['counts'], \
-# 					method = ['scVI'], \
-# 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-# 					partition = ['TabulaDroplet'], \
-# 					n_features = [1000, 2000, 5000, 10000], \
-# 					covariate = ['batch'], \
-# 					dims = [4,6,8,10,20,30,50,100],
-# 					dist = [0.001,0.1],
-# 					neighbors = [15, 30, 50, 100, 500]),
-# 			expand('plots/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-# 					transform = ['sqrt','libSize','scran', 'standard', 'SCT'], \
-# 					method = ['bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
-# 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-# 					partition = ['TabulaDroplet'], \
-# 					n_features = [2000], \
-# 					covariate = ['batch'], \
-# 					dims = [8, 30],
-# 					dist = [0.3],
-# 					neighbors = [30]),
-# 			'merged_stats_2020_07_06.Rdata',
-# 			#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite.gz',
+rule all:
+	input:
+		expand('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata', \
+				n_spec_genes = [0,100,500],
+				transform = ['counts'], \
+				method = ['scVI'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['universe'], \
+				n_features = [2000, 5000, 10000], \
+				covariate = ['batch'], \
+				dims = [30,50,100]),
+		expand('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata', \
+				n_spec_genes = [0,100,500],
+				transform = ['libSize'], \
+				method = ['fastMNN'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['onlyWELL'], \
+				n_features = [2000], \
+				covariate = ['batch'], \
+				dims = [30]),
+		expand('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata', \
+				n_spec_genes = [0,100,500],
+				transform = ['counts'], \
+				method = ['scVI'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['TabulaDroplet'], \
+				n_features = [1000, 2000, 5000, 10000], \
+				covariate = ['batch'], \
+				dims = [4,6,8,10,20,30,50,100]),
+		expand('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata', \
+				n_spec_genes = [0,100,500],
+				transform = ['sqrt','libSize','scran', 'standard', 'SCT'], \
+				method = ['bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
+				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+				partition = ['TabulaDroplet'], \
+				n_features = [2000], \
+				covariate = ['batch'], \
+				dims = [8, 30])#,
+		#'merged_stats_2020_07_06.Rdata',
+		#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite.gz',
 # else:
 # 	rule all:
 # 		input:	
@@ -429,8 +430,8 @@ rule combine_well_and_umi:
 		gtf='references/gtf/{reference}_anno.gtf.gz',
 		counts = lambda wildcards: well_and_droplet_input(wildcards.organism, wildcards.reference, quant_path, SRS_dict, organism_welltech_dict)
 	output:
-		cell_info = '{organism}_{reference}_cell_info.tsv',
-		matrix = 'quant/{organism}/{reference}_full_sparse_matrix.Rdata'
+		cell_info = 'pipeline_data/cell_info/{organism}_{reference}_cell_info.tsv',
+		matrix = 'pipeline_data/clean_quant/{organism}/{reference}_full_sparse_matrix.Rdata' # note that this is the quant in the LOCAL directory
 	shell:
 		"""
 		module load R/3.6
@@ -439,42 +440,46 @@ rule combine_well_and_umi:
 
 rule merge_across_references:
 	input:
-		cell_info = lambda wildcards: expand('{{organism}}_{reference}_cell_info.tsv', reference = ORG_ref(wildcards.organism)),
-		matrix = lambda wildcards: expand('quant/{{organism}}/{reference}_full_sparse_matrix.Rdata', reference = ORG_ref(wildcards.organism))
+		# cell_info = lambda wildcards: expand('{{organism}}_{reference}_cell_info.tsv', reference = ORG_ref(wildcards.organism)),
+		# matrix = lambda wildcards: expand('quant/{{organism}}/{reference}_full_sparse_matrix.Rdata', reference = ORG_ref(wildcards.organism))
+		matrix = [ORG_ref(organism, 'matrix') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ],
+		cell_info = [ORG_ref(organism, 'cell_info') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ]
 	output:
-		'quant/{organism}/full_sparse_matrix.Rdata',
-		'pipeline_data/{organism}_cell_info.tsv'
+		expand('pipeline_data/clean_quant/{organism}/full_sparse_matrix.Rdata', organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']),#this will have the corrected gene names 
+		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
+		'pipeline_data/cell_info/all_cell_info.csv',
+		'references/complete_id_mapping.tsv'
 	shell:
 		"""
 		module load R/3.6
 		# script analyzes, for macaque, which gene is more detected when using human or macaque ref
 		# then creates new matrix blending "best" gene from either human or macaque
 		Rscript {git_dir}/src/rebuild_macaque_sparse_matrix.R {wildcards.organism} {output} {input}
+
 		"""	
 
-localrules: cat_cell_info
-rule cat_cell_info:
+
+
+rule label_known_cells_with_type:
 	input:
-		expand('pipeline_data/{organism}_cell_info.tsv', \
-			organism = organism)
+		'pipeline_data/cell_info/all_cell_info.csv',
+		config['srr_sample_file']		
 	output:
-		'cell_info.tsv'
+		'pipeline_data/cell_info/cell_info_labelled.Rdata'
 	shell:
 		"""
-		#cat {input} | head -n 1 > header
-		#mv header {output}
-		#grep -hv "^value" {input} >> {output}
 		module load R/3.6
-		Rscript {git_dir}/src/cat_cell_info.R {input}
+		export SCIAD_CONFIG={config_abspath}
+		Rscript {git_dir}/src/label_known_cells.R 
 		"""
-		
+
+
 rule make_seurat_objs:
 	input:
-		'cell_info.tsv',
-		expand('quant/{organism}/full_sparse_matrix.Rdata', \
-			 organism = ['Mus_musculus', 'Macaca_Mulatta', 'Homo_sapiens'])
+		'pipeline_data/cell_info/all_cell_info.csv',
+		'pipeline_data/cell_info/cell_info_labelled.Rdata'
 	output:
-		seurat = ('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata')
+		seurat = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -484,25 +489,13 @@ rule make_seurat_objs:
 			{wildcards.combination} {wildcards.n_features} {input} 
 		"""
 
-rule label_known_cells_with_type:
-	input:
-		'cell_info.tsv',
-		config['srr_sample_file']		
-	output:
-		'cell_info_labelled.Rdata'
-	shell:
-		"""
-		module load R/3.6
-		export SCIAD_CONFIG={config_abspath}
-		Rscript {git_dir}/src/label_known_cells.R 
-		"""
 rule integrate_00:
 	input:
-		cell_label_info = 'cell_info_labelled.Rdata',
-		obj = 'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
+		cell_label_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
+		obj = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
 	output:
 		#temp('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
-		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
 	threads: 2 	
 	shell:
 		'''
@@ -521,20 +514,9 @@ rule integrate_00:
 
 		'''
 	
-	# run:
-	# 	job = f'module load R/3.6; \
-	# 			*Rscript {git_dir}/src/merge_methods.R \
-	# 			  {wildcards.method} \
-	# 			  {wildcards.transform} \
-	# 			  {wildcards.covariate} \
-	# 			  {wildcards.dims} \
-	# 			  {input} \
-	# 			  {output}'
-	# 	sp.run("echo \"" +  job + "\"\n", shell = True)
-	# 	sp.run(job, shell = True)
-
-
-
+############################################ 
+##This is where this Snakefile should end;##
+############################################ 
 # as the wellONLY data has no labelled cells, we need to use the droplet data to transfer labels
 def predict_missing_cell_types_input(partition):
 	if partition == 'onlyWELL':
