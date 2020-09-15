@@ -3,7 +3,7 @@
 # scanorama, CCT, harmony, liger
 
 args <- commandArgs(trailingOnly = TRUE)
-save(args, file = 'testing/build_sp_mtx_hm.rdata')
+#save(args, file = 'testing/build_sp_mtx_hm.rdata')
 library(Matrix)
 library(tidyverse)
 library(Seurat)
@@ -73,7 +73,11 @@ all_droplet_data <- reduce(sc_data, RowMergeSparseMatrices)
 if (species != "Macaca_fascicularis"){
   all_data <- RowMergeSparseMatrices(all_droplet_data, all_well_data)
 } else {
-  all_data <- all_droplet_data
+  all_data <- all_droplet_data 
+  if (!grepl('hs-homo_sapiens', args[5])){
+    row.names(all_data) <- row.names(all_data) %>% str_remove('\\.\\d+$')
+    # macaque gtf doesnt have gene versions 
+  }
 }
 
 all_data  <- all_data [row.names(all_data ) != 'fill.x', ] 
@@ -91,17 +95,17 @@ cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covar
 # when generating alignment indices with BUSparse, geneid's are used; for well data, I could summarrise to gene name when all nonUMI is merged
 # but felt that it was better to treat all data the same. multiple geneids map to the same gene_name so aggregate by gene name 
 ####
-geneid2gene_name <- gtf %>% filter(type == 'transcript') %>% select(gene_id, gene_name) %>% distinct
-gene_name_ordered_group <- row.names(all_data) %>% 
-  {tibble(gene_id = .)} %>% 
-  inner_join(geneid2gene_name) %>% 
-  pull(gene_name) %>% toupper()
-all_data_by_genename <- aggregate.Matrix(x = all_data, groupings = gene_name_ordered_group, fun = 'sum')
+# geneid2gene_name <- gtf %>% filter(type == 'transcript') %>% select(gene_id, gene_name) %>% distinct
+# gene_name_ordered_group <- row.names(all_data) %>% 
+#   {tibble(gene_id = .)} %>% 
+#   inner_join(geneid2gene_name) %>% 
+#   pull(gene_name) %>% toupper()
+# all_data_by_genename <- aggregate.Matrix(x = all_data, groupings = gene_name_ordered_group, fun = 'sum')
 
 #cell_info <- cell_info %>% mutate(Age = case_when(Age > 100 ~ 30, TRUE ~ Age))
 # save barcodes for labelling with published cell type assignment 
 write_tsv(cell_info, path = cell_info_file)
-save(all_data_by_genename , file = final_sparse_matrix_file, compress = FALSE)
+save(all_data, file = final_sparse_matrix_file, compress = FALSE)
 
 
 
