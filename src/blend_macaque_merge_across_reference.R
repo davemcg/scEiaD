@@ -11,7 +11,7 @@ setwd(working_dir)
 load_rdata <- function(x){
   load(x)
   env <- ls.str()
-  var <- env[!grepl('x', env)]
+  var <- env[!grepl('^x$', env)]
   stopifnot(length(var) == 1)
   return(get(var))
 }

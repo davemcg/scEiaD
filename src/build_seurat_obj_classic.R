@@ -42,12 +42,12 @@ cell_info <- cell_info %>%
 load_rdata <- function(x){
   load(x)
   env <- ls.str()
-  var <- env[!grepl('x', env)]
+  var <- env[!grepl('^x$', env)]
   stopifnot(length(var) == 1)
   return(get(var))
 }
 
-m <- load_rdata()
+m <- load_rdata(args[8])
 
 # n=100
 # 

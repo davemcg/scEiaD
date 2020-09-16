@@ -22,14 +22,13 @@ droplet_samples <- args_noidx[grepl('matrix.Rdata', args_noidx)]
 #colnames(tx) <- c('id', 'gene')
 
 
-load_rdata = function(fl){
-  load(fl)
-  if ('count' %in% ls()){
-    return(count)  
-  }else if('res_matrix' %in% ls()){
-    return(res_matrix)
-  }
-  
+load_rdata <- function(x){
+  load(x)
+  env <- ls.str()
+  var <- env[!grepl('^x$', env)]
+  print(var)
+  stopifnot(length(var) == 1)
+  return(get(var))
 }
 
 
