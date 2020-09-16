@@ -131,7 +131,7 @@ for SRS in SRS_dict.keys():
 	elif SRS_dict[SRS]['tech'] != 'BULK':
 		SRS_nonUMI_samples.append(SRS)
 
-method = [ 'bbknn','insct','magic', 'scVI','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
+method = ['scArches', 'bbknn','insct','magic', 'scVI','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
 transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
@@ -1094,10 +1094,10 @@ if config['subset_clustering'] == 'False':
 					n_features = [2000], \
 					covariate = ['batch'], \
 					dims = [8, 30],
-					knn = [7]),
+					knn = [0.8]),
 			expand('perf_metrics/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 					transform = ['libSize','sqrt','scran', 'standard'], \
-					method = ['bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
+					method = ['CCA', 'bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['TabulaDroplet'], \
 					n_features = [2000], \
@@ -1142,6 +1142,17 @@ if config['subset_clustering'] == 'False':
 					dist = [0.1], \
 					neighbors = [500], \
 					knn = [0.8,0.4,0.6,5,7,10]),
+			expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
+					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+					n_features = [2000], \
+					transform = ['counts'], \
+					partition = [ 'TabulaDroplet'], \
+					covariate = ['batch'], \
+					method = ['scArches'], \
+					dims = [8,30], \
+					dist = [0.3], \
+					neighbors = [30], \
+				knn = [0.8]),
 			expand('scIB_stats/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
 					transform = ['libSize','sqrt','scran', 'standard'], \
 					method = ['bbknn','insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'CCA', 'none'], \
