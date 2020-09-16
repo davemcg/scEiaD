@@ -1,9 +1,23 @@
 import pprint
 pp = pprint.PrettyPrinter(width=41, compact=True) 
 import subprocess as sp
+import tempfile
+import yaml
+
+def export_rule_info(pfx, **kwargs):
+    out_dict = {}
+    for key, value in kwargs.items():
+        out_dict[key]=value
+        out_dict[key]=value
+    with tempfile.NamedTemporaryFile( mode= 'w+',  prefix =pfx, suffix ='.yaml', delete=False) as outyaml:
+        dp = yaml.safe_dump(out_dict, default_flow_style=False, default_style="'") + '\n'
+        outyaml.write(dp)
+        return outyaml.name
 
 srr_sample_file = config['srr_sample_file']
 #srr_sample_discrepancy_file = config['srr_discrepancy_file']
+rule_config_tempdir = config['rule_config_tempdir']
+
 
 # builds dictionary of dictionaries where first dict key is SRS 
 # and second dict key are SRS properties
@@ -174,7 +188,7 @@ wildcard_constraints:
 rule all:
 	input:
 		expand('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata', \
-				n_spec_genes = [0,100,500],
+				n_spec_genes = [0],
 				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
@@ -183,7 +197,7 @@ rule all:
 				covariate = ['batch'], \
 				dims = [30,50,100]),
 		expand('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata', \
-				n_spec_genes = [0,100,500],
+				n_spec_genes = [0],
 				transform = ['libSize'], \
 				method = ['fastMNN'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
@@ -192,7 +206,7 @@ rule all:
 				covariate = ['batch'], \
 				dims = [30]),
 		expand('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata', \
-				n_spec_genes = [0,100,500],
+				n_spec_genes = [0],
 				transform = ['counts'], \
 				method = ['scVI'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
@@ -201,7 +215,7 @@ rule all:
 				covariate = ['batch'], \
 				dims = [4,6,8,10,20,30,50,100]),
 		expand('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata', \
-				n_spec_genes = [0,100,500],
+				n_spec_genes = [0],
 				transform = ['sqrt','libSize','scran', 'standard', 'SCT'], \
 				method = ['bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
 				combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
@@ -440,29 +454,22 @@ rule combine_well_and_umi:
 
 rule merge_across_references:
 	input:
-		# cell_info = lambda wildcards: expand('{{organism}}_{reference}_cell_info.tsv', reference = ORG_ref(wildcards.organism)),
-		# matrix = lambda wildcards: expand('quant/{{organism}}/{reference}_full_sparse_matrix.Rdata', reference = ORG_ref(wildcards.organism))
 		matrix = [ORG_ref(organism, 'matrix') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ],
 		cell_info = [ORG_ref(organism, 'cell_info') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ]
 	output:
-		expand('pipeline_data/clean_quant/{organism}/full_sparse_matrix.Rdata', organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']),#this will have the corrected gene names 
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
-		'pipeline_data/cell_info/all_cell_info.csv',
+		'pipeline_data/cell_info/all_cell_info.tsv',
 		'references/complete_id_mapping.tsv'
 	shell:
 		"""
 		module load R/3.6
-		# script analyzes, for macaque, which gene is more detected when using human or macaque ref
-		# then creates new matrix blending "best" gene from either human or macaque
-		Rscript {git_dir}/src/rebuild_macaque_sparse_matrix.R {wildcards.organism} {output} {input}
-
+		Rscript {git_dir}/src/blend_macaque_merge_across_reference.R {working_dir} {git_dir}
 		"""	
-
 
 
 rule label_known_cells_with_type:
 	input:
-		'pipeline_data/cell_info/all_cell_info.csv',
+		'pipeline_data/cell_info/all_cell_info.tsv',
 		config['srr_sample_file']		
 	output:
 		'pipeline_data/cell_info/cell_info_labelled.Rdata'
@@ -476,7 +483,8 @@ rule label_known_cells_with_type:
 
 rule make_seurat_objs:
 	input:
-		'pipeline_data/cell_info/all_cell_info.csv',
+		'pipeline_data/cell_info/all_cell_info.tsv',
+		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',		
 		'pipeline_data/cell_info/cell_info_labelled.Rdata'
 	output:
 		seurat = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata'

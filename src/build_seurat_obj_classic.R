@@ -3,18 +3,24 @@
 # scanorama, CCT, harmony, liger
 
 args <- commandArgs(trailingOnly = TRUE)
-
+save(args, file ='testing/bso_args.Rdata')
+#Sys.setenv(SCIAD_CONFIG = '/data/swamyvs/scEiaD/config.yaml')
 #args <- c('seurat_obj/Mus_musculus__standard_and_SCT__late__batch.seuratV3.Rdata','late','batch','/home/mcgaugheyd/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv','references/gencode.vM22.metadata.MGI_tx_mapping.tsv','quant/Mus_musculus/counts.Rdata','quant/SRS866911/genecount/matrix.Rdata','quant/SRS866908/genecount/matrix.Rdata','quant/SRS1467254/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS4363764/genecount/matrix.Rdata','quant/SRS1467251/genecount/matrix.Rdata','quant/SRS1467253/genecount/matrix.Rdata','quant/SRS3674976/genecount/matrix.Rdata','quant/SRS3674982/genecount/matrix.Rdata','quant/SRS3674983/genecount/matrix.Rdata','quant/SRS4363765/genecount/matrix.Rdata','quant/SRS3674974/genecount/matrix.Rdata','quant/SRS3674975/genecount/matrix.Rdata','quant/SRS3674985/genecount/matrix.Rdata','quant/SRS1467249/genecount/matrix.Rdata','quant/SRS3674980/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS4363763/genecount/matrix.Rdata','quant/SRS4386076/genecount/matrix.Rdata','quant/SRS1467250/genecount/matrix.Rdata','quant/SRS3674978/genecount/matrix.Rdata','quant/SRS3674977/genecount/matrix.Rdata','quant/SRS3674988/genecount/matrix.Rdata','quant/SRS3674979/genecount/matrix.Rdata','quant/SRS3674981/genecount/matrix.Rdata','quant/SRS3674984/genecount/matrix.Rdata','quant/SRS4386075/genecount/matrix.Rdata','quant/SRS1467252/genecount/matrix.Rdata','quant/SRS3674987/genecount/matrix.Rdata','quant/SRS866912/genecount/matrix.Rdata','quant/SRS866910/genecount/matrix.Rdata','quant/SRS866909/genecount/matrix.Rdata','quant/SRS866907/genecount/matrix.Rdata','quant/SRS4363762/genecount/matrix.Rdata','quant/SRS866906/genecount/matrix.Rdata')
 
 library(Matrix)
+library(Matrix.utils)
 library(tidyverse)
 library(Seurat)
 library(scran)
 library(future)
 library(quminorm)
 library(glue)
+library(yaml)
 plan(strategy = "multicore", workers = 4)
-git_dir = Sys.getenv('SCIAD_GIT_DIR')
+config=read_yaml(Sys.getenv('SCIAD_CONFIG'))
+git_dir=config$git_dir
+working_dir=config$working_dir
+setwd(working_dir)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 500000 * 1024^2)
@@ -33,108 +39,61 @@ cell_info <- cell_info %>%
                            TRUE ~ batch)) %>% 
   mutate(batch = gsub(' ', '_', batch))
 
-nfeatures = args[7] %>% as.numeric()
-rdata_files = args[8:length(args)]
-rdata <- list()
-for (i in rdata_files){
-  load(i)
-  rdata[[i]] <- m
+load_rdata <- function(x){
+  load(x)
+  env <- ls.str()
+  var <- env[!grepl('x', env)]
+  stopifnot(length(var) == 1)
+  return(get(var))
 }
-if (combination == 'Mus_musculus'){
-  file <- grep('Mus_mus', names(rdata), value = TRUE)
-  m <- rdata[[file]]
-} else if (combination == 'MacaMusHomoMuris') {
-  #  mito naming in macaque missing the 'MT-' part....
-  # also call CO1 and CO2 -> COX1 and COX2
-  # sigh
-  mf_gene <- rdata[["quant/Macaca_fascicularis/full_sparse_matrix.Rdata"]] %>% row.names()
-  mf_gene <- mf_gene %>% enframe() %>% mutate(value = case_when(grepl('^ND\\d', value) ~ paste0('MT-', value),
-                                                     value == 'COX1' ~ 'MT-CO1',
-                                                     value == 'COX2' ~ 'MT-CO2',
-                                                     value == 'COX3' ~ 'MT-CO3',
-                                                     value == 'ATP6' ~ 'MT-ATP6',
-                                                     value == 'ATP8' ~ 'MT-ATP8',
-                                                     TRUE ~ value ))
-  row.names(rdata[["quant/Macaca_fascicularis/full_sparse_matrix.Rdata"]]) <- mf_gene$value
-  load('tabula_muris_combined.Rdata') 
-  # update gene symbols
-  mgi <- read_tsv( glue('{git_dir}/data/MGIBatchReport_20200701_114356.txt') )
-  new_names <- row.names(facs_mat) %>% toupper() %>% as_tibble() %>% left_join(mgi, by = c('value' = 'Input')) %>% mutate(nname = case_when(is.na(Symbol) ~ value, TRUE ~ toupper(Symbol))) %>% group_by(value) %>% summarise(nname = head(nname, 1))
-  row.names(facs_mat) <- new_names$nname
-  new_names <- row.names(droplet_mat) %>% toupper() %>% as_tibble() %>% left_join(mgi, by = c('value' = 'Input')) %>% mutate(nname = case_when(is.na(Symbol) ~ value, TRUE ~ toupper(Symbol))) %>% group_by(value) %>% summarise(nname = head(nname, 1))
-  row.names(droplet_mat) <- new_names$nname
 
-  shared_genes <- rdata %>% map(row.names) %>% purrr::reduce(intersect)
-  missing_in_muris <- shared_genes[!(shared_genes %in% row.names(facs_mat))]
+m <- load_rdata()
 
-  empty <- Matrix(0, nrow = length(missing_in_muris), ncol = ncol(facs_mat), sparse = TRUE)
-  row.names(empty) <- missing_in_muris
-  facs_mat <- rbind(facs_mat, empty)
+# n=100
+# 
+# 
+# if(n >0){
+#     top_n_genes_hs <- rdata[['Homo_sapiens']] %>% 
+#       {tibble(gene = row.names(.), count = rowSums(.) )} %>% 
+#       filter(!gene%in% shared_genes) %>% 
+#       arrange(desc(count)) %>% 
+#       head(n) %>% pull(gene)
+#     top_n_genes_mm <- rdata[['Mus_musculus']] %>% 
+#       {tibble(gene = row.names(.), count = rowSums(.) )} %>% 
+#       filter(!gene%in% shared_genes) %>% 
+#       arrange(desc(count)) %>% 
+#       head(n) %>% pull(gene)
+#     top_n_genes_mf <- rdata[['Macaca_fascicularis']] %>% 
+#       {tibble(gene = row.names(.), count = rowSums(.) )} %>% 
+#       filter(!gene%in% shared_genes) %>% 
+#       arrange(desc(count)) %>% 
+#       head(n) %>% pull(gene)
+#     var_genes <- list('Homo_sapiens' = top_n_genes_hs, 
+#                       'Mus_musculus' = top_n_genes_mm,
+#                       'Macaca_fascicularis' = top_n_genes_mf
+#                       )
+# 
+#     for (i in names(rdata)){
+#       file_cut_down[[i]] <- rdata[[i]][c(shared_genes, var_genes[[i]]) ,]
+#     }
+#     m <- file_cut_down %>% purrr::reduce(RowMergeSparseMatrices)
+#     
+# } else{
+# 
+#   for (i in names(rdata)){
+#     file_cut_down[[i]] <- rdata[[i]][shared_genes,]
+#     
+#   }
+#   m <- file_cut_down %>% purrr::reduce(cbind)
+#   
+# }
 
-  empty <- Matrix(0, nrow = length(missing_in_muris), ncol = ncol(droplet_mat), sparse = TRUE)
-  row.names(empty) <- missing_in_muris
-  droplet_mat <- rbind(droplet_mat, empty)
-
-  if (set == 'onlyDROPLET'){
-	print('Adding Tabula Muris Droplet')
-    rdata[['droplet_muris']] <- droplet_mat
-    cell_info <- bind_rows(cell_info, 
-							droplet_meta %>% mutate( 
-								batch = paste0('TabulaMuris_', `mouse.id`),
-								organism = 'Mus musculus',
- 								Tissue = tissue,
-								sample_accession = paste0('TabulaMuris_', tissue),
-								study_accession = 'TabulaMuris',
-								UMI = 'YES',
-								library_layout = 'PAIRED',
-								integration_group = 'Late',
-								Platform = '10xv2') %>%
-							select(value, batch:Platform))
-  } else if (set == 'onlyWELL') { 
-	print('Adding Tabula Muris FACS')
-    rdata[['facs_muris']] <- facs_mat
-    cell_info <- bind_rows(cell_info, 
-							facs_meta %>% mutate( 
-								batch = paste0('TabulaMuris_', `mouse.id`),
-								organism = 'Mus musculus',
- 								Tissue = tissue,
-								sample_accession = paste0('TabulaMuris_', tissue),
-								study_accession = 'TabulaMuris',
-								UMI = 'NO',
-								library_layout = 'PAIRED',
-								integration_group = 'Late',
-								Platform = 'SMARTSeq_v2') %>%
-							select(value, batch:Platform))
-  }
-  file_cut_down <- list()
-  mito_list <- list()
-  for (i in names(rdata)){
-    file_cut_down[[i]] <- rdata[[i]][shared_genes,]
-  }
-  m <- file_cut_down %>% purrr::reduce(cbind)
-} else {
- 
-  #  mito naming in macaque missing the 'MT-' part....
-  # also call CO1 and CO2 -> COX1 and COX2
-  # sigh
-  mf_gene <- rdata[["quant/Macaca_fascicularis/full_sparse_matrix.Rdata"]] %>% row.names()
-  mf_gene <- mf_gene %>% enframe() %>% mutate(value = case_when(grepl('^ND\\d', value) ~ paste0('MT-', value),
-                                                     value == 'COX1' ~ 'MT-CO1',
-                                                     value == 'COX2' ~ 'MT-CO2',
-                                                     value == 'COX3' ~ 'MT-CO3',
-                                                     value == 'ATP6' ~ 'MT-ATP6',
-                                                     value == 'ATP8' ~ 'MT-ATP8',
-                                                     TRUE ~ value ))
-  row.names(rdata[["quant/Macaca_fascicularis/full_sparse_matrix.Rdata"]]) <- mf_gene$value
-
-  shared_genes <- rdata %>% map(row.names) %>% purrr::reduce(intersect)
-  file_cut_down <- list()
-  mito_list <- list()
-  for (i in names(rdata)){
-    file_cut_down[[i]] <- rdata[[i]][shared_genes,]
-  }
-  m <- file_cut_down %>% purrr::reduce(cbind)
-}
+# file_cut_down <- list()
+# mito_list <- list()
+# for (i in names(rdata)){
+#   file_cut_down[[i]] <- rdata[[i]][shared_genes,]
+# }
+# m <- file_cut_down %>% purrr::reduce(cbind)
 
 print('Splitting time')
 # custom combos / sets
@@ -144,28 +103,28 @@ m_test <- m[,sample(1:ncol(m), 10000)]
 
 
 precursors <- c('AC/HC_Precurs', 'Early RPCs', 'Late RPCs', 'Neurogenic Cells', 'Photoreceptor Precursors', 'RPCs')
-load('/data/OGVFB_BG/scEiaD/umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15.umapFilter.predictions.Rdata')
-if (set == 'cones') {
-	m_subset = m[, umap %>% filter(CellType_predict %in% c('Cones', precursors)) %>% pull(Barcode)]
-}
-if (set == 'bipolar') {
-	m_subset = m[, umap %>% filter(CellType_predict %in% c('Bipolar Cells', precursors)) %>% pull(Barcode)]
-}
-if (set == 'rods') {
-	m_subset = m[, umap %>% filter(CellType_predict %in% c('Rods', precursors)) %>% pull(Barcode)]
-}
-if (set == 'mullerglia') {
-	m_subset = m[, umap %>% filter(CellType_predict %in% c('Muller Glia', precursors)) %>% pull(Barcode)]
-}
-if (set == 'amacrine') {
-	m_subset = m[, umap %>% filter(CellType_predict %in% c('Amacrine Cells', precursors)) %>% pull(Barcode)]
-}
-if (set == 'rgc') {
-	m_subset = m[, umap %>% filter(CellType_predict %in% c('Retinal Ganglion Cells', precursors)) %>% pull(Barcode)]
-}
-if (set == 'hc') {
-	m_subset = m[, umap %>% filter(CellType_predict %in% c('Horizontal Cells', precursors)) %>% pull(Barcode)]
-}
+# load(config$mso_umap_file)
+# if (set == 'cones') {
+# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Cones', precursors)) %>% pull(Barcode)]
+# }
+# if (set == 'bipolar') {
+# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Bipolar Cells', precursors)) %>% pull(Barcode)]
+# }
+# if (set == 'rods') {
+# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Rods', precursors)) %>% pull(Barcode)]
+# }
+# if (set == 'mullerglia') {
+# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Muller Glia', precursors)) %>% pull(Barcode)]
+# }
+# if (set == 'amacrine') {
+# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Amacrine Cells', precursors)) %>% pull(Barcode)]
+# }
+# if (set == 'rgc') {
+# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Retinal Ganglion Cells', precursors)) %>% pull(Barcode)]
+# }
+# if (set == 'hc') {
+# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Horizontal Cells', precursors)) %>% pull(Barcode)]
+# }
 
 
 m_onlyDROPLET <-  m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
