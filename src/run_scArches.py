@@ -1,7 +1,6 @@
 #!/data/mcgaugheyd/conda/envs/scVI/bin/python
 
 import sys
-import loom
 import scarches as sca
 import scanpy as sc
 import pandas as pd
@@ -20,19 +19,19 @@ else:
 
 n_hidden = int(args[5])
 n_latent = int(args[6])
-n_layers = int(args[7])
+n_hvg = int(args[7])
 
+adata.obs['batch'] = adata.obs['batch'].astype('category')
 
 print(str(n_epochs) + " epochs")
 print(str(lr) + " learning rate")
 print(str(n_hidden) + " hidden layers")
 print(str(n_latent) + " latent dims")
-print(str(n_layers) + " layers")
+print(str(n_hvg) + " HVG")
 
-#vae = VAE(loom_dataset.nb_genes, n_batch=loom_dataset.n_batches, n_latent = n_latent, dropout_rate = 0.1, dispersion='gene-batch')
 adata = sca.data.normalize_hvg(adata,
 		batch_key='batch',
-		n_top_genes=adata.X.shape[1])
+		n_top_genes= n_hvg)
 network = sca.models.scArches(task_name='scEiaD',
                               x_dimension=adata.shape[1],
                               z_dimension=n_latent,
