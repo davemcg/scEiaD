@@ -433,7 +433,7 @@ if ( sum(is.na(cell_info_labels$study_accession)) > 0 ) {
 
 if (((cell_info_labels$value %>% duplicated) %>% sum() == 0) & 
 	(nrow(cell_info) == nrow(cell_info_labels))) {
-	save(cell_info_labels, file = 'pipeline_data/rdata/cell_info_labelled.Rdata')
+	save(cell_info_labels, file = 'pipeline_data/cell_info/cell_info_labelled.Rdata')
 } else {
 	print("Doubled or missing cells! Check data frame!")
 }
