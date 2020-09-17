@@ -5,6 +5,7 @@ library(tidyverse)
 library(scater)
 library(Seurat)
 library(edgeR)
+library(scuttle)
 library(BiocParallel)
 multicoreParam <- MulticoreParam(workers = 12)
 

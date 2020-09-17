@@ -18,6 +18,9 @@ library(tidyverse)
 library(cowplot)
 load('/Volumes/OGVFB_BG/scEiaD/metrics_2020_08_20.Rdata')
 
+perf <- perf %>% 
+  mutate(knn = case_when(method == 'scArches' ~ 7, TRUE ~ knn))
+cluster_stats <- perf %>% select(clusterN, clusterMedian, dims, nf, knn, method, normalization, set) %>% unique() 
 
 perf_well <- perf %>% unique() %>% filter(set == 'onlyWELL') %>% 
   select(Score, Group, Value, set, dims:normalization) %>% 
@@ -29,20 +32,44 @@ perf_uni <- perf %>% unique() %>% filter(set == 'universe') %>%
   filter(Score %in% c('LISI','Silhouette', 'ARI', 'PCR', 'NMI')) 
 
 
-perf <- perf %>% unique() %>% filter(set == 'TabulaDroplet') %>% 
+perf_tabula <- perf %>% unique() %>% filter(set == 'TabulaDroplet') %>% 
   select(Score, Group, Value, set, dims:normalization) %>% 
   filter(Score %in% c('LISI','Silhouette', 'ARI', 'PCR', 'NMI')) 
 
 
 perf %>% DT::datatable()
+
+# g_files <- list.files('/Volumes/OGVFB_BG/scEiaD/trajectory_metrics/', pattern = '*tsv', full.names = TRUE)
+# graph_metrics <- list()
+# for (i in g_files){graph_metrics[[i]] <- read_tsv(i)}
+# graph_metrics_processed <- graph_metrics %>% 
+# 
+#   bind_rows(.id = 'file') %>% filter(Group == 'Cluster') %>% 
+# #  filter(grepl('scVI', file)) %>% 
+#   mutate(file = str_extract(file, 'n_feat.*')) %>% 
+#   mutate(type = case_when(type == 'Progenitor' ~ 'Progenitor', TRUE ~ 'Other')) %>% 
+#   group_by(file, type) %>% 
+#   summarise(centrality = mean(bc), assortativity = mean(assortativity)) %>% 
+#   ungroup() %>%  
+#   pivot_wider(names_from = type, values_from = centrality) %>% 
+#   as_tibble() %>% 
+#   mutate(Centrality_Ratio = Progenitor / Other, 
+#          assortativity = assortativity) %>% 
+#   mutate(Score = scale(Centrality_Ratio) + scale(assortativity)/2) %>% 
+#   arrange(-Score) %>% 
+#   mutate(norm = str_extract(file, 'n_features\\d+__[^\\W_]+') %>% gsub('n_features\\d+__','',.),
+#          nf = str_extract(file, 'n_features\\d+') %>% gsub('n_features', '', .) %>% as.numeric(),
+#          dims = str_extract(file, 'dims\\d+') %>% gsub('dims', '', .) %>% as.numeric(),
+#          method = str_extract(file, 'batch__[^\\W_]+') %>% gsub('batch__','',.),
+#          knn = str_extract(file, 'knn\\d+\\.\\d+|knn\\d+') %>% gsub('knn', '', .) %>% as.numeric()) %>% select(-file)
 ```
 
 
 # LISI Metric
 Want Batch as high as possible (mean # of batches near each cell) and Cluster as low as possible (mean # of cluster types near each cell)
 ```{r}
-perf %>% 
-  filter(Score == 'LISI', nf == 2000, dims %in% c(10,30), knn == 7) %>%
+perf_tabula %>% 
+  filter(Score == 'LISI', nf == 2000, dims %in% c(8,30), knn == 7) %>%
   pivot_wider(values_from = Value, names_from = c('Group')) %>% 
   ggplot(aes(y=Batch, x=-Cluster, shape = normalization)) + geom_point(aes(color=method), size = 5) +
   cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname())
@@ -50,8 +77,8 @@ perf %>%
 
 # ARI
 ```{r}
-perf %>% 
-  filter(Score == 'ARI', Group == 'CellType-Cluster', nf == 2000, dims %in% c(10, 30), knn == 7) %>%
+perf_tabula %>% 
+  filter(Score == 'ARI', Group == 'CellType-Cluster', nf == 2000, dims %in% c(8, 30), knn == 7) %>%
   ggplot(aes(y=Value, x=normalization)) + geom_point(aes(color=method), size = 5) +
   cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname()) + ylab('ARI (higher is better)')
 ```
@@ -59,21 +86,20 @@ perf %>%
 # Silhouette Metric
 Want Batch as low as possible (-1 is perfect mixing) and Cluster as high as possible (1 is perfect purity of cluster types near each cell). Notice how the y-axis has been "flipped" by multiply by -1.
 ```{r}
-perf %>% filter(Score == 'Silhouette', nf == 2000, dims %in% c(10,30), knn == 7) %>% 
+perf_tabula %>% filter(Score == 'Silhouette', nf == 2000, dims %in% c(8,30), knn == 7) %>% 
     pivot_wider(values_from = Value, names_from = c('Group')) %>% 
   ggplot(aes(y=-Batch, x=Cluster, shape = normalization)) + geom_point(aes(color=method), size = 5) +
   cowplot::theme_cowplot() + scale_color_manual(values = pals::alphabet() %>% unname())
 ```
 
-# Table
-## TabulaDroplet
-Use Z scaling to get `sumZScale` score where the highest value is, overall across all the metrics, the best performer
+# Sum Scale Bar Plot
 ```{r}
-perf %>% 
+zscore_tabula <- perf_tabula %>% 
+  filter(nf == 2000, dims %in% c(8,30), knn == 7) %>% 
   pivot_wider(names_from = c('Score','Group'), values_from = Value) %>% 
   mutate(sumZScale = 
            -scale(LISI_CellType)[,1] +
-           -scale(LISI_SubCellType)[,1] +
+           #-scale(LISI_SubCellType)[,1]  +
            scale(Silhouette_CellType)[,1] +
            #scale(Silhouette_SubCellType)[,1] +
            scale(`NMI_CellType-Cluster`)[,1] +
@@ -85,9 +111,52 @@ perf %>%
            -scale(LISI_Cluster)[,1] +
            -scale(Silhouette_Batch)[,1] + # Z score
            scale(Silhouette_Cluster)[,1] +
+           scale(`PCR_After-Before`)[,1]) %>% 
+  left_join(cluster_stats) %>% 
+  filter(!is.na(clusterN))
+  
+zscore_tabula  %>% 
+  arrange(-sumZScale) %>% 
+  ggplot(aes(x=method, y = sumZScale, shape = normalization, group = dims)) + 
+  geom_point(aes(color=method), size = 4, position = position_dodge(width = 1)) +
+  cowplot::theme_cowplot() + 
+  scale_color_manual(values = pals::alphabet() %>% unname()) + 
+  coord_flip() 
+```
+
+# Table
+## TabulaDroplet
+Use Z scaling to get `sumZScale` score where the highest value is, overall across all the metrics, the best performer
+```{r}
+zscore_tabula <- perf_tabula %>% 
+  #filter(knn > 0.4) %>% 
+  #filter(method == 'scVI') %>% 
+  pivot_wider(names_from = c('Score','Group'), values_from = Value) %>% 
+  mutate(sumZScale = 
+           -scale(LISI_CellType)[,1] +
+           -#(LISI_SubCellType)[,1]  +
+           scale(Silhouette_CellType)[,1] +
+           #scale(Silhouette_SubCellType)[,1] +
+           scale(`NMI_CellType-Cluster`)[,1] +
+           #scale(`NMI_SubCellType-Cluster`)[,1] +
+           scale(`ARI_CellType-Cluster`)[,1] +
+           #scale(`ARI_SubCellType-Cluster`)[,1] +
+           
+           scale(LISI_Batch)[,1] + 
+           -scale(LISI_Cluster)[,1] +
+           -scale(Silhouette_Batch)[,1] + 
+           scale(Silhouette_Cluster)[,1] +
+           
            scale(`PCR_After-Before`)[,1]
            ) %>% 
-  arrange(-sumZScale) %>% DT::datatable()
+  left_join(cluster_stats) %>% 
+  filter(!is.na(clusterN)) %>% 
+  filter(clusterMedian < 10000)
+
+#%>% 
+  left_join(graph_metrics_processed)
+  
+zscore_tabula  #%>% mutate(both = sumZScale + Score) %>% arrange(-both)  %>% DT::datatable()
 ```
 
 ## onlyWELL

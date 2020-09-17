@@ -1,0 +1,15 @@
+library(tictoc)
+library(tidyverse)
+library(scater)
+library(Seurat)
+library(edgeR)
+library(BiocParallel)
+multicoreParam <- MulticoreParam(workers = 12)
+ls()
+load('cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__knn7.cluster.Rdata')
+info <- DataFrame(cluster = meta[,2])
+mat <-  integrated_obj@assays$RNA@counts
+sum_mat2 <- sumCountsAcrossCells(mat, info, BPPARAM = multicoreParam)
+sum_mat <- sum_mat2@assays@data@listData$sum
+save(sum_mat, file = 'sum_mat.Rdata')
+history()

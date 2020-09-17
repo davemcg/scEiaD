@@ -107,17 +107,20 @@ create_umap_and_cluster <- function(integrated_obj,
 	}
 	} else {
 		# run parc
-		out_embeddings_file = paste(method, max_dims, dist, neighbors, knn, '.csv', sep = '_') 
+		out_embeddings_file = paste(args[8], method, max_dims, dist, neighbors, knn, '.csv', sep = '_') 
 		in_embeddings_file = paste0(out_embeddings_file, 'RUN')
 		write.csv(Embeddings(integrated_obj, reduction = reduction), file = out_embeddings_file)
 		system(paste( glue('{conda_dir}/envs/parc/bin/python {git_dir}/src/run_parc.py'), out_embeddings_file, knn, in_embeddings_file))
 		clusters = read.csv(in_embeddings_file)
-		integrated_obj@meta.data[,paste0('cluster_knn', knn)] <- clusters[,2]	
+		met <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
+        met_clu <- left_join(met, clusters, by = 'Barcode')
+		integrated_obj@meta.data[,paste0('cluster_knn', knn)] <- met_clu$X0
 		integrated_obj@misc[[paste0("Graph_knn", knn)]] <- NA
 		parc_k = knn + 2
 		system(paste( glue('{conda_dir}/envs/parc/bin/python {git_dir}/src/run_parc.py'), out_embeddings_file, parc_k, in_embeddings_file))
 		clusters = read.csv(in_embeddings_file)
-		integrated_obj@meta.data[,paste0('subcluster_knn', parc_k)] <- clusters[,2]
+		met_clu <- left_join(met, clusters, by = 'Barcode')
+		integrated_obj@meta.data[,paste0('subcluster_knn', parc_k)] <- met_clu$X0
 		system(paste0('rm ', out_embeddings_file))
 		system(paste0('rm ', in_embeddings_file))
 	}

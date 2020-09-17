@@ -9,37 +9,43 @@ library(Seurat)
 library(slingshot)
 library(SingleCellExperiment)
 library(tidyverse)
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter__mindist0.1__nneighbors15.umap.Rdata')
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__knn7.cluster.Rdata')
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_info_labelled.Rdata')
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/predictions/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features10000__counts__full__batch__scVI__dims10__preFilter_cell_info_predictions.Rdata')
+library(scattermore)
+load('/Volumes/OGVFB_BG/scEiaD/seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15.umap.Rdata')
+
+load('/Volumes/OGVFB_BG/scEiaD/cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__knn7.cluster.Rdata') 
+load('/Volumes/OGVFB_BG/scEiaD/cell_info_labelled.Rdata')
+load('/Volumes/OGVFB_BG/scEiaD/umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15.umapFilter.predictions.Rdata')
 
 integrated_obj@meta.data$cluster <- meta[,2] %>% pull(1)
 
 
 orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
-umap <- Embeddings(integrated_obj[['scviUMAP']]) %>% as_tibble(rownames = 'Barcode') %>% 
-  left_join(., orig_meta) %>% 
-  left_join(., cell_info_labels %>% 
-              dplyr::rename(Barcode = value) %>% select(-study_accession, -Age, -batch),
-            by = 'Barcode') %>% 
-  left_join(., predictions %>% 
-              as_tibble(rownames = 'Barcode') %>% 
-              select(Barcode, CellType_predict = `predicted.id`)) %>% 
-  mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
-                                      TRUE ~ CellType_predict))
-integrated_obj@meta.data$CellType <- umap$CellType
-integrated_obj@meta.data$CellType_predict <- umap$CellType_predict
-integrated_obj@meta.data$organism <- umap$organism
+
+umapX <- left_join(umap,  Embeddings(integrated_obj[['scVI']]) %>% as_tibble(rownames = 'Barcode') ) %>% 
+  left_join(., integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode') %>% select(Barcode, cluster))
+
+# umap <- Embeddings(integrated_obj[['scviUMAP']]) %>% as_tibble(rownames = 'Barcode') %>% 
+#   left_join(., orig_meta) %>% 
+#   left_join(., cell_info_labels %>% 
+#               dplyr::rename(Barcode = value) %>% select(-study_accession, -Age, -batch),
+#             by = 'Barcode') %>% 
+#   left_join(., predictions %>% 
+#               as_tibble(rownames = 'Barcode') %>% 
+#               select(Barcode, CellType_predict = `predicted.id`)) %>% 
+#   mutate(CellType_predict = case_when(is.na(CellType_predict) ~ CellType,
+#                                       TRUE ~ CellType_predict))
+# integrated_obj@meta.data$CellType <- umap$CellType
+# integrated_obj@meta.data$CellType_predict <- umap$CellType_predict
+# integrated_obj@meta.data$organism <- umap$organism
 
 ```
 
 # Find "starting" cluster
 ```{r}
-integrated_obj@meta.data %>% as_tibble() %>% group_by(CellType, cluster) %>% dplyr::count() %>% filter(CellType == 'Early RPCs') %>% arrange(-n)
+umapX %>% group_by(CellType_predict, cluster) %>% dplyr::count() %>% filter(CellType_predict == 'Early RPCs') %>% arrange(-n)
 ```
 ```{r, fig.width = 8, fig.height=8}
-library(scattermore)
+
 umapFull <- umap %>% 
   rename(Stage = integration_group,
          UMAP_1 = scviUMAP_1,
@@ -113,38 +119,48 @@ umap %>%
 # Got: 
 # Error in solve.default(s1 + s2) : system is computationally singular: reciprocal condition number = 1.16521e-18
 # trying to add some noise as per: https://github.com/kstreet13/slingshot/issues/35
-sce <- Seurat::as.SingleCellExperiment(integrated_obj)
+#sce <- Seurat::as.SingleCellExperiment(integrated_obj)
+sce <- SingleCellExperiment(list(counts = integrated_obj@assays$RNA@counts[,umapX$Barcode]),
+                                 colData= umapX %>% select(CellType_predict, cluster))
+
+
+reducedDims(sce) <- list(scVI= umapX %>% select(scVI_1:scVI_8))
+
 
 set.seed(2534)
-sds_in <- sds_in <- apply(reducedDim(sce, "SCVI")[,1:10], 2, function(x) jitter(x))
+sds_in <- apply(reducedDim(sce, "scVI")[,1:8], 2, function(x) jitter(x))
 
 sds <- slingshot(sds_in, 
                  clusterLabels = sce$cluster, 
-                 start.clus = 19, 
+                 start.clus = 72, 
                  stretch = 0, approx_points = 10000)
-save(sds, file = 'sds_massive_approx10000.Rdata', compress = FALSE)
+save(sds, file = 'sds_massive_approx10000_2020_08_17.Rdata', compress = FALSE)
 ```
 
 
-```{r, fig.width=8, fig.height=8}
-load('../sds_massive_approx10000.Rdata')
-paths <- slingshot::slingPseudotime(sds) %>% 
+```{r, fig.width=15, fig.height=15}
+load('~/data/massive_integrated_eye_scRNA/sds_massive_approx1000__nfeatures2000_dims100_2020_09_06.Rdata')
+
+
+psTime <- slingshot::slingPseudotime(sds)
+#row.names(psTime) <- colnames(sce)
+paths <- psTime %>% 
   as_tibble(rownames = 'Barcode') %>% 
   pivot_longer(contains('curve'), 
                names_to = 'Curve', 
                values_to = 'Pseudotime') %>% 
   filter(!is.na(Pseudotime)) %>% 
   mutate(time = cut_interval(Pseudotime, 250)) %>% 
-  left_join(umapFull) %>% 
+  left_join(umapX) %>% 
   group_by(Curve, time) %>% 
   summarise(UMAP_1 = mean(UMAP_1),
             UMAP_2 = mean(UMAP_2))
 
-slingshot::slingPseudotime(sds) %>% 
+psTime %>% 
   as_tibble(rownames = 'Barcode') %>% 
   pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
   filter(!is.na(Pseudotime), Pseudotime < 12) %>% 
-  left_join(umapFull) %>% 
+  left_join(umapX) %>% 
   ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
   facet_wrap(~Curve) + 
   geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 1, alpha = 0.4) + 
@@ -154,6 +170,25 @@ slingshot::slingPseudotime(sds) %>%
   xlab('UMAP 1') + ylab('UMAP 2') +
   facet_wrap(~Curve) + 
   geom_path(data = paths, aes(x=UMAP_1, y = UMAP_2), color = 'red', size = 2) 
+```
+
+```{r}
+psTime %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime), Pseudotime < 12) %>% 
+  filter(Curve %in% c('curve12','curve4','curve7', 'curve37', 'curve28')) %>% 
+  left_join(umapX) %>% 
+  ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
+  facet_wrap(~Curve) + 
+  geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 1, alpha = 0.4) + 
+  geom_scattermore(pointsize = 1, alpha = 0.4) + 
+  cowplot::theme_cowplot() + 
+  scale_color_viridis_c() + 
+  xlab('UMAP 1') + ylab('UMAP 2') +
+  facet_wrap(~Curve, ncol =3 ) + 
+  geom_path(data = paths %>% 
+              filter(Curve %in% c('curve12','curve4','curve7', 'curve37','curve28')), aes(x=UMAP_1, y = UMAP_2), color = 'red', size = 2) 
 ```
 
 

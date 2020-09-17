@@ -55,9 +55,16 @@ print(latent[1:10,1:10])
 with open(args[1] + ".csv", 'wb') as f:
 	np.savetxt(f, latent, delimiter=",")
 if args[8] == 'IMPUTE':
-	np.savetxt(args[1] + ".imputed.csv.gz", imputed_values, delimiter=",")
+	out = pd.DataFrame(imputed_values)
+	out.columns = loom_dataset.gene_names
+	out.index = loom_dataset.CellID
+	out.to_hdf(args[1] + '.impute.hdf', key = 'index')
 if args[8] == 'NORM':
-	 np.savetxt(args[1] + ".norm.csv.gz", normalized_values, delimiter=",")
+	out = pd.DataFrame(normalized_values) 
+	out.columns = loom_dataset.gene_names
+	out.index = loom_dataset.CellID
+	out.to_hdf(args[1] + '.norm.hdf', key = 'index')
+	#np.savetxt(args[1] + ".norm.csv.gz", normalized_values, delimiter=",")
 #with open(args[1] + ".normalized.csv", 'wb') as f2:
 #	np.savetxt(f2, normalized_values, delimiter=",")
 
