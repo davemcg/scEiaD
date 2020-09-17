@@ -18,7 +18,9 @@ library(tidyverse)
 library(cowplot)
 load('/Volumes/OGVFB_BG/scEiaD/metrics_2020_08_20.Rdata')
 
-cluster_stats <- perf %>% select(clusterN, clusterMedian, dims, nf, knn, method, normalization, set) %>% unique()
+perf <- perf %>% 
+  mutate(knn = case_when(method == 'scArches' ~ 7, TRUE ~ knn))
+cluster_stats <- perf %>% select(clusterN, clusterMedian, dims, nf, knn, method, normalization, set) %>% unique() 
 
 perf_well <- perf %>% unique() %>% filter(set == 'onlyWELL') %>% 
   select(Score, Group, Value, set, dims:normalization) %>% 
@@ -36,6 +38,30 @@ perf_tabula <- perf %>% unique() %>% filter(set == 'TabulaDroplet') %>%
 
 
 perf %>% DT::datatable()
+
+# g_files <- list.files('/Volumes/OGVFB_BG/scEiaD/trajectory_metrics/', pattern = '*tsv', full.names = TRUE)
+# graph_metrics <- list()
+# for (i in g_files){graph_metrics[[i]] <- read_tsv(i)}
+# graph_metrics_processed <- graph_metrics %>% 
+# 
+#   bind_rows(.id = 'file') %>% filter(Group == 'Cluster') %>% 
+# #  filter(grepl('scVI', file)) %>% 
+#   mutate(file = str_extract(file, 'n_feat.*')) %>% 
+#   mutate(type = case_when(type == 'Progenitor' ~ 'Progenitor', TRUE ~ 'Other')) %>% 
+#   group_by(file, type) %>% 
+#   summarise(centrality = mean(bc), assortativity = mean(assortativity)) %>% 
+#   ungroup() %>%  
+#   pivot_wider(names_from = type, values_from = centrality) %>% 
+#   as_tibble() %>% 
+#   mutate(Centrality_Ratio = Progenitor / Other, 
+#          assortativity = assortativity) %>% 
+#   mutate(Score = scale(Centrality_Ratio) + scale(assortativity)/2) %>% 
+#   arrange(-Score) %>% 
+#   mutate(norm = str_extract(file, 'n_features\\d+__[^\\W_]+') %>% gsub('n_features\\d+__','',.),
+#          nf = str_extract(file, 'n_features\\d+') %>% gsub('n_features', '', .) %>% as.numeric(),
+#          dims = str_extract(file, 'dims\\d+') %>% gsub('dims', '', .) %>% as.numeric(),
+#          method = str_extract(file, 'batch__[^\\W_]+') %>% gsub('batch__','',.),
+#          knn = str_extract(file, 'knn\\d+\\.\\d+|knn\\d+') %>% gsub('knn', '', .) %>% as.numeric()) %>% select(-file)
 ```
 
 
@@ -104,7 +130,7 @@ Use Z scaling to get `sumZScale` score where the highest value is, overall acros
 ```{r}
 zscore_tabula <- perf_tabula %>% 
   #filter(knn > 0.4) %>% 
-  filter(method == 'scVI') %>% 
+  #filter(method == 'scVI') %>% 
   pivot_wider(names_from = c('Score','Group'), values_from = Value) %>% 
   mutate(sumZScale = 
            -scale(LISI_CellType)[,1] +
@@ -125,10 +151,12 @@ zscore_tabula <- perf_tabula %>%
            ) %>% 
   left_join(cluster_stats) %>% 
   filter(!is.na(clusterN)) %>% 
-  filter(clusterMedian < 10000) 
+  filter(clusterMedian < 10000)
+
+#%>% 
+  left_join(graph_metrics_processed)
   
-zscore_tabula  %>% 
-  arrange(-sumZScale) %>% DT::datatable()
+zscore_tabula  #%>% mutate(both = sumZScale + Score) %>% arrange(-both)  %>% DT::datatable()
 ```
 
 ## onlyWELL
