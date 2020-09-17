@@ -1,9 +1,12 @@
 # wrapper for python script to load conda
 # yes this is crazy
+conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
+git_dir = Sys.getenv('SCIAD_GIT_DIR')
 library(tidyverse)
+library(glue)
 args <- commandArgs(trailingOnly = TRUE)
 
-Sys.setenv(RETICULATE_PYTHON = '/data/mcgaugheyd/conda/envs/scIB/bin/python')
+Sys.setenv(RETICULATE_PYTHON = glue('{conda_dir}/envs/scIB/bin/python') )
 library(reticulate)
 
 method = args[1]
@@ -26,4 +29,4 @@ if (method == 'CCA'){
 
 args[1] <- paste0('X_', tolower(reduction))
 
-system(paste('/data/mcgaugheyd/conda/envs/scIB/bin/python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/scIB_stats.py ', paste(args, collapse = ' ')))
+system(paste(glue('{conda_dir}/envs/scIB/bin/python {git_dir}/src/scIB_stats.py '), paste(args, collapse = ' ')))

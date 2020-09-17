@@ -2,10 +2,14 @@ library(tidyverse)
 library(Seurat)
 library(future)
 library(scran)
+library(glue)
 plan(strategy = "multicore", workers = 4)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 500000 * 1024^2)
+
+conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
+git_dir = Sys.getenv('SCIAD_GIT_DIR')
 
 args <- commandArgs(trailingOnly = TRUE)
 method = args[1]
@@ -106,14 +110,14 @@ create_umap_and_cluster <- function(integrated_obj,
 		out_embeddings_file = paste(args[8], method, max_dims, dist, neighbors, knn, '.csv', sep = '_') 
 		in_embeddings_file = paste0(out_embeddings_file, 'RUN')
 		write.csv(Embeddings(integrated_obj, reduction = reduction), file = out_embeddings_file)
-		system(paste('/data/mcgaugheyd/conda/envs/parc/bin/python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_parc.py', out_embeddings_file, knn, in_embeddings_file))
+		system(paste( glue('{conda_dir}/envs/parc/bin/python {git_dir}/src/run_parc.py'), out_embeddings_file, knn, in_embeddings_file))
 		clusters = read.csv(in_embeddings_file)
 		met <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
         met_clu <- left_join(met, clusters, by = 'Barcode')
 		integrated_obj@meta.data[,paste0('cluster_knn', knn)] <- met_clu$X0
 		integrated_obj@misc[[paste0("Graph_knn", knn)]] <- NA
 		parc_k = knn + 2
-		system(paste('/data/mcgaugheyd/conda/envs/parc/bin/python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_parc.py', out_embeddings_file, parc_k, in_embeddings_file))
+		system(paste( glue('{conda_dir}/envs/parc/bin/python {git_dir}/src/run_parc.py'), out_embeddings_file, parc_k, in_embeddings_file))
 		clusters = read.csv(in_embeddings_file)
 		met_clu <- left_join(met, clusters, by = 'Barcode')
 		integrated_obj@meta.data[,paste0('subcluster_knn', parc_k)] <- met_clu$X0

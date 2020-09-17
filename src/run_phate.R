@@ -1,4 +1,5 @@
-Sys.setenv(RETICULATE_PYTHON = "/data/mcgaugheyd/conda/envs/phate/bin/python")
+conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
+Sys.setenv(RETICULATE_PYTHON = paste0(conda_dir, "/envs/phate/bin/python") )
 library(phateR)
 
 args <- commandArgs(trailingOnly = TRUE)

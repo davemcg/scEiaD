@@ -1,4 +1,5 @@
-Sys.setenv(RETICULATE_PYTHON = "/data/mcgaugheyd/conda/bin/python3.7")
+conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
+Sys.setenv(RETICULATE_PYTHON = paste0(conda_dir, "/conda_dir/bin/python3.7"))
 scr <- reticulate::import('scrublet')
 library(dplyr)
 

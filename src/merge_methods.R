@@ -3,17 +3,18 @@ args <- commandArgs(trailingOnly = TRUE)
 
 method = args[1]
 
-
+conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
+git_dir = Sys.getenv('SCIAD_GIT_DIR')
 # crazy section to deal with that fact I have scanorama in a conda environment,
 # but many of the seurat wrapped integration tools can't be installed in conda
 # without crazy effort (e.g liger...as it needs to be compiled in C)
 if (method == 'scanorama'){
-  Sys.setenv(RETICULATE_PYTHON = "/data/mcgaugheyd/conda/envs/scanorama/bin/python")
+  Sys.setenv(RETICULATE_PYTHON = glue('{conda_dir}/envs/scanorama/bin/python') )
   library(reticulate)
   use_condaenv("scanorama")
   scanorama <- import('scanorama')
 } else if (method == 'magic') {
-  Sys.setenv(RETICULATE_PYTHON = '/data/mcgaugheyd/conda/envs/magic/bin/python')
+  Sys.setenv(RETICULATE_PYTHON = glue{'{conda_dir}/envs/magic/bin/python')
   library(reticulate)
   library(Rmagic)
 } else {
@@ -27,6 +28,7 @@ if (method == 'scanorama'){
 library(data.table)
 library(tidyverse)
 library(Seurat)
+library(glue)
 
 
 transform = args[2]
@@ -66,9 +68,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     loom$close_all() 
 	
 
-	bbknn_command = paste('/data/mcgaugheyd/conda/envs/bbknn/bin/./python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_bbknn.py',
-                         out,
-						 latent)
+	bbknn_command = paste(glue('{conda_dir}/envs/bbknn/bin/./python {git_dir}/src/run_bbknn.py'), out, latent)
     # run bbknn 
     print(bbknn_command)
     system(bbknn_command)
@@ -192,7 +192,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     loom <- connect(out, mode = 'r')
     loom$close_all() 
 
-    insct_command = paste('conda activate INSCT; /data/mcgaugheyd/conda/envs/INSCT/bin/./python3.7 /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_INSCT.py',
+    insct_command = paste('conda activate INSCT', glue('conda_dir/envs/INSCT/bin/./python3.7 {git_dir}/src/run_INSCT.py'),
                          out, latent)
     # run insct     
 	print(insct_command) 
@@ -244,7 +244,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     loom <- connect(out, mode = 'r')
     loom$close_all() 
 
-    desc_command = paste('conda activate DESC; /data/mcgaugheyd/conda/envs/DESC/bin/./python3.7 /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_desc.py',
+    desc_command = paste('conda activate DESC;', glue('{conda_dir}/envs/DESC/bin/./python3.7 {git_dir}/src/run_desc.py'),
                          out, transform, latent)
     # run desc     
 	print(desc_command) 
@@ -364,7 +364,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     n_latent = latent
     n_layers = 2 
     
-    scVI_command = paste('/data/mcgaugheyd/conda/envs/scVI/bin/./python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scVI.py',
+    scVI_command = paste(glue('{conda_dir}/envs/scVI/bin/./python {git_dir}/src/run_scVI.py'),
                          out,
                          n_epochs,
                          lr,
@@ -382,13 +382,13 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 	#  as.matrix()  
 	if (latent_dims[1,1] == 'NaN'){
 		print('scVI fail, rerunning with fewer hidden dims')
-		    scVI_command = paste('/data/mcgaugheyd/conda/envs/scVI/bin/./python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scVI.py', 
+		    scVI_command = paste( glue('{conda_dir}/envs/scVI/bin/./python {git_dir}/src/run_scVI.py'), 
 							out, n_epochs, lr, use_cuda, 64, n_latent, n_layers, 'FALSE')
     	# run scVI
    	 	print(scVI_command);  system(scVI_command); latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
 		if (latent_dims[1,1] == 'NaN'){
 			print('scVI fail, rerunning with even fewer hidden dims')
-			 scVI_command = paste('/data/mcgaugheyd/conda/envs/scVI/bin/./python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scVI.py',
+			 scVI_command = paste(glue('{conda_dir}/envs/scVI/bin/./python {git_dir}/src/run_scVI.py'),
                             out, n_epochs, lr, use_cuda, 50, n_latent, n_layers, 'FALSE')
 			# run scVI
         print(scVI_command);  system(scVI_command); latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)

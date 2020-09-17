@@ -1,9 +1,23 @@
 import pprint
 pp = pprint.PrettyPrinter(width=41, compact=True) 
 import subprocess as sp
+import tempfile
+import yaml
+
+def export_rule_info(pfx, **kwargs):
+    out_dict = {}
+    for key, value in kwargs.items():
+        out_dict[key]=value
+        out_dict[key]=value
+    with tempfile.NamedTemporaryFile( mode= 'w+',  prefix =pfx, suffix ='.yaml', delete=False) as outyaml:
+        dp = yaml.safe_dump(out_dict, default_flow_style=False, default_style="'") + '\n'
+        outyaml.write(dp)
+        return outyaml.name
 
 srr_sample_file = config['srr_sample_file']
 #srr_sample_discrepancy_file = config['srr_discrepancy_file']
+rule_config_tempdir = config['rule_config_tempdir']
+
 
 # builds dictionary of dictionaries where first dict key is SRS 
 # and second dict key are SRS properties
@@ -50,9 +64,15 @@ SRS_dict = metadata_builder(srr_sample_file)
 
 # build organism <-> SRS dict for nonUMI data
 organism_well_dict = {}
+organism_welltech_dict ={'Homo_sapiens':[], 'Mus_musculus':[], 'Macaca_fascicularis':[] }
+		
+	
 for x in SRS_dict:
 	if not SRS_dict[x]['UMI'] or not SRS_dict[x]['paired']:
 		organism = SRS_dict[x]['organism']
+		tech = SRS_dict[x]['tech']
+		if tech not in organism_welltech_dict[organism]:
+			organism_welltech_dict[organism].append(tech)
 		if organism not in organism_well_dict:
 			organism_well_dict[organism] = [x]
 		else:
@@ -64,6 +84,7 @@ organism_droplet_dict = {}
 for x in SRS_dict:
 	if SRS_dict[x]['UMI'] and SRS_dict[x]['paired']:
 		organism = SRS_dict[x]['organism']
+		tech = SRS_dict[x]['tech']
 		if organism not in organism_droplet_dict:
 			organism_droplet_dict[organism] = [x]
 		else:
@@ -71,57 +92,61 @@ for x in SRS_dict:
 			srs.append(x)
 			organism_droplet_dict[organism] = srs
 
-def lookup_run_from_SRS(SRS):
+
+def lookup_run_from_SRS(SRS, fqp):
 	SRR_files=SRS_dict[SRS]['SRR']
 	out = []
 	for SRR in SRR_files:
 		if SRS_dict[SRS]['paired']:
 			#PE
-			out.append('fastq/{}_1.fastq.gz'.format(SRR))
-			out.append('fastq/{}_2.fastq.gz'.format(SRR))
+			out.append(f'{fqp}/fastq/{SRR}_1.fastq.gz')
+			out.append(f'{fqp}/fastq/{SRR}_2.fastq.gz')
 		else:
 			#SE
-			out.append('fastq/{}.fastq.gz'.format(SRR))
+			out.append(f'{fqp}/fastq/{SRR}.fastq.gz')
 	return(out)
 
 # return dummy well file for macaca ,as there is no well data at this time
-def well_and_droplet_input(organism, reference):
+def well_and_droplet_input(organism, reference, quant_path, SRS_dict, otd):
 	if organism == 'Macaca_fascicularis':
-		out = ['quant/' + x + '/' + reference + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
+		out = [f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/matrix.Rdata' for srs in organism_droplet_dict[organism]]
 	else:
-		out = ['quant/' + organism + '/' + reference + '__counts.Rdata']	+ \
-				['quant/' + x + '/' + reference + '/genecount/matrix.Rdata' for x in organism_droplet_dict[organism]]
+		out = [f'{quant_path}/quant/{organism}/{tech}/{reference}__counts.Rdata' for tech in otd[organism]] + \
+				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/matrix.Rdata' for srs in organism_droplet_dict[organism]]
 	return(out)
 
-def REF_idx(ref, data_to_return):
-	organism = SRS_dict[SRS]['organism']
-	if ref == 'mm':
-		idx = 'references/kallisto_idx/gencode.vM25.pc_transcripts.fa.gz.idx'
-		txnames = 'references/gencode.vM25.metadata.MGI_tx_mapping.tsv'
-	elif ref == 'hs':
-		idx = 'references/kallisto_idx/gencode.v34.pc_transcripts.fa.gz.idx'
-		txnames = 'references/gencode.v34.metadata.HGNC_tx_mapping.tsv'
-	elif ref == 'mf':
-		idx = 'references/kallisto_idx/Macaca_mulatta.Mmul_10.cdna.all.fa.gz.idx'
-		txnames = 'references/Macaca_mulatta.Mmul_10.cdna.all_tx_mapping.tsv'
-	else:
-		print(ref + " NO REF MATCH!")
-	if data_to_return == 'idx':
-		out = idx
-	else:
-		out = txnames
-	return(out)
+def REF_idx(organism, ref, org2tech):
+	out = [f'references/velocity/{tech}/{ref}/tr2g.tsv' for tech in org2tech[organism]]
+	return out
 
-def ORG_ref(organism):
+
+
+def ORG_ref(organism, which_return):
 	if organism.lower() == 'mus_musculus':
-		out = ['mm']
+		refs = ['mm-mus_musculus']
 	elif organism.lower() == 'homo_sapiens':
-		out = ['hs']
+		refs = ['hs-homo_sapiens']
 	elif organism.lower() == 'macaca_fascicularis':
-		out = ['hs','mf']
+		refs = ['hs-homo_sapiens','mf-macaca_mulatta']
 	else:
 		print(organism + ' NO MATCH')
+		exit()
+
+	if which_return == 'matrix':
+		out = [f'pipeline_data/clean_quant/{organism}/{ref}_full_sparse_matrix.Rdata' for ref in refs]
+	else:
+		out = [f'pipeline_data/cell_info/{organism}_{ref}_cell_info.tsv' for ref in refs]
+
 	return(out)
+
+git_dir = config['git_dir']
+bustools_path = config['bustools_path']
+working_dir = config['working_dir']
+conda_dir = config['conda_dir']
+fastq_path = config['fastq_path']
+fi_tsne_dir = config['fi_tsne_dir']
+quant_path = config['quant_path']
+config_abspath=config['config_abspath']
 
 SRS_UMI_samples = []
 SRS_nonUMI_samples = []
@@ -139,6 +164,7 @@ combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus
 dims = [4,6,8,10,20,25,30,50,75,100,200]
 knn = [0.2,0,4,0.6, 5, 7, 10, 15]
 model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
+report: "report.rst"
 wildcard_constraints:
 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
 	method = '|'.join(method),
@@ -149,6 +175,15 @@ wildcard_constraints:
 	dims = '|'.join([str(x) for x in dims]),
 	model = '|'.join(model)	
 
+# rule all:
+# 	input:
+# 		'cell_info.tsv'
+		# human_hs_quant = well_and_droplet_input('Homo_sapiens', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
+		# mouse_mm_quant = well_and_droplet_input('Mus_musculus', 'mm-mus_musculus', quant_path, SRS_dict, organism_welltech_dict),
+		# monkey_mf_quant = well_and_droplet_input('Macaca_fascicularis', 'mf-macaca_mulatta', quant_path, SRS_dict, organism_welltech_dict),
+		# monkey_hs_quant = well_and_droplet_input('Macaca_fascicularis', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
+		# human_dntx_quant = well_and_droplet_input('Homo_sapiens', 'DNTX', quant_path, SRS_dict, organism_welltech_dict)
+		
 
 if config['subset_clustering'] == 'False': 
 	rule all:
@@ -245,139 +280,130 @@ else:
 					neighbors = [30]),
 			'merged_stats_subsetClustering.Rdata'
 	
-## mouse, human, macaque fasta and gtf
-rule download_references:
+# get annotation for each species 
+rule download_annotation:
 	output:
-		mouse_fasta = 'references/gencode.vM25.pc_transcripts.fa.gz',
-		macaque_fasta = 'references/Macaca_mulatta.Mmul_10.cdna.all.fa.gz',
-		human_fasta = 'references/gencode.v34.pc_transcripts.fa.gz'
+		mouse_anno='references/gtf/mm-mus_musculus_anno.gtf.gz',
+		#macaque_faca_anno='references/gtf/macaca_fascicularis_anno.gtf.gz',
+		macaque_mul_anno= 'references/gtf/mf-macaca_mulatta_anno.gtf.gz',
+		human_anno='references/gtf/hs-homo_sapiens_anno.gtf.gz'
 	shell:
-		"""
+		'''
 		mkdir -p references
-		wget ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/gencode.vM25.pc_transcripts.fa.gz  
-		#wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/364/345/GCF_000364345.1_Macaca_fascicularis_5.0/GCF_000364345.1_Macaca_fascicularis_5.0_rna.fna.gz
-		wget ftp://ftp.ensembl.org/pub/release-98/fasta/macaca_fascicularis/cdna/Macaca_fascicularis.Macaca_fascicularis_5.0.cdna.all.fa.gz
-		wget ftp://ftp.ensembl.org/pub/release-99/fasta/macaca_mulatta/cdna/Macaca_mulatta.Mmul_10.cdna.all.fa.gz
-		wget ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.pc_transcripts.fa.gz
-		mv *fa*gz references/
-		"""
+		wget -O {output.mouse_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/gencode.vM25.annotation.gtf.gz
+		wget -O {output.macaque_mul_anno} ftp://ftp.ensembl.org/pub/release-99/gtf/macaca_mulatta/Macaca_mulatta.Mmul_10.99.gtf.gz
+		wget -O {output.human_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_35/gencode.v35.annotation.gtf.gz
+		'''
+		#wget -O {output.macaque_faca_anno} ftp://ftp.ensembl.org/pub/release-98/gtf/macaca_fascicularis/Macaca_fascicularis.Macaca_fascicularis_5.0.98.gtf.gz
+
+
+rule get_velocity_files:
+	input: 
+		gtf = 'references/gtf/{reference}_anno.gtf.gz'
+	output:
+		'references/velocity/{tech}/{reference}/cDNA_introns.fa',
+		'references/velocity/{tech}/{reference}/tr2g.tsv'
+	params:
+		out_dir = lambda wildcards: f'references/velocity/{wildcards.tech}/{wildcards.reference}/'
+	shell:
+		'''
+		module load R/3.6
+		Rscript src/get_velocity_annotation.R {input.gtf} {wildcards.reference} {wildcards.tech} {params.out_dir}
+		'''
+
+
 
 # need to make mouse, human, macaque
 rule kallisto_index:
 	input:
-		'references/{fasta}'
+		'references/velocity/{tech}/{reference}/cDNA_introns.fa'
 	output:
-		'references/kallisto_idx/{fasta}.idx'
+		'references/kallisto_idx/{tech}/{reference}.idx'
 	shell:
 		"""
+		module load kallisto/0.46.2
 		kallisto index {input} -i {output}
 		"""
 
 # get / make the bustool count tx file
-# tsv three column
-# transcript_ID gene_ID gene_name
-# ENST ENSG gene_name
-rule tx_gene_mapping:
-	input:
-		'references/gencode.vM25.pc_transcripts.fa.gz'
-	output:
-		mf = 'references/Macaca_mulatta.Mmul_10.cdna.all_tx_mapping.tsv',
-		hs = 'references/gencode.v34.metadata.HGNC_tx_mapping.tsv',
-		mm = 'references/gencode.vM25.metadata.MGI_tx_mapping.tsv'
-	shell:
-		"""
-		zgrep "^>" references/gencode.vM25.pc_transcripts.fa.gz | \
-			sed 's/>//g' | \
-			awk 'BEGIN {{OFS = "\t"; FS = "|"}}; {{print $0, $2, $6}}' > {output.mm}
-
-		zgrep "^>" references/Macaca_mulatta.Mmul_10.cdna.all.fa.gz | \
-			sed 's/>//g' > mf.header
-		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/macaque_ensembl_fasta_header.R mf.header {output.mf}
-		rm mf.header
-		#wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/364/345/GCF_000364345.1_Macaca_fascicularis_5.0/GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz
-		#zcat GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz | \
-		#	grep "^mRNA" | \
-		#	awk -v OFS="\t" 'BEGIN {{FS="\t"}}; {{print $11,$15,$14}}' > {output.mf}
-		#rm GCF_000364345.1_Macaca_fascicularis_5.0_feature_table.txt.gz
-
-		zgrep "^>" references/gencode.v34.pc_transcripts.fa.gz | \
-			sed 's/>//g' | \
-			awk 'BEGIN {{OFS = "\t"; FS = "|"}}; {{print $0, $2, $6}}' > {output.hs}
-		"""
-
 # this does the pseudoalignment for UMI data (e.g. 10x)
 rule kallisto_bus:
 	input:
-		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS),
-		idx = lambda wildcards: REF_idx(wildcards.reference, 'idx')
+		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS, fastq_path),
+		idx = 'references/kallisto_idx/{tech}/{reference}.idx'
 	output:
-		bus = 'quant/{SRS}/{reference}/output.bus',
-		ec = 'quant/{SRS}/{reference}/matrix.ec',
-		tx_name = 'quant/{SRS}/{reference}/transcripts.txt'
+		bus = quant_path + '/quant/{SRS}/{tech}/{reference}/output.bus',
+		ec = quant_path + '/quant/{SRS}/{tech}/{reference}/matrix.ec',
+		tx_name = quant_path + '/quant/{SRS}/{tech}/{reference}/transcripts.txt'
 	threads: 4
+	group: "bus"
 	params:
 		tech = lambda wildcards: SRS_dict[wildcards.SRS]['tech'],
-		paired = lambda wildcards: SRS_dict[wildcards.SRS]['paired']
-	run:
-		if params.paired:
-			job = "kallisto bus -t 4 -x {tech} \
-					-i {idx} -o quant/{SRS}/{reference} {fastq}".format(fastq = input.fastq,
-                                                    tech = params.tech,
-													idx = input.idx,
-													reference = wildcards.reference,
-													SRS = wildcards.SRS)
-		else:
-			job = "kallisto bus --single -x {tech} \
-					-i {idx} -o quant/{SRS}/{reference} {fastq}".format(fastq = input.fastq,
-                                                    tech = params.tech,
-													idx = input.idx,
-													reference = wildcards.reference,
-													SRS = wildcards.SRS)
-		sp.run("echo " + job + '\n', shell = True)
-		sp.run(job, shell = True)	
+		paired_flag = lambda wildcards: '' if SRS_dict[wildcards.SRS]['paired'] else '--single',
+		out_dir = lambda wildcards:  f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}'
+	shell:
+		'''
+		module load kallisto/0.46.2
+		kallisto bus {params.paired_flag} -t 4 -x {params.tech} \
+					-i {input.idx} -o {params.out_dir} {input.fastq}
+		'''
+
 
 # pseudoaligment for nonUMI data (e.g. smartseq)
+def get_kallisto_quant_layout_flag(is_paired):
+	if is_paired:
+		return ''
+	else: 
+		return '--single -l 200 -s 30'
+
 rule kallisto_quant:
 	input:
-		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS),
-		idx = lambda wildcards: REF_idx(wildcards.reference, 'idx')
+		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS, fastq_path),
+		idx = 'references/kallisto_idx/{tech}/{reference}.idx'
 	output:
-		quant = 'quant/{SRS}/{reference}/abundance.tsv.gz'
+		quant = quant_path + '/quant/{SRS}/{tech}/{reference}/abundance.tsv.gz'
 	params:
-		paired = lambda wildcards: SRS_dict[wildcards.SRS]['paired']
+		paired_flag = lambda wildcards: get_kallisto_quant_layout_flag(SRS_dict[wildcards.SRS]['paired']),
+		outdir =lambda wildcards:  f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}'
 	threads: 8
-	run:
-		if params.paired:
-			job = "kallisto quant -t {t} -b 100 --plaintext --bias \
-					-i {idx} -o quant/{SRS}/{reference} {fastq}".format(fastq = input.fastq,
-                                                    t = threads,
-													idx = input.idx,
-													reference = wildcards.reference,
-													SRS = wildcards.SRS)
-		else:
-			job = "kallisto quant --single -l 200 -s 30  -t {t} -b 100 --plaintext --bias \
-					-i {idx} -o quant/{SRS}/{reference} {fastq}".format(fastq = input.fastq,
-                                                    t = threads,
-													idx = input.idx,
-													reference = wildcards.reference,
-													SRS = wildcards.SRS)
-		sp.run("echo " + job + '\n', shell = True)
-		sp.run(job, shell = True)	
-		sp.run('gzip quant/' + wildcards.SRS + '/' + wildcards.reference + '/*tsv', shell = True)
-			
+	group:'quant'
+	shell:
+		'''
+		module load kallisto/0.46.2
+		kallisto quant {params.paired_flag} -t {threads} --bias \
+					-i {input.idx} -o {params.outdir} {input.fastq}
+		gzip {params.outdir}/abundance.tsv
+		'''
+rule separate_spliced_unspliced_welldata:
+	input:
+		quant = quant_path + '/quant/{SRS}/{tech}/{reference}/abundance.tsv.gz'
+	output:
+		spliced_quant = quant_path + '/quant/{SRS}/{tech}/{reference}/abundance_spliced.tsv.gz',
+		unspliced_quant = quant_path + '/quant/{SRS}/{tech}/{reference}/abundance_unspliced.tsv.gz'
+	params:
+		quant_uz = lambda wildcards: f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}/abundance.tsv'
+	group:'quant'
+	shell:
+		'''
+		gunzip {input.quant}
+		grep -v '.-I' {params.quant_uz} | gzip -c - > {output.spliced_quant}
+		grep  '.-I' {params.quant_uz} | gzip -c - > {output.unspliced_quant}
+		gzip {params.quant_uz}
+		'''	
+
 			
 # sorting required for whitelist creation and correction
 # make these temp files
 rule bustools_sort:
 	input:
-		'quant/{SRS}/{reference}/output.bus'
+		quant_path + '/quant/{SRS}/{tech}/{reference}/output.bus'
 	output:
-		temp('quant/{SRS}/{reference}/output.sorted.bus')
+		temp(quant_path +'/quant/{SRS}/{tech}/{reference}/output.sorted.bus')
 	threads: 4
+	group: "bus"
 	shell:
 		"""
-		/home/mcgaugheyd/git/bustools/build/src/./bustools sort -t {threads} -m 16G \
+		{bustools_path}/./bustools sort -t {threads} -m 16G \
 			{input} \
 			-o {output}
 		"""
@@ -386,150 +412,159 @@ rule bustools_sort:
 # make these temp files
 rule bustools_whitelist_correct_count:
 	input:
-		bus = 'quant/{SRS}/{reference}/output.sorted.bus',
-		ec = 'quant/{SRS}/{reference}/matrix.ec',
-		tx_name = 'quant/{SRS}/{reference}/transcripts.txt',
-		tx_map = lambda wildcards: REF_idx(wildcards.reference, 'tx')
+		bus = quant_path + '/quant/{SRS}/{tech}/{reference}/output.sorted.bus',
+		matrix = quant_path + '/quant/{SRS}/{tech}/{reference}/matrix.ec',
+		tx_name = quant_path +'/quant/{SRS}/{tech}/{reference}/transcripts.txt',
+		tx_map = 'references/velocity/{tech}/{reference}/tr2g.tsv'
 	output:
-		whitelist = 'whitelist/{SRS}/{reference}_whitelist',
-		bus_matrix = 'quant/{SRS}/{reference}/genecount/gene.mtx'
+		whitelist = 'whitelist/{SRS}/{tech}/{reference}_whitelist',
+		spliced = quant_path +'/quant/{SRS}/{tech}/{reference}/genecount/spliced.mtx', 
+		unspliced = quant_path +'/quant/{SRS}/{tech}/{reference}/genecount/unspliced.mtx', 
 	params:
-		bus_out = 'quant/{SRS}/{reference}/genecount/gene'
+		bus_out =  lambda wildcards: f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}/genecount/',
+		vref = lambda wildcards: f'references/velocity/{wildcards.tech}/{wildcards.reference}'
+	group: "bus"
 	shell:
-		"""
-		/home/mcgaugheyd/git/bustools/build/src/./bustools whitelist \
-			{input.bus} \
-			-o {output.whitelist}
+		'''
+		{bustools_path}/./bustools whitelist \
+			-o {output.whitelist} \
+			{input.bus} 
+		{bustools_path}/./bustools correct -w {output.whitelist} -o {params.bus_out}/TMP.correct.sort.bus {input.bus} 
+		
+		{bustools_path}/./bustools capture -s -x -o {params.bus_out}/TMP.spliced.bus -c {params.vref}/introns_tx_to_capture.txt -e {input.matrix} -t {input.tx_name} {params.bus_out}/TMP.correct.sort.bus
+		{bustools_path}/./bustools capture -s -x -o {params.bus_out}/TMP.unspliced.bus -c {params.vref}/cDNA_tx_to_capture.txt -e {input.matrix} -t {input.tx_name} {params.bus_out}/TMP.correct.sort.bus
 
-		/home/mcgaugheyd/git/bustools/build/src/./bustools correct \
-			{input.bus} \
-			-w {output.whitelist} \
-			-p | \
-		/home/mcgaugheyd/git/bustools/build/src/./bustools count \
-			-o {params.bus_out} \
-			-g {input.tx_map} \
-			-e {input.ec} \
-			-t {input.tx_name} \
-			--genecounts -
-		"""
+		{bustools_path}/./bustools count -o {params.bus_out}/spliced -g {params.vref}/tr2g.tsv -e {input.matrix}  -t {input.tx_name}  --genecounts {params.bus_out}/TMP.spliced.bus
+		{bustools_path}/./bustools count -o {params.bus_out}/unspliced -g {params.vref}/tr2g.tsv -e {input.matrix} -t {input.tx_name}  --genecounts {params.bus_out}/TMP.unspliced.bus
+		rm {params.bus_out}/TMP*
+		'''
+	
+	
 
+## need to fix this script	
 rule create_sparse_matrix:
 	input:
-		'quant/{SRS}/{reference}/genecount/gene.mtx'
+		spliced = quant_path +'/quant/{SRS}/{tech}/{reference}/genecount/spliced.mtx', 
+		unspliced = quant_path +'/quant/{SRS}/{tech}/{reference}/genecount/unspliced.mtx', 
+
 	output:
-		stats = 'quant/{SRS}/{reference}/genecount/stats.tsv',
-		matrix = 'quant/{SRS}/{reference}/genecount/matrix.Rdata'
+		stats_spliced = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/stats.tsv',
+		stats_unspliced = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/stats_unspliced.tsv',
+		spliced_matrix = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/matrix.Rdata',
+		unspliced_matrix = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/unspliced_matrix.Rdata'
+	params:
+		bus_out = lambda wildcards: f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}/genecount/'
+	group: "bus"	
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {output.matrix} {output.stats}
+		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {params.bus_out} spliced {output.stats_spliced} {working_dir}
+		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {params.bus_out} unspliced {output.stats_unspliced} {working_dir}
 		"""		
+
 
 rule merge_nonUMI_quant_by_organism:
 	input:
-		quant = lambda wildcards: expand('quant/{SRS}/{{reference}}/abundance.tsv.gz', SRS = organism_well_dict[wildcards.organism]),
-		tx_map = lambda wildcards: REF_idx(wildcards.reference, 'tx')
+		quant = lambda wildcards: expand(quant_path + '/quant/{SRS}/{{tech}}/{{reference}}/abundance_spliced.tsv.gz', 
+										SRS = [srs for srs in organism_well_dict[wildcards.organism] if SRS_dict[srs]['tech'] == wildcards.tech and SRS_dict ] ),
+		tx_map = 'references/velocity/{tech}/{reference}/tr2g.tsv',
+		gtf = 'references/gtf/{reference}_anno.gtf.gz'
 	output:
-		'quant/{organism}/{reference}__counts.Rdata',
-		'quant/{organism}/{reference}__counts_tx.Rdata'
+		quant_path + '/quant/{organism}/{tech}/{reference}__counts.Rdata',
+		quant_path + '/quant/{organism}/{tech}/{reference}__counts_tx.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.quant} 
+		Rscript {git_dir}/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.gtf} {input.quant} 
 		"""
 
 rule combine_well_and_umi:
 	input:
 		srr_metadata = config['srr_sample_file'],
-		tx_map = lambda wildcards:  REF_idx(wildcards.reference, 'tx'),  # SRS_info(organism_droplet_dict[wildcards.organism][0], 'tx'),
-		counts = lambda wildcards: well_and_droplet_input(wildcards.organism, wildcards.reference)
+		gtf='references/gtf/{reference}_anno.gtf.gz',
+		counts = lambda wildcards: well_and_droplet_input(wildcards.organism, wildcards.reference, quant_path, SRS_dict, organism_welltech_dict)
 	output:
-		cell_info = '{organism}_{reference}_cell_info.tsv',
-		matrix = 'quant/{organism}/{reference}_full_sparse_matrix.Rdata'
+		cell_info = 'pipeline_data/cell_info/{organism}_{reference}_cell_info.tsv',
+		matrix = 'pipeline_data/clean_quant/{organism}/{reference}_full_sparse_matrix.Rdata' # note that this is the quant in the LOCAL directory
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_sparse_matrix.R {wildcards.organism} {output} {input}
+		Rscript {git_dir}/src/build_sparse_matrix.R {wildcards.organism} {output} {input}
 		"""
 
 rule merge_across_references:
 	input:
-		cell_info = lambda wildcards: expand('{{organism}}_{reference}_cell_info.tsv', reference = ORG_ref(wildcards.organism)),
-		matrix = lambda wildcards: expand('quant/{{organism}}/{reference}_full_sparse_matrix.Rdata', reference = ORG_ref(wildcards.organism))
+		matrix = [ORG_ref(organism, 'matrix') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ],
+		cell_info = [ORG_ref(organism, 'cell_info') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ]
 	output:
-		'quant/{organism}/full_sparse_matrix.Rdata',
-		'{organism}_cell_info.tsv'
+		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
+		'pipeline_data/cell_info/all_cell_info.tsv',
+		'references/complete_id_mapping.tsv'
 	shell:
 		"""
 		module load R/3.6
-		# script analyzes, for macaque, which gene is more detected when using human or macaque ref
-		# then creates new matrix blending "best" gene from either human or macaque
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/rebuild_macaque_sparse_matrix.R {wildcards.organism} {output} {input}
+		Rscript {git_dir}/src/blend_macaque_merge_across_reference.R {working_dir} {git_dir}
 		"""	
 
-localrules: cat_cell_info
-rule cat_cell_info:
+
+rule label_known_cells_with_type:
 	input:
-		expand('{organism}_cell_info.tsv', \
-			organism = organism)
+		'pipeline_data/cell_info/all_cell_info.tsv',
+		config['srr_sample_file']		
 	output:
-		'cell_info.tsv'
+		'pipeline_data/cell_info/cell_info_labelled.Rdata'
 	shell:
 		"""
-		#cat {input} | head -n 1 > header
-		#mv header {output}
-		#grep -hv "^value" {input} >> {output}
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/cat_cell_info.R {input}
+		export SCIAD_CONFIG={config_abspath}
+		Rscript {git_dir}/src/label_known_cells.R 
 		"""
-		
+
+
 rule make_seurat_objs:
 	input:
-		'cell_info.tsv',
-		expand('quant/{organism}/full_sparse_matrix.Rdata', \
-			 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'])
+		'pipeline_data/cell_info/all_cell_info.tsv',
+		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',		
+		'pipeline_data/cell_info/cell_info_labelled.Rdata'
 	output:
-		seurat = ('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata')
+		seurat = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/build_seurat_obj_classic.R \
+		export SCIAD_CONFIG={config_abspath}
+		Rscript {git_dir}/src/build_seurat_obj_classic.R \
 			{output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} \
-			{wildcards.combination} {wildcards.n_features} {input}	
+			{wildcards.combination} {wildcards.n_features} {input} 
 		"""
 
 rule integrate_00:
 	input:
-		'seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
+		cell_label_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
+		obj = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
 	output:
 		#temp('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
-		('seurat_obj/{combination}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
-	threads: 2 
-	run:
-		job = "module load R/3.6; \
-				Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_methods.R \
-				  {method} {transform} {covariate} {dims} {input} {output}".format(\
-						method = wildcards.method, \
-						transform = wildcards.transform, \
-					    covariate = wildcards.covariate, \
-						dims = wildcards.dims, \
-			            output = output, input = input)
-		sp.run("echo \"" +  job + "\"\n", shell = True)
-		sp.run(job, shell = True)
-
-rule label_known_cells_with_type:
-	input:
-		'cell_info.tsv',
-		config['srr_sample_file']		
-	output:
-		'cell_info_labelled.Rdata'
+		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+	threads: 2 	
 	shell:
-		"""
+		'''
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/label_known_cells.R 
-		"""
+		export SCIAD_CONFIG={config_abspath}
+		cmd="Rscript {git_dir}/src/merge_methods.R \
+				  {wildcards.method} \
+				  {wildcards.transform} \
+				  {wildcards.covariate} \
+				  {wildcards.dims} \
+				  {input.obj} \
+				  {output}"
+		
+		echo $cmd 
+		eval $cmd
 
-
+		'''
+	
+############################################ 
+##This is where this Snakefile should end;##
+############################################ 
 # as the wellONLY data has no labelled cells, we need to use the droplet data to transfer labels
 def predict_missing_cell_types_input(partition):
 	if partition == 'onlyWELL':
@@ -548,13 +583,13 @@ rule predict_missing_cell_types_00:
 	run:
 		if wildcards.partition == 'onlyWELL':
 			command = 'module load R/3.6; ' \
-						'Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels__sep_objs.R \
+						'?Rscript {git_dir}/src/transfer_labels__sep_objs.R \
 							{input} {transform} {output}'.format(input = ' '.join(input),
 																			transform = wildcards.transform,
 																			output = output) 
 		else:
 			command = 'module load R/3.6; ' \
-						'Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/transfer_labels.R \
+						'Rscript {git_dir}/src/transfer_labels.R \
 							{input} {transform} {output}'.format(input = ' '.join(input),
 																			transform = wildcards.transform,
 																			output = output)
@@ -572,7 +607,10 @@ rule celltype_predict_VS_xgboost:
 	shell:
 		"""
 		module load R/3.6
-		Rscript  /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/celltype_predict_wrapper.R {input} {output}
+		export SCIAD_CONDA_DIR={conda_dir}
+		export SCIAD_GIT_DIR={git_dir}
+		export SCIAD_WORKING_DIR={working_dir}
+		Rscript  {git_dir}/src/celltype_predict_wrapper.R {input} {output}
 		"""
 
 rule doublet_ID:
@@ -583,7 +621,8 @@ rule doublet_ID:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/doublet_ID.R {input} {output}
+		export SCIAD_CONDA_DIR={conda_dir}
+		Rscript {git_dir}/src/doublet_ID.R {input} {output}
 		"""
 
 rule calculate_umap:
@@ -595,7 +634,9 @@ rule calculate_umap:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
+		export SCIAD_CONDA_DIR={conda_dir}
+		export SCIAD_GIT_DIR={git_dir}
+		Rscript {git_dir}/src/calculate_umap_and_cluster.R \
 			{wildcards.method} {wildcards.dims} {wildcards.dist} {wildcards.neighbors} 1 FALSE TRUE {input} {output}
 		"""
 
@@ -608,7 +649,8 @@ rule calculate_tsne:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_TSNE.R \
+		export SCIAD_FITSNE_DIR={fi_tsne_dir}
+		Rscript {git_dir}/src/calculate_TSNE.R \
 			{wildcards.method} {wildcards.dims} {wildcards.perplexity} {input} {output}
 		"""
 
@@ -621,7 +663,8 @@ rule calculate_phate:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_phate.R {input} {output}
+		export SCIAD_CONDA_DIR={conda_dir}
+		Rscript {git_dir}/src/run_phate.R {input} {output}
 		"""
 		
 rule calculate_cluster:
@@ -632,7 +675,7 @@ rule calculate_cluster:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/calculate_umap_and_cluster.R \
+		Rscript {git_dir}/src/calculate_umap_and_cluster.R \
 			{wildcards.method} {wildcards.dims} 1 1 {wildcards.knn} TRUE FALSE {input} {output}
 		"""
 
@@ -648,7 +691,7 @@ rule extract_umap:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_umap.R \
+		Rscript {git_dir}/src/extract_umap.R \
 			{input} {output} {wildcards.method}	UMAP
 		"""
 
@@ -663,7 +706,7 @@ rule extract_tsne:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_umap.R \
+		Rscript {git_dir}/src/extract_umap.R \
 			{input} {output} {wildcards.method} TSNE
 		"""
 
@@ -676,7 +719,7 @@ rule extract_cluster:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/extract_cluster.R \
+		Rscript {git_dir}/src/extract_cluster.R \
 			{input} {output}
 		"""
 
@@ -688,7 +731,7 @@ rule plot_integration:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R UMAP {input} {output}
+		Rscript {git_dir}/src/big_plots.R UMAP {input} {output}
 		"""
 
 rule plot_integration_PREDICT:
@@ -700,7 +743,7 @@ rule plot_integration_PREDICT:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R UMAP {input.umap} {output} {input.celltype_predict}
+		Rscript {git_dir}/src/big_plots.R UMAP {input.umap} {output} {input.celltype_predict}
 		"""
 
 rule plot_integration_tsne:
@@ -711,7 +754,7 @@ rule plot_integration_tsne:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/big_plots.R TSNE {input} {output}
+		Rscript {git_dir}/src/big_plots.R TSNE {input} {output}
 		"""
 
 rule monocle_diff_testing:
@@ -722,7 +765,7 @@ rule monocle_diff_testing:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_monocle.R {input} 200 {wildcards.piece} {wildcards.model} {output}
+		Rscript {git_dir}/src/diff_testing_monocle.R {input} 200 {wildcards.piece} {wildcards.model} {output}
 		"""
 
 rule monocle_diff_testing_subcluster:
@@ -733,7 +776,7 @@ rule monocle_diff_testing_subcluster:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_monocle_subcluster.R {input} 200 {wildcards.cluster_chunk} G {output}
+		Rscript {git_dir}/src/diff_testing_monocle_subcluster.R {input} 200 {wildcards.cluster_chunk} G {output}
 		"""
 
 rule monocle_diff_merge:
@@ -747,7 +790,7 @@ rule monocle_diff_merge:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_diff_monocle.R {output} {wildcards.model} {input}
+		Rscript {git_dir}/src/merge_diff_monocle.R {output} {wildcards.model} {input}
 		"""
 
 rule monocle_diff_merge_subcluster:
@@ -758,7 +801,7 @@ rule monocle_diff_merge_subcluster:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/merge_diff_monocle_subcluster.R {output} G {input}
+		?Rscript {git_dir}/src/merge_diff_monocle_subcluster.R {output} G {input}
 		"""
 
 rule monocle_marker_test:
@@ -770,7 +813,7 @@ rule monocle_marker_test:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_topMarker_monocle.R {input} {threads} {wildcards.group} {output}
+		Rscript {git_dir}/src/diff_testing_topMarker_monocle.R {input} {threads} {wildcards.group} {output}
 		"""
 
 rule build_monocle_obj:
@@ -785,7 +828,7 @@ rule build_monocle_obj:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/monocle.R {input} {output}
+		Rscript {git_dir}/src/monocle.R {input} {output}
 		"""
 
 rule diff_test_wilcox:
@@ -800,7 +843,7 @@ rule diff_test_wilcox:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_sce_wilcox.R {input} {wildcards.group} {threads} {output}
+		Rscript {git_dir}/src/diff_testing_sce_wilcox.R {input} {wildcards.group} {threads} {output}
 		"""
 
 rule perf_metrics:
@@ -813,7 +856,7 @@ rule perf_metrics:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/perf_metrics.R {input} {output}
+		Rscript {git_dir}/src/perf_metrics.R {input} {output}
 		"""
 
 rule make_h5ad_object:
@@ -829,7 +872,7 @@ rule make_h5ad_object:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad.R {input} {output}
+		Rscript {git_dir}/src/seurat_to_h5ad.R {input} {output}
 		"""
 
 rule scIB_stats:
@@ -840,7 +883,9 @@ rule scIB_stats:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
+		export SCIAD_CONDA_DIR={conda_dir}
+		export SCIAD_GIT_DIR={git_dir}
+		Rscript {git_dir}/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
 		"""
 
 rule doublet_filtering:
@@ -852,7 +897,7 @@ rule doublet_filtering:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/doublet_filtering.R {input} {output}
+		Rscript {git_dir}/src/doublet_filtering.R {input} {output}
 		"""
 
 rule make_sqlite:
@@ -869,7 +914,8 @@ rule make_sqlite:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/make_sqlite.R \
+		export SCIAD_GIT_DIR={git_dir}
+		Rscript {git_dir}/src/make_sqlite.R \
 			{input.seurat} \
 			{input.meta} \
 			{input.cluster} \
@@ -891,7 +937,8 @@ rule pseudoBulk_DGE_buildObj:
 	shell:
 		"""
 		module load R/4.0
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_buildObj.R {input} {wildcards.pseudoTest} {output}		
+		export SCIAD_GIT_DIR={git_dir}
+		Rscript {git_dir}/src/pseudoBulk_buildObj.R {input} {wildcards.pseudoTest} {output}		
 		"""
 
 rule pseudoBulk_DGE_difftest:
@@ -902,7 +949,8 @@ rule pseudoBulk_DGE_difftest:
 	shell:
 		"""
 		module load R/4.0
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_diff_testing.R {input} {wildcards.pseudoTest} {wildcards.piece} {output}		
+		export SCIAD_GIT_DIR={git_dir}
+		Rscript {git_dir}/src/pseudoBulk_diff_testing.R {input} {wildcards.pseudoTest} {wildcards.piece} {output}		
 		"""
 	
 rule merge_pseudoBulk_ABC:
@@ -914,7 +962,7 @@ rule merge_pseudoBulk_ABC:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_merge.R {input} {output}
+		Rscript {git_dir}/src/pseudoBulk_merge.R {input} {output}
 		"""
 
 rule merge_pseudoBulk_C2:
@@ -925,7 +973,7 @@ rule merge_pseudoBulk_C2:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_merge.R {input} {output}
+		Rscript {git_dir}/src/pseudoBulk_merge.R {input} {output}
 		"""
 
 
@@ -952,7 +1000,7 @@ rule sqlite_add_tables:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/sqlite_add_diff_tables.R {params.inp} \
+		Rscript {git_dir}/src/sqlite_add_diff_tables.R {params.inp} \
 			{input.ABC} \
 			{input.C2} \
 			{input.doublet}
@@ -973,17 +1021,17 @@ rule make_PLAE_objs:
 	shell:
 		"""
 		module load R/3.6
-		Rscript ~/git/massive_integrated_eye_scRNA/src/output_objs_for_plae.R
+		Rscript {git_dir}/src/output_objs_for_plae.R
 
-		Rscript ~/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad_core.R site/scEiaD_droplet_seurat_v3.Rdata scEiaD_droplet site/scEiaD_droplet_anndata.h5ad
-		Rscript ~/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad_core.R site/scEiaD_well_seurat_v3.Rdata scEiaD_well site/scEiaD_well_anndata.h5ad
+		Rscript {git_dir}/src/seurat_to_h5ad_core.R site/scEiaD_droplet_seurat_v3.Rdata scEiaD_droplet site/scEiaD_droplet_anndata.h5ad
+		Rscript {git_dir}/src/seurat_to_h5ad_core.R site/scEiaD_well_seurat_v3.Rdata scEiaD_well site/scEiaD_well_anndata.h5ad
 
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__A1__edgeR_obj.Rdata site/pseudoBulk_celltype.tsv.gz
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__B1__edgeR_obj.Rdata site/pseudoBulk_celltypePredict.tsv.gz
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__C1__edgeR_obj.Rdata site/pseudoBulk_clusterDroplet.tsv.gz
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__Cw1__edgeR_obj.Rdata site/pseudoBulk_clusterWell.tsv.gz
+		Rscript {git_dir}/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__A1__edgeR_obj.Rdata site/pseudoBulk_celltype.tsv.gz
+		Rscript {git_dir}/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__B1__edgeR_obj.Rdata site/pseudoBulk_celltypePredict.tsv.gz
+		Rscript {git_dir}/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__C1__edgeR_obj.Rdata site/pseudoBulk_clusterDroplet.tsv.gz
+		Rscript {git_dir}/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15__Cw1__edgeR_obj.Rdata site/pseudoBulk_clusterWell.tsv.gz
 
-		Rscript ~/git/massive_integrated_eye_scRNA/src/build_QC_stats.R
+		Rscript {git_dir}/src/build_QC_stats.R
 		"""
 
 rule quick_trajectory:
@@ -1169,7 +1217,7 @@ if config['subset_clustering'] == 'False':
 		shell:
 			"""
 			module load R/3.6
-			Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/optimal_params.R
+			Rscript {git_dir}/src/optimal_params.R
 			"""
 
 else: 
@@ -1200,5 +1248,5 @@ else:
 		shell:
 			"""
 			module load R/3.6
-			Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/optimal_params.R
+			Rscript {git_dir}/src/optimal_params.R
 			"""

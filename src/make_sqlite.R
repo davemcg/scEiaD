@@ -4,6 +4,8 @@ library(Seurat)
 library(tidyverse)
 args = commandArgs(trailingOnly=TRUE)
 
+git_dir = Sys.getenv('SCIAD_GIT_DIR')
+
 load(args[1])
 load(args[2])
 load(args[3])
@@ -11,7 +13,7 @@ load(args[4])
 load(args[5])
 
 # add study meta
-study_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GEO_Study_Level_Metadata.tsv')
+study_meta <- read_tsv(paste0(git_dir, '/data/GEO_Study_Level_Metadata.tsv'))
 umap <- umap %>% left_join(phate_2D$embedding %>% as_tibble(rownames = 'Barcode'))
 umap <- umap %>% left_join(., study_meta, by = c('study_accession'))
 well_metadata <- seurat_obj@meta.data %>% as_tibble() %>% select(-contains('RNA_snn'), -barcode, -cluster) %>% rename(cluster = seurat_clusters, CellType_predict = CellType)

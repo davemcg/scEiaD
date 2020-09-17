@@ -1,8 +1,13 @@
 library(tidyverse)
+library(glue)
 args <- commandArgs(trailingOnly = TRUE)
 
 load(args[1]) # seurat obj post integration
 load(args[2]) # umap metadata
+
+conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
+git_dir = Sys.getenv('SCIAD_GIT_DIR')
+working_dir = Sys.getenv('SCIAD_WORKING_DIR')
 
 out <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap, by = 'Barcode')
 out_tm <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap, by = 'Barcode') %>% filter(study_accession == 'SRP131661')
@@ -57,11 +62,11 @@ run_xgboost_py <- function(embeddings, full_embeddings, temp_name, tm = FALSE, p
 
 	# train on pre-labelled cells
 	pickle <- paste0(temp_name, '_', rand_num, '.pickle' )
-	system(paste0('/data/mcgaugheyd/conda/envs/integrate_scRNA/bin/python3.6 ~/git/massive_integrated_eye_scRNA/src/cell_type_predictor.py train --predProbThresh ', probThresh, ' --workingDir /data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA --inputMatrix ', embeddings_file, ' --trainedModelFile ', pickle, ' --featureCols ', write_features_file))
+	system(glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictor.py train --predProbThresh {probThresh} --workingDir {working_dir} --inputMatrix  {embeddings_file}  --trainedModelFile  {pickle}  --featureCols  {write_features_file}'))
 
 	# apply model to predict labels for all cells
 	predictions_file <- temp_name
-	system(paste0('/data/mcgaugheyd/conda/envs/integrate_scRNA/bin/python3.6 ~/git/massive_integrated_eye_scRNA/src/cell_type_predictor.py predict --predProbThresh ', probThresh, ' --workingDir /data/mcgaugheyd/projects/nei/mcgaughey/massive_integrated_eye_scRNA --inputMatrix ', full_embeddings_file, ' --trainedModelFile ', pickle, ' --predictions ', predictions_file))
+	system(glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictor.py predict --predProbThresh  {probThresh} --workingDir {working_dir} --inputMatrix  {full_embeddings_file} --trainedModelFile  {pickle} --predictions  {predictions_file}'))
 
 	# import in predictions
 	predictions <- read_tsv(predictions_file)

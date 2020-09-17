@@ -9,6 +9,9 @@ library(scuttle)
 library(BiocParallel)
 multicoreParam <- MulticoreParam(workers = 12)
 
+conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
+git_dir = Sys.getenv('SCIAD_GIT_DIR')
+
 args <- commandArgs(trailingOnly = TRUE)
 
 load(args[1]) #load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.seuratObj.Rdata')
@@ -21,7 +24,7 @@ out <- args[5]
 # functions -------
 ###############
 
-source('~/git/massive_integrated_eye_scRNA/src/pseudoBulk_functions.R')
+source( paste0(git_dir, '/src/pseudoBulk_functions.R'))
 #####################
 umap_well <- well_metadata <- seurat_obj@meta.data %>% 
 				as_tibble() %>%

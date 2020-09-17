@@ -1,35 +1,60 @@
 {
 	"__default__" :
 	{
-		"partition" : "quick",
+		"partition" : "norm",
 		"time" : "04:00:00",
 		"mem" : "8g",
 		"extra" : "",
 		"output"  : "00log/{rule}_{wildcards}.out",
 		"error" : "00log/{rule}_{wildcards}.err" 
 	},
+	"get_velocity_files" :
+	{
+		"mem": "64G"
+	},
+	"bus" : 
+	{
+		"mem" : "120G",
+		"cpus-per-task": "8",
+		"time" : "08:00:00"
+	},
 	"bustools_sort" : 
 	{
 		"mem" : "32G",
-		"time" : "00:30:00"
+		"time" : "00:50:00"
 	},
 	"bustools_whitelist_correct_count" :
 	{
-		"time" : "00:20:00"	
+		"time" : "02:45:00",
+		"mem" : "64G"	
 	},
 	"create_sparse_matrix" : 
 	{
-		"time" : "00:20:00",
-		"mem" : "16G"
+		"time" : "00:40:00",
+		"mem" : "32G"
+	},
+	"kallisto_index":
+	{
+		"time" : "08:00:00",
+		"mem" : "120G"
 	},
 	"kallisto_quant" :
 	{
-		"time" : "00:45:00"
+		"mem": "120g",
+		"time" : "01:45:00"
+	},
+	"quant": {
+		"mem": "120g",
+		"time": "04:00:00"
+	},
+	"kallisto_bus": {
+		"mem": "120g",
+		"time": "04:45:00"
 	},
 	"merge_nonUMI_quant_by_organism" : 
 	{
-		"time" : "01:30:00",
-		"mem" : "64G"
+		"time" : "03:00:00",
+		"mem" : "120G"
 	},
 	"seurat_scTransform" :
 	{
@@ -52,14 +77,14 @@
 	"combine_well_and_umi" :
 	{
 		"mem" : "240G",
-		"partition" : "quick",
+		"partition" : "norm",
 		"time" : "4:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
 	"merge_across_references" :
 	{
 		"mem" : "240G",
-		"partition" : "quick",
+		"partition" : "norm",
 		"time" : "4:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
@@ -67,6 +92,8 @@
 	{
 		"mem" : "100G"
 	},
+<<<<<<< HEAD
+=======
 	"integrate_00" :
 	{
 		"mem" : "800G",
@@ -74,6 +101,7 @@
 		"time" : "48:00:00",
 		"extra" : " --gres=lscratch:5"
 	},
+>>>>>>> master
 	"integrate_01" :
 	{
 		"mem" : "600G",
@@ -142,7 +170,7 @@
 	{
 		"mem" : "50G",
 		"time" : "4:00:00",
-		"partition" : "quick",
+		"partition" : "norm",
 		"extra" : " --gres=lscratch:10"
 	},
 	"trajectory" :
@@ -160,7 +188,7 @@
 	},
 	"perf_metrics" :
 	{
-		"partition" : "quick",
+		"partition" : "norm",
 		"mem" : "175G",
 		"time" : "04:00:00"
 	},
@@ -194,14 +222,14 @@
 	{
 		"mem" : "120G",
 		"time" : "4:00:00",
-		"partition" : "quick",
+		"partition" : "norm",
 		"extra" : " --gres=lscratch:2"
 	},
 	"make_h5ad_object" :
 	{
 		"mem" : "200G",
 		"time" : "1:00:00",
-		"partition" : "quick"
+		"partition" : "norm"
 	},
 	"diff_test_wilcox" :
 	{
@@ -227,7 +255,7 @@
 	{
 		"mem" : "30G",
 		"time" : "1:00:00",
-		"partition" : "quick"
+		"partition" : "norm"
 	},
 	"quick_trajectory" :
 	{
@@ -256,7 +284,7 @@
 	{
 		"mem" : "50G",
 		"time" : "2:00:00",
-		"partition" : "quick",
+		"partition" : "norm",
 		"extra" : " --gres=lscratch:5"
 	}
 }	
