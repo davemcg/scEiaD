@@ -9,6 +9,7 @@ library(Seurat)
 library(slingshot)
 library(SingleCellExperiment)
 library(tidyverse)
+library(scattermore)
 load('/Volumes/OGVFB_BG/scEiaD/seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15.umap.Rdata')
 
 load('/Volumes/OGVFB_BG/scEiaD/cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__knn7.cluster.Rdata') 
@@ -44,7 +45,7 @@ umapX <- left_join(umap,  Embeddings(integrated_obj[['scVI']]) %>% as_tibble(row
 umapX %>% group_by(CellType_predict, cluster) %>% dplyr::count() %>% filter(CellType_predict == 'Early RPCs') %>% arrange(-n)
 ```
 ```{r, fig.width = 8, fig.height=8}
-library(scattermore)
+
 umapFull <- umap %>% 
   rename(Stage = integration_group,
          UMAP_1 = scviUMAP_1,
@@ -137,27 +138,29 @@ save(sds, file = 'sds_massive_approx10000_2020_08_17.Rdata', compress = FALSE)
 ```
 
 
-```{r, fig.width=8, fig.height=8}
-#load('../sds_massive_approx10000.Rdata')
-paths <- slingshot::slingPseudotime(sds) %>% 
+```{r, fig.width=15, fig.height=15}
+load('~/data/massive_integrated_eye_scRNA/sds_massive_approx1000__nfeatures2000_dims100_2020_09_06.Rdata')
+
+
+psTime <- slingshot::slingPseudotime(sds)
+#row.names(psTime) <- colnames(sce)
+paths <- psTime %>% 
   as_tibble(rownames = 'Barcode') %>% 
   pivot_longer(contains('curve'), 
                names_to = 'Curve', 
                values_to = 'Pseudotime') %>% 
   filter(!is.na(Pseudotime)) %>% 
   mutate(time = cut_interval(Pseudotime, 250)) %>% 
-  left_join(umap) %>% 
+  left_join(umapX) %>% 
   group_by(Curve, time) %>% 
   summarise(UMAP_1 = mean(UMAP_1),
             UMAP_2 = mean(UMAP_2))
 
-psTime <- slingshot::slingPseudotime(sds)
-row.names(psTime) <- colnames(sce)
 psTime %>% 
   as_tibble(rownames = 'Barcode') %>% 
   pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
   filter(!is.na(Pseudotime), Pseudotime < 12) %>% 
-  left_join(umap) %>% 
+  left_join(umapX) %>% 
   ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
   facet_wrap(~Curve) + 
   geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 1, alpha = 0.4) + 
@@ -167,7 +170,26 @@ psTime %>%
   xlab('UMAP 1') + ylab('UMAP 2') +
   facet_wrap(~Curve) + 
   geom_path(data = paths, aes(x=UMAP_1, y = UMAP_2), color = 'red', size = 2) 
-  ```
+```
+
+```{r}
+psTime %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime), Pseudotime < 12) %>% 
+  filter(Curve %in% c('curve12','curve4','curve7', 'curve37', 'curve28')) %>% 
+  left_join(umapX) %>% 
+  ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
+  facet_wrap(~Curve) + 
+  geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 1, alpha = 0.4) + 
+  geom_scattermore(pointsize = 1, alpha = 0.4) + 
+  cowplot::theme_cowplot() + 
+  scale_color_viridis_c() + 
+  xlab('UMAP 1') + ylab('UMAP 2') +
+  facet_wrap(~Curve, ncol =3 ) + 
+  geom_path(data = paths %>% 
+              filter(Curve %in% c('curve12','curve4','curve7', 'curve37','curve28')), aes(x=UMAP_1, y = UMAP_2), color = 'red', size = 2) 
+```
 
 
 ```{r, fig.height=10, fig.width=10}
