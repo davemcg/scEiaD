@@ -17,7 +17,7 @@ sbcmd="sbatch --cpus-per-task={threads} \
 {cluster.extra}"
 
 
-snakemake -s /home/mcgaugheyd/git/massive_integrated_eye_scRNA/Snakefile \
+snakemake -s /home/mcgaugheyd/git/massive_integrated_eye_scRNA/SnakeSCEIAD \
 -pr --jobs 1999 \
 --configfile /home/mcgaugheyd/git/massive_integrated_eye_scRNA/config.yaml \
 --use-conda \
