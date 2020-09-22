@@ -92,8 +92,6 @@
 	{
 		"mem" : "100G"
 	},
-<<<<<<< HEAD
-=======
 	"integrate_00" :
 	{
 		"mem" : "800G",
@@ -101,7 +99,6 @@
 		"time" : "48:00:00",
 		"extra" : " --gres=lscratch:5"
 	},
->>>>>>> master
 	"integrate_01" :
 	{
 		"mem" : "600G",
@@ -272,6 +269,13 @@
 	{
 		"time" : "00:30:00",
 		"partition" : "quick"
+	},
+	 "calculate_trajectory_slingshot" :
+ 	{
+		"mem" : "100G",
+		"time" : "48:00:00",
+		"partition" : "norm",
+		"extra" : " --gres=lscratch:5"
 	},
 	"make_sqlite" :
 	{
