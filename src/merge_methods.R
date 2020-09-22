@@ -8,13 +8,14 @@ git_dir = Sys.getenv('SCIAD_GIT_DIR')
 # crazy section to deal with that fact I have scanorama in a conda environment,
 # but many of the seurat wrapped integration tools can't be installed in conda
 # without crazy effort (e.g liger...as it needs to be compiled in C)
+library(glue)
 if (method == 'scanorama'){
   Sys.setenv(RETICULATE_PYTHON = glue('{conda_dir}/envs/scanorama/bin/python') )
   library(reticulate)
   use_condaenv("scanorama")
   scanorama <- import('scanorama')
 } else if (method == 'magic') {
-  Sys.setenv(RETICULATE_PYTHON = glue{'{conda_dir}/envs/magic/bin/python')
+  Sys.setenv(RETICULATE_PYTHON = glue('{conda_dir}/envs/magic/bin/python') )
   library(reticulate)
   library(Rmagic)
 } else {
@@ -28,7 +29,6 @@ if (method == 'scanorama'){
 library(data.table)
 library(tidyverse)
 library(Seurat)
-library(glue)
 
 
 transform = args[2]
