@@ -315,7 +315,7 @@ rule get_velocity_files:
 	shell:
 		'''
 		module load R/3.6
-		Rscript src/get_velocity_annotation.R {input.gtf} {wildcards.reference} {wildcards.tech} {params.out_dir}
+		Rscript {git_dir}/src/get_velocity_annotation.R {input.gtf} {wildcards.reference} {wildcards.tech} {params.out_dir}
 		'''
 
 
