@@ -20,7 +20,7 @@
 	},
 	"bustools_sort" : 
 	{
-		"mem" : "32G",
+		"mem" : "40G",
 		"time" : "00:50:00"
 	},
 	"bustools_whitelist_correct_count" :

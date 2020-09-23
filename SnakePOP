@@ -372,7 +372,7 @@ rule kallisto_quant:
 	params:
 		paired_flag = lambda wildcards: get_kallisto_quant_layout_flag(SRS_dict[wildcards.SRS]['paired']),
 		outdir =lambda wildcards:  f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}'
-	threads: 8
+	threads: 2 
 	group:'quant'
 	shell:
 		'''
@@ -406,11 +406,11 @@ rule bustools_sort:
 		quant_path + '/quant/{SRS}/{tech}/{reference}/output.bus'
 	output:
 		temp(quant_path +'/quant/{SRS}/{tech}/{reference}/output.sorted.bus')
-	threads: 4
+	threads: 1 
 	group: "bus"
 	shell:
 		"""
-		{bustools_path}/./bustools sort -t {threads} -m 16G \
+		{bustools_path}/./bustools sort -t {threads} -m 32G \
 			{input} \
 			-o {output}
 		"""
