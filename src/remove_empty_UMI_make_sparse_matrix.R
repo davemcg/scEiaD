@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
+system('mkdir -p testing')
 save(args, file = 'testing/reumimspm_args.Rdata')
 base_dir = args[6]
 SRS = args[1]
