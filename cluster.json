@@ -54,7 +54,7 @@
 	{
 		"time" : "03:00:00",
 		"mem" : "120G",
-		"extra" : " --gres=lscratch:10"
+		"extra" : " --gres=lscratch:20"
 	},
 	"seurat_scTransform" :
 	{
@@ -62,9 +62,9 @@
 	},
 	"make_seurat_objs" :
 	{
-		"mem" : "800G",
-		"partition" : "largemem",
-		"time" : "66:00:00",
+		"mem" : "200G",
+		"partition" : "norm",
+		"time" : "6:00:00",
 		"extra" : " --gres=lscratch:10"
 	},
 	"make_seurat_objs_filtered" :
@@ -91,13 +91,6 @@
 	"calculate_phate" :
 	{
 		"mem" : "100G"
-	},
-	"integrate_00" :
-	{
-		"mem" : "800G",
-		"partition" : "largemem",
-		"time" : "48:00:00",
-		"extra" : " --gres=lscratch:5"
 	},
 	"integrate_01" :
 	{
