@@ -5,6 +5,11 @@ method = args[1]
 
 conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
 git_dir = Sys.getenv('SCIAD_GIT_DIR')
+cat('\n\n')
+cat(conda_dir)
+cat('\n')
+cat(git_dir)
+cat('\n\n')
 # crazy section to deal with that fact I have scanorama in a conda environment,
 # but many of the seurat wrapped integration tools can't be installed in conda
 # without crazy effort (e.g liger...as it needs to be compiled in C)
@@ -167,7 +172,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 		matrix[,colSums(matrix) == 0] <- one0
 	}
 
-    load('cell_info_labelled.Rdata')
+    load('pipeline_data/cell_info/cell_info_labelled.Rdata')
     ct <- seurat_obj@meta.data %>% as_tibble(rownames = 'value') %>% left_join(cell_info_labels, by = 'value') %>% pull(CellType)
 	ct[ct == 'Doublet'] <- 'Missing'
 	ct[ct == 'Doublets'] <- 'Missing'
@@ -192,7 +197,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     loom <- connect(out, mode = 'r')
     loom$close_all() 
 
-    insct_command = paste('conda activate INSCT', glue('conda_dir/envs/INSCT/bin/./python3.7 {git_dir}/src/run_INSCT.py'),
+    insct_command = paste(glue('{conda_dir}/envs/INSCT/bin/./python3.7 {git_dir}/src/run_INSCT.py'),
                          out, latent)
     # run insct     
 	print(insct_command) 
@@ -244,7 +249,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     loom <- connect(out, mode = 'r')
     loom$close_all() 
 
-    desc_command = paste('conda activate DESC;', glue('{conda_dir}/envs/DESC/bin/./python3.7 {git_dir}/src/run_desc.py'),
+    desc_command = paste(glue('{conda_dir}/envs/DESC/bin/./python3.7 {git_dir}/src/run_desc.py'),
                          out, transform, latent)
     # run desc     
 	print(desc_command) 

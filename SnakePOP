@@ -555,6 +555,8 @@ rule integrate_00:
 	shell:
 		'''
 		module load R/3.6
+		export SCIAD_CONDA_DIR={conda_dir}
+		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		cmd="Rscript {git_dir}/src/merge_methods.R \
 				  {wildcards.method} \
