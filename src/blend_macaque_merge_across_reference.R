@@ -34,7 +34,7 @@ gene_id_converter <- read_tsv('references/ensembl_biomart_human2mouse_macaque.ts
 
 ## first calculate the total counts across each build
 maca_mf_rowSums <- tibble(mf_gene_id = rownames(maca_mf_matrix),  mf_total = rowSums(maca_mf_matrix))
-maca_hs_rowSums <- tibble(hs_gene_id = rownames(maca_hs_matrix),  hs_total = rowSums(maca_hs_matrix))
+maca_hs_rowSums <- tibble(hs_gene_id = gsub('\\.\\d+', '', rownames(maca_hs_matrix)),  hs_total = rowSums(maca_hs_matrix))
 
 ## merge counts together
 joined <- gene_id_converter %>% select(hs_gene_id, mf_gene_id) %>% distinct %>% 
@@ -90,10 +90,13 @@ save(all_cells_macaque_hs_ids, file ='pipeline_data/clean_quant/Macaca_fascicula
 # rebuild cell info.
 #### Done with macaque, now lets merge across all species
 ## free up some memory
-gdata::keep(all_cells_mf_hs_matrix, gene_id_converter, joined, load_rdata,  sure = T)
+gdata::keep(all_cells_mf_hs_matrix, gene_id_converter, joined, load_rdata, git_dir, working_dir,  sure = T)
 ## First, convert mouse ID's to human ids 
 homo_hs_matrix <-load_rdata('pipeline_data/clean_quant/Homo_sapiens/hs-homo_sapiens_full_sparse_matrix.Rdata')
 mus_mm_matrix <- load_rdata('pipeline_data/clean_quant/Mus_musculus/mm-mus_musculus_full_sparse_matrix.Rdata')
+# remove .\d+ at end
+row.names(homo_hs_matrix) <- gsub('\\.\\d+', '', row.names(homo_hs_matrix))
+row.names(mus_mm_matrix) <- gsub('\\.\\d+', '', row.names(mus_mm_matrix))
 
 all_shared_gene_ids_hs_mm <- gene_id_converter %>% 
   filter(hs_gene_id %in% rownames(all_cells_mf_hs_matrix), 
@@ -125,5 +128,3 @@ all_cell_info <- colnames(all_cells_all_species_matrix) %>% enframe() %>%
 
 save(all_cells_all_species_matrix, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata', compress = F)
 write_tsv(all_cell_info, path  = 'pipeline_data/cell_info/all_cell_info.tsv')
-
-                                  
