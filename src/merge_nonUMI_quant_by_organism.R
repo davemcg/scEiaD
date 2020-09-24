@@ -7,6 +7,7 @@ library(stringr)
 library(dplyr)
 library(Matrix)
 files <- args[seq(5,length(args))]
+system(paste0('mkdir -p ', dirname(args[1])))
 
 tx2gene <- read_tsv(args[3], col_names = c('transcript_id_dot', 'gene_id_dot')) %>% 
   mutate(gene_id = str_remove(gene_id_dot, '\\.$'), 
