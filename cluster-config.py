@@ -35,6 +35,7 @@ elif rule in custom_config_rules:
     if rule == 'integrate_00':
         params['partition']='norm'
         if job_properties['wildcards']['method'] == 'scVI':
+            params['partition']='gpu'
             params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
             params['time'] = '24:00:00'
             params['mem'] = '200G'
@@ -44,6 +45,10 @@ elif rule in custom_config_rules:
             params['mem']='500G'
             params['time']='96:00:00'
             params['extra'] = '--gres=lscratch:5'
+        elif job_properties['wildcards']['partition'] == 'onlyWELL':
+            params['time']='2:00:00'
+            params['mem']= '50G'
+            params['extra'] = '--gres=lscratch:1'
         else:
             params['mem']='350G'
             params['time']='24:00:00'
