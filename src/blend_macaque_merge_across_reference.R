@@ -13,7 +13,9 @@ load_rdata <- function(x){
   env <- ls.str()
   var <- env[!grepl('^x$', env)]
   stopifnot(length(var) == 1)
-  return(get(var))
+  all_data= get(var)# the mistake was here, I orignally fixing rownames in here, but deleted it by accident
+  rownames(all_data) <- rownames(all_data) %>% str_remove_all('\\.\\d+$') 
+  return(all_data)
 }
 
 
@@ -34,7 +36,7 @@ gene_id_converter <- read_tsv('references/ensembl_biomart_human2mouse_macaque.ts
 
 ## first calculate the total counts across each build
 maca_mf_rowSums <- tibble(mf_gene_id = rownames(maca_mf_matrix),  mf_total = rowSums(maca_mf_matrix))
-maca_hs_rowSums <- tibble(hs_gene_id = gsub('\\.\\d+', '', rownames(maca_hs_matrix)),  hs_total = rowSums(maca_hs_matrix))
+maca_hs_rowSums <- tibble(hs_gene_id = rownames(maca_hs_matrix),  hs_total = rowSums(maca_hs_matrix))
 
 ## merge counts together
 joined <- gene_id_converter %>% select(hs_gene_id, mf_gene_id) %>% distinct %>% 
@@ -94,9 +96,6 @@ gdata::keep(all_cells_mf_hs_matrix, gene_id_converter, joined, load_rdata, git_d
 ## First, convert mouse ID's to human ids 
 homo_hs_matrix <-load_rdata('pipeline_data/clean_quant/Homo_sapiens/hs-homo_sapiens_full_sparse_matrix.Rdata')
 mus_mm_matrix <- load_rdata('pipeline_data/clean_quant/Mus_musculus/mm-mus_musculus_full_sparse_matrix.Rdata')
-# remove .\d+ at end
-row.names(homo_hs_matrix) <- gsub('\\.\\d+', '', row.names(homo_hs_matrix))
-row.names(mus_mm_matrix) <- gsub('\\.\\d+', '', row.names(mus_mm_matrix))
 
 all_shared_gene_ids_hs_mm <- gene_id_converter %>% 
   filter(hs_gene_id %in% rownames(all_cells_mf_hs_matrix), 
