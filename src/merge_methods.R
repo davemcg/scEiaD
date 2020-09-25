@@ -19,6 +19,7 @@ if (method == 'scanorama'){
   library(reticulate)
   use_condaenv("scanorama")
   scanorama <- import('scanorama')
+  print('Scanorama imported')
 } else if (method == 'magic') {
   Sys.setenv(RETICULATE_PYTHON = glue('{conda_dir}/envs/magic/bin/python') )
   library(reticulate)
@@ -86,7 +87,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     seurat_obj[["bbknn"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "bbknn_", assay = DefaultAssay(seurat_obj))
 	obj <- seurat_obj 
  } 
- if (method == 'CCA'){
+ else if (method == 'CCA'){
 	refs = c('SRP158081_10xv2_Rep1', 'SRP166660_10xv2_run2', 'SRP158528_10xv2_Macaque2')
     obj <- seurat_obj
     if (transform == 'SCT'){
@@ -510,6 +511,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     obj <- SetAssayData(obj, slot = 'scale.data', cor_data)
     obj <- RunPCA(obj, npcs = 100)
   } else {
+	print(method)
     print('Supply either CCA, fastMNN, harmony, liger, scanorama, or scVI as a method')
     NULL
   }
