@@ -2,14 +2,18 @@
 args <- commandArgs(trailingOnly = TRUE)
 library(Seurat)
 library(tidyverse)
+# read in ENS <-> HGNC gene mapping info
+gene_map <- read_tsv('references/ENSG2gene_name.tsv.gz') %>% mutate(hs_gene_name = toupper(hs_gene_name))
+
 # load cluster data
 load(args[3])
 cluster <- meta %>% pull(2)
 subcluster <- meta %>% pull(3)
 # load pre int seurat obj, calc cell cycle
 load(args[1])
-s.genes <- cc.genes$s.genes
-g2m.genes <- cc.genes$g2m.genes
+# convert Seurat cell cycle HGNC to ENSGENE
+s.genes <- cc.genes$s.genes %>% enframe(value = 'hs_gene_name') %>% left_join(gene_map) %>% pull(hs_gene_id) 
+g2m.genes <- cc.genes$g2m.genes %>% enframe(value = 'hs_gene_name') %>% left_join(gene_map) %>% pull(hs_gene_id)
 if (DefaultAssay(integrated_obj) == 'integrated'){
 	DefaultAssay(integrated_obj) <- 'RNA'
 }
