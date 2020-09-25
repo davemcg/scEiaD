@@ -622,6 +622,8 @@ rule calculate_cluster:
 	shell:
 		"""
 		module load R/3.6
+		export SCIAD_CONDA_DIR={conda_dir}
+		export SCIAD_GIT_DIR={git_dir}
 		Rscript {git_dir}/src/calculate_umap_and_cluster.R \
 			{wildcards.method} {wildcards.dims} 1 1 {wildcards.knn} TRUE FALSE {input} {output}
 		"""
