@@ -127,3 +127,5 @@ all_cell_info <- colnames(all_cells_all_species_matrix) %>% enframe() %>%
 
 save(all_cells_all_species_matrix, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata', compress = F)
 write_tsv(all_cell_info, path  = 'pipeline_data/cell_info/all_cell_info.tsv')
+
+gene_id_converter %>% select(hs_gene_id, hs_gene_name) %>% distinct %>% write_tsv('references/ENSG2gene_name.tsv.gz')
