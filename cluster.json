@@ -1,7 +1,7 @@
 {
 	"__default__" :
 	{
-		"partition" : "norm",
+		"partition" : "quick",
 		"time" : "04:00:00",
 		"mem" : "8g",
 		"extra" : "",
@@ -99,13 +99,6 @@
 		"time" : "72:00:00",
 		"extra" : " --gres=gpu:v100x:1,lscratch:5"
 	},
-	"calculate_umap" : 
-	{
-		"mem" : "200G",
-		"partition" : "norm",
-		"time" : "16:00:00",
-		"extra" : " --gres=lscratch:100"
-	},
 	"celltype_predict_VS_xgboost" :
 	{
 		"mem" : "50G",
@@ -119,13 +112,6 @@
 		"partition" : "norm",
 		"time" : "24:00:00",
 		"extra" : " --gres=lscratch:100"
-	},
-	"calculate_cluster" :
-	{
-		"mem" : "120G",
-		"partition" : "norm",
-		"time" : "6:00:00",
-		"extra" : " --gres=lscratch:10"
 	},
 	"run_phate" :
 	{
@@ -175,12 +161,6 @@
 		"mem" : "180G",
 		"time" : "08:00:00",
 		"partition" : "norm"
-	},
-	"perf_metrics" :
-	{
-		"partition" : "norm",
-		"mem" : "175G",
-		"time" : "04:00:00"
 	},
 	"pseudoBulk_DGE_buildObj" :
 	{

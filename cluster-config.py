@@ -8,7 +8,7 @@ from snakemake.utils import read_job_properties
 #%%
 cluster_json_file =sys.argv[1]
 jobscript = sys.argv[2]
-custom_config_rules = ['integrate_00']
+custom_config_rules = ['integrate_00', 'calculate_umap', 'calculate_cluster', 'perf_metrics']
 #%%
 
 #%%
@@ -32,25 +32,57 @@ if rule in cluster_json:
         params[key] = cluster_json[rule][key]
 elif rule in custom_config_rules:
     # specifify custom configureations specific rules
+    if rule == 'calculate_cluster':
+        if job_properties['wildcards']['partition'] == 'onlyWELL':
+            params['partition']='quick'
+            params['time'] = '2:00:00'
+            params['mem'] = '50G'
+        else:
+            params['mem'] = '200G'
+            params['partition']='norm'
+            params['mem'] = '200G'
+    if rule == 'calculate_umap':
+        if job_properties['wildcards']['partition'] == 'onlyWELL':
+            params['partition']='quick'
+            params['time'] = '2:00:00'
+            params['mem'] = '50G'
+        else:
+            params['mem'] = '200G'
+            params['partition']='norm'
+            params['mem'] = '200G'
+    if rule == 'perf_metrics':
+        if job_properties['wildcards']['partition'] == 'onlyWELL':
+            params['mem'] = '40G'
+            params['partition']='quick'
+            params['time'] = '2:00:00'
+        else:
+            params['mem'] = '175G'
+            params['partition']='norm'
+            params['time'] = '4:00:00'
     if rule == 'integrate_00':
-        params['partition']='norm'
         if job_properties['wildcards']['method'] == 'scVI':
             params['partition']='gpu'
             params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
             params['time'] = '24:00:00'
             params['mem'] = '200G'
-        elif job_properties['wildcards']['method'] == 'CCA':
+        elif job_properties['wildcards']['method'] == 'CCA' and job_properties['wildcards']['partition'] != 'onlyWELL':
             params['partition']='largemem'
             params['time']='96:00:00'
             params['mem']='500G'
             params['time']='96:00:00'
             params['extra'] = '--gres=lscratch:5'
+        elif job_properties['wildcards']['method'] == 'CCA' and job_properties['wildcards']['partition'] == 'onlyWELL':
+            params['partition']='norm'
+            params['time']='24:00:00'
+            params['mem']= '50G'
+            params['extra'] = '--gres=lscratch:1'
         elif job_properties['wildcards']['partition'] == 'onlyWELL':
             params['time']='2:00:00'
             params['mem']= '50G'
             params['extra'] = '--gres=lscratch:1'
         else:
-            params['mem']='350G'
+            params['partition']='norm'
+            params['mem']='250G'
             params['time']='24:00:00'
             params['extra'] = '--gres=lscratch:5'
 else:# use default parameters
