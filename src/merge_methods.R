@@ -1,6 +1,6 @@
 # run integration methods that support Seurat objects directly
 args <- commandArgs(trailingOnly = TRUE)
-
+system('mkdir -p loom')
 method = args[1]
 
 conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
@@ -60,7 +60,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
 	}
 	rand <- sample(1e7:9e7,1)
-    out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', rand, '_',  latent, '.loom')
+    out <- paste0('loom/', method, '_', covariate, '_', transform, '_', length(vfeatures), '_', rand, '_',  latent, '.loom')
 	create(filename= out, 
            overwrite = TRUE,
            data = matrix, 
@@ -163,7 +163,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
       matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
     }
 	if (ncol(matrix) < 100000){type = 'onlyWELL'} else {type = 'onlyDROPLET'}
-    out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', latent, '_', type, '.loom')
+    out <- paste0('loom/', method, '_', covariate, '_', transform, '_', length(vfeatures), '_', latent, '_', type, '.loom')
 	
 	# add count to one cell if all are zero
 	vfeature_num <- length(vfeatures)
@@ -224,7 +224,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     } else {
       matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
     }
-	out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', latent, '_', sample(1e5:5e5, 1), '.loom')
+	out <- paste0('loom/', method, '_', covariate, '_', transform, '_', length(vfeatures), '_', latent, '_', sample(1e5:5e5, 1), '.loom')
 		
 	# add count to one cell if all are zero
 	vfeature_num <- length(vfeatures)
@@ -278,7 +278,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
       matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
     }
 	rand <- sample(1e7:9e7,1)
-    out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', rand, '_',  latent, '.loom')
+    out <- paste0('loom/', method, '_', covariate, '_', transform, '_', length(vfeatures), '_', rand, '_',  latent, '.loom')
 	
 	# add count to one cell if all are zero
 	#vfeature_num <- length(vfeatures)
@@ -341,7 +341,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
       matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
     }
 	rand <- sample(1e7:9e7,1)
-    out <- paste0(method, '_', covariate, '_', transform, '_', length(vfeatures), '_', rand, '_',  latent, '.loom')
+    out <- paste0('loom/', method, '_', covariate, '_', transform, '_', length(vfeatures), '_', rand, '_',  latent, '.loom')
 	
 	# add count to one cell if all are zero
 	vfeature_num <- length(vfeatures)
