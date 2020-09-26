@@ -158,7 +158,7 @@ if (set == 'early'){
   seurat__standard <- make_seurat_obj(m_TABULA_DROPLET, split.by = covariate, keep_well = FALSE)
 } else if (set == 'onlyWELL' & transform == 'counts'){
   print("Running onlyWELL with quminorm (remove droplet based)") 
-  seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE, qumi = TRUE)
+  seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE, lengthCor = TRUE)
 } else if (set == 'onlyWELL') {
   print("Running onlyWELL (remove droplet based)") 
   seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE)
@@ -166,7 +166,7 @@ if (set == 'early'){
   print("Running downsample")
   seurat__standard <- make_seurat_obj(m_downsample, split.by = covariate)
 } else if (set == 'universe'){
-  seurat__standard <- make_seurat_obj(m, split.by = covariate, qumi = TRUE)
+  seurat__standard <- make_seurat_obj(m, split.by = covariate, lengthCor = TRUE)
 } else if (set %in% c('cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods' )){
   seurat__standard <- make_seurat_obj(m_subset, split.by = covariate, keep_well = FALSE)
 } else if (set == 'raw') {

@@ -3,7 +3,7 @@ make_seurat_obj <- function(m,
                             nfeatures = n_features,
                             keep_well = TRUE,
                             keep_droplet = TRUE,
-                            qumi = FALSE){
+                            lengthCor = FALSE){
   well_m <- m[,cell_info %>% filter(value %in% colnames(m), !Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   if (keep_well){
@@ -16,17 +16,17 @@ make_seurat_obj <- function(m,
   # FILTER STEP!!!!
   # keep cells with < 10% mito genes, and more than 200 and less than 3000 detected genes for UMI
   # for well, drop the 3000 gene top end filter as there shouldn't be any droplets
-  if (keep_well & !qumi){
+  if (keep_well & !lengthCor){
     print('No QUMI')
     seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
-  } else if (keep_well && qumi) {
+  } else if (keep_well && lengthCor) {
     print('QUMINORM!!')
     seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
-    #qumi_counts <- quminorm(seurat_well@assays$RNA@counts)
+    #lengthCor_counts <- lengthCornorm(seurat_well@assays$RNA@counts)
 	load('pipeline_data/cell_info/cell_info_labelled.Rdata')
     source('~/git/massive_integrated_eye_scRNA/src/extract_gene_length.R')
-	geneL_mm <- gene_length('gencode.vM25.pc_transcripts.fa.gz')
-	geneL_hs <-  gene_length('references/gencode.v34.pc_transcripts.fa.gz')
+	geneL_mm <- gene_length("references/gtf/mm-mus_musculus_anno.gtf.gz")
+	geneL_hs <-  gene_length("references/gtf/hs-homo_sapiens_anno.gtf.gz")
 	well_hs <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Homo sapiens') %>% pull(value)
 well_mm <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Mus musculus') %>% pull(value)
 	mat <- seurat_well@assays$RNA@counts
@@ -38,7 +38,7 @@ well_mm <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTer
 	mat_cor <- hs_mm[, colnames(mat)]
 
 	seurat_well <- CreateSeuratObject(mat_cor)
-    seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
+    #seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
     print('QUMI DONE!')
   }
   if (keep_droplet){
