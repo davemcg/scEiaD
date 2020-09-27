@@ -23,12 +23,12 @@ make_seurat_obj <- function(m,
     print('QUMINORM!!')
     seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
     #lengthCor_counts <- lengthCornorm(seurat_well@assays$RNA@counts)
-	load('pipeline_data/cell_info/cell_info_labelled.Rdata')
+	#load('pipeline_data/cell_info/cell_info_labelled.Rdata')
     source('~/git/massive_integrated_eye_scRNA/src/extract_gene_length.R')
 	geneL_mm <- gene_length("references/gtf/mm-mus_musculus_anno.gtf.gz")
 	geneL_hs <-  gene_length("references/gtf/hs-homo_sapiens_anno.gtf.gz")
-	well_hs <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Homo sapiens') %>% pull(value)
-well_mm <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Mus musculus') %>% pull(value)
+	well_hs <- cell_info %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Homo sapiens') %>% pull(value)
+well_mm <- cell_info %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Mus musculus') %>% pull(value)
 	mat <- seurat_well@assays$RNA@counts
 	hs_mat <- mat[, well_hs[well_hs %in% colnames(mat)]]
 	mm_mat <-  mat[, well_mm[well_mm %in% colnames(mat)]]

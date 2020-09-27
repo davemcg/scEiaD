@@ -532,7 +532,6 @@ rule make_seurat_objs:
 	input:
 		'pipeline_data/cell_info/all_cell_info.tsv',
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',		
-		'pipeline_data/cell_info/cell_info_labelled.Rdata'
 	output:
 		seurat = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata'
 	shell:
@@ -546,7 +545,7 @@ rule make_seurat_objs:
 
 rule integrate_00:
 	input:
-		cell_label_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
+		#cell_label_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
 		obj = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
 	output:
 		#temp('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
