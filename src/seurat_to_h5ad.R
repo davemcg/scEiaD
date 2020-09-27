@@ -30,7 +30,8 @@ nmeta <- nmeta %>%  mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(
 nmeta$SubCellType[grepl('^RB|Rods|Peri|^MG$|^Mic$', nmeta$SubCellType)] <- NA
 
 nmeta$CellType[grepl('Astro|Doubl|Fibro|RPE|Vascul|Red ', nmeta$CellType)] <- NA 
-
+nmeta$CellType <- gsub('Early ','',nmeta$CellType)
+nmeta$CellType <- gsub('Late  ','',nmeta$CellType)
 
 out <- integrated_obj
 out@meta.data <- nmeta %>% data.frame()
