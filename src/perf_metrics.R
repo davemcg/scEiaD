@@ -30,7 +30,8 @@ if (grepl('onlyWELL', args[2])){
 } else {
 	umap <- umap %>%  mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType))
 	umap$SubCellType[grepl('^RB|Rods|Peri|^MG$|^Mic$', umap$SubCellType)] <- NA
-
+	umap$CellType <- gsub('Early ','',umap$CellType)
+	umap$CellType <- gsub('Late  ','',umap$CellType)
 	reductions <- names(integrated_obj@reductions)
 	reductions <- reductions[!grepl('UMA', reductions, ignore.case = TRUE)]
 	if (length(reductions) == 1 && reductions == 'PCA'){
