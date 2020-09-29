@@ -13,11 +13,13 @@ library(Matrix.utils)
 species <- args[1]
 cell_info_file <- args[2]
 final_sparse_matrix_file <- args[3]
-metadata <- read_tsv(args[4])
-gtf <-  rtracklayer::readGFF(args[5])
-args_noidx = args[-(1:5)]
+intron_sparse_matrix_file = args[4] 
+empty_droplet_rdata = args[5]
+metadata <- read_tsv(args[6])
+gtf <-  rtracklayer::readGFF(args[7])
+args_noidx = args[-(1:7)]
 well_samples <-args_noidx[grepl('__counts.Rdata', args_noidx)]
-droplet_samples <- args_noidx[grepl('matrix.Rdata', args_noidx)]
+spliced_droplet_samples <- args_noidx[grepl('matrix.Rdata', args_noidx)]
 #tx <- read_tsv(args[5], col_names = FALSE) %>% select(2,3) %>% unique()
 #colnames(tx) <- c('id', 'gene')
 
@@ -26,7 +28,6 @@ load_rdata <- function(x){
   load(x)
   env <- ls.str()
   var <- env[!grepl('^x$', env)]
-  print(var)
   stopifnot(length(var) == 1)
   return(get(var))
 }
@@ -43,36 +44,40 @@ if (species != "Macaca_fascicularis"){
 # correct gene names (upper case), force to be unique
 # add sample ID to UMI
 # e.g. AAATATAAAA_SRS2341234
-sc_data <- list()
-droplet_sample_accessions <- list()
 empty_droplets <- list()
+read_all_droplet_data = function(droplet_samples){
+  sc_data <- list()
+  droplet_sample_accessions <- list()
 
-for (sample in droplet_samples ){
-  drops <- load_rdata(sample)
-  sample_accession = str_extract(sample, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
-  if (is.null(dim(drops))){
-    empty_droplets <- c(empty_droplets, sample_accession)
-  } else{
-  
-  droplet_sample_accessions<- c(droplet_sample_accessions, sample_accession)
 
-  #if (species != "Macaca_fascicularis") {
-  row.names(drops) <- row.names(drops) %>% str_remove_all('\\.$')
+  for (sample in droplet_samples ){
+    drops <- load_rdata(sample)
+    sample_accession = str_extract(sample, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+    if (is.null(dim(drops))){
+      empty_droplets <- c(empty_droplets, sample_accession)# this is coming in from global env
+    } else{
     
-  # } 
-  colnames(drops) <- make.unique(colnames(drops))
-  colnames(drops) <- paste0(colnames(drops), "_", sample_accession)
-  row.names(drops) <- make.unique(row.names(drops))
-  sc_data[[sample_accession]] <- drops
-  }
-}
+    droplet_sample_accessions<- c(droplet_sample_accessions, sample_accession)
 
+    #if (species != "Macaca_fascicularis") {
+    row.names(drops) <- row.names(drops) %>% str_remove_all('\\.$')
+      
+    # } 
+    colnames(drops) <- make.unique(colnames(drops))
+    colnames(drops) <- paste0(colnames(drops), "_", sample_accession)
+    row.names(drops) <- make.unique(row.names(drops))
+    sc_data[[sample_accession]] <- drops
+    }
+  }
+  all_droplet_data <- reduce(sc_data, RowMergeSparseMatrices)
+  return(all_droplet_data)
+}
 # create naive fully merged  
-all_droplet_data <- reduce(sc_data, RowMergeSparseMatrices)
+all_spliced_droplet_data <- read_all_droplet_data(spliced_droplet_samples)
 if (species != "Macaca_fascicularis"){
-  all_data <- RowMergeSparseMatrices(all_droplet_data, all_well_data)
+  all_data <- RowMergeSparseMatrices(all_spliced_droplet_data, all_well_data)
 } else {
-  all_data <- all_droplet_data 
+  all_data <- all_spliced_droplet_data 
   if (!grepl('hs-homo_sapiens', args[5])){
     row.names(all_data) <- row.names(all_data) %>% str_remove('\\.\\d+$')
     # macaque gtf doesnt have gene versions 
@@ -90,21 +95,30 @@ row.names(cell_info) <- cell_info$value
 cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covariate, sep = '_'),
                                   batch2 = paste(study_accession, Covariate, sep = '_'),
                                   batch3 = paste(Platform, Covariate, sep = '_'))
-####VS:
-# when generating alignment indices with BUSparse, geneid's are used; for well data, I could summarrise to gene name when all nonUMI is merged
-# but felt that it was better to treat all data the same. multiple geneids map to the same gene_name so aggregate by gene name 
-####
-# geneid2gene_name <- gtf %>% filter(type == 'transcript') %>% select(gene_id, gene_name) %>% distinct
-# gene_name_ordered_group <- row.names(all_data) %>% 
-#   {tibble(gene_id = .)} %>% 
-#   inner_join(geneid2gene_name) %>% 
-#   pull(gene_name) %>% toupper()
-# all_data_by_genename <- aggregate.Matrix(x = all_data, groupings = gene_name_ordered_group, fun = 'sum')
-
 #cell_info <- cell_info %>% mutate(Age = case_when(Age > 100 ~ 30, TRUE ~ Age))
 # save barcodes for labelling with published cell type assignment 
 write_tsv(cell_info, path = cell_info_file)
 save(all_data, file = final_sparse_matrix_file, compress = FALSE)
+## load intron quant 
+all_empty_droplets = list(spliced = empty_droplets)
+empty_droplets = list()
+
+intron_droplet_samples = spliced_droplet_samples %>% str_replace_all('matrix.Rdata', 'unspliced_matrix.Rdata')
+all_intron_droplets = read_all_droplet_data(intron_droplet_samples)
+if (species == "Macaca_fascicularis"){
+   
+  if (!grepl('hs-homo_sapiens', args[5])){
+    row.names(all_intron_droplets) <- row.names(all_intron_droplets) %>% str_remove('\\.\\d+$')
+    # macaque gtf doesnt have gene versions 
+  }
+}
+save(all_intron_droplets, file = intron_sparse_matrix_file)
+all_empty_droplets[['intron']] = empty_droplets
+save(all_empty_droplets, file = empty_droplet_rdata )
+
+
+
+
 
 
 

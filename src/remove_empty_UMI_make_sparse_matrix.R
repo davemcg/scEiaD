@@ -1,17 +1,25 @@
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
 system('mkdir -p testing')
-save(args, file = 'testing/reumimspm_args.Rdata')
-base_dir = args[6]
+#save(args, file = 'testing/reumimspm_args.Rdata')
+base_dir = args[5]
 SRS = args[1]
 REF = args[2]
-
 matrix_file_dir <- args[3]
-bus_pfx <- args[4]
-stats_file <- args[5]
+stats_file <- args[4]
 
-outpfx <- ifelse(bus_pfx == 'spliced', 'matrix.Rdata', 'unspliced_matrix.Rdata')
-out_matrix_file <- paste(matrix_file_dir, outpfx, sep = '/')
+####
+base_dir = '/data/swamyvs/scEiaD/'
+SRS = 'SRS6424747'
+REF = 'hs-homo_sapiens'
+matrix_file_dir <- '/data/OGVFB_BG/new_quant_sciad/quant/SRS6424747/10xv2/hs-homo_sapiens/genecount/'
+stats_file <- args[4]
+####
+
+
+
+spliced_matrix_file <- paste(matrix_file_dir, 'matrix.Rdata', sep = '/')
+unspliced_matrix_file = paste(matrix_file_dir, 'unspliced_matrix.Rdata', sep = '/')
 
 library(Seurat)
 library(BUSpaRse)
@@ -21,7 +29,7 @@ library(readr)
 
 # input data from project
 
-raw_matrix <- BUSpaRse::read_count_output(matrix_file_dir,bus_pfx, FALSE)
+raw_matrix <- BUSpaRse::read_count_output(matrix_file_dir,'spliced', FALSE)
 dim(raw_matrix)
 tot_counts <- Matrix::colSums(raw_matrix)
 
@@ -71,5 +79,12 @@ stats <- data.frame('Gene_Number' = c(dim(raw_matrix)[1], dim(res_matrix)[1]),
 write_tsv(stats, path = stats_file)
 
 # save pared down counts
-save(res_matrix, file = out_matrix_file)
+save(res_matrix, file = spliced_matrix_file)
+###
+# now load the intron quant
+intron_matrix <- BUSpaRse::read_count_output(matrix_file_dir,'unspliced', FALSE)
+dim(intron_matrix)
+intron_res_matrix = intron_matrix[, tot_counts > metadata(bc_rank)$inflection]
+save(intron_res_matrix, file = unspliced_matrix_file)
 message('finished successfully')
+
