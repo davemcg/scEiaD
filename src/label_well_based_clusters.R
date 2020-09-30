@@ -1,26 +1,22 @@
+
 library(pool)
 library(RSQLite)
 library(tidyverse)
 library(Seurat)
 
 
-scEiaD <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite", idleTimeout = 3600000)
-
-meta_filter <- scEiaD %>% tbl('metadata_filter')
-
-load('~/data/massive_integrated_eye_scRNA/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__libSize__onlyWELL__batch__fastMNN__dims30__preFilter__mindist0.1__nneighbors50.seurat.Rdata')
-load('~/data/massive_integrated_eye_scRNA/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__libSize__onlyWELL__batch__fastMNN__dims30__preFilter__mindist0.1__nneighbors50.umap.Rdata')
+scEiaD <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/scEiaD__2020_08_20__Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite", idleTimeout = 3600000)
+load('/Volumes/data-1/projects/nei/mcgaughey/scEiaD_me/seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features2000__sqrt__onlyWELL__batch__fastMNN__dims8__preFilter__mindist0.3__nneighbors30.umap.Rdata')
+load('/Volumes/data-1/projects/nei/mcgaughey/scEiaD_me/umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features2000__sqrt__onlyWELL__batch__fastMNN__dims8__preFilter__mindist0.3__nneighbors30.umap.Rdata')
 
 
+meta_filter <- scEiaD %>% tbl('metadata_filter') %>% collect()
 
 
 seurat_obj <- CreateSeuratObject(counts = integrated_obj@assays$RNA@counts)
 for (i in colnames(umap)){
   seurat_obj <- AddMetaData(seurat_obj, umap[,i] %>% pull(1), col.name = i)
 }
-
-
-
 
 seurat_obj@reductions$mnn <- CreateDimReducObject(embeddings = integrated_obj@reductions$mnn@cell.embeddings,
                                                   loadings = integrated_obj@reductions$mnn@feature.loadings,
@@ -33,25 +29,42 @@ seurat_obj@reductions$mnnUMAP <- CreateDimReducObject(embeddings = integrated_ob
                                                       key = 'mnnUMAP_',
                                                       assay = 'RNA')
 
+
 seurat_obj <- FindVariableFeatures(seurat_obj)
 seurat_obj <- NormalizeData(seurat_obj)
 seurat_obj <- ScaleData(seurat_obj)
-seurat_obj <- FindNeighbors(seurat_obj, dims = 1:30, reduction = 'mnn')
+seurat_obj <- FindNeighbors(seurat_obj, dims = 1:8, reduction = 'mnn')
 seurat_obj <- FindClusters(seurat_obj, resolution = 0.5)
 #DimPlot(seurat_obj, reduction = 'mnnUMAP')
 
+retina <- readr::read_tsv('https://raw.githubusercontent.com/davemcg/eyeMarkers/master/lists/retina_single_cell_markers__cowan2020.tsv')
+gene_id_converter <- read_tsv('~/data/massive_integrated_eye_scRNA/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
+                              col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
+                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
+  select(-hs_gene_id_v)
 
-DimPlot(seurat_obj, reduction = 'mnnUMAP', group.by = 'seurat_clusters')
+neb_plots <- list()
+for (i in retina$CellType %>% unique()){
+  print(i)
+  genes <- retina %>% 
+    filter(CellType == i) %>% 
+    left_join(gene_id_converter %>% 
+                mutate(Gene = hs_gene_name)) %>% 
+    pull(hs_gene_id) %>% 
+    unique() 
+  genes <- genes[genes %in% row.names(seurat_obj)]
+  try({neb_plots[[i]] <- plot_density(seurat_obj, genes, joint = TRUE, method = 'wkde')})
+}
 
-# seurat_obj <- SetIdent(object = seurat_obj,value =  "cluster")
 
 top_genes <- FindAllMarkers(seurat_obj,  group.by = 'seurat_clusters', logfc.threshold = 1, min.pct = 0.2)
 top_genes_roc <- FindAllMarkers(seurat_obj,  group.by = 'seurat_clusters', logfc.threshold = 1, min.pct = 0.2, test.use = 'roc')
 
-
-meta_filter <- scEiaD_2020_v01 %>% tbl("metadata_filter") %>% collect()
 marker_exp_plots <- function(gene){
-  box_data <- scEiaD_2020_v01 %>% tbl('grouped_stats') %>%
+  if (grepl('ENSG', gene[1])){
+    gene <- gene_id_converter %>% filter(hs_gene_id %in% (top_genes %>% filter(cluster == i, avg_logFC > 1) %>% pull(gene) %>% head(6))) %>% pull(hs_gene_name) %>% unique()
+  }
+  box_data <- scEiaD %>% tbl('grouped_stats') %>%
     filter(Gene %in% gene) %>%
     collect()
   grouping_features <- c('study_accession')
@@ -91,7 +104,10 @@ marker_exp_plots <- function(gene){
 }
 
 marker_diff_test <- function(gene){
-  results <- scEiaD_2020_v01 %>% tbl("PB_results") %>% 
+  if (grepl('ENSG', gene[1])){
+    gene <- gene_id_converter %>% filter(hs_gene_id %in% (top_genes %>% filter(cluster == i, avg_logFC > 1) %>% pull(gene) %>% head(6))) %>% pull(hs_gene_name) %>% unique()
+  }
+  results <- scEiaD %>% tbl("PB_results") %>% 
     filter(Gene %in% gene) %>% collect() %>% 
     filter(grepl('CellType \\(Pre', PB_Test)) %>% 
     arrange(FDR) %>% 
@@ -108,28 +124,34 @@ for (i in top_genes$cluster %>% unique()){
   exp_plots[[i]] <- marker_exp_plots(top_genes %>% filter(cluster == i, avg_logFC > 1) %>% pull(gene) %>% head(6))
   marker_diff[[i]] <- marker_diff_test(top_genes %>% filter(cluster == i, avg_logFC > 1) %>% pull(gene) %>% head(6))
   marker_auc[[i]] <- marker_diff_test(top_genes_roc %>% filter(cluster == i, avg_logFC > 1) %>% pull(gene) %>% head(6))
-  ggsave(plot = exp_plots[[i]], filename = paste0('plots/exp_plot_cluster_', i, '.png'), device = 'png', width = 20, dpi = 'retina')
+  ggsave(plot = exp_plots[[i]], filename = paste0('plots/exp_plot_cluster_', i, '.png'), device = 'png', width = 20, height = 20, dpi = 'retina')
 }
 
 
-ct <- seurat_obj@meta.data %>% as_tibble() %>% mutate(CellType = case_when(seurat_clusters == '0' ~ 'Cones',
-                                                                           seurat_clusters == '1' ~ 'Rods',
-                                                                           seurat_clusters == '2' ~ 'Bipolar Cells',
-                                                                           seurat_clusters == '3' ~ 'Retinal Ganglion Cells',
-                                                                           seurat_clusters == '4' ~ 'Rods',
-                                                                           seurat_clusters == '5' ~ 'RPCs',
-                                                                           seurat_clusters == '6' ~ 'RPCs',
-                                                                           seurat_clusters == '7' ~ 'Muller Glia',
-                                                                           seurat_clusters == '8' ~ 'Muller Glia',
-                                                                           seurat_clusters == '9' ~ 'Muller Glia Progenitor',
-                                                                           seurat_clusters == '10' ~ 'Muller Glia',
-                                                                           seurat_clusters == '11' ~ 'Bipolar Cells',
-                                                                           seurat_clusters == '12' ~ 'Bipolar Cells',
-                                                                           seurat_clusters == '13' ~ 'Amacrine Cells',
-                                                                           seurat_clusters == '14' ~ 'Amacrine Cells')) %>% 
+ct2 <- seurat_obj@meta.data %>% as_tibble() %>% mutate(CellType = case_when(seurat_clusters == '0' ~ 'Rods',
+                                                                            seurat_clusters == '1' ~ 'Muller Glia',
+                                                                            seurat_clusters == '2' ~ 'RPCs',
+                                                                            seurat_clusters == '3' ~ 'RPCs',
+                                                                            seurat_clusters == '4' ~ 'Cones',
+                                                                            seurat_clusters == '5' ~ 'Bipolar Cells',
+                                                                            seurat_clusters == '6' ~ 'RPC',
+                                                                            seurat_clusters == '7' ~ 'Amacrine Cells',
+                                                                            seurat_clusters == '8' ~ 'Rods',
+                                                                            seurat_clusters == '9' ~ 'Mesenchymal/RPE/Endothelial',
+                                                                            seurat_clusters == '10' ~ 'Bipolar Cells',
+                                                                            seurat_clusters == '11' ~ 'Amacrine Cells',
+                                                                            seurat_clusters == '12' ~ 'Bipolar Cells',
+                                                                            seurat_clusters == '13' ~ 'Rods',
+                                                                            TRUE ~ 'RPCs')) %>% 
   pull(CellType)
 
-seurat_obj <- AddMetaData(seurat_obj, ct, col.name = 'CellType')
+
+
+seurat_obj <- AddMetaData(seurat_obj, ct2, col.name = 'CellType')
+seurat_obj <- AddMetaData(seurat_obj, ct2, col.name = 'CellType2')
 DimPlot(seurat_obj, reduction = 'mnnUMAP', group.by = 'CellType')
 
+
+
 save(seurat_obj, file = 'data/well_data_seurat_obj_labelled.Rdata')
+
