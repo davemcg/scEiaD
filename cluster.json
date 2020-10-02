@@ -262,6 +262,13 @@
 		"mem" : "50G",
 		"time" : "2:00:00",
 		"partition" : "norm",
+		"extra" : " --gres=lscratch:50:"
+	},
+	"haystack" :
+	{
+		"mem" : "200G",
+		"time" : "36:00:00",
+		"partition" : "norm",
 		"extra" : " --gres=lscratch:5"
-	}
+	}		
 }	
