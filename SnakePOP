@@ -3,8 +3,48 @@ pp = pprint.PrettyPrinter(width=41, compact=True)
 import subprocess as sp
 import tempfile
 import yaml
+import json
+import string
+import itertools
+def dict_product(dicts):
+	#https://stackoverflow.com/questions/11277432/how-to-remove-a-key-from-a-python-dictionary
+    return (dict(zip(dicts, x)) for x in itertools.product(*dicts.values()))
 
-def export_rule_info(pfx, **kwargs):
+## use a json to layout integration configs
+def parse_integration_config(file, output_string, which_partitions):
+	file_string = output_string
+	rule_output =[]
+	with open(file) as cfg_file:
+		iconfig = json.load(cfg_file)
+	gparam_dict={} 
+	for key in iconfig['global_default']:
+		gparam_dict[key] = iconfig['global_default'][key]
+	
+	for partition in which_partitions:
+		default_params = gparam_dict.copy()
+		## load default params and generate strings
+		for param in iconfig[partition]['default']:
+			default_params[param] = iconfig[partition]['default'][param]
+		# for paritions that all have the same methods, ie subset clustering, its easier 
+		# to add partition back to the default. 
+		# This is so we dont over write it by accident
+		if 'partition' not in default_params:
+			default_params['partition'] = [partition]
+		rule_output+=[file_string.format_map(dp) for dp in dict_product(default_params) ]
+		## generate outptut for method with alternate params
+		if len(iconfig[partition].keys()) > 1: # multiple methods
+			methods = [m for m in iconfig[partition].keys() if m!= 'default']
+			for method in methods:
+				#reset default back to base for this
+				base_default_params = default_params.copy()
+				for param in iconfig[partition][method]:
+					base_default_params[param] = iconfig[partition][method][param]
+				# overwrite previous method
+				base_default_params['method'] = [method]
+				rule_output+=[file_string.format_map(dp) for dp in dict_product(base_default_params)]
+	return rule_output
+
+def export_rule_info(pfx, **kwargs):## unused 
     out_dict = {}
     for key, value in kwargs.items():
         out_dict[key]=value
@@ -14,11 +54,21 @@ def export_rule_info(pfx, **kwargs):
         outyaml.write(dp)
         return outyaml.name
 
-srr_sample_file = config['srr_sample_file']
-#srr_sample_discrepancy_file = config['srr_discrepancy_file']
-#rule_config_tempdir = config['rule_config_tempdir']
+with open (config['integration_json']) as cfg:
+	iconfig = json.load(cfg)
 
+# ALL_INTEGRATION_PARAMS = list(iconfig['global_default'].keys())
+# for partition in iconfig.keys():
+# 	if 'default' in  iconfig[partition]:
+# 		for method in iconfig[partition].keys()
+# 			ALL_INTEGRATION_PARAMS+=list(iconfig[partition][method].keys())
+# ALL_INTEGRATION_PARAMS = 
 
+def make_wc_string(pfx, wildcards, sfx):
+	for wc in wildcards:
+		wc_str = wc +'-{' + wc + '}__' 
+		pfx+= wc_str
+	return pfx + sfx
 # builds dictionary of dictionaries where first dict key is SRS 
 # and second dict key are SRS properties
 def metadata_builder(file, SRS_dict = {}, discrepancy = False):
@@ -55,8 +105,55 @@ def metadata_builder(file, SRS_dict = {}, discrepancy = False):
 					runs.append(info[1])
 					SRS_dict[SRS]['SRR'] = runs
 	return(SRS_dict)
+def lookup_run_from_SRS(SRS, fqp):
+	SRR_files=SRS_dict[SRS]['SRR']
+	out = []
+	for SRR in SRR_files:
+		if SRS_dict[SRS]['paired']:
+			#PE
+			out.append(f'{fqp}/fastq/{SRR}_1.fastq.gz')
+			out.append(f'{fqp}/fastq/{SRR}_2.fastq.gz')
+		else:
+			#SE
+			out.append(f'{fqp}/fastq/{SRR}.fastq.gz')
+	return(out)
 
+# return dummy well file for macaca ,as there is no well data at this time
+def well_and_droplet_input(organism, reference, quant_path, SRS_dict, otd, sfx):
+	if organism == 'Macaca_fascicularis':
+		out = [f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/{sfx}' for srs in organism_droplet_dict[organism]]
+	else:
+		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + \
+				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/{sfx}' for srs in organism_droplet_dict[organism]]
+	return(out)
+
+def REF_idx(organism, ref, org2tech):
+	out = [f'references/velocity/{tech}/{ref}/tr2g.tsv' for tech in org2tech[organism]]
+	return out
+
+
+
+def ORG_ref(organism, which_return):
+	if organism.lower() == 'mus_musculus':
+		refs = ['mm-mus_musculus']
+	elif organism.lower() == 'homo_sapiens':
+		refs = ['hs-homo_sapiens']
+	elif organism.lower() == 'macaca_fascicularis':
+		refs = ['hs-homo_sapiens','mf-macaca_mulatta']
+	else:
+		print(organism + ' NO MATCH')
+		exit()
+
+	if which_return == 'matrix':
+		out = [f'pipeline_data/clean_quant/{organism}/{ref}_full_sparse_matrix.Rdata' for ref in refs] + [f'pipeline_data/clean_quant/{organism}/{ref}_full_sparse_unspliced_matrix.Rdata' for ref in refs]
+	else:
+		out = [f'pipeline_data/cell_info/{organism}_{ref}_cell_info.tsv' for ref in refs]
+
+	return(out)
+
+srr_sample_file = config['srr_sample_file']
 SRS_dict = metadata_builder(srr_sample_file)
+
 # pp.pprint(SRS_dict)
 # hand edited file which corrects mistakes that in the 
 # various databases
@@ -92,52 +189,6 @@ for x in SRS_dict:
 			srs.append(x)
 			organism_droplet_dict[organism] = srs
 
-
-def lookup_run_from_SRS(SRS, fqp):
-	SRR_files=SRS_dict[SRS]['SRR']
-	out = []
-	for SRR in SRR_files:
-		if SRS_dict[SRS]['paired']:
-			#PE
-			out.append(f'{fqp}/fastq/{SRR}_1.fastq.gz')
-			out.append(f'{fqp}/fastq/{SRR}_2.fastq.gz')
-		else:
-			#SE
-			out.append(f'{fqp}/fastq/{SRR}.fastq.gz')
-	return(out)
-
-# return dummy well file for macaca ,as there is no well data at this time
-def well_and_droplet_input(organism, reference, quant_path, SRS_dict, otd):
-	if organism == 'Macaca_fascicularis':
-		out = [f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/matrix.Rdata' for srs in organism_droplet_dict[organism]]
-	else:
-		out = [f'{quant_path}/quant/{organism}/{tech}/{reference}__counts.Rdata' for tech in otd[organism]] + \
-				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/matrix.Rdata' for srs in organism_droplet_dict[organism]]
-	return(out)
-
-def REF_idx(organism, ref, org2tech):
-	out = [f'references/velocity/{tech}/{ref}/tr2g.tsv' for tech in org2tech[organism]]
-	return out
-
-
-
-def ORG_ref(organism, which_return):
-	if organism.lower() == 'mus_musculus':
-		refs = ['mm-mus_musculus']
-	elif organism.lower() == 'homo_sapiens':
-		refs = ['hs-homo_sapiens']
-	elif organism.lower() == 'macaca_fascicularis':
-		refs = ['hs-homo_sapiens','mf-macaca_mulatta']
-	else:
-		print(organism + ' NO MATCH')
-		exit()
-
-	if which_return == 'matrix':
-		out = [f'pipeline_data/clean_quant/{organism}/{ref}_full_sparse_matrix.Rdata' for ref in refs]
-	else:
-		out = [f'pipeline_data/cell_info/{organism}_{ref}_cell_info.tsv' for ref in refs]
-
-	return(out)
 
 git_dir = config['git_dir']
 bustools_path = config['bustools_path']
@@ -175,117 +226,14 @@ wildcard_constraints:
 	dims = '|'.join([str(x) for x in dims]),
 	model = '|'.join(model)	
 
-# rule all:
-# 	input:
-# 		'cell_info.tsv'
-		# human_hs_quant = well_and_droplet_input('Homo_sapiens', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
-		# mouse_mm_quant = well_and_droplet_input('Mus_musculus', 'mm-mus_musculus', quant_path, SRS_dict, organism_welltech_dict),
-		# monkey_mf_quant = well_and_droplet_input('Macaca_fascicularis', 'mf-macaca_mulatta', quant_path, SRS_dict, organism_welltech_dict),
-		# monkey_hs_quant = well_and_droplet_input('Macaca_fascicularis', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
-		# human_dntx_quant = well_and_droplet_input('Homo_sapiens', 'DNTX', quant_path, SRS_dict, organism_welltech_dict)
-		
-
-if config['subset_clustering'] == 'False': 
-	rule all:
-		input:
-			#expand('quant/{sample}/hs/output.bus', sample = SRS_UMI_samples),	
-			expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-					transform = ['counts'], \
-					n_spec_genes = [0], \
-					method = ['scVI'], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['universe'], \
-					n_features = [2000, 5000, 10000], \
-					covariate = ['batch'], \
-					dims = [30,50,100],
-					dist = [0.1],
-					neighbors = [100]),
-			#expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plotPredictions.png', \
-			#		transform = ['libSize'], \
-			#		method = ['fastMNN'], \
-			#		n_spec_genes = [0], \
-			#		combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-			#		partition = ['onlyWELL'], \
-			#		n_features = [2000], \
-			#		covariate = ['batch'], \
-			#		dims = [30],
-			#		dist = [0.1],
-			#		neighbors = [50]),
-			expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-					transform = ['counts'], \
-					method = ['scVI'], \
-					n_spec_genes = [0], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['TabulaDroplet'], \
-					n_features = [1000, 2000, 5000, 10000], \
-					covariate = ['batch'], \
-					dims = [4,6,8,10,20,30,50,100],
-					dist = [0.001,0.1],
-					neighbors = [15, 30, 50, 100, 500]),
-			expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-					transform = ['counts'], \
-					method = ['scArches'], \
-					n_spec_genes = [0], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['TabulaDroplet'], \
-					n_features = [2000], \
-					covariate = ['batch'], \
-					dims = [8, 30],
-					dist = [0.3],
-					neighbors = [30]),
-			expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-					transform = ['sqrt','libSize','scran', 'standard', 'SCT'], \
-					method = ['bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['TabulaDroplet'], \
-					n_spec_genes = [0], \
-					n_features = [2000], \
-					covariate = ['batch'], \
-					dims = [8, 30],
-					dist = [0.3],
-					neighbors = [30]),
-			expand('trajectory_plot/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.png',
-					transform = ['counts'], \
-					method = ['scVI'], \
-					n_spec_genes = [0], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['TabulaDroplet'], \
-					n_features = [1000, 2000, 5000, 10000], \
-					covariate = ['batch'], \
-					dims = [4,6,8,10,20,30,50,100], \
-					knn = [0.8,0.4,0.6,5, 7, 10], \
-					dist = [0.1], \
-					neighbors = [30]), 
-			expand('trajectory_plot/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.png',
-					transform = ['libSize','sqrt','scran', 'standard'], \
-					method = ['bbknn','insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'CCA', 'none'], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['TabulaDroplet'], \
-					n_features = [2000], \
-					n_spec_genes = [0], \
-					covariate = ['batch'], \
-					dims = [8, 30], \
-					knn = [7], \
-					dist = [0.3], \
-					neighbors = [30]),
-			'trajectory_metrics/merged.Rdata',
-			'merged_stats_2020_07_06.Rdata',
-			#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-TabulaDroplet-batch-scVI-50-0.1-15-0.4.sqlite.gz'
-			#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite.gz',
+if config['subset_clustering'] == 'False':
+	partitions_to_run = ['universe', 'TabulaDroplet', 'onlyWELL']
 else:
-	rule all:
-		input:	
-			expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-					transform = ['counts'], \
-					method = ['scVI'], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods'], \
-					n_features = [ 1000, 2000], \
-					covariate = ['batch'], \
-					dims = [4,6,10,30],
-					dist = [0.1],
-					neighbors = [30]),
-			'merged_stats_subsetClustering.Rdata'
+	partitions_to_run = ['celltype_subset']
+
+rule all:
+	input:
+		'pipeline_data/results/merged_stats.Rdata'
 	
 # get annotation for each species 
 rule download_annotation:
@@ -298,15 +246,17 @@ rule download_annotation:
 		'''
 		mkdir -p references
 		wget -O {output.mouse_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/gencode.vM25.annotation.gtf.gz
+		wget -O {output.mouse_genome} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/GRCm38.primary_assembly.genome.fa.gz
+
 		wget -O {output.macaque_mul_anno} ftp://ftp.ensembl.org/pub/release-99/gtf/macaca_mulatta/Macaca_mulatta.Mmul_10.99.gtf.gz
 		wget -O {output.human_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_35/gencode.v35.annotation.gtf.gz
 		'''
 		#wget -O {output.macaque_faca_anno} ftp://ftp.ensembl.org/pub/release-98/gtf/macaca_fascicularis/Macaca_fascicularis.Macaca_fascicularis_5.0.98.gtf.gz
 
-
 rule get_velocity_files:
 	input: 
-		gtf = 'references/gtf/{reference}_anno.gtf.gz'
+		gtf = 'references/gtf/{reference}_anno.gtf.gz', 
+		gffread = 'gffread/gffread'
 	output:
 		'references/velocity/{tech}/{reference}/cDNA_introns.fa',
 		'references/velocity/{tech}/{reference}/tr2g.tsv'
@@ -315,9 +265,8 @@ rule get_velocity_files:
 	shell:
 		'''
 		module load R/3.6
-		Rscript {git_dir}/src/get_velocity_annotation.R {input.gtf} {wildcards.reference} {wildcards.tech} {params.out_dir}
+		Rscript {git_dir}/src/get_velocity_annotation.R {input.gtf} {wildcards.reference} {wildcards.tech} {params.out_dir} {git_dir}
 		'''
-
 
 
 # need to make mouse, human, macaque
@@ -366,12 +315,12 @@ def get_kallisto_quant_layout_flag(is_paired):
 rule kallisto_quant:
 	input:
 		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS, fastq_path),
-		idx = 'references/kallisto_idx/{tech}/{reference}.idx'
+		idx = 'references/kallisto_idx/well/{reference}.idx'
 	output:
-		quant = quant_path + '/quant/{SRS}/{tech}/{reference}/abundance.tsv.gz'
+		quant = quant_path + '/quant/{SRS}/well/{reference}/abundance.tsv.gz'
 	params:
 		paired_flag = lambda wildcards: get_kallisto_quant_layout_flag(SRS_dict[wildcards.SRS]['paired']),
-		outdir =lambda wildcards:  f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}'
+		outdir =lambda wildcards:  f'{quant_path}/quant/{wildcards.SRS}/well/{wildcards.reference}'
 	threads: 2 
 	group:'quant'
 	shell:
@@ -381,24 +330,7 @@ rule kallisto_quant:
 					-i {input.idx} -o {params.outdir} {input.fastq}
 		gzip {params.outdir}/abundance.tsv
 		'''
-rule separate_spliced_unspliced_welldata:
-	input:
-		quant = quant_path + '/quant/{SRS}/{tech}/{reference}/abundance.tsv.gz'
-	output:
-		spliced_quant = quant_path + '/quant/{SRS}/{tech}/{reference}/abundance_spliced.tsv.gz',
-		unspliced_quant = quant_path + '/quant/{SRS}/{tech}/{reference}/abundance_unspliced.tsv.gz'
-	params:
-		quant_uz = lambda wildcards: f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}/abundance.tsv'
-	group:'quant'
-	shell:
-		'''
-		gunzip {input.quant}
-		grep -v '.-I' {params.quant_uz} | gzip -c - > {output.spliced_quant}
-		grep  '.-I' {params.quant_uz} | gzip -c - > {output.unspliced_quant}
-		gzip {params.quant_uz}
-		'''	
 
-			
 # sorting required for whitelist creation and correction
 # make these temp files
 rule bustools_sort:
@@ -465,38 +397,44 @@ rule create_sparse_matrix:
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {params.bus_out} spliced {output.stats_spliced} {working_dir}
-		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {params.bus_out} unspliced {output.stats_unspliced} {working_dir}
-		"""		
+		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {params.bus_out} {output.stats_spliced} {working_dir}
 
+		"""		
+# spit out both intron and exon counts 
 
 rule merge_nonUMI_quant_by_organism:
 	input:
-		quant = lambda wildcards: expand(quant_path + '/quant/{SRS}/{{tech}}/{{reference}}/abundance_spliced.tsv.gz', 
-										SRS = [srs for srs in organism_well_dict[wildcards.organism] if SRS_dict[srs]['tech'] == wildcards.tech and SRS_dict ] ),
-		tx_map = 'references/velocity/{tech}/{reference}/tr2g.tsv',
+		quant = lambda wildcards: expand(quant_path + '/quant/{SRS}/well/{{reference}}/abundance.tsv.gz', 
+										SRS = [srs for srs in SRS_dict.keys() if SRS_dict[srs]['organism'] == wildcards.organism ] ),
+		tx_map = 'references/velocity/well/{reference}/tr2g.tsv',
 		gtf = 'references/gtf/{reference}_anno.gtf.gz'
 	output:
-		quant_path + '/quant/{organism}/{tech}/{reference}__counts.Rdata',
-		quant_path + '/quant/{organism}/{tech}/{reference}__counts_tx.Rdata'
+		quant_path + '/quant/{organism}/well/{reference}__counts.Rdata',
+		quant_path + '/quant/{organism}/well/{reference}__counts_tx.Rdata'
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.gtf} {input.quant} 
+		Rscript {git_dir}/src/merge_nonUMI_quant_by_organism.R {output} {input.tx_map} {input.gtf} {quant_path} {wildcards.reference}
 		"""
 
 rule combine_well_and_umi:
 	input:
 		srr_metadata = config['srr_sample_file'],
 		gtf='references/gtf/{reference}_anno.gtf.gz',
-		counts = lambda wildcards: well_and_droplet_input(wildcards.organism, wildcards.reference, quant_path, SRS_dict, organism_welltech_dict)
+		spliced_counts = lambda wildcards: well_and_droplet_input(wildcards.organism, wildcards.reference, quant_path, SRS_dict, 
+																	organism_welltech_dict, 'matrix.Rdata'),
+		intron_counts = lambda wildcards: well_and_droplet_input(wildcards.organism, wildcards.reference, quant_path, SRS_dict, 
+																	organism_welltech_dict, 'unspliced_matrix.Rdata')
+
 	output:
 		cell_info = 'pipeline_data/cell_info/{organism}_{reference}_cell_info.tsv',
-		matrix = 'pipeline_data/clean_quant/{organism}/{reference}_full_sparse_matrix.Rdata' # note that this is the quant in the LOCAL directory
+		spliced_matrix = 'pipeline_data/clean_quant/{organism}/{reference}_full_sparse_matrix.Rdata',
+		unspliced_matrix = 'pipeline_data/clean_quant/{organism}/{reference}_full_sparse_unspliced_matrix.Rdata',
+		empty_droplets = 'pipeline_data/cell_info/{organism}_{reference}_empty_droplets.Rdata'  # note that this is the quant in the LOCAL directory
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/build_sparse_matrix.R {wildcards.organism} {output} {input}
+		Rscript {git_dir}/src/build_sparse_matrix.R {wildcards.organism} {output} {input.srr_metadata} {input.gtf} {input.spliced_counts}
 		"""
 
 rule merge_across_references:
@@ -505,8 +443,10 @@ rule merge_across_references:
 		cell_info = [ORG_ref(organism, 'cell_info') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ]
 	output:
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
+		'pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata',
 		'pipeline_data/cell_info/all_cell_info.tsv',
-		'references/complete_id_mapping.tsv'
+		'references/complete_id_mapping.tsv',
+		expand('pipeline_data/clean_quant/{species}/full_sparse_matrix.Rdata',species= ['Homo_sapiens', 'Mus_musculus'])
 	shell:
 		"""
 		module load R/3.6
@@ -527,6 +467,16 @@ rule label_known_cells_with_type:
 		Rscript {git_dir}/src/label_known_cells.R 
 		"""
 
+def get_fsm(parti):
+	if parti in ['Homo_sapiens', "Mus_musculus"]:
+		return f'pipeline_data/clean_quant/{parti}/full_sparse_matrix.Rdata' # species specific quant 
+	else:
+		return 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata'
+
+seu_obj_pfx ='seurat_obj/'
+seu_obj_param =['combination','add_intron','n_features}','transform','partition', 'covariate']
+seu_obj_sfx = 'preFilter.seuratV3.Rdata'
+
 
 rule make_seurat_objs:
 	input:
@@ -534,7 +484,7 @@ rule make_seurat_objs:
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',		
 		'pipeline_data/cell_info/cell_info_labelled.Rdata'
 	output:
-		seurat = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata'
+		seurat = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -544,13 +494,16 @@ rule make_seurat_objs:
 			{wildcards.combination} {wildcards.n_features} {input} 
 		"""
 
+intg_obj_pfx ='seurat_obj/'
+intg_obj_param =['combination','add_intron','n_features}','transform','partition', 'covariate', 'method', 'dims']
+intg_obj_sfx = 'preFilter.seuratV3.Rdata'
 rule integrate_00:
 	input:
 		cell_label_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
-		obj = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
+		obj = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
 	output:
-		#temp('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
-		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+		#temp('seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
+		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
 	threads: 2 	
 	shell:
 		'''
@@ -574,9 +527,9 @@ rule integrate_00:
 
 rule calculate_umap:
 	input:
-		obj = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+		obj = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
 	output:
-		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	threads: 4
 	shell:
 		"""
@@ -589,9 +542,9 @@ rule calculate_umap:
 
 rule calculate_tsne:
 	input:
-		obj = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+		obj = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
 	output:
-		temp('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata')
+		temp('seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata')
 	threads: 4
 	shell:
 		"""
@@ -603,9 +556,9 @@ rule calculate_tsne:
 
 rule calculate_phate:
 	input:
-		obj = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+		obj = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
 	output:
-		'phate/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.phate.Rdata'
+		'phate/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.phate.Rdata'
 	threads: 16
 	shell:
 		"""
@@ -616,9 +569,9 @@ rule calculate_phate:
 		
 rule calculate_cluster:
 	input:
-		obj = 'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+		obj = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
 	output:
-		temp('seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.seuratV3.Rdata')
+		temp('seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.seuratV3.Rdata')
 	shell:
 		"""
 		module load R/3.6
@@ -628,13 +581,13 @@ rule calculate_cluster:
 
 rule extract_umap:
 	input:
-		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
-		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		'cluster/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn7.cluster.Rdata',
+		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
+		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
+		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn7.cluster.Rdata',
 		'pipeline_data/cell_info/cell_info_labelled.Rdata'
-		#'predictions/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
+		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 	output:
-		'umap/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+		'umap/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -644,12 +597,12 @@ rule extract_umap:
 
 rule extract_tsne:
 	input:
-		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata',
-		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn7.cluster.seuratV3.Rdata',
+		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata',
+		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn7.cluster.seuratV3.Rdata',
 		'pipeline_data/cell_info/cell_info_labelled.Rdata'
-		#'predictions/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
+		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 	output:
-		'tsne/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata'
+		'tsne/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -659,10 +612,10 @@ rule extract_tsne:
 
 rule extract_cluster:
 	input:
-		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.seuratV3.Rdata'
+		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.seuratV3.Rdata'
 	output:
-		'cluster/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
-		'cluster/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.graph.Rdata'
+		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
+		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.graph.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -672,9 +625,9 @@ rule extract_cluster:
 
 rule plot_integration:
 	input:
-		'umap/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+		'umap/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
 	output:
-		'plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png'
+		'plots/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png'
 	shell:
 		"""
 		module load R/3.6
@@ -683,9 +636,9 @@ rule plot_integration:
 
 rule plot_integration_tsne:
 	input:
-		'tsne/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata'
+		'tsne/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata'
 	output:
-		'plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.big_tsne_plot.png'
+		'plots/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.big_tsne_plot.png'
 	shell:
 		"""
 		module load R/3.6
@@ -694,11 +647,11 @@ rule plot_integration_tsne:
 
 rule perf_metrics:
 	input:
-		'umap/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist0.3__nneighbors30.umap.Rdata',
-		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist0.3__nneighbors30.umap.Rdata',
-		'cluster/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata'
+		'umap/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist0.3__nneighbors30.umap.Rdata',
+		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist0.3__nneighbors30.umap.Rdata',
+		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata'
 	output:
-		'perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata'
+		'perf_metrics/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -707,14 +660,14 @@ rule perf_metrics:
 
 rule make_h5ad_object:
 	input:
-		'umap/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		'cluster/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
-		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
+		'umap/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
+		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
+		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
 		'pipeline_data/cell_info/cell_info_labelled.Rdata',
-		#'predictions/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
-		#'monocle_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
+		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
+		#'monocle_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
 	output:
-		temp('anndata/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad')
+		temp('anndata/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad')
 	shell:
 		"""
 		module load R/3.6
@@ -723,9 +676,9 @@ rule make_h5ad_object:
 
 rule scIB_stats:
 	input:
-		 'anndata/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad'
+		 'anndata/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad'
 	output:
-		'scIB_stats/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv'
+		'scIB_stats/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv'
 	shell:
 		"""
 		module load R/3.6
@@ -736,11 +689,11 @@ rule scIB_stats:
 
 rule quick_trajectory:
 	input:
-		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
-		'cluster/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
-		'umap/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'	
+		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
+		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
+		'umap/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'	
 	output:
-		'trajectory/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
+		'trajectory/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
 	shell:
 		"""
 		module load R/4.0
@@ -749,9 +702,9 @@ rule quick_trajectory:
 
 rule plot_quick_trajectory:
 	input:
-		'trajectory/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
+		'trajectory/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
 	output:
-		'trajectory_plot/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.png'
+		'trajectory_plot/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.png'
 	shell:
 		"""
 		module load R/4.0
@@ -760,9 +713,9 @@ rule plot_quick_trajectory:
 
 rule centrality_quick_trajectory:
 	input:
-		'trajectory/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
+		'trajectory/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
 	output:
-		'trajectory_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__centrality.tsv'
+		'trajectory_metrics/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__centrality.tsv'
 	shell:
 		"""
 		module load R/4.0
@@ -771,30 +724,10 @@ rule centrality_quick_trajectory:
 
 rule centrality_merge:
 	input:
-		expand('trajectory_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__centrality.tsv', \
-					transform = ['counts'], \
-					n_spec_genes = [0], \
-					method = ['scVI'], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['TabulaDroplet'], \
-					n_features = [1000, 2000, 5000, 10000], \
-					covariate = ['batch'], \
-					dims = [4,6,8,10,20,30,50,100], \
-					knn = [0.8,0.4,0.6,5, 7, 10], \
-					dist = [0.1], \
-					neighbors = [100]),
-			expand('trajectory_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__centrality.tsv',
-					transform = ['libSize','sqrt','scran', 'standard'], \
-					method = ['bbknn','insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'CCA', 'none'], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['TabulaDroplet'], \
-					n_features = [2000], \
-					n_spec_genes = [0], \
-					covariate = ['batch'], \
-					dims = [8, 30], \
-					knn = [7], \
-					dist = [0.3], \
-					neighbors = [30])
+		parse_integration_config(file = config['integration_json'],
+		output_string = 'trajectory_metrics/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__centrality.tsv', 
+		which_partitions = ['TabulaDroplet']
+		)
 	output:
 		'trajectory_metrics/merged.Rdata'
 	shell:
@@ -804,129 +737,18 @@ rule centrality_merge:
 		"""
 
 
-if config['subset_clustering'] == 'False':	
+if config['subset_clustering'] == 'False':
 	rule merge_stats:
 		input:	
-			expand('perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-					transform = ['counts'], \
-					method = ['scVI'], \
-					n_spec_genes = [0], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['universe'], \
-					n_features = [2000, 5000, 10000], \
-					covariate = ['batch'], \
-					dims = [30,50,100],
-					knn= [7]),
-			expand('scIB_stats/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					n_features = [2000, 5000, 10000], \
-					transform = ['counts'], \
-					n_spec_genes = [0], \
-					partition = [ 'universe'], \
-					covariate = ['batch'], \
-					method = ['scVI'], \
-					dims = [30,50,100], \
-					dist = [0.1], \
-					neighbors = [100], \
-					knn = [7]),
-			expand('perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-					transform = ['counts'], \
-					method = ['scVI'], \
-					n_spec_genes = [0], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['TabulaDroplet'], \
-					n_features = [1000, 2000, 5000, 10000], \
-					covariate = ['batch'], \
-					dims = [4,6,8,10,20,30,50,100],
-					knn = [0.8,0.4,0.6,5, 7, 10]),
-			expand('perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-					transform = ['counts'], \
-					method = ['scArches'], \
-					n_spec_genes = [0], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['TabulaDroplet'], \
-					n_features = [2000], \
-					covariate = ['batch'], \
-					dims = [8, 30],
-					knn = [0.8]),
-			expand('perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-					transform = ['libSize','sqrt','scran', 'standard'], \
-					method = ['CCA', 'bbknn','insct',  'magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['TabulaDroplet'], \
-					n_features = [2000], \
-					n_spec_genes = [0], \
-					covariate = ['batch'], \
-					dims = [8, 30],
-					knn = [7]),
-			expand('perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-					transform = ['libSize','sqrt','scran', 'standard'], \
-					method = ['bbknn','insct','magic', 'scanorama', 'harmony', 'fastMNN', 'combat',  'none'], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['onlyWELL'], \
-					n_spec_genes = [0], \
-					n_features = [500, 1000, 2000], \
-					covariate = ['batch'], \
-					dims = [4, 8, 30],
-					knn = [7]),
-			expand('perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-					transform = ['counts'], \
-					method = ['scVI'], \
-					n_spec_genes = [0], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['onlyWELL'], \
-					n_features = [500, 1000, 2000], \
-					covariate = ['batch'], \
-					dims = [4, 8, 30],
-					knn = [7]),
-			expand('perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-					transform = ['SCT'], \
-					method = ['CCA'], \
-					n_spec_genes = [0], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['onlyWELL'], \
-					n_features = [500, 1000, 2000], \
-					covariate = ['batch'], \
-					dims = [4, 8, 30],
-					knn = [7]),
-			expand('scIB_stats/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					n_features = [1000, 2000, 5000, 10000], \
-					transform = ['counts'], \
-					partition = [ 'TabulaDroplet'], \
-					covariate = ['batch'], \
-					method = ['scVI'], \
-					dims = [4,6,8,10,20,30,50,100], \
-					dist = [0.1], \
-					n_spec_genes = [0], \
-					neighbors = [500], \
-					knn = [0.8,0.4,0.6,5,7,10]),
-			expand('scIB_stats/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					n_features = [2000], \
-					n_spec_genes = [0], \
-					transform = ['counts'], \
-					partition = [ 'TabulaDroplet'], \
-					covariate = ['batch'], \
-					method = ['scArches'], \
-					dims = [8,30], \
-					dist = [0.3], \
-					neighbors = [30], \
-				knn = [0.8]),
-			expand('scIB_stats/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
-					transform = ['libSize','sqrt','scran', 'standard'], \
-					n_spec_genes = [0], \
-					method = ['bbknn','insct', 'magic', 'scanorama', 'harmony', 'fastMNN', 'combat', 'CCA', 'none'], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['TabulaDroplet'], \
-					n_features = [2000], \
-					covariate = ['batch'], \
-					dims = [8, 30], \
-					knn = [7], \
-					dist = [0.3], \
-					neighbors = [30])
+			parse_integration_config(file = config['integration_json'], 
+			output_string ='perf_metrics/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata',
+			which_partitions = partitions_to_run ),
+			
+			parse_integration_config(file = config['integration_json'], 
+			output_string ='scIB_stats/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', 
+			which_partitions = ['universe', 'TabulaDroplet'] )
 		output:
-			'merged_stats_2020_07_06.Rdata'
+			'pipeline_data/results/merged_stats.Rdata'
 		shell:
 			"""
 			module load R/3.6
@@ -936,30 +758,15 @@ if config['subset_clustering'] == 'False':
 else: 
 	rule merge_stats:
 		input:	
-			expand('perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-					transform = ['counts'], \
-					method = ['scVI'], \
-					n_spec_genes = [0], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods'], \
-					n_features = [ 1000, 2000], \
-					covariate = ['batch'], \
-					dims = [4,6,10,30],
-					knn = [7, 10, 15]),
-			expand('scIB_stats/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \
-					transform = ['counts'], \
-					method = ['scVI'], \
-					n_spec_genes = [0], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods'], \
-					n_features = [ 1000, 2000], \
-					covariate = ['batch'], \
-					dims = [4,6,10,30], \
-					knn = [7, 10, 15], \
-					dist = [0.1], \
-					neighbors = [30])
+			parse_integration_config(file = config['integration_json'], 
+			output_string ='perf_metrics/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata',
+			which_partitions =  ['celltype_subset'] ),
+		
+			parse_integration_config(file = config['integration_json'], 
+			output_string ='scIB_stats/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', 
+			which_partitions =  ['celltype_subset'])
 		output:
-			'merged_stats_subsetClustering.Rdata'
+			'pipeline_data/results/merged_stats.Rdata'
 		shell:
 			"""
 			module load R/3.6
