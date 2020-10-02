@@ -19,7 +19,7 @@ sbcmd="sbatch --cpus-per-task={threads} \
 
 snakemake -s /home/mcgaugheyd/git/massive_integrated_eye_scRNA/SnakeSCEIAD \
 -pr --jobs 1999 \
---configfile /home/mcgaugheyd/git/massive_integrated_eye_scRNA/config.yaml \
+--configfile $1 \
 --use-conda \
 --cluster-config /home/mcgaugheyd/git/massive_integrated_eye_scRNA/cluster.json \
 --cluster "$sbcmd"  --latency-wait 120 --rerun-incomplete \
