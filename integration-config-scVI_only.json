@@ -5,34 +5,20 @@
     },
     "TabulaDroplet":{
         "default": {
-            "transform" : ["libSize","sqrt","scran", "standard"],
-			"method" : ["CCA", "bbknn","insct",  "magic", "scanorama", "harmony", "fastMNN", "combat",  "none"],
-			"n_features" : [2000],
-			"add_intron" : ["N"],
-			"dims" : [8, 30],
-            "knn" : [7],
-            "dist" : [0.3], 
-		    "neighbors" : [30]
-        },
-        "scVI" : {
-            "transform" : ["counts"],
+			"method" : ["scVI"],
+			"transform" : ["counts"],
             "add_intron": ["Y", "N"],
             "n_features" : [1000, 2000, 5000, 10000],
             "dims" : [4,6,8,10,20,30,50,100],
             "knn" : [0.8,0.4,0.6,5, 7, 10],
             "dist": [0.1],
             "neighbors": [500]
-        },
-        "scArches":{
-            "transform" : ["counts"],
-            "dist" : [0.3], 
-		    "neighbors" : [30]
         }
     },
     "onlyWELL":{
         "default": {
-            "transform" : ["libSize","sqrt","scran", "standard"],
-            "method" : ["bbknn","insct","magic", "scanorama", "harmony", "fastMNN", "combat",  "none"],
+            "transform" : ["counts"],
+            "method" : ["scVI"],
             "add_intron" : ["N"],
             "n_features" : [500, 1000, 2000],
             "covariate" : ["batch"],
@@ -40,12 +26,6 @@
             "dist" : [0.1],
             "knn" : [7],
             "neighbors": [30]
-        },
-        "scVI": {
-            "transform" : ["counts"]
-        },
-        "CCA":{
-            "transform" :["SCT"]
         }
     },
     "universe":{

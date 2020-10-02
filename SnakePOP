@@ -54,8 +54,7 @@ def export_rule_info(pfx, **kwargs):## unused
         outyaml.write(dp)
         return outyaml.name
 
-with open (config['integration_json']) as cfg:
-	iconfig = json.load(cfg)
+
 
 # ALL_INTEGRATION_PARAMS = list(iconfig['global_default'].keys())
 # for partition in iconfig.keys():
@@ -64,9 +63,18 @@ with open (config['integration_json']) as cfg:
 # 			ALL_INTEGRATION_PARAMS+=list(iconfig[partition][method].keys())
 # ALL_INTEGRATION_PARAMS = 
 
-def make_wc_string(pfx, wildcards, sfx):
+def make_wc_string(pfx, wildcards, sfx, double_bracket=False, skip_db=None):
+	if double_bracket:
+		lbr = '-{{'
+		rbr = '}}__'
+	else:
+		lbr = '-{'
+		rbr = '}__'
 	for wc in wildcards:
-		wc_str = wc +'-{' + wc + '}__' 
+		if double_bracket and wc in skip_db:
+			lbr = '-{'
+			rbr = '}__'
+		wc_str = wc + lbr + wc + rbr 
 		pfx+= wc_str
 	return pfx + sfx
 # builds dictionary of dictionaries where first dict key is SRS 
@@ -228,8 +236,10 @@ wildcard_constraints:
 
 if config['subset_clustering'] == 'False':
 	partitions_to_run = ['universe', 'TabulaDroplet', 'onlyWELL']
+	scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
 else:
 	partitions_to_run = ['celltype_subset']
+	scIB_partitions_to_run = ['celltype_subset']
 
 rule all:
 	input:
@@ -473,8 +483,22 @@ def get_fsm(parti):
 	else:
 		return 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata'
 
-seu_obj_pfx ='seurat_obj/'
-seu_obj_param =['combination','add_intron','n_features}','transform','partition', 'covariate']
+
+
+'''
+integration parameter inheritance. Adding a wildcard upstream will add it for ALL rules below it 
+seu_obj_param|
+			 |-> intg_obj_param == phate_obj_param
+			 				   |-> umap_obj_param| 
+												 |->extr_umap_param ==  mk_h5ad_param == perf_met_param== q_traj_param == scIB_param == centrality*
+							   |-> tsne_obj_param == extr_tsne_param
+							   |-> clst_obj_param == extr_clst_param 
+
+'''
+
+
+seu_obj_pfx ='seurat_obj/raw/'
+seu_obj_param =['combination','add_intron','n_features','transform','partition', 'covariate']
 seu_obj_sfx = 'preFilter.seuratV3.Rdata'
 
 
@@ -484,7 +508,7 @@ rule make_seurat_objs:
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',		
 		'pipeline_data/cell_info/cell_info_labelled.Rdata'
 	output:
-		seurat = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata'
+		seurat = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx)
 	shell:
 		"""
 		module load R/3.6
@@ -494,16 +518,16 @@ rule make_seurat_objs:
 			{wildcards.combination} {wildcards.n_features} {input} 
 		"""
 
-intg_obj_pfx ='seurat_obj/'
-intg_obj_param =['combination','add_intron','n_features}','transform','partition', 'covariate', 'method', 'dims']
+intg_obj_pfx ='seurat_obj/integrated/'
+intg_obj_param = seu_obj_param + [ 'method', 'dims']
 intg_obj_sfx = 'preFilter.seuratV3.Rdata'
 rule integrate_00:
 	input:
 		cell_label_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
-		obj = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__preFilter.seuratV3.Rdata',
+		obj = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx)
 	output:
 		#temp('seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
-		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx)
 	threads: 2 	
 	shell:
 		'''
@@ -523,13 +547,15 @@ rule integrate_00:
 		eval $cmd
 
 		'''
-	
 
+umap_obj_pfx ='seurat_obj/integrated/'
+umap_obj_param =intg_obj_param + ['dist', 'neighbors']
+umap_obj_sfx = 'umap.seuratV3.Rdata'	
 rule calculate_umap:
 	input:
-		obj = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+		obj = make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx)
 	output:
-		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+		make_wc_string(umap_obj_pfx, umap_obj_param, umap_obj_sfx)
 	threads: 4
 	shell:
 		"""
@@ -540,11 +566,15 @@ rule calculate_umap:
 			{wildcards.method} {wildcards.dims} {wildcards.dist} {wildcards.neighbors} 1 FALSE TRUE {input} {output}
 		"""
 
+tsne_obj_pfx ='seurat_obj/integrated/'
+tsne_obj_param = intg_obj_param + ['perplexity']
+tsne_obj_sfx = 'tsne.seuratV3.Rdata'
+
 rule calculate_tsne:
 	input:
-		obj = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+		obj = make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx)
 	output:
-		temp('seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata')
+		temp(make_wc_string(tsne_obj_pfx, tsne_obj_param, tsne_obj_sfx))
 	threads: 4
 	shell:
 		"""
@@ -554,11 +584,14 @@ rule calculate_tsne:
 			{wildcards.method} {wildcards.dims} {wildcards.perplexity} {input} {output}
 		"""
 
+phate_obj_pfx ='seurat_obj/integrated/'
+phate_obj_param = intg_obj_param 
+phate_obj_sfx = 'phate.seuratV3.Rdata'
 rule calculate_phate:
 	input:
-		obj = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+		obj = make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx)
 	output:
-		'phate/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.phate.Rdata'
+		make_wc_string(phate_obj_pfx, phate_obj_param, phate_obj_sfx)
 	threads: 16
 	shell:
 		"""
@@ -566,12 +599,15 @@ rule calculate_phate:
 		export SCIAD_CONDA_DIR={conda_dir}
 		Rscript {git_dir}/src/run_phate.R {input} {output}
 		"""
-		
+
+clst_obj_pfx ='seurat_obj/integrated/'
+clst_obj_param = intg_obj_param  + ['knn']
+clst_obj_sfx = 'cluster.seuratV3.Rdata'		
 rule calculate_cluster:
 	input:
-		obj = 'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata'
+		obj = make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx)
 	output:
-		temp('seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.seuratV3.Rdata')
+		temp(make_wc_string(clst_obj_pfx, clst_obj_param, clst_obj_sfx))
 	shell:
 		"""
 		module load R/3.6
@@ -579,30 +615,35 @@ rule calculate_cluster:
 			{wildcards.method} {wildcards.dims} 1 1 {wildcards.knn} TRUE FALSE {input} {output}
 		"""
 
+extr_umap_pfx ='pipeline_data/umap/'
+extr_umap_param = umap_obj_param+['knn']
+extr_umap_sfx = 'umap.Rdata'		
 rule extract_umap:
 	input:
-		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
-		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn7.cluster.Rdata',
+		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx),
+		make_wc_string(umap_obj_pfx, umap_obj_param, umap_obj_sfx),
+		make_wc_string(clst_obj_pfx, clst_obj_param, clst_obj_sfx),
 		'pipeline_data/cell_info/cell_info_labelled.Rdata'
 		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 	output:
-		'umap/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+		make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx)
 	shell:
 		"""
 		module load R/3.6
 		Rscript {git_dir}/src/extract_umap.R \
 			{input} {output} {wildcards.method}	UMAP
 		"""
-
+extr_tsne_pfx ='pipeline_data/tsne/'
+extr_tsne_param = tsne_obj_param
+extr_tsne_sfx = 'tsne.Rdata'	
 rule extract_tsne:
 	input:
-		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata',
-		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn7.cluster.seuratV3.Rdata',
+		make_wc_string(tsne_obj_pfx, tsne_obj_param, tsne_obj_sfx),
+		make_wc_string(clst_obj_pfx, clst_obj_param, clst_obj_sfx),
 		'pipeline_data/cell_info/cell_info_labelled.Rdata'
 		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 	output:
-		'tsne/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata'
+		make_wc_string(extr_tsne_pfx, extr_tsne_param, extr_tsne_sfx)
 	shell:
 		"""
 		module load R/3.6
@@ -610,12 +651,17 @@ rule extract_tsne:
 			{input} {output} {wildcards.method} TSNE
 		"""
 
+extr_clst_pfx ='pipeline_data/cluster/'
+extr_clst_param = clst_obj_param
+extr_clst_clst_sfx = 'cluster.Rdata'
+extr_clst_grf_sfx = 'graph.Rdata'
+
 rule extract_cluster:
 	input:
-		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.seuratV3.Rdata'
+		make_wc_string(clst_obj_pfx, clst_obj_param, clst_obj_sfx)
 	output:
-		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
-		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.graph.Rdata'
+		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx),
+		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_grf_sfx )
 	shell:
 		"""
 		module load R/3.6
@@ -623,62 +669,81 @@ rule extract_cluster:
 			{input} {output}
 		"""
 
+plot_intr_umap_pfx ='pipeline_data/plots/'
+plot_intr_umap_param = extr_umap_param
+plot_intr_umap_sfx = 'umap.big_plot.png'
+
 rule plot_integration:
 	input:
-		'umap/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'
+		make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx)
 	output:
-		'plots/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png'
+		make_wc_string(plot_intr_umap_pfx, plot_intr_umap_param, plot_intr_umap_sfx )
 	shell:
 		"""
 		module load R/3.6
 		Rscript {git_dir}/src/big_plots.R UMAP {input} {output}
 		"""
 
+plot_intr_tsne_pfx ='pipeline_data/plots/'
+plot_intr_tsne_param = tsne_obj_param
+plot_intr_tsne_sfx = 'tsne.big_plot.png'
+
 rule plot_integration_tsne:
 	input:
-		'tsne/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.tsne.Rdata'
+		make_wc_string(extr_tsne_pfx, extr_tsne_param, extr_tsne_sfx)
 	output:
-		'plots/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__perplexity{perplexity}.big_tsne_plot.png'
+		make_wc_string(plot_intr_tsne_pfx, plot_intr_tsne_param, plot_intr_tsne_sfx)
 	shell:
 		"""
 		module load R/3.6
 		Rscript {git_dir}/src/big_plots.R TSNE {input} {output}
 		"""
 
+perf_met_pfx ='pipeline_data/perf_metrics/'
+perf_met_param = extr_umap_param
+perf_met_sfx = 'perf.Rdata'
+
 rule perf_metrics:
 	input:
-		'umap/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist0.3__nneighbors30.umap.Rdata',
-		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist0.3__nneighbors30.umap.Rdata',
-		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata'
+		make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx),
+		make_wc_string(umap_obj_pfx, umap_obj_param, umap_obj_sfx),
+		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx)
 	output:
-		'perf_metrics/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata'
+		make_wc_string(perf_met_pfx, perf_met_param, perf_met_sfx)
 	shell:
 		"""
 		module load R/3.6
 		Rscript {git_dir}/src/perf_metrics.R {input} {output}
 		"""
+mk_h5ad_pfx ='anndata/'
+mk_h5ad_param = extr_umap_param
+mk_h5ad_sfx = '.h5ad'
 
 rule make_h5ad_object:
 	input:
-		'umap/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata',
-		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
-		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
+		make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx),
+		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx),
+		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx),
 		'pipeline_data/cell_info/cell_info_labelled.Rdata',
 		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 		#'monocle_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
 	output:
-		temp('anndata/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad')
+		make_wc_string(mk_h5ad_pfx, mk_h5ad_param, mk_h5ad_sfx)
 	shell:
 		"""
 		module load R/3.6
 		Rscript {git_dir}/src/seurat_to_h5ad.R {input} {output}
 		"""
 
+scIB_pfx ='pipeline_data/scIB/'
+scIB_param = mk_h5ad_param
+scIB_sfx = 'stats.csv'
+
 rule scIB_stats:
 	input:
-		 'anndata/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}.h5ad'
+		make_wc_string(mk_h5ad_pfx, mk_h5ad_param, mk_h5ad_sfx)
 	output:
-		'scIB_stats/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv'
+		make_wc_string(scIB_pfx, scIB_param, scIB_sfx)
 	shell:
 		"""
 		module load R/3.6
@@ -687,45 +752,57 @@ rule scIB_stats:
 		Rscript {git_dir}/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
 		"""
 
+q_traj_pfx ='pipeline_data/trajectory/data/'
+q_traj_param = mk_h5ad_param
+q_traj_sfx = 'quickTSCANmst.Rdata'
 rule quick_trajectory:
 	input:
-		'seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata',
-		'cluster/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.cluster.Rdata',
-		'umap/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.umap.Rdata'	
+		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx),
+		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx),
+		make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx)	
 	output:
-		'trajectory/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
+		make_wc_string(q_traj_pfx, q_traj_param, q_traj_sfx)
 	shell:
 		"""
 		module load R/4.0
 		Rscript ~/git/massive_integrated_eye_scRNA/src/trajectory_tscan.R {input} {wildcards.method} {output}
 		"""
+plt_traj_pfx ='pipeline_data/trajectory/plot/'
+plt_traj_param = mk_h5ad_param
+plt_traj_sfx = 'quickTSCANmst.png'
 
 rule plot_quick_trajectory:
 	input:
-		'trajectory/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
+		make_wc_string(q_traj_pfx, q_traj_param, q_traj_sfx)
 	output:
-		'trajectory_plot/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.png'
+		make_wc_string(plt_traj_pfx, plt_traj_param, plt_traj_sfx)
 	shell:
 		"""
 		module load R/4.0
 		Rscript ~/git/massive_integrated_eye_scRNA/src/trajectory_plot.R {input} {output}
 		"""
 
+cntr_traj_pfx ='pipeline_data/trajectory/metrics/'
+cntr_traj_param = mk_h5ad_param
+cntr_traj_sfx = 'centrality.tsv'
 rule centrality_quick_trajectory:
 	input:
-		'trajectory/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__quickTSCANmst.Rdata'
+		make_wc_string(plt_traj_pfx, plt_traj_param, plt_traj_sfx)
 	output:
-		'trajectory_metrics/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__centrality.tsv'
+		make_wc_string(cntr_traj_pfx, cntr_traj_param, cntr_traj_sfx)
 	shell:
 		"""
 		module load R/4.0
 		Rscript ~/git/massive_integrated_eye_scRNA/src/trajectory_centrality.R {input} {output}
 		"""
-
+#this is for input
+# cntr_mrg_pfx ='pipeline_data/trajectory/metrics/'
+# cntr_mrg_param = mk_h5ad_param
+# cntr_mrg_sfx = 'centrality.tsv'	
 rule centrality_merge:
 	input:
 		parse_integration_config(file = config['integration_json'],
-		output_string = 'trajectory_metrics/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}__centrality.tsv', 
+		output_string = make_wc_string(cntr_traj_pfx, cntr_traj_param, cntr_traj_sfx), 
 		which_partitions = ['TabulaDroplet']
 		)
 	output:
@@ -736,39 +813,28 @@ rule centrality_merge:
 		Rscript  ~/git/massive_integrated_eye_scRNA/src/trajectory_centrality_merge.R {input} {output}
 		"""
 
+# for input 
+# perf_met_pfx ='pipeline_data/perf_metrics/'
+# perf_met_param = clst_obj_param
+# perf_met_sfx = 'perf.Rdata'
 
-if config['subset_clustering'] == 'False':
-	rule merge_stats:
-		input:	
-			parse_integration_config(file = config['integration_json'], 
-			output_string ='perf_metrics/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata',
-			which_partitions = partitions_to_run ),
-			
-			parse_integration_config(file = config['integration_json'], 
-			output_string ='scIB_stats/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', 
-			which_partitions = ['universe', 'TabulaDroplet'] )
-		output:
-			'pipeline_data/results/merged_stats.Rdata'
-		shell:
-			"""
-			module load R/3.6
-			Rscript {git_dir}/src/optimal_params.R
-			"""
+# scIB_pfx ='pipeline_data/scIB/'
+# scIB_param = mk_h5ad_param
+# scIB_sfx = 'stats.csv'
 
-else: 
-	rule merge_stats:
-		input:	
-			parse_integration_config(file = config['integration_json'], 
-			output_string ='perf_metrics/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata',
-			which_partitions =  ['celltype_subset'] ),
+rule merge_stats:
+	input:	
+		parse_integration_config(file = config['integration_json'], 
+		output_string =make_wc_string(perf_met_pfx, perf_met_param, perf_met_sfx),
+		which_partitions = partitions_to_run ),
 		
-			parse_integration_config(file = config['integration_json'], 
-			output_string ='scIB_stats/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', 
-			which_partitions =  ['celltype_subset'])
-		output:
-			'pipeline_data/results/merged_stats.Rdata'
-		shell:
-			"""
-			module load R/3.6
-			Rscript {git_dir}/src/optimal_params.R
-			"""
+		parse_integration_config(file = config['integration_json'], 
+		output_string =make_wc_string(scIB_pfx, scIB_param, scIB_sfx), 
+		which_partitions = scIB_partitions_to_run )
+	output:
+		'pipeline_data/results/merged_stats.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		Rscript {git_dir}/src/optimal_params.R
+		"""
