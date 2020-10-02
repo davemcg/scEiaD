@@ -8,7 +8,7 @@ library(dplyr)
 library(Matrix)
 library(glue)
 # there are too many files to passed as commandline args, so have to search for them 
-files <- list.files(glue('{args[5]}/quant/')  ,'abundance.tsv.gz', recursive =  T, full.names=T) %>% 
+files <- list.files(glue('{args[5]}/quant')  ,'abundance.tsv.gz', recursive =  T, full.names=T) %>% 
   .[ grepl(args[6], .)]
 system(paste0('mkdir -p ', dirname(args[1])))
 
