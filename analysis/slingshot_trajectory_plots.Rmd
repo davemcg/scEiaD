@@ -1,0 +1,128 @@
+```{r, fig.width=15, fig.height=15}
+library(tidyverse)
+library(Seurat)
+library(scattermore)
+library(scran)
+library(slingshot)
+load('/Volumes/data/projects/nei/mcgaughey/scEiaD_me/sling_tabula_ends.Rdata')
+```
+
+```{r}
+
+plot(reducedDim(sling$sling, type = 'UMAP'),  pch = 16, cex = 0.5, col = 'gray')
+
+lines(sling$lineage, lwd = 2, type = 'lineages', col = 'black')
+```
+```{r, fig.width=15, fig.height=15}
+umap %>% filter(!is.na(CellType)) %>% 
+    mutate(CellType = case_when(is.na(CellType) ~ 'Unknown', TRUE ~ CellType)) %>% 
+    ggplot(aes(x=UMAP_1, y=UMAP_2, color = CellType)) + geom_scattermore(pointsize =  1, pixels = c(1000,1000)) + scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname()) + cowplot::theme_cowplot()
+```
+
+```{r, fig.width=15, fig.height=5}
+umap  %>% ggplot(aes(x=UMAP_1, y=UMAP_2, color = Platform)) + geom_scattermore(size = 5, pixels = c(1000,1000)) + scale_color_manual(values = c(pals::alphabet()) %>% unname()) + cowplot::theme_cowplot() + facet_wrap(~Platform)
+```
+
+```{r, fig.width=15, fig.height=15}
+
+psTime <- slingshot::slingPseudotime(sling$sling )
+#row.names(psTime) <- colnames(sce)
+paths <- psTime %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), 
+               names_to = 'Curve', 
+               values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  mutate(time = cut_interval(Pseudotime, 100)) %>% 
+  left_join(umap) %>% 
+  group_by(Curve, time) %>% 
+  summarise(UMAP_1 = mean(UMAP_1),
+            UMAP_2 = mean(UMAP_2)) %>% 
+  filter(!is.na(UMAP_1)) %>% 
+  mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) 
+
+psTime %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  left_join(umap) %>% 
+  mutate(curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% 
+  ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
+  facet_wrap(~Curve) + 
+  geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0.1, alpha = 0.4) + 
+  geom_scattermore(pointsize = 1, alpha = 0.4) + 
+  cowplot::theme_cowplot() + 
+  scale_color_viridis_c() + 
+  xlab('UMAP 1') + ylab('UMAP 2') +
+  facet_wrap(~Curve) + 
+  geom_path(data = paths, aes(x=UMAP_1, y = UMAP_2), color = 'red', size = 2) 
+
+
+```
+
+```{r, fig.width=15, fig.height=15}
+embedded <- sling$embedded
+path <- list()
+for (i in seq(1:(embedded@lineages %>% length()))){
+  embedded_i = slingCurves(embedded)[[i]]
+  path[[i]] = data.frame(embedded_i$s[embedded_i$ord,])
+  path[[i]]$curve <- i
+}
+psTime <- slingshot::slingPseudotime(sling$sling )
+
+psTime %>% 
+    as_tibble(rownames = 'Barcode') %>% 
+    pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+    filter(!is.na(Pseudotime)) %>% 
+    left_join(umap) %>% 
+    mutate(curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% 
+    ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
+    facet_wrap(~curve) + 
+    geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0.1, alpha = 0.4) + 
+    geom_scattermore(pointsize = 1, alpha = 0.4) + 
+    cowplot::theme_cowplot() + 
+    scale_color_viridis_c() + 
+    xlab('UMAP 1') + ylab('UMAP 2') +
+    facet_wrap(~curve) + 
+    geom_path(data = path %>% bind_rows(), aes(x=UMAP_1, y = UMAP_2), color = 'red', size = 1) 
+
+```
+
+
+
+```{r, fig.width=15, fig.height=35}
+# psTime %>% 
+#   as_tibble(rownames = 'Barcode') %>% 
+#   pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+#   #filter(!is.na(Pseudotime), Pseudotime < 12) %>% 
+#   left_join(umap) %>% 
+#     filter(!is.na(seurat_cluster_CellType)) %>% 
+#   mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% 
+#   ggplot(aes(x=Pseudotime, y = seurat_cluster_CellType)) + 
+#   facet_wrap(~Curve) + 
+#   #ggbeeswarm::geom_quasirandom(alpha = 0.1) +
+#   geom_violin() +
+#   cowplot::theme_cowplot() + 
+#   xlab('UMAP 1') + ylab('UMAP 2') +
+#   facet_wrap(~Curve)
+
+psTime %>% 
+    as_tibble(rownames = 'Barcode') %>% 
+    pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+    #filter(!is.na(Pseudotime), Pseudotime < 12) %>% 
+    left_join(umap) %>% 
+    mutate(CellType = gsub('\\d+: ','', seurat_cluster_CellType)) %>% 
+    mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% filter(!is.na(Pseudotime)) %>% ggplot(aes(x=Pseudotime, color = `CellType`, y = Curve)) + geom_jitter() + scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname())
+```
+
+
+```{r}
+psTime %>% 
+    as_tibble(rownames = 'Barcode') %>% 
+    pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+    #filter(!is.na(Pseudotime), Pseudotime < 12) %>% 
+    left_join(umap) %>% 
+    filter(!is.na(seurat_cluster_CellType)) %>% group_by(Curve, seurat_cluster_CellType) %>% summarise(Count = n(), Pseudotime = mean(Pseudotime, na.rm = TRUE)) %>% ungroup() %>% group_by(Curve) %>% mutate(Proportion  = Count / sum(Count) * 100) %>% filter(Proportion > 5) %>% mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% arrange(Curve, Pseudotime) %>% data.frame()
+
+sling$lineage
+```
