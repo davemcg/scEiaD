@@ -120,3 +120,21 @@ psTime %>%
 
 sling$lineage
 ```
+
+#Curve 2
+```{r}
+pt <- psTime %>% 
+    as_tibble(rownames = 'Barcode') %>% 
+    pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+    filter(!is.na(Pseudotime)) %>% filter(Curve == 'curve2') 
+
+genes <- c('ENSG00000129535', 'ENSG00000163914', 'ENSG00000007372')
+
+if (length(genes) == 1){
+  cts <- counts(sling$sling)[c(genes),pt$Barcode] %>% enframe(name = 'Barcode', value = 'Counts') %>% mutate(Gene = genes)
+} else {
+  cts <- counts(sling$sling)[c(genes),pt$Barcode] %>% t() %>% as_tibble(rownames = 'Barcode') %>% pivot_longer(-Barcode, names_to = 'Gene', values_to = 'Counts')
+}
+
+pt %>% left_join(cts) %>% ggplot(aes(x=Pseudotime, y = log2(Counts+1), color = Gene)) + geom_smooth()
+```
