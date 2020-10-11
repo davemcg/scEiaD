@@ -4,7 +4,7 @@ library(Seurat)
 library(scattermore)
 library(scran)
 library(slingshot)
-load('/Volumes/data/projects/nei/mcgaughey/scEiaD_me/sling_tabula_ends2.Rdata')
+#load('/Volumes/data/projects/nei/mcgaughey/scEiaD_me/sling_tabula_ends2.Rdata')
 ```
 
 ```{r}
@@ -15,8 +15,8 @@ lines(sling$lineage, lwd = 2, type = 'lineages', col = 'black')
 ```
 ```{r, fig.width=15, fig.height=15}
 umap %>% filter(!is.na(CellType_predict)) %>% 
-    mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unknown', TRUE ~ CellType_predict)) %>% 
-    ggplot(aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + geom_scattermore(pointsize =  1, pixels = c(1000,1000)) + scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname()) + cowplot::theme_cowplot()
+  mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unknown', TRUE ~ CellType_predict)) %>% 
+  ggplot(aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + geom_scattermore(pointsize =  1, pixels = c(1000,1000)) + scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname()) + cowplot::theme_cowplot()
 ```
 
 ```{r, fig.width=15, fig.height=5}
@@ -34,20 +34,20 @@ for (i in seq(1:(embedded@lineages %>% length()))){
 psTime <- slingshot::slingPseudotime(sling$sling )
 
 psTime %>% 
-    as_tibble(rownames = 'Barcode') %>% 
-    pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
-    filter(!is.na(Pseudotime)) %>% 
-    left_join(umap) %>% 
-    mutate(curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% 
-    ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
-    facet_wrap(~curve) + 
-    geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0.1, alpha = 0.4) + 
-    geom_scattermore(pointsize = 1, alpha = 0.4) + 
-    cowplot::theme_cowplot() + 
-    scale_color_viridis_c() + 
-    xlab('UMAP 1') + ylab('UMAP 2') +
-    facet_wrap(~curve) + 
-    geom_path(data = path %>% bind_rows(), aes(x=UMAP_1, y = UMAP_2), color = 'red', size = 1) 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  left_join(umap) %>% 
+  mutate(curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% 
+  ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
+  facet_wrap(~curve) + 
+  geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0.1, alpha = 0.4) + 
+  geom_scattermore(pointsize = 1, alpha = 0.4) + 
+  cowplot::theme_cowplot() + 
+  scale_color_viridis_c() + 
+  xlab('UMAP 1') + ylab('UMAP 2') +
+  facet_wrap(~curve) + 
+  geom_path(data = path %>% bind_rows(), aes(x=UMAP_1, y = UMAP_2), color = 'red', size = 1) 
 
 ```
 
@@ -69,23 +69,54 @@ psTime %>%
 #   xlab('UMAP 1') + ylab('UMAP 2') +
 #   facet_wrap(~Curve)
 
+
+psTime %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  left_join(umap) %>% 
+  #mutate(CellType = gsub('\\d+: ','', seurat_cluster_CT)) %>% 
+  mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% filter(!is.na(Pseudotime), CellType_predict != 'Endothelial') %>% ggplot(aes(x=Pseudotime, color = `CellType_predict`, y = Curve)) + geom_jitter() + scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname())
+```
+# Labelled 
+```{r, fig.width=15, fig.height=35}
+ct_proportion <- umap %>% group_by(CellType_predict) %>% summarise(CT_Count = n()) %>% mutate(CT_Proportion = CT_Count/sum(CT_Count) * 100)
+
+celltype_pseudotime <- psTime %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  left_join(umap_cut) %>% 
+  filter(!is.na(CellType_predict)) %>% 
+  group_by(Curve, CellType_predict) %>% 
+  summarise(Count = n(), 
+            Pseudotime = mean(Pseudotime, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(Curve) %>% 
+  mutate(Proportion  = Count / sum(Count) * 100) %>% 
+  left_join(ct_proportion, by = 'CellType_predict') %>% 
+  mutate(Enrichment = Proportion/CT_Proportion) %>% 
+  filter(Enrichment > 0.6) %>% 
+  mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% arrange(Curve, Pseudotime) %>% data.frame()
+
 psTime %>% 
     as_tibble(rownames = 'Barcode') %>% 
     pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
-    #filter(!is.na(Pseudotime), Pseudotime < 12) %>% 
+    filter(!is.na(Pseudotime)) %>% 
     left_join(umap) %>% 
     #mutate(CellType = gsub('\\d+: ','', seurat_cluster_CT)) %>% 
-    mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% filter(!is.na(Pseudotime), CellType_predict != 'Endothelial') %>% ggplot(aes(x=Pseudotime, color = `CellType_predict`, y = Curve)) + geom_jitter() + scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname())
+    mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% filter(!is.na(Pseudotime), CellType_predict != 'Endothelial') %>% ggplot(aes(x=Pseudotime, color = `CellType_predict`, y = Curve)) + geom_jitter(alpha = 0.2) + scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname()) + 
+  ggrepel::geom_label_repel(data = celltype_pseudotime, aes(label = CellType_predict), color = 'black')
 ```
 
 
 ```{r}
 psTime %>% 
-    as_tibble(rownames = 'Barcode') %>% 
-    pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
-    filter(!is.na(Pseudotime)) %>% 
-    left_join(umap_cut) %>% 
-    filter(!is.na(seurat_cluster_CT)) %>% group_by(Curve, seurat_cluster_CT) %>% summarise(Count = n(), Pseudotime = mean(Pseudotime, na.rm = TRUE)) %>% ungroup() %>% group_by(Curve) %>% mutate(Proportion  = Count / sum(Count) * 100) %>% filter(Proportion > 5) %>% mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% arrange(Curve, Pseudotime) %>% data.frame()
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  left_join(umap_cut) %>% 
+  filter(!is.na(seurat_cluster_CT)) %>% group_by(Curve, seurat_cluster_CT) %>% summarise(Count = n(), Pseudotime = mean(Pseudotime, na.rm = TRUE)) %>% ungroup() %>% group_by(Curve) %>% mutate(Proportion  = Count / sum(Count) * 100) %>% filter(Proportion > 5) %>% mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% arrange(Curve, Pseudotime) %>% data.frame()
 
 sling$lineage
 ```
