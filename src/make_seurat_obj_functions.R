@@ -1,3 +1,8 @@
+library(glue)
+library(yaml)
+config=read_yaml(Sys.getenv('SCIAD_CONFIG'))
+git_dir=config$git_dir
+
 make_seurat_obj <- function(m,
                             split.by = 'study_accession',
                             nfeatures = n_features,
@@ -24,9 +29,9 @@ make_seurat_obj <- function(m,
     seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
     #qumi_counts <- quminorm(seurat_well@assays$RNA@counts)
 	load('pipeline_data/cell_info/cell_info_labelled.Rdata')
-    source('~/git/massive_integrated_eye_scRNA/src/extract_gene_length.R')
-	geneL_mm <- gene_length('gencode.vM25.pc_transcripts.fa.gz')
-	geneL_hs <-  gene_length('references/gencode.v34.pc_transcripts.fa.gz')
+  source(glue('{git_dir}/src/extract_gene_length.R'))
+	geneL_mm <- gene_length( 'references/gtf/mm-mus_musculus_anno.gtf.gz')
+	geneL_hs <-  gene_length('references/gtf/hs-homo_sapiens_anno.gtf.gz')
 	well_hs <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Homo sapiens') %>% pull(value)
 well_mm <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Mus musculus') %>% pull(value)
 	mat <- seurat_well@assays$RNA@counts
