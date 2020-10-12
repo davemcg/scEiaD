@@ -1,3 +1,4 @@
+print('beginning of file')
 import pprint
 pp = pprint.PrettyPrinter(width=41, compact=True) 
 import subprocess as sp
@@ -6,6 +7,7 @@ import yaml
 import json
 import string
 import itertools
+import time 
 def dict_product(dicts):
 	#https://stackoverflow.com/questions/11277432/how-to-remove-a-key-from-a-python-dictionary
     return (dict(zip(dicts, x)) for x in itertools.product(*dicts.values()))
@@ -63,15 +65,20 @@ def export_rule_info(pfx, **kwargs):## unused
 # 			ALL_INTEGRATION_PARAMS+=list(iconfig[partition][method].keys())
 # ALL_INTEGRATION_PARAMS = 
 
-def make_wc_string(pfx, wildcards, sfx, double_bracket=False, skip_db=None):
-	if double_bracket:
+def make_wc_string(pfx, wildcards, sfx, skip_db=None):
+	## create a string with bracketed wildcards
+	## skip_db - enable compatibility with expand:
+	##   set skip_db to wc's that will be filled with expand, and then pass 
+	##	 output to expand
+	if skip_db is not None:
 		lbr = '-{{'
 		rbr = '}}__'
 	else:
 		lbr = '-{'
 		rbr = '}__'
+		skip_db=[]
 	for wc in wildcards:
-		if double_bracket and wc in skip_db:
+		if wc in skip_db:
 			lbr = '-{'
 			rbr = '}__'
 		wc_str = wc + lbr + wc + rbr 
@@ -235,11 +242,29 @@ wildcard_constraints:
 	model = '|'.join(model)	
 
 if config['subset_clustering'] == 'False':
-	partitions_to_run = ['universe', 'TabulaDroplet', 'onlyWELL']
-	scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
+	# partitions_to_run = ['universe', 'TabulaDroplet', 'onlyWELL']
+	# scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
+	partitions_to_run = [ 'TabulaDroplet', 'onlyWELL']
+	scIB_partitions_to_run =  [ 'TabulaDroplet'] 
 else:
 	partitions_to_run = ['celltype_subset']
 	scIB_partitions_to_run = ['celltype_subset']
+
+# start = time.time()
+# seu_obj_param =['combination','add_intron','n_features','transform','partition', 'covariate']
+# intg_obj_param = seu_obj_param + [ 'method', 'dims']
+# umap_obj_param =intg_obj_param + ['dist', 'neighbors']
+# extr_umap_param = umap_obj_param+['knn']
+# perf_met_pfx ='pipeline_data/perf_metrics/'
+# perf_met_param = extr_umap_param
+# perf_met_sfx = 'perf.Rdata'
+# parse_integration_config(file = config['integration_json'], 
+# output_string =make_wc_string(perf_met_pfx, perf_met_param, perf_met_sfx),
+# which_partitions = partitions_to_run )
+# end = time.time()
+# diff = str(end-start)
+# print(f'{diff} seconds to generate final output')
+
 
 rule all:
 	input:
@@ -513,14 +538,18 @@ rule make_seurat_objs:
 		"""
 		module load R/3.6
 		export SCIAD_CONFIG={config_abspath}
-		Rscript {git_dir}/src/build_seurat_obj_classic.R \
-			{output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} \
-			{wildcards.combination} {wildcards.n_features} {input} 
+		Rscript {git_dir}/src/build_seurat_obj_classic.R {output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} {wildcards.combination} {wildcards.n_features} {input} 
 		"""
 
 intg_obj_pfx ='seurat_obj/integrated/'
 intg_obj_param = seu_obj_param + [ 'method', 'dims']
 intg_obj_sfx = 'preFilter.seuratV3.Rdata'
+
+if 'scVI' in config['integration_json']:
+	mm = 'merge_methods_scvi_only.R'
+else:
+	mm = 'merge_methods.R'
+
 rule integrate_00:
 	input:
 		cell_label_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
@@ -535,7 +564,7 @@ rule integrate_00:
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
-		cmd="Rscript {git_dir}/src/merge_methods.R \
+		cmd="Rscript {git_dir}/src/{mm} \
 				  {wildcards.method} \
 				  {wildcards.transform} \
 				  {wildcards.covariate} \
@@ -615,42 +644,6 @@ rule calculate_cluster:
 			{wildcards.method} {wildcards.dims} 1 1 {wildcards.knn} TRUE FALSE {input} {output}
 		"""
 
-extr_umap_pfx ='pipeline_data/umap/'
-extr_umap_param = umap_obj_param+['knn']
-extr_umap_sfx = 'umap.Rdata'		
-rule extract_umap:
-	input:
-		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx),
-		make_wc_string(umap_obj_pfx, umap_obj_param, umap_obj_sfx),
-		make_wc_string(clst_obj_pfx, clst_obj_param, clst_obj_sfx),
-		'pipeline_data/cell_info/cell_info_labelled.Rdata'
-		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
-	output:
-		make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx)
-	shell:
-		"""
-		module load R/3.6
-		Rscript {git_dir}/src/extract_umap.R \
-			{input} {output} {wildcards.method}	UMAP
-		"""
-extr_tsne_pfx ='pipeline_data/tsne/'
-extr_tsne_param = tsne_obj_param
-extr_tsne_sfx = 'tsne.Rdata'	
-rule extract_tsne:
-	input:
-		make_wc_string(tsne_obj_pfx, tsne_obj_param, tsne_obj_sfx),
-		make_wc_string(clst_obj_pfx, clst_obj_param, clst_obj_sfx),
-		'pipeline_data/cell_info/cell_info_labelled.Rdata'
-		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
-	output:
-		make_wc_string(extr_tsne_pfx, extr_tsne_param, extr_tsne_sfx)
-	shell:
-		"""
-		module load R/3.6
-		Rscript {git_dir}/src/extract_umap.R \
-			{input} {output} {wildcards.method} TSNE
-		"""
-
 extr_clst_pfx ='pipeline_data/cluster/'
 extr_clst_param = clst_obj_param
 extr_clst_clst_sfx = 'cluster.Rdata'
@@ -668,6 +661,44 @@ rule extract_cluster:
 		Rscript {git_dir}/src/extract_cluster.R \
 			{input} {output}
 		"""
+
+extr_umap_pfx ='pipeline_data/umap/'
+
+extr_umap_param = umap_obj_param+['knn']
+extr_umap_sfx = 'umap.Rdata'		
+rule extract_umap:
+	input:
+		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx),
+		make_wc_string(umap_obj_pfx, umap_obj_param, umap_obj_sfx),
+		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx),
+		'pipeline_data/cell_info/cell_info_labelled.Rdata'
+		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
+	output:
+		make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx)
+	shell:
+		"""
+		module load R/3.6
+		Rscript {git_dir}/src/extract_umap.R \
+			{input} {output} {wildcards.method}	UMAP
+		"""
+extr_tsne_pfx ='pipeline_data/tsne/'
+extr_tsne_param = tsne_obj_param
+extr_tsne_sfx = 'tsne.Rdata'
+rule extract_tsne:
+	input:
+		make_wc_string(tsne_obj_pfx, tsne_obj_param, tsne_obj_sfx),
+		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx),
+		'pipeline_data/cell_info/cell_info_labelled.Rdata'
+		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
+	output:
+		make_wc_string(extr_tsne_pfx, extr_tsne_param, extr_tsne_sfx)
+	shell:
+		"""
+		module load R/3.6
+		Rscript {git_dir}/src/extract_umap.R \
+			{input} {output} {wildcards.method} TSNE
+		"""
+
 
 plot_intr_umap_pfx ='pipeline_data/plots/'
 plot_intr_umap_param = extr_umap_param
@@ -702,6 +733,9 @@ rule plot_integration_tsne:
 perf_met_pfx ='pipeline_data/perf_metrics/'
 perf_met_param = extr_umap_param
 perf_met_sfx = 'perf.Rdata'
+parse_integration_config(file = config['integration_json'], 
+output_string =make_wc_string(perf_met_pfx, perf_met_param, perf_met_sfx),
+which_partitions = partitions_to_run )
 
 rule perf_metrics:
 	input:
@@ -765,7 +799,7 @@ rule quick_trajectory:
 	shell:
 		"""
 		module load R/4.0
-		Rscript ~/git/massive_integrated_eye_scRNA/src/trajectory_tscan.R {input} {wildcards.method} {output}
+		Rscript{git_dir}/src/trajectory_tscan.R {input} {wildcards.method} {output}
 		"""
 plt_traj_pfx ='pipeline_data/trajectory/plot/'
 plt_traj_param = mk_h5ad_param
@@ -779,7 +813,7 @@ rule plot_quick_trajectory:
 	shell:
 		"""
 		module load R/4.0
-		Rscript ~/git/massive_integrated_eye_scRNA/src/trajectory_plot.R {input} {output}
+		Rscript {git_dir}/src/trajectory_plot.R {input} {output}
 		"""
 
 cntr_traj_pfx ='pipeline_data/trajectory/metrics/'
@@ -793,7 +827,7 @@ rule centrality_quick_trajectory:
 	shell:
 		"""
 		module load R/4.0
-		Rscript ~/git/massive_integrated_eye_scRNA/src/trajectory_centrality.R {input} {output}
+		Rscript {git_dir}/src/trajectory_centrality.R {input} {output}
 		"""
 #this is for input
 # cntr_mrg_pfx ='pipeline_data/trajectory/metrics/'
@@ -810,7 +844,7 @@ rule centrality_merge:
 	shell:
 		"""
 		module load R/4.0
-		Rscript  ~/git/massive_integrated_eye_scRNA/src/trajectory_centrality_merge.R {input} {output}
+		Rscript  {git_dir}/src/trajectory_centrality_merge.R {input} {output}
 		"""
 
 # for input 
