@@ -28,5 +28,4 @@ if (method == 'CCA'){
 }
 
 args[1] <- paste0('X_', tolower(reduction))
-
 system(paste(glue('{conda_dir}/envs/scIB/bin/python {git_dir}/src/scIB_stats.py '), paste(args, collapse = ' ')))
