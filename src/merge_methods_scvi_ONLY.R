@@ -1,3 +1,4 @@
+print('script start')
 args <- commandArgs(trailingOnly = TRUE)
 method = args[1]
 # #/**************
@@ -37,7 +38,7 @@ library(Matrix)
 library(data.table)
 library(tidyverse)
 library(Seurat)
-
+print('library loaded')
 
 transform = args[2]
 covariate = args[3]
@@ -144,6 +145,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
   obj <- seurat_obj 
   obj
 }
+print('running function')
 system('mkdir -p scvi_tmp')
 if (transform != 'SCT' & method != 'none'){
   integrated_obj <- run_integration(seurat__standard, method, covariate, transform, latent = latent)
