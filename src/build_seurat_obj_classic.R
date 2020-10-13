@@ -30,7 +30,8 @@ covariate = args[3] # study_accession, batch, etc.
 transform = args[4] # SCT or standard seurat
 combination = args[5] # mouse, mouse and macaque, mouse and macaque and human
 n_features = args[6] %>% as.numeric()
-cell_info <- read_tsv(args[7]) # cell_info.tsv
+add_intron = args[7]
+cell_info <- read_tsv(args[8]) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
 print('cell info import')
@@ -47,53 +48,7 @@ load_rdata <- function(x){
   return(get(var))
 }
 
-m <- load_rdata(args[8])
-
-# n=100
-# 
-# 
-# if(n >0){
-#     top_n_genes_hs <- rdata[['Homo_sapiens']] %>% 
-#       {tibble(gene = row.names(.), count = rowSums(.) )} %>% 
-#       filter(!gene%in% shared_genes) %>% 
-#       arrange(desc(count)) %>% 
-#       head(n) %>% pull(gene)
-#     top_n_genes_mm <- rdata[['Mus_musculus']] %>% 
-#       {tibble(gene = row.names(.), count = rowSums(.) )} %>% 
-#       filter(!gene%in% shared_genes) %>% 
-#       arrange(desc(count)) %>% 
-#       head(n) %>% pull(gene)
-#     top_n_genes_mf <- rdata[['Macaca_fascicularis']] %>% 
-#       {tibble(gene = row.names(.), count = rowSums(.) )} %>% 
-#       filter(!gene%in% shared_genes) %>% 
-#       arrange(desc(count)) %>% 
-#       head(n) %>% pull(gene)
-#     var_genes <- list('Homo_sapiens' = top_n_genes_hs, 
-#                       'Mus_musculus' = top_n_genes_mm,
-#                       'Macaca_fascicularis' = top_n_genes_mf
-#                       )
-# 
-#     for (i in names(rdata)){
-#       file_cut_down[[i]] <- rdata[[i]][c(shared_genes, var_genes[[i]]) ,]
-#     }
-#     m <- file_cut_down %>% purrr::reduce(RowMergeSparseMatrices)
-#     
-# } else{
-# 
-#   for (i in names(rdata)){
-#     file_cut_down[[i]] <- rdata[[i]][shared_genes,]
-#     
-#   }
-#   m <- file_cut_down %>% purrr::reduce(cbind)
-#   
-# }
-
-# file_cut_down <- list()
-# mito_list <- list()
-# for (i in names(rdata)){
-#   file_cut_down[[i]] <- rdata[[i]][shared_genes,]
-# }
-# m <- file_cut_down %>% purrr::reduce(cbind)
+m <- load_rdata(args[9])
 
 print('Splitting time')
 # custom combos / sets
@@ -143,35 +98,59 @@ source(glue('{git_dir}/src/make_seurat_obj_functions.R') )
 
 if (set == 'early'){
   print("Running Early")
+  m <- m_early
   seurat__standard <- make_seurat_obj(m_early, split.by = covariate)
 } else if (set == 'late'){
   print("Running Late")
+  m <- m_late
   seurat__standard <- make_seurat_obj(m_late, split.by = covariate)
 } else if (set == 'full'){
   print("Running Full")
   seurat__standard <- make_seurat_obj(m, split.by = covariate)
 } else if (set == 'onlyDROPLET'){
   print("Running onlyDROPLET (remove well based)")
+  m <- m_onlyDROPLET
   seurat__standard <- make_seurat_obj(m_onlyDROPLET, split.by = covariate, keep_well = FALSE)
 }  else if (set == 'TabulaDroplet'){
   print("Running onlyDROPLET with Tabula Muris (no well)")
+  m <- m_TABULA_DROPLET
   seurat__standard <- make_seurat_obj(m_TABULA_DROPLET, split.by = covariate, keep_well = FALSE)
 } else if (set == 'onlyWELL' & transform == 'counts'){
   print("Running onlyWELL with quminorm (remove droplet based)") 
+  m <- m_onlyWELL
   seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE, qumi = TRUE)
 } else if (set == 'onlyWELL') {
   print("Running onlyWELL (remove droplet based)") 
+  m <- m_onlyWELL
   seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE)
 } else if (set == 'downsample'){
   print("Running downsample")
+  m <- m_downsample
   seurat__standard <- make_seurat_obj(m_downsample, split.by = covariate)
 } else if (set == 'universe'){
   seurat__standard <- make_seurat_obj(m, split.by = covariate, qumi = TRUE)
 } else if (set %in% c('cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods' )){
+  m <- m_subset
   seurat__standard <- make_seurat_obj(m_subset, split.by = covariate, keep_well = FALSE)
 } else if (set == 'raw') {
   seurat__standard <- m
-}
+ } else if (set == 'velocity'){
+  print('running velocity on human only; ')
+   
+   human_cells = filter(cell_info, organism == 'Homo sapiens') %>% pull(value)
+   m_humanonly <-  m[,human_cells]
+   intron_file <- str_replace_all(args[9], 'matrix.Rdata', 'unspliced_matrix.Rdata')
+   intron_m <- load_rdata(intron_file)
+   intron_m <- intron_m[rownames(intron_m)%in% rownames(m_humanonly), colnames(intron_m)%in% colnames(m_humanonly)]
+   print(dim(intron_m))
+   m_humanonly <- m_humanonly[rownames( m_humanonly)%in% rownames(intron_m), colnames(m_humanonly)%in% colnames( intron_m)]
+   print(dim(m_humanonly))
+   seurat__standard <- make_seurat_obj(m_humanonly, split.by = covariate, keep_well = FALSE)
+   ss_colnames <- seurat__standard@assays$RNA@counts %>% colnames()
+   intron_m <- intron_m[, colnames(intron_m)%in% ss_colnames]
+   seurat__standard[['unspliced']] <- CreateAssayObject(intron_m)
+   
+} # human only integration
 
 if (transform == 'SCT'){
   s_data_list<- SplitObject(seurat__standard, split.by = covariate)
