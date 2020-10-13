@@ -80,7 +80,7 @@ sbcmd=f'''sbatch --cpus-per-task={params['cpus-per-task']} \
     {jobscript}
 
 '''
-#print(sbcmd)
+print(sbcmd)
 os.system(sbcmd)
 
 # %%

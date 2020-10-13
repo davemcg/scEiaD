@@ -1,4 +1,4 @@
-print('beginning of file')
+#print('beginning of file')
 import pprint
 pp = pprint.PrettyPrinter(width=41, compact=True) 
 import subprocess as sp
@@ -546,7 +546,7 @@ intg_obj_param = seu_obj_param + [ 'method', 'dims']
 intg_obj_sfx = 'preFilter.seuratV3.Rdata'
 
 if 'scVI' in config['integration_json']:
-	mm = 'merge_methods_scvi_only.R'
+	mm = 'merge_methods_scvi_ONLY.R'
 else:
 	mm = 'merge_methods.R'
 
@@ -559,7 +559,8 @@ rule integrate_00:
 		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx)
 	threads: 2 	
 	shell:
-		'''
+		"""
+		echo PRE_LOAD___
 		module load R/3.6
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
@@ -572,10 +573,11 @@ rule integrate_00:
 				  {input.obj} \
 				  {output}"
 		
-		echo $cmd 
+		echo $cmd
+		echo COMAND_SENDING 
 		eval $cmd
-
-		'''
+		echo COMMAND_SENT
+		"""
 
 umap_obj_pfx ='seurat_obj/integrated/'
 umap_obj_param =intg_obj_param + ['dist', 'neighbors']
@@ -765,6 +767,7 @@ rule make_h5ad_object:
 		make_wc_string(mk_h5ad_pfx, mk_h5ad_param, mk_h5ad_sfx)
 	shell:
 		"""
+		export SCIAD_CONDA_DIR={conda_dir}
 		module load R/3.6
 		Rscript {git_dir}/src/seurat_to_h5ad.R {input} {output}
 		"""
