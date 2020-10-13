@@ -2,9 +2,8 @@ print('script start')
 args <- commandArgs(trailingOnly = TRUE)
 method = args[1]
 # #/**************
-# method = 'scVI'
+#method = 'scVI'
 # Sys.setenv('SCIAD_CONDA_DIR'='/data/swamyvs/anaconda3/','SCIAD_GIT_DIR'=getwd() )
-# method = args[1]
 # load_rdata <- function(x){
 #   load(x)
 #   env <- ls.str()
@@ -12,7 +11,7 @@ method = args[1]
 #   stopifnot(length(var) == 1)
 #   return(get(var))
 # }
-# seurat_obj <- load_rdata('seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__add_intron-N__n_features1000__counts__onlyWELL__batch__preFilter.seuratV3.Rdata')
+# seurat_obj <- load_rdata('testing/scvi_test/seurat_obj_no_integration_scvi_small_params_humanonly.Rdata')
 # transform = 'counts'
 # covariate='batch'
 # latent = 10
