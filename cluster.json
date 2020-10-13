@@ -243,7 +243,7 @@
 	},
 	"scIB_stats" :
 	{
-		"mem" : "30G",
+		"mem" : "120G",
 		"time" : "1:00:00",
 		"partition" : "norm"
 	},

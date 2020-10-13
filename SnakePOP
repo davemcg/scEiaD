@@ -538,7 +538,7 @@ rule make_seurat_objs:
 		"""
 		module load R/3.6
 		export SCIAD_CONFIG={config_abspath}
-		Rscript {git_dir}/src/build_seurat_obj_classic.R {output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} {wildcards.combination} {wildcards.n_features} {input} 
+		Rscript {git_dir}/src/build_seurat_obj_classic.R {output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} {wildcards.combination} {wildcards.n_features} {wildcards.add_intron} {input} 
 		"""
 
 intg_obj_pfx ='seurat_obj/integrated/'
@@ -560,7 +560,7 @@ rule integrate_00:
 	threads: 2 	
 	shell:
 		"""
-		echo PRE_LOAD___
+
 		module load R/3.6
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
@@ -574,9 +574,7 @@ rule integrate_00:
 				  {output}"
 		
 		echo $cmd
-		echo COMAND_SENDING 
 		eval $cmd
-		echo COMMAND_SENT
 		"""
 
 umap_obj_pfx ='seurat_obj/integrated/'
@@ -870,8 +868,9 @@ rule merge_stats:
 		which_partitions = scIB_partitions_to_run )
 	output:
 		'pipeline_data/results/merged_stats.Rdata'
+	params: partitions = ':'.join(partitions_to_run)
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/optimal_params.R
+		Rscript {git_dir}/src/optimal_params.R {params.partitions} {output}
 		"""

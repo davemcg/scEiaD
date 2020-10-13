@@ -1,5 +1,6 @@
 library(tidyverse)
-
+args <- commandArgs(trailingOnly = TRUE)
+partitions_run = str_split(args[1], ':' ) %>% .[[1]] %>% paste0('.*', .,'.*')
 #library(cowplot)
 #library(splancs)
 # load annotations
@@ -145,10 +146,11 @@ x10 = '.*n_features10000.*count.*scVI'
 
 # process ari / silhouette / etc data 
 perf_all <- list()
-for (x in c('.*TabulaDroplet.*', '.*onlyWELL.*', '.*universe.*')){
+for (x in partitions_run){
+#for (x in c('.*TabulaDroplet.*', '.*onlyWELL.*', '.*universe.*')){
   print(x)
   # load all clustering params -----
-  files <- list.files('perf_metrics',
+  files <- list.files('pipeline_data/perf_metrics',
                       pattern = paste0(x, '.*Rdata'),
                       full.names = TRUE)
   for (i in files){
@@ -194,7 +196,7 @@ perf_one <- perf_all %>% bind_rows() %>% unique()
 
 
 # scIB
-files = list.files('scIB_stats/', pattern = 'csv', full.names = TRUE)
+files = list.files('pipeline_data/scIB/', pattern = 'csv', full.names = TRUE)
 data <- list()
 for (i in files){
   	norm = str_extract(i, 'n_features\\d+__[^\\W_]+') %>% gsub('n_features\\d+__','',.)
@@ -222,4 +224,4 @@ perf_two <- data %>% bind_rows() %>%
 			mutate(Score = toupper(Score))
 
 perf <- bind_rows(perf_one %>% filter(Score != 'ARI'), perf_two)
-save(perf, file = 'metrics_2020_07_24.Rdata')
+save(perf, file = args[2])
