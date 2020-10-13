@@ -2,7 +2,7 @@ print('script start')
 args <- commandArgs(trailingOnly = TRUE)
 method = args[1]
 # #/**************
-#method = 'scVI'
+# method = 'scVI'
 # Sys.setenv('SCIAD_CONDA_DIR'='/data/swamyvs/anaconda3/','SCIAD_GIT_DIR'=getwd() )
 # load_rdata <- function(x){
 #   load(x)
