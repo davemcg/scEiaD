@@ -1,5 +1,7 @@
 args <- commandArgs(trailingOnly = TRUE)
-Sys.setenv(RETICULATE_PYTHON = "/data/mcgaugheyd/conda/envs/sceasy/bin/python")
+conda_dir =  Sys.getenv('SCIAD_CONDA_DIR')
+library(glue)
+Sys.setenv(RETICULATE_PYTHON = glue("{conda_dir}/envs/sceasy/bin/python") )
 library(sceasy)
 library(reticulate)
 #loompy <- reticulate::import('loompy')
