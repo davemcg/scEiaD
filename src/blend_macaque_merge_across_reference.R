@@ -155,12 +155,12 @@ rm(all_cells_all_species_matrix)
 
 intron_mus_mm_matrix <- load_rdata('pipeline_data/clean_quant/Mus_musculus/mm-mus_musculus_full_sparse_unspliced_matrix.Rdata')
 intron_mus_mm_matrix  = intron_mus_mm_matrix[mus_mm__keep_genes, ]
-save(intron_mus_mm_matrix, file ='pipeline_data/clean_quant/Mus_musculus/full_sparse_unsplcied_matrix.Rdata')
+save(intron_mus_mm_matrix, file ='pipeline_data/clean_quant/Mus_musculus/full_sparse_unspliced_matrix.Rdata')
 
 ## human intron quant 
 intron_homo_hs_matrix <-load_rdata('pipeline_data/clean_quant/Homo_sapiens/hs-homo_sapiens_full_sparse_unspliced_matrix.Rdata')
 
-save(intron_homo_hs_matrix, file ='pipeline_data/clean_quant/Homo_sapiens/full_sparse_unsplcied_matrix.Rdata')
+save(intron_homo_hs_matrix, file ='pipeline_data/clean_quant/Homo_sapiens/full_sparse_unspliced_matrix.Rdata')
 
 ### merge all intron quant 
 mm_intron_keep = rownames(intron_mus_mm_matrix) %in% all_shared_gene_ids_hs_mm$mm_gene_id
