@@ -12,3 +12,4 @@ mso_umap_file: '/data/OGVFB_BG/scEiaD/umap/Mus_musculus_Macaca_fascicularis_Homo
 tabula_muris_comb: '/data/OGVFB_BG/scEiaD/tabula_muris_combined.Rdata'
 cell_info: 'pipeline_data/cell_info.tsv'
 integration_json: 'integration-config-scVI_small.json'
+rson_temp_dir: '/data/swamyvs/scEiaD/rson_tmp/'
