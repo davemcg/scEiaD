@@ -2,15 +2,30 @@
 args <- commandArgs(trailingOnly = TRUE)
 library(Seurat)
 library(tidyverse)
+library(jsonlite)
+rule <- read_json(args[1])
 # read in ENS <-> HGNC gene mapping info
-gene_map <- read_tsv('references/ENSG2gene_name.tsv.gz') %>% mutate(hs_gene_name = toupper(hs_gene_name))
+partition <- rule$wildcards$partition
+
+if(partition %in% c('Homo_sapeins',  'Mus_musculus')){
+gene_map <- rtracklayer::readGFF(rule$input$gene_id_mapper) %>% 
+  as_tibble %>% 
+  filter(type == 'transcript') %>% 
+  select(gene_id, gene_name) %>% distinct %>% 
+  mutate(gene_name = toupper(gene_name))
+}else{
+  gene_map <- read_tsv(rule$input$gene_id_mapper) %>% 
+    mutate(hs_gene_name = toupper(hs_gene_name))  %>% 
+    rename(gene_id = hs_gene_id, gene_name = hs_gene_name)
+}
+
 
 # load cluster data
-load(args[3])
+load(rule$input$cluster_rdata)
 cluster <- meta %>% pull(2)
 subcluster <- meta %>% pull(3)
-# load pre int seurat obj, calc cell cycle
-load(args[1])
+# load int seurat obj, calc cell cycle
+load(rule$input$intg_seu_obj)
 # convert Seurat cell cycle HGNC to ENSGENE
 s.genes <- cc.genes$s.genes %>% enframe(value = 'hs_gene_name') %>% left_join(gene_map) %>% pull(hs_gene_id) 
 g2m.genes <- cc.genes$g2m.genes %>% enframe(value = 'hs_gene_name') %>% left_join(gene_map) %>% pull(hs_gene_id)
@@ -19,19 +34,19 @@ if (DefaultAssay(integrated_obj) == 'integrated'){
 }
 integrated_obj <- CellCycleScoring(integrated_obj, s.features = s.genes, g2m.features = g2m.genes)
 meta <- integrated_obj@meta.data
-# load integrated seurat obj
-load(args[2])
+# load umap seurat obj.
+load(rule$input$umap_seu_obj)
 integrated_obj@meta.data$`S.Score` <- meta$`S.Score`
 integrated_obj@meta.data$`G2M.Score` <- meta$`G2M.Score`
 integrated_obj@meta.data$`Phase` <- meta$`Phase`
 integrated_obj@meta.data$cluster <- cluster
 integrated_obj@meta.data$subcluster <- subcluster
 # load labelled cell data
-load(args[4])
+load(rule$input$cell_info_labeled)
 # load predicted cell data (+ labelled)
 #load(args[4])
 # method
-method <- args[6]
+method <- rule$wildcards$method
 
 if (method == 'CCA'){
   reduction <- 'pca'
@@ -62,7 +77,7 @@ if (method == 'CCA'){
 }
 reduction.name <- gsub('_','', reduction.key)
 
-if (args[6] == 'TSNE'){
+if (rule$wildcards$method == 'TSNE'){
   reduction.key <- gsub('UMAP','TSNE', reduction.key)
   reduction.name <- gsub('UMAP','TSNE', reduction.name)
 }
@@ -80,7 +95,7 @@ umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'B
 #                                      TRUE ~ CellType_predict))
 
 umap$Method <- method
-if (args[7] == 'UMAP'){
+if (args[2] == 'UMAP'){
 colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 } else {
   colnames(umap)[2:3] <- c('TSNE_1', 'TSNE_2')
@@ -129,5 +144,5 @@ umap <- umap %>% mutate(integration_group = case_when(organism == 'Homo sapiens'
 
 #umap <-   left_join(umap, core_expression, by = 'Barcode')
 
-save(umap, file = args[5])
+save(umap, file = rule$output$umap_data )
 
