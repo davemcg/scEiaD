@@ -1,13 +1,33 @@
 {
     "global_default" :{
-        "covariate" : ["batch"],
-        "combination" : ["Mus_musculus_Macaca_fascicularis_Homo_sapiens"]
+        "covariate" : ["batch"]
     },
     "TabulaDroplet":{
         "default": {
 			"method" : ["scVI"],
 			"transform" : ["counts"],
-            "add_intron": ["Y"],
+            "n_features" : [1000],
+            "dims" : [10],
+            "knn" : [5],
+            "dist": [0.1],
+            "neighbors": [500]
+        }
+    },
+    "Homo_sapiens":{
+        "default": {
+			"method" : ["scVI"],
+			"transform" : ["counts"],
+            "n_features" : [1000],
+            "dims" : [10],
+            "knn" : [5],
+            "dist": [0.1],
+            "neighbors": [500]
+        }
+    },
+    "Mus_musculus":{
+        "default": {
+			"method" : ["scVI"],
+			"transform" : ["counts"],
             "n_features" : [1000],
             "dims" : [10],
             "knn" : [5],
@@ -19,7 +39,6 @@
         "default": {
             "transform" : ["counts"],
             "method" : ["scVI"],
-            "add_intron" : ["N"],
             "n_features" : [500],
             "covariate" : ["batch"],
             "dims" : [4],
@@ -32,7 +51,6 @@
         "default": {
             "transform" : ["counts"],
             "method" : ["scVI"],
-            "add_intron" : ["N"],
             "n_features" : [2000],            
             "dims" : [30],
             "knn": [7],
@@ -44,7 +62,6 @@
         "default": {
             "transform" : ["counts"],
             "method" : ["scVI"],
-            "add_intron":  ["N"],
             "partition" : ["cones", "hc", "rgc", "amacrine", "mullerglia", "bipolar", "rods"],
             "n_features" : [ 1000, 2000],
             "dims" : [4,6,10,30],

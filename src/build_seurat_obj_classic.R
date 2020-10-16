@@ -3,10 +3,10 @@
 # scanorama, CCT, harmony, liger
 
 args <- commandArgs(trailingOnly = TRUE)
-save(args, file ='testing/bso_args.Rdata')
 #Sys.setenv(SCIAD_CONFIG = '/data/swamyvs/scEiaD/config.yaml')
 #args <- c('seurat_obj/Mus_musculus__standard_and_SCT__late__batch.seuratV3.Rdata','late','batch','/home/mcgaugheyd/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv','references/gencode.vM22.metadata.MGI_tx_mapping.tsv','quant/Mus_musculus/counts.Rdata','quant/SRS866911/genecount/matrix.Rdata','quant/SRS866908/genecount/matrix.Rdata','quant/SRS1467254/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS4363764/genecount/matrix.Rdata','quant/SRS1467251/genecount/matrix.Rdata','quant/SRS1467253/genecount/matrix.Rdata','quant/SRS3674976/genecount/matrix.Rdata','quant/SRS3674982/genecount/matrix.Rdata','quant/SRS3674983/genecount/matrix.Rdata','quant/SRS4363765/genecount/matrix.Rdata','quant/SRS3674974/genecount/matrix.Rdata','quant/SRS3674975/genecount/matrix.Rdata','quant/SRS3674985/genecount/matrix.Rdata','quant/SRS1467249/genecount/matrix.Rdata','quant/SRS3674980/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS4363763/genecount/matrix.Rdata','quant/SRS4386076/genecount/matrix.Rdata','quant/SRS1467250/genecount/matrix.Rdata','quant/SRS3674978/genecount/matrix.Rdata','quant/SRS3674977/genecount/matrix.Rdata','quant/SRS3674988/genecount/matrix.Rdata','quant/SRS3674979/genecount/matrix.Rdata','quant/SRS3674981/genecount/matrix.Rdata','quant/SRS3674984/genecount/matrix.Rdata','quant/SRS4386075/genecount/matrix.Rdata','quant/SRS1467252/genecount/matrix.Rdata','quant/SRS3674987/genecount/matrix.Rdata','quant/SRS866912/genecount/matrix.Rdata','quant/SRS866910/genecount/matrix.Rdata','quant/SRS866909/genecount/matrix.Rdata','quant/SRS866907/genecount/matrix.Rdata','quant/SRS4363762/genecount/matrix.Rdata','quant/SRS866906/genecount/matrix.Rdata')
-
+library(jsonlite)
+library(yaml)
 library(Matrix)
 library(Matrix.utils)
 library(tidyverse)
@@ -15,9 +15,13 @@ library(scran)
 library(future)
 library(quminorm)
 library(glue)
-library(yaml)
+
+rule <- read_json( args[1] )
+config <- read_yaml(args[2])
+
+
 plan(strategy = "multicore", workers = 4)
-config=read_yaml(Sys.getenv('SCIAD_CONFIG'))
+
 git_dir=config$git_dir
 working_dir=config$working_dir
 setwd(working_dir)
@@ -25,13 +29,11 @@ setwd(working_dir)
 # 40000 ~ 40GB
 options(future.globals.maxSize = 500000 * 1024^2)
 print('load args')
-set = args[2] # early, late, full, downsampled
-covariate = args[3] # study_accession, batch, etc.
-transform = args[4] # SCT or standard seurat
-combination = args[5] # mouse, mouse and macaque, mouse and macaque and human
-n_features = args[6] %>% as.numeric()
-add_intron = args[7]
-cell_info <- read_tsv(args[8]) # cell_info.tsv
+set = rule$wildcards$partition # early, late, full, downsampled
+covariate = rule$wildcards$covariate # study_accession, batch, etc.
+transform = rule$wildcards$transform # SCT or standard seurat # mouse, mouse and macaque, mouse and macaque and human
+n_features =as.numeric(rule$wildcards$n_features )
+cell_info <-read_tsv(rule$input$cell_info) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
 print('cell info import')
@@ -48,7 +50,7 @@ load_rdata <- function(x){
   return(get(var))
 }
 
-m <- load_rdata(args[9])
+m <- load_rdata(rule$input$all_species_quant_file)
 
 print('Splitting time')
 # custom combos / sets
@@ -83,6 +85,7 @@ precursors <- c('AC/HC_Precurs', 'Early RPCs', 'Late RPCs', 'Neurogenic Cells', 
 
 
 m_onlyDROPLET <-  m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
+
 m_TABULA_DROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
 m_onlyWELL <- m[,cell_info %>% filter(!Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
 
@@ -134,43 +137,51 @@ if (set == 'early'){
   seurat__standard <- make_seurat_obj(m_subset, split.by = covariate, keep_well = FALSE)
 } else if (set == 'raw') {
   seurat__standard <- m
- } else if (set == 'velocity'){
-  print('running velocity on human only; ')
-   
-   human_cells = filter(cell_info, organism == 'Homo sapiens') %>% pull(value)
-   m_humanonly <-  m[,human_cells]
-   intron_file <- str_replace_all(args[9], 'matrix.Rdata', 'unspliced_matrix.Rdata')
-   intron_m <- load_rdata(intron_file)
-   intron_m <- intron_m[rownames(intron_m)%in% rownames(m_humanonly), colnames(intron_m)%in% colnames(m_humanonly)]
-   print(dim(intron_m))
-   m_humanonly <- m_humanonly[rownames( m_humanonly)%in% rownames(intron_m), colnames(m_humanonly)%in% colnames( intron_m)]
-   print(dim(m_humanonly))
-   seurat__standard <- make_seurat_obj(m_humanonly, split.by = covariate, keep_well = FALSE)
-   ss_colnames <- seurat__standard@assays$RNA@counts %>% colnames()
-   intron_m <- intron_m[, colnames(intron_m)%in% ss_colnames]
-   seurat__standard[['unspliced']] <- CreateAssayObject(intron_m)
-   
-} # human only integration
+} else if(set %in% c('Homo_sapiens', 'Mus_musculus')){ ##hacky way to loading in species specific data
+  print(glue('loading {set} quant') )
+  species <- set 
+  m_file <- str_replace_all(rule$input$all_species_quant_file, 'all_species_', glue('{species}/'))
+  intron_m_file <- str_replace_all(m_file, 'matrix.Rdata', 'unspliced_matrix.Rdata')
+  spec_m <- load_rdata(m_file)
+  species_dropletOnly <- cell_info %>% 
+    filter( organism == str_replace_all(species,'_',' '), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)
+  spec_m <- spec_m[,species_dropletOnly]# right now lets do species with only 
+  gene_sums <- rowSums(spec_m) # keep only the 15000 highest expressed genes 
+  top_15k_lim <- quantile(gene_sums, (nrow(spec_m)-15000 )/nrow(spec_m))
+  spec_m <- spec_m[gene_sums >= top_15k_lim, ]
+  intron_spec_m <- load_rdata(intron_m_file)
+  empty_intron_cells <-  colSums(intron_spec_m) == 0
+  intron_spec_m <- intron_spec_m[,!empty_intron_cells]# sct will fail if we do not remove empty droplets 
+  intron_spec_m <- intron_spec_m[rownames(intron_spec_m )%in% rownames(spec_m ), colnames(intron_spec_m )%in% colnames(spec_m )]
+  spec_m <- spec_m[rownames( spec_m )%in% rownames(intron_spec_m), colnames(spec_m )%in% colnames(intron_spec_m)]
+  seurat__standard <- make_seurat_obj(spec_m, split.by = covariate, keep_well = FALSE)
+  ss_colnames <- seurat__standard@assays$RNA@counts %>% colnames()
+  intron_spec_m <- intron_spec_m[, colnames(intron_spec_m)%in% ss_colnames]
+  seurat__standard[['unspliced']] <- CreateAssayObject(intron_spec_m)
+  seurat__standard <- SCTransform(seurat__standard, assay = "unspliced",new.assay.name = 'unspliced_sct')
+  seurat__standard <- SCTransform(seurat__standard, assay = "RNA",new.assay.name = 'spliced_sct')
+} 
+
 
 if (transform == 'SCT'){
   s_data_list<- SplitObject(seurat__standard, split.by = covariate)
   seurat__SCT <- seurat_sct(s_data_list)
   save(seurat__SCT, 
-       file = args[1], compress = FALSE)
+       file = rule$output$seurat, compress = FALSE)
 } else if (transform == 'scran'){
   seurat__standard <- scran_norm(seurat__standard, split.by = covariate )
   save(seurat__standard, 
-       file = args[1], compress = FALSE)
+       file = rule$output$seurat, compress = FALSE)
 } else if (transform == 'libSize'){
   seurat__standard <- library.size.normalize(seurat__standard)
   save(seurat__standard, 
-       file = args[1], compress = FALSE)
+       file = rule$output$seurat, compress = FALSE)
 } else if (transform == 'sqrt') {
   seurat__standard <- library.size.normalize(seurat__standard, sqrt = TRUE)
   save(seurat__standard, 
-       file = args[1], compress = FALSE)
+       file = rule$output$seurat, compress = FALSE)
 } else {
   # save objects
   save(seurat__standard, 
-       file = args[1], compress = FALSE)
+       file = rule$output$seurat, compress = FALSE)
 }

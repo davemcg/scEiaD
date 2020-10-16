@@ -46,15 +46,13 @@ def parse_integration_config(file, output_string, which_partitions):
 				rule_output+=[file_string.format_map(dp) for dp in dict_product(base_default_params)]
 	return rule_output
 
-def export_rule_info(pfx, **kwargs):## unused 
-    out_dict = {}
-    for key, value in kwargs.items():
-        out_dict[key]=value
-        out_dict[key]=value
-    with tempfile.NamedTemporaryFile( mode= 'w+',  prefix =pfx, suffix ='.yaml', delete=False) as outyaml:
-        dp = yaml.safe_dump(out_dict, default_flow_style=False, default_style="'") + '\n'
-        outyaml.write(dp)
-        return outyaml.name
+RSON_TEMP_DIR=config['rson_temp_dir']
+## make sure lambda is in this order when using-  lambda wildcards, input, output
+sp.run(f'mkdir -p {RSON_TEMP_DIR}',shell=True)
+def export_rule_info(**kwargs):#
+    with tempfile.NamedTemporaryFile( mode= 'w+',  prefix =RSON_TEMP_DIR, suffix ='.json', delete=False) as outjson:
+        json.dump(kwargs, outjson)
+        return outjson.name
 
 
 
@@ -244,8 +242,9 @@ wildcard_constraints:
 if config['subset_clustering'] == 'False':
 	# partitions_to_run = ['universe', 'TabulaDroplet', 'onlyWELL']
 	# scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
-	partitions_to_run = [ 'TabulaDroplet', 'onlyWELL']
-	scIB_partitions_to_run =  [ 'TabulaDroplet'] 
+	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
+	partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
+	scIB_partitions_to_run =  [ 'TabulaDroplet',"Homo_sapiens", "Mus_musculus"] 
 else:
 	partitions_to_run = ['celltype_subset']
 	scIB_partitions_to_run = ['celltype_subset']
@@ -480,8 +479,9 @@ rule merge_across_references:
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
 		'pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata',
 		'pipeline_data/cell_info/all_cell_info.tsv',
-		'references/complete_id_mapping.tsv',
-		expand('pipeline_data/clean_quant/{species}/full_sparse_matrix.Rdata',species= ['Homo_sapiens', 'Mus_musculus'])
+		'references/ENSG2gene_name.tsv.gz',
+		expand('pipeline_data/clean_quant/{species}/full_sparse_matrix.Rdata',species= ['Homo_sapiens', 'Mus_musculus']),
+		expand('pipeline_data/clean_quant/{species}/full_sparse_unspliced_matrix.Rdata',species= ['Homo_sapiens', 'Mus_musculus'])
 	shell:
 		"""
 		module load R/3.6
@@ -510,6 +510,7 @@ def get_fsm(parti):
 
 
 
+
 '''
 integration parameter inheritance. Adding a wildcard upstream will add it for ALL rules below it 
 seu_obj_param|
@@ -523,22 +524,24 @@ seu_obj_param|
 
 
 seu_obj_pfx ='seurat_obj/raw/'
-seu_obj_param =['combination','add_intron','n_features','transform','partition', 'covariate']
+seu_obj_param =['n_features','transform','partition', 'covariate']
 seu_obj_sfx = 'preFilter.seuratV3.Rdata'
 
 
 rule make_seurat_objs:
 	input:
-		'pipeline_data/cell_info/all_cell_info.tsv',
-		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',		
-		'pipeline_data/cell_info/cell_info_labelled.Rdata'
+		cell_info = 'pipeline_data/cell_info/all_cell_info.tsv',
+		all_species_quant_file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
+		labelled_cell_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata'
 	output:
 		seurat = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx)
+	params:
+		rson = lambda wildcards, input, output: export_rule_info(input = dict(input), output=dict(output), wildcards = dict(wildcards))
 	shell:
 		"""
 		module load R/3.6
 		export SCIAD_CONFIG={config_abspath}
-		Rscript {git_dir}/src/build_seurat_obj_classic.R {output.seurat} {wildcards.partition} {wildcards.covariate} {wildcards.transform} {wildcards.combination} {wildcards.n_features} {wildcards.add_intron} {input} 
+		Rscript {git_dir}/src/build_seurat_obj_classic.R {params.rson} {config_abspath}
 		"""
 
 intg_obj_pfx ='seurat_obj/integrated/'
@@ -662,24 +665,35 @@ rule extract_cluster:
 			{input} {output}
 		"""
 
-extr_umap_pfx ='pipeline_data/umap/'
 
+def set2mapper(set):
+	if set == 'Homo_sapiens':
+		return 'references/gtf/hs-homo_sapiens_anno.gtf.gz'
+	elif set == 'Mus_musculus':
+		return 'references/gtf/mm-mus_musculus_anno.gtf.gz'
+	else:
+		return 'references/ENSG2gene_name.tsv.gz'
+
+
+extr_umap_pfx ='pipeline_data/umap/'
 extr_umap_param = umap_obj_param+['knn']
 extr_umap_sfx = 'umap.Rdata'		
 rule extract_umap:
 	input:
-		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx),
-		make_wc_string(umap_obj_pfx, umap_obj_param, umap_obj_sfx),
-		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx),
-		'pipeline_data/cell_info/cell_info_labelled.Rdata'
+		intg_seu_obj = make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx),
+		umap_seu_obj = make_wc_string(umap_obj_pfx, umap_obj_param, umap_obj_sfx),
+		cluster_rdata = make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx),
+		cell_info_labeled = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
+		gene_id_mapper = lambda wildcards: set2mapper(wildcards.partition)
 		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 	output:
-		make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx)
+		umap_data =make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx)
+	params:
+		rson = lambda wildcards, input, output: export_rule_info(input = dict(input), output=dict(output), wildcards = dict(wildcards))
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/extract_umap.R \
-			{input} {output} {wildcards.method}	UMAP
+		Rscript {git_dir}/src/extract_umap.R {params.rson} UMAP
 		"""
 extr_tsne_pfx ='pipeline_data/tsne/'
 extr_tsne_param = tsne_obj_param
