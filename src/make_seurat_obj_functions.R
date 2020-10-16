@@ -1,7 +1,5 @@
 library(glue)
 library(yaml)
-config=read_yaml(Sys.getenv('SCIAD_CONFIG'))
-git_dir=config$git_dir
 
 make_seurat_obj <- function(m,
                             split.by = 'study_accession',
