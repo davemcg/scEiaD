@@ -1,4 +1,5 @@
 # extract UMAP coords labelled with meta data
+args= c('/data/swamyvs/scEiaD/rson_tmp/_7dbjtmv.json', 'UMAP')
 args <- commandArgs(trailingOnly = TRUE)
 library(Seurat)
 library(tidyverse)
@@ -7,12 +8,13 @@ rule <- read_json(args[1])
 # read in ENS <-> HGNC gene mapping info
 partition <- rule$wildcards$partition
 
-if(partition %in% c('Homo_sapeins',  'Mus_musculus')){
-gene_map <- rtracklayer::readGFF(rule$input$gene_id_mapper) %>% 
-  as_tibble %>% 
-  filter(type == 'transcript') %>% 
-  select(gene_id, gene_name) %>% distinct %>% 
-  mutate(gene_name = toupper(gene_name))
+if(partition %in% c('Homo_sapiens',  'Mus_musculus')){
+  gene_map <- rtracklayer::readGFF(rule$input$gene_id_mapper) %>% 
+    as_tibble %>% 
+    filter(type == 'transcript') %>% 
+    select(gene_id, gene_name) %>% distinct %>% 
+    mutate(gene_name = toupper(gene_name),
+           gene_id = str_split(gene_id ,'\\.') %>% sapply(function(x) x[1]))
 }else{
   gene_map <- read_tsv(rule$input$gene_id_mapper) %>% 
     mutate(hs_gene_name = toupper(hs_gene_name))  %>% 
@@ -27,10 +29,10 @@ subcluster <- meta %>% pull(3)
 # load int seurat obj, calc cell cycle
 load(rule$input$intg_seu_obj)
 # convert Seurat cell cycle HGNC to ENSGENE
-s.genes <- cc.genes$s.genes %>% enframe(value = 'hs_gene_name') %>% left_join(gene_map) %>% pull(hs_gene_id) 
-g2m.genes <- cc.genes$g2m.genes %>% enframe(value = 'hs_gene_name') %>% left_join(gene_map) %>% pull(hs_gene_id)
+s.genes <- cc.genes$s.genes %>% enframe(value = 'gene_name') %>% left_join(gene_map) %>% pull(gene_id) 
+g2m.genes <- cc.genes$g2m.genes %>% enframe(value = 'gene_name') %>% left_join(gene_map) %>% pull(gene_id)
 if (DefaultAssay(integrated_obj) == 'integrated'){
-	DefaultAssay(integrated_obj) <- 'RNA'
+  DefaultAssay(integrated_obj) <- 'RNA'
 }
 integrated_obj <- CellCycleScoring(integrated_obj, s.features = s.genes, g2m.features = g2m.genes)
 meta <- integrated_obj@meta.data
@@ -68,8 +70,8 @@ if (method == 'CCA'){
   reduction <- 'iNMF'
   reduction.key <- 'iNMFUMAP_'
 } else if (method == 'scVI'){
-   reduction <- 'scVI'
-   reduction.key <- 'scviUMAP_'
+  reduction <- 'scVI'
+  reduction.key <- 'scviUMAP_'
 } else {
   print("GUESSING!")
   reduction <- method
@@ -96,7 +98,7 @@ umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'B
 
 umap$Method <- method
 if (args[2] == 'UMAP'){
-colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
+  colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 } else {
   colnames(umap)[2:3] <- c('TSNE_1', 'TSNE_2')
 }
@@ -104,14 +106,14 @@ colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 # https://www.sciencedirect.com/science/article/pii/S1534580720303075?via%3Dihub
 # In mice, the transition from early and late-stage RPCs occurs rapidly between E16 and E18 (Clark et al., 2019), but in humans this process occurs between 11 and 15 GW (Figure S2B) and likely reflects the differences in the timing of human retina development between central and peripheral regions (Diaz-Araya and Provis, 1992, van Driel et al., 1990).
 umap <- umap %>% mutate(integration_group = case_when(organism == 'Homo sapiens' & Age <= -175 ~ 'Early Dev.',
-												organism == 'Homo sapiens' & Age <= 0 ~ 'Late Dev.',
-												organism == 'Homo sapiens' & Age <= 360 ~ 'Maturing',
-												organism == 'Homo sapiens' ~ 'Mature', 
-												organism == 'Mus musculus' & Age < -2 ~ 'Early Dev.',
-												organism == 'Mus musculus' & Age <= 0 ~ 'Late Dev.',
-												organism == 'Mus musculus' & Age < 14 ~ 'Maturing',
-												organism == 'Mus musculus' ~ 'Mature',
-												organism == 'Macaca fascicularis' ~ 'Mature'))
+                                                      organism == 'Homo sapiens' & Age <= 0 ~ 'Late Dev.',
+                                                      organism == 'Homo sapiens' & Age <= 360 ~ 'Maturing',
+                                                      organism == 'Homo sapiens' ~ 'Mature', 
+                                                      organism == 'Mus musculus' & Age < -2 ~ 'Early Dev.',
+                                                      organism == 'Mus musculus' & Age <= 0 ~ 'Late Dev.',
+                                                      organism == 'Mus musculus' & Age < 14 ~ 'Maturing',
+                                                      organism == 'Mus musculus' ~ 'Mature',
+                                                      organism == 'Macaca fascicularis' ~ 'Mature'))
 
 # add core markers
 # Rho for rods
