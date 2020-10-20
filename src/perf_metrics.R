@@ -7,6 +7,8 @@ library(tidyverse)
 # (ARI) benchmarking metrics [25].
 
 args <- commandArgs(trailingOnly = TRUE)
+# save(args, file = 'testing/perf.Rdata')
+# print('asd')
 # umap
 load(args[1])
 # full obj
@@ -117,9 +119,9 @@ scores$silhouette_cluster <- silhouette(cutdown, against = 'cluster')
 # lower is better (pure cell population within region)
 print('lisi')
 if (!grepl('onlyWELL', args[2])){	
-	try({scores$LISI_subcelltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdownSUB$ID,], 
+	scores$LISI_subcelltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdownSUB$ID,], 
                                   cutdownSUB,
-                                  'SubCellType') })
+                                  'SubCellType')
 	scores$LISI_celltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,], 
                                   cutdown,
                                   'CellType')
