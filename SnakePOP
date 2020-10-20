@@ -873,16 +873,19 @@ rule centrality_merge:
 
 rule merge_stats:
 	input:	
-		parse_integration_config(file = config['integration_json'], 
-		output_string =make_wc_string(perf_met_pfx, perf_met_param, perf_met_sfx),
-		which_partitions = partitions_to_run ),
-		
-		parse_integration_config(file = config['integration_json'], 
-		output_string =make_wc_string(scIB_pfx, scIB_param, scIB_sfx), 
-		which_partitions = scIB_partitions_to_run )
+		perf_data =parse_integration_config(file = config['integration_json'], 
+												output_string =make_wc_string(perf_met_pfx, perf_met_param, perf_met_sfx),
+												which_partitions = partitions_to_run ),
+		scib_data = parse_integration_config(file = config['integration_json'], 
+											output_string =make_wc_string(scIB_pfx, scIB_param, scIB_sfx), 
+											which_partitions = scIB_partitions_to_run ),
+		plot_integration = parse_integration_config(file = config['integration_json'], 
+													output_string = make_wc_string(plot_intr_umap_pfx, plot_intr_umap_param, plot_intr_umap_sfx ),
+													which_partitions = partitions_to_run)
 	output:
-		'pipeline_data/results/merged_stats.Rdata'
-	params: partitions = ':'.join(partitions_to_run)
+		merged_stats = 'pipeline_data/results/merged_stats.Rdata'
+	params: 
+		rson = lambda wildcards, input, output: export_rule_info(input = dict(input), output=dict(output))
 	shell:
 		"""
 		module load R/3.6
