@@ -3,9 +3,8 @@ library(tidyverse)
 #library(ggrepel)
 library(cowplot)
 library(scattermore)
-
+options(rgl.useNULL=TRUE)
 args <- commandArgs(trailingOnly = TRUE)
-
 red <- args[1]
 load(args[2])
 ptsize = 4
