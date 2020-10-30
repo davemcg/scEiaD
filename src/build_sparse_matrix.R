@@ -3,7 +3,7 @@
 # scanorama, CCT, harmony, liger
 
 args <- commandArgs(trailingOnly = TRUE)
-#save(args, file = 'testing/build_sp_mtx_hm.rdata')
+#save(args, file = 'testing/build_sp_mtx_hm_nn.rdata')
 library(Matrix)
 library(tidyverse)
 library(Seurat)
@@ -14,16 +14,11 @@ species <- args[1]
 cell_info_file <- args[2]
 final_sparse_matrix_file <- args[3]
 intron_sparse_matrix_file = args[4] 
-empty_droplet_rdata = args[5]
-metadata <- read_tsv(args[6])
-gtf <-  rtracklayer::readGFF(args[7])
-args_noidx = args[-(1:7)]
+metadata <- read_tsv(args[5])
+gtf <-  rtracklayer::readGFF(args[6])
+args_noidx = args[-(1:6)]
 well_samples <-args_noidx[grepl('__counts.Rdata', args_noidx)]
 spliced_droplet_samples <- args_noidx[grepl('matrix.Rdata', args_noidx)]
-#tx <- read_tsv(args[5], col_names = FALSE) %>% select(2,3) %>% unique()
-#colnames(tx) <- c('id', 'gene')
-
-
 load_rdata <- function(x){
   load(x)
   env <- ls.str()
@@ -31,7 +26,6 @@ load_rdata <- function(x){
   stopifnot(length(var) == 1)
   return(get(var))
 }
-
 
 print(species)
 if (species != "Macaca_fascicularis"){
@@ -49,31 +43,25 @@ read_all_droplet_data = function(droplet_samples){
   sc_data <- list()
   droplet_sample_accessions <- list()
 
-
+  i <- 1
   for (sample in droplet_samples ){
     drops <- load_rdata(sample)
-    sample_accession = str_extract(sample, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
-    if (is.null(dim(drops))){
-      empty_droplets <- c(empty_droplets, sample_accession)# this is coming in from global env
-    } else{
-    
-    droplet_sample_accessions<- c(droplet_sample_accessions, sample_accession)
-
-    #if (species != "Macaca_fascicularis") {
     row.names(drops) <- row.names(drops) %>% str_remove_all('\\.$')
-      
-    # } 
     colnames(drops) <- make.unique(colnames(drops))
-    colnames(drops) <- paste0(colnames(drops), "_", sample_accession)
     row.names(drops) <- make.unique(row.names(drops))
-    sc_data[[sample_accession]] <- drops
+    sc_data[[i]] <- drops
+    i <- i+1
     }
-  }
-  all_droplet_data <- reduce(sc_data, RowMergeSparseMatrices)
+  
+  all_droplet_data <- purrr::reduce(sc_data, RowMergeSparseMatrices)
   return(all_droplet_data)
 }
 # create naive fully merged  
 all_spliced_droplet_data <- read_all_droplet_data(spliced_droplet_samples)
+############################################################
+# NOTE: Because sum(well_counts) >>> sum(droplet_counts), spliced/vs unspliced ratio will *look* off
+# but its accurate. Double check 
+################
 if (species != "Macaca_fascicularis"){
   all_data <- RowMergeSparseMatrices(all_spliced_droplet_data, all_well_data)
 } else {
@@ -87,10 +75,13 @@ if (species != "Macaca_fascicularis"){
 all_data  <- all_data [row.names(all_data ) != 'fill.x', ] 
 # create sample table
 cell_info <- colnames(all_data ) %>% enframe() %>% 
-  mutate(sample_accession = str_extract(value, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')) %>% 
-  left_join(metadata %>% select(-run_accession) %>% unique()) %>% 
+  mutate(sample_accession = str_split(value, ':') %>% sapply(function(x) x[2]) %>% str_remove_all('\\.\\d+$'), 
+         value = str_replace_all(value, ':','_')) %>% 
+  left_join(metadata %>% select(-run_accession) %>% distinct()) %>% 
   data.frame()
+
 row.names(cell_info) <- cell_info$value
+
 
 cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covariate, sep = '_'),
                                   batch2 = paste(study_accession, Covariate, sep = '_'),
@@ -98,10 +89,10 @@ cell_info <- cell_info %>% mutate(batch = paste(study_accession, Platform, Covar
 #cell_info <- cell_info %>% mutate(Age = case_when(Age > 100 ~ 30, TRUE ~ Age))
 # save barcodes for labelling with published cell type assignment 
 write_tsv(cell_info, path = cell_info_file)
+
+colnames(all_data) <- str_replace_all(colnames(all_data), ':', '_')
 save(all_data, file = final_sparse_matrix_file, compress = FALSE)
 ## load intron quant 
-all_empty_droplets = list(spliced = empty_droplets)
-empty_droplets = list()
 
 intron_droplet_samples = spliced_droplet_samples %>% str_replace_all('matrix.Rdata', 'unspliced_matrix.Rdata')
 all_intron_droplets = read_all_droplet_data(intron_droplet_samples)
@@ -112,9 +103,9 @@ if (species == "Macaca_fascicularis"){
     # macaque gtf doesnt have gene versions 
   }
 }
+colnames(all_intron_droplets) <- str_replace_all(colnames(all_intron_droplets), ':', '_')
+
 save(all_intron_droplets, file = intron_sparse_matrix_file)
-all_empty_droplets[['intron']] = empty_droplets
-save(all_empty_droplets, file = empty_droplet_rdata )
 
 
 
