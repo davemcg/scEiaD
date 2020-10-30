@@ -131,25 +131,36 @@ def lookup_run_from_SRS(SRS, fqp):
 			out.append(f'{fqp}/fastq/{SRR}.fastq.gz')
 	return(out)
 
-def lookup_run_from_SRP(SRP, fqp):
+
+def SRP_2_SRS(quant_path, SRP, reference, sfx, srs_dict):
 	out=[]
-	for srs in SRS_dict.keys():
-		if SRS_dict[srs]['Study'] == SRP:
-			out += lookup_run_from_SRS(srs, fqp)
-	if out == []:
-		print('ERROR')
-		exit 
+	for sample in srs_dict.keys():
+		tech = srs_dict[sample]['tech']
+		if srs_dict[sample]['Study'] == SRP and tech in ['DropSeq', '10xv2', '10xv3']:
+			out.append(f'{quant_path}/quant/{sample}/{tech}/{reference}/genecount/{sfx}')
 	return out
 
+
 # return dummy well file for macaca ,as there is no well data at this time
+# def OLDwell_and_droplet_input(organism, reference, quant_path, SRS_dict, otd, sfx):
+# 	if organism == 'Macaca_fascicularis':
+# 		out = [f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/{sfx}' for srs in organism_droplet_dict[organism]]
+# 	else:
+# 		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + \
+# 				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/{sfx}' for srs in organism_droplet_dict[organism]]
+# 	return(out)
+
 def well_and_droplet_input(organism, reference, quant_path, SRP_droplet_dict, otd, sfx):
 	target_srps = [ srp for srp in  SRP_droplet_dict.keys() if SRP_droplet_dict[srp]['organism'] == organism ] 
 	if organism == 'Macaca_fascicularis':
-		out = [f'{quant_path}/quant/{srp}/{SRP_droplet_dict[srp]["tech"]}/{reference}/genecount/{sfx}' for srp in target_srps]
+		out = [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
 	else:
 		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + \
-				[f'{quant_path}/quant/{srp}/{SRP_droplet_dict[srp]["tech"]}/{reference}/genecount/{sfx}' for srp in target_srps]
+				[f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
 	return(out)
+
+
+
 
 def REF_idx(organism, ref, org2tech):
 	out = [f'references/velocity/{tech}/{ref}/tr2g.tsv' for tech in org2tech[organism]]
@@ -207,7 +218,6 @@ srp_droplet_dict = dict()
 for x in SRS_dict:
 	if SRS_dict[x]['UMI'] and SRS_dict[x]['paired']:
 		droplet_samples.add(x)
-
 		organism = SRS_dict[x]['organism']
 		study = SRS_dict[x]['Study']
 		tech = SRS_dict[x]['tech']
@@ -219,6 +229,7 @@ for x in SRS_dict:
 			srs = organism_droplet_dict[organism]
 			srs.append(x)
 			organism_droplet_dict[organism] = srs
+
 
 
 git_dir = config['git_dir']
@@ -337,21 +348,22 @@ rule kallisto_index:
 # this does the pseudoalignment for UMI data (e.g. 10x)
 rule kallisto_bus:
 	input:
-		fastq = lambda wildcards: lookup_run_from_SRP(wildcards.SRP, fastq_path),
+		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS, fastq_path),
 		idx = 'references/kallisto_idx/{tech}/{reference}.idx'
 	output:
-		bus = quant_path + '/quant/{SRP}/{tech}/{reference}/output.bus',
-		ec = quant_path + '/quant/{SRP}/{tech}/{reference}/matrix.ec',
-		tx_name = quant_path + '/quant/{SRP}/{tech}/{reference}/transcripts.txt'
-	threads: 4
+		bus = quant_path + '/quant/{SRS}/{tech}/{reference}/output.bus',
+		ec = quant_path + '/quant/{SRS}/{tech}/{reference}/matrix.ec',
+		tx_name = quant_path + '/quant/{SRS}/{tech}/{reference}/transcripts.txt'
+	threads: 8
 	group: "bus"
 	params:
-		tech = lambda wildcards: srp_droplet_dict[wildcards.SRP]['tech'],
-		out_dir = lambda wildcards:  f'{quant_path}/quant/{wildcards.SRP}/{wildcards.tech}/{wildcards.reference}'
+		tech = lambda wildcards: SRS_dict[wildcards.SRS]['tech'],
+		paired_flag = lambda wildcards: '' if SRS_dict[wildcards.SRS]['paired'] else '--single',
+		out_dir = lambda wildcards:  f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}'
 	shell:
 		'''
 		module load kallisto/0.46.2
-		kallisto bus -t 4 -x {params.tech} \
+		kallisto bus {params.paired_flag} -t {threads} -x {params.tech} \
 					-i {input.idx} -o {params.out_dir} {input.fastq}
 		'''
 
@@ -386,40 +398,71 @@ rule kallisto_quant:
 # make these temp files
 rule bustools_sort:
 	input:
-		quant_path + '/quant/{SRP}/{tech}/{reference}/output.bus'
+		quant_path + '/quant/{SRS}/{tech}/{reference}/output.bus'
 	output:
-		temp(quant_path +'/quant/{SRP}/{tech}/{reference}/output.sorted.bus')
-	threads: 1 
+		temp(quant_path +'/quant/{SRS}/{tech}/{reference}/output.sorted.bus')
+	threads: 8 
 	group: "bus"
 	shell:
 		"""
-		{bustools_path}/./bustools sort -t {threads} -m 32G \
+		{bustools_path}/./bustools sort -t {threads} -m 100G \
 			{input} \
 			-o {output}
 		"""
+def DROPSEQ_samples_from_reference(quant_path ,srs_dict):
+	out= []
+	for sample in srs_dict.keys():
+		if srs_dict[sample]['tech'] == 'DropSeq' :
+			if srs_dict[sample]['organism'] == 'Homo_sapiens':
+				out.append(f'{quant_path}/quant/{sample}/DropSeq/hs-homo_sapiens/output.sorted.bus')
+			else:
+				out.append(f'{quant_path}/quant/{sample}/DropSeq/mm-mus_musculus/output.sorted.bus')
+	return out 
 
+
+rule make_dropseq_whitelists:
+	input: 
+		DROPSEQ_samples_from_reference(quant_path, SRS_dict)
+	output:
+		'references/whitelist/DropSeq/barcodes.txt'
+	shell:
+		'''
+		mkdir -p dropseq_temp
+		for sample in {input};
+		do 
+			temp=$(mktemp -p dropseq_temp/)
+			{bustools_path}/./bustools whitelist --output $temp $sample 
+		done 
+		
+		cat dropseq_temp/* | sort -u  >  {output}
+		rm -rf dropseq_temp
+		'''
+
+
+def get_whitelist_from_tech(tech):
+	if tech == 'DropSeq':
+		return f'references/whitelist/DropSeq/barcodes.txt'
+	else:
+		return('references/whitelist/10x/{tech}.txt')
 # find barcodes, correct barcodes
 # make these temp files
 rule bustools_whitelist_correct_count:
 	input:
-		bus = quant_path + '/quant/{SRP}/{tech}/{reference}/output.sorted.bus',
-		matrix = quant_path + '/quant/{SRP}/{tech}/{reference}/matrix.ec',
-		tx_name = quant_path +'/quant/{SRP}/{tech}/{reference}/transcripts.txt',
-		tx_map = 'references/velocity/{tech}/{reference}/tr2g.tsv'
-	output:
-		whitelist = 'whitelist/{SRP}/{tech}/{reference}_whitelist',
-		spliced = quant_path +'/quant/{SRP}/{tech}/{reference}/genecount/spliced.mtx', 
-		unspliced = quant_path +'/quant/{SRP}/{tech}/{reference}/genecount/unspliced.mtx', 
+		bus = quant_path + '/quant/{SRS}/{tech}/{reference}/output.sorted.bus',
+		matrix = quant_path + '/quant/{SRS}/{tech}/{reference}/matrix.ec',
+		tx_name = quant_path +'/quant/{SRS}/{tech}/{reference}/transcripts.txt',
+		tx_map = 'references/velocity/{tech}/{reference}/tr2g.tsv',
+		whitelist = lambda wildcards: get_whitelist_from_tech(wildcards.tech)
+	output:		
+		spliced = quant_path +'/quant/{SRS}/{tech}/{reference}/genecount/spliced.mtx', 
+		unspliced = quant_path +'/quant/{SRS}/{tech}/{reference}/genecount/unspliced.mtx', 
 	params:
-		bus_out =  lambda wildcards: f'{quant_path}/quant/{wildcards.SRP}/{wildcards.tech}/{wildcards.reference}/genecount/',
+		bus_out =  lambda wildcards: f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}/genecount/',
 		vref = lambda wildcards: f'references/velocity/{wildcards.tech}/{wildcards.reference}'
-	group: "bus"
 	shell:
 		'''
-		{bustools_path}/./bustools whitelist \
-			-o {output.whitelist} \
-			{input.bus} 
-		{bustools_path}/./bustools correct -w {output.whitelist} -o {params.bus_out}/TMP.correct.sort.bus {input.bus} 
+
+		{bustools_path}/./bustools correct -w {input.whitelist} -o {params.bus_out}/TMP.correct.sort.bus {input.bus} 
 		
 		{bustools_path}/./bustools capture -s -x -o {params.bus_out}/TMP.spliced.bus -c {params.vref}/introns_tx_to_capture.txt -e {input.matrix} -t {input.tx_name} {params.bus_out}/TMP.correct.sort.bus
 		{bustools_path}/./bustools capture -s -x -o {params.bus_out}/TMP.unspliced.bus -c {params.vref}/cDNA_tx_to_capture.txt -e {input.matrix} -t {input.tx_name} {params.bus_out}/TMP.correct.sort.bus
@@ -432,22 +475,24 @@ rule bustools_whitelist_correct_count:
 	
 
 ## need to fix this script	
+
 rule create_sparse_matrix:
 	input:
-		spliced = quant_path +'/quant/{SRP}/{tech}/{reference}/genecount/spliced.mtx', 
-		unspliced = quant_path +'/quant/{SRP}/{tech}/{reference}/genecount/unspliced.mtx', 
+		spliced = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, 'spliced.mtx', SRS_dict),
+		unspliced = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, 'unspliced.mtx',SRS_dict)
 
 	output:
-		stats_spliced = quant_path + '/quant/{SRP}/{tech}/{reference}/genecount/stats.tsv',
-		spliced_matrix = quant_path + '/quant/{SRP}/{tech}/{reference}/genecount/matrix.Rdata',
-		unspliced_matrix = quant_path + '/quant/{SRP}/{tech}/{reference}/genecount/unspliced_matrix.Rdata'
+		stats= 'pipeline_data/clean_quant/{srp}/{reference}/stats.tsv',
+		spliced_matrix = 'pipeline_data/clean_quant/{srp}/{reference}/matrix.Rdata',
+		unspliced_matrix = 'pipeline_data/clean_quant/{srp}/{reference}/unspliced_matrix.Rdata'
 	params:
-		bus_out = lambda wildcards: f'{quant_path}/quant/{wildcards.SRP}/{wildcards.tech}/{wildcards.reference}/genecount/'
+		matrix_outdir = lambda wildcards: f'pipeline_data/clean_quant/{wildcards.srp}/{wildcards.reference}/',
+		bus_outdirs = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, '', SRS_dict),
 	#group: "bus"	
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRP} {wildcards.reference} {params.bus_out} {output.stats_spliced} {working_dir}
+		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {params.bus_outdirs}
 
 		"""		
 # spit out both intron and exon counts 
@@ -455,7 +500,7 @@ rule create_sparse_matrix:
 rule merge_nonUMI_quant_by_organism:
 	input:
 		quant = lambda wildcards: expand(quant_path + '/quant/{SRS}/well/{{reference}}/abundance.tsv.gz', 
-										SRS = [srs for srs in SRS_dict.keys() if SRS_dict[srs]['organism'] == wildcards.organism and srs not in droplet_samples] ),
+										SRS = [srs for srs in SRS_dict.keys() if SRS_dict[srs]['organism'] == wildcards.organism ] ),
 		tx_map = 'references/velocity/well/{reference}/tr2g.tsv',
 		gtf = 'references/gtf/{reference}_anno.gtf.gz'
 	output:
@@ -479,13 +524,14 @@ rule combine_well_and_umi:
 	output:
 		cell_info = 'pipeline_data/cell_info/{organism}_{reference}_cell_info.tsv',
 		spliced_matrix = 'pipeline_data/clean_quant/{organism}/{reference}_full_sparse_matrix.Rdata',
-		unspliced_matrix = 'pipeline_data/clean_quant/{organism}/{reference}_full_sparse_unspliced_matrix.Rdata',
-		empty_droplets = 'pipeline_data/cell_info/{organism}_{reference}_empty_droplets.Rdata'  # note that this is the quant in the LOCAL directory
+		unspliced_matrix = 'pipeline_data/clean_quant/{organism}/{reference}_full_sparse_unspliced_matrix.Rdata'
+		  # note that this is the quant in the LOCAL directory
 	shell:
 		"""
 		module load R/3.6
 		Rscript {git_dir}/src/build_sparse_matrix.R {wildcards.organism} {output} {input.srr_metadata} {input.gtf} {input.spliced_counts}
 		"""
+
 
 rule merge_across_references:
 	input:
