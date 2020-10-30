@@ -1,14 +1,14 @@
 #!/usr/bin/env Rscript
 
 args = commandArgs(trailingOnly=TRUE)
-system('mkdir -p testing')
+save(args, file = 'testing/nu_reumi_args.Rdata')
 
-base_dir = args[5]
-SRS = args[1]
-REF = args[2]
-matrix_file_dir <- args[3]
-stats_file <- args[4]
+#base_dir = args[5]
+#SRS = args[1]
+#REF = args[2]
+outdir <- args[1]
 
+srs_directories <- args[-1]
 ####
 # base_dir = '/data/swamyvs/scEiaD/'
 # SRS = 'SRS6424747'
@@ -18,8 +18,9 @@ stats_file <- args[4]
 ####
 
 
-spliced_matrix_file <- paste(matrix_file_dir, 'matrix.Rdata', sep = '/')
-unspliced_matrix_file = paste(matrix_file_dir, 'unspliced_matrix.Rdata', sep = '/')
+spliced_matrix_file <- paste(outdir, 'matrix.Rdata', sep = '/')
+unspliced_matrix_file = paste(outdir, 'unspliced_matrix.Rdata', sep = '/')
+stats_file <- paste(outdir, 'stats.tsv', sep = '/')
 
 library(Seurat)
 library(BUSpaRse)
@@ -30,11 +31,25 @@ library(readr)
 library(zeallot)
 
 # input data from project
+## its embarssing i didnt think of this first.
 
-c(spliced, unspliced) %<-% read_velocity_output(spliced_dir = matrix_file_dir,
-                                                spliced_name = "spliced",
-                                                unspliced_dir = matrix_file_dir,
-                                                unspliced_name = "unspliced")
+## SRS5396948
+read_bus <- function(indir){
+  sample_id <- str_extract(indir, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+  l <- read_velocity_output(spliced_dir = indir,
+                       spliced_name = "spliced",
+                       unspliced_dir = indir,
+                       unspliced_name = "unspliced") 
+  colnames(l$spliced) <- paste(colnames(l$spliced), sample_id, sep = ':')
+  colnames(l$unspliced) <- paste(colnames(l$unspliced), sample_id, sep = ':')
+  return(l)
+}
+
+study_counts_list <- lapply(srs_directories,read_bus) 
+spliced <- lapply(study_counts_list, function(x) x[['spliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
+unspliced <- lapply(study_counts_list, function(x) x[['unspliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
+
+
 tot_count <- Matrix::colSums(spliced)
 
 
@@ -45,7 +60,7 @@ bcs_use <- colnames(spliced)[tot_count > metadata(bc_rank)$inflection]
 tot_genes <- Matrix::rowSums(spliced)
 genes_use <- rownames(spliced)[tot_genes > 0]
 sf <- spliced[genes_use, bcs_use]
-uf <- unspliced[genes_use, bcs_use]
+uf <- unspliced[genes_use, bcs_use[bcs_use %in% colnames(unspliced)]]
 
 
 # write out pre/post UMI counts
