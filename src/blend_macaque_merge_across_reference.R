@@ -154,7 +154,7 @@ gene_id_converter %>% select(hs_gene_id, hs_gene_name) %>% distinct %>% write_ts
 rm(all_cells_all_species_matrix)
 
 intron_mus_mm_matrix <- load_rdata('pipeline_data/clean_quant/Mus_musculus/mm-mus_musculus_full_sparse_unspliced_matrix.Rdata')
-intron_mus_mm_matrix  = intron_mus_mm_matrix[mus_mm__keep_genes, ]
+intron_mus_mm_matrix  = intron_mus_mm_matrix[rownames(intron_mus_mm_matrix)%in%mus_mm__keep_genes, ]
 save(intron_mus_mm_matrix, file ='pipeline_data/clean_quant/Mus_musculus/full_sparse_unspliced_matrix.Rdata')
 
 ## human intron quant 
@@ -168,7 +168,7 @@ all_shared_gene_ids_hs_mm_intron  =  {tibble(mm_gene_id = rownames(intron_mus_mm
   inner_join(all_shared_gene_ids_hs_mm)
 intron_mus_mm_matrix <- aggregate.Matrix(intron_mus_mm_matrix[mm_intron_keep, ],  
                                          all_shared_gene_ids_hs_mm_intron$hs_gene_id, fun='sum')
-intron_homo_hs_matrix <- intron_homo_hs_matrix[rownames(intron_mus_mm_matrix), ]
+intron_homo_hs_matrix <- intron_homo_hs_matrix[rownames(intron_homo_hs_matrix)%in% rownames(intron_mus_mm_matrix), ]
 all_intron_macaque_data = all_intron_macaque_data[rownames(intron_mus_mm_matrix), ]
 all_intron_data = RowMergeSparseMatrices(intron_homo_hs_matrix, intron_mus_mm_matrix) %>%  
   RowMergeSparseMatrices(all_intron_macaque_data)
