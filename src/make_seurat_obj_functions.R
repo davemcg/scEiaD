@@ -23,26 +23,26 @@ make_seurat_obj <- function(m,
     print('No QUMI')
     seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
   } else if (keep_well && qumi) {
-    print('QUMINORM!!')
-    seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
-    #qumi_counts <- quminorm(seurat_well@assays$RNA@counts)
-	load('pipeline_data/cell_info/cell_info_labelled.Rdata')
-  source(glue('{git_dir}/src/extract_gene_length.R'))
-	geneL_mm <- gene_length( 'references/gtf/mm-mus_musculus_anno.gtf.gz')
-	geneL_hs <-  gene_length('references/gtf/hs-homo_sapiens_anno.gtf.gz')
-	well_hs <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Homo sapiens') %>% pull(value)
-well_mm <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Mus musculus') %>% pull(value)
-	mat <- seurat_well@assays$RNA@counts
-	hs_mat <- mat[, well_hs[well_hs %in% colnames(mat)]]
-	mm_mat <-  mat[, well_mm[well_mm %in% colnames(mat)]]
-	hs_mat_cor <- hs_mat / geneL_hs[row.names(hs_mat)] * median(geneL_hs)
-	mm_mat_cor <- mm_mat / geneL_mm[row.names(mm_mat)] * median(geneL_mm)
-	hs_mm <- cbind(hs_mat_cor, mm_mat_cor)
-	mat_cor <- hs_mm[, colnames(mat)]
+      print('QUMINORM!!')
+      seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
+      #qumi_counts <- quminorm(seurat_well@assays$RNA@counts)
+  	  load('pipeline_data/cell_info/cell_info_labelled.Rdata')
+      source(glue('{git_dir}/src/extract_gene_length.R'))
+    	geneL_mm <- gene_length( 'references/gtf/mm-mus_musculus_anno.gtf.gz')
+    	geneL_hs <-  gene_length('references/gtf/hs-homo_sapiens_anno.gtf.gz')
+    	well_hs <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Homo sapiens') %>% pull(value)
+      well_mm <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Mus musculus') %>% pull(value)
+    	mat <- seurat_well@assays$RNA@counts
+    	hs_mat <- mat[, well_hs[well_hs %in% colnames(mat)]]
+    	mm_mat <-  mat[, well_mm[well_mm %in% colnames(mat)]]
+    	hs_mat_cor <- hs_mat / geneL_hs[row.names(hs_mat)] * median(geneL_hs)
+    	mm_mat_cor <- mm_mat / geneL_mm[row.names(mm_mat)] * median(geneL_mm)
+    	hs_mm <- cbind(hs_mat_cor, mm_mat_cor)
+    	mat_cor <- hs_mm[, colnames(mat)]
 
-	seurat_well <- CreateSeuratObject(mat_cor)
-    seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
-    print('QUMI DONE!')
+  	  seurat_well <- CreateSeuratObject(mat_cor)
+      seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
+      print('QUMI DONE!')
   }
   if (keep_droplet){
     seurat_droplet <- subset(seurat_droplet, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 )
@@ -84,6 +84,16 @@ well_mm <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTer
                                       cell_info, by = 'value') %>%
     pull(Platform)
 
+  ## account for any batches with less than 3 samples 
+  batch_count <- table(seurat_m$batch) 
+  bad_batches <- names(batch_count[batch_count<3])
+  if(length(bad_batches) > 0){
+    print('Removing the following batches which had ncells <3')
+    print(bad_batches)
+    good_cells <- filter(seurat_m@meta.data, !batch %in% bad_batches ) %>% rownames
+    seurat_m <- seurat_m[,good_cells]
+  }
+  
   # scale data and regress
   seurat_m <- NormalizeData(seurat_m)
   # find var features
