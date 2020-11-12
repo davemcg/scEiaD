@@ -1,10 +1,10 @@
 # build seurat obj with the "classic" findvariablegenes -> normalize -> scaledata processing
 # output use for integration with various algorithms
 # scanorama, CCT, harmony, liger
-
+args <- c('/data/swamyvs/scEiaD/rson_tmp/qrtqisbi.json', '/data/swamyvs/scEiaD/config.yaml')
 args <- commandArgs(trailingOnly = TRUE)
 #Sys.setenv(SCIAD_CONFIG = '/data/swamyvs/scEiaD/config.yaml')
-#args <- c('seurat_obj/Mus_musculus__standard_and_SCT__late__batch.seuratV3.Rdata','late','batch','/home/mcgaugheyd/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv','references/gencode.vM22.metadata.MGI_tx_mapping.tsv','quant/Mus_musculus/counts.Rdata','quant/SRS866911/genecount/matrix.Rdata','quant/SRS866908/genecount/matrix.Rdata','quant/SRS1467254/genecount/matrix.Rdata','quant/SRS3971245/genecount/matrix.Rdata','quant/SRS3971246/genecount/matrix.Rdata','quant/SRS4363764/genecount/matrix.Rdata','quant/SRS1467251/genecount/matrix.Rdata','quant/SRS1467253/genecount/matrix.Rdata','quant/SRS3674976/genecount/matrix.Rdata','quant/SRS3674982/genecount/matrix.Rdata','quant/SRS3674983/genecount/matrix.Rdata','quant/SRS4363765/genecount/matrix.Rdata','quant/SRS3674974/genecount/matrix.Rdata','quant/SRS3674975/genecount/matrix.Rdata','quant/SRS3674985/genecount/matrix.Rdata','quant/SRS1467249/genecount/matrix.Rdata','quant/SRS3674980/genecount/matrix.Rdata','quant/SRS3971244/genecount/matrix.Rdata','quant/SRS4363763/genecount/matrix.Rdata','quant/SRS4386076/genecount/matrix.Rdata','quant/SRS1467250/genecount/matrix.Rdata','quant/SRS3674978/genecount/matrix.Rdata','quant/SRS3674977/genecount/matrix.Rdata','quant/SRS3674988/genecount/matrix.Rdata','quant/SRS3674979/genecount/matrix.Rdata','quant/SRS3674981/genecount/matrix.Rdata','quant/SRS3674984/genecount/matrix.Rdata','quant/SRS4386075/genecount/matrix.Rdata','quant/SRS1467252/genecount/matrix.Rdata','quant/SRS3674987/genecount/matrix.Rdata','quant/SRS866912/genecount/matrix.Rdata','quant/SRS866910/genecount/matrix.Rdata','quant/SRS866909/genecount/matrix.Rdata','quant/SRS866907/genecount/matrix.Rdata','quant/SRS4363762/genecount/matrix.Rdata','quant/SRS866906/genecount/matrix.Rdata')
+
 library(jsonlite)
 library(yaml)
 library(Matrix)
@@ -139,6 +139,7 @@ if (set == 'early'){
   seurat__standard <- m
 } else if(set %in% c('Homo_sapiens', 'Mus_musculus')){ ##hacky way to loading in species specific data
   print(glue('loading {set} quant') )
+  ## need to keep squaring off the data to keep uniformity for seurat
   species <- set 
   m_file <- str_replace_all(rule$input$all_species_quant_file, 'all_species_', glue('{species}/'))
   intron_m_file <- str_replace_all(m_file, 'matrix.Rdata', 'unspliced_matrix.Rdata')
@@ -150,13 +151,15 @@ if (set == 'early'){
   top_15k_lim <- quantile(gene_sums, (nrow(spec_m)-15000 )/nrow(spec_m))
   spec_m <- spec_m[gene_sums >= top_15k_lim, ]
   intron_spec_m <- load_rdata(intron_m_file)
-  empty_intron_cells <-  colSums(intron_spec_m) == 0
-  intron_spec_m <- intron_spec_m[,!empty_intron_cells]# sct will fail if we do not remove empty droplets 
   intron_spec_m <- intron_spec_m[rownames(intron_spec_m )%in% rownames(spec_m ), colnames(intron_spec_m )%in% colnames(spec_m )]
   spec_m <- spec_m[rownames( spec_m )%in% rownames(intron_spec_m), colnames(spec_m )%in% colnames(intron_spec_m)]
   seurat__standard <- make_seurat_obj(spec_m, split.by = covariate, keep_well = FALSE)
   ss_colnames <- seurat__standard@assays$RNA@counts %>% colnames()
   intron_spec_m <- intron_spec_m[, colnames(intron_spec_m)%in% ss_colnames]
+  # sct will fail if we do not remove empty droplets 
+  empty_intron_cells <-  colSums(intron_spec_m) == 0
+  intron_spec_m <- intron_spec_m[,!empty_intron_cells]
+  seurat__standard <- seurat__standard[,colnames(seurat__standard) %in% colnames(intron_spec_m)]
   seurat__standard[['unspliced']] <- CreateAssayObject(intron_spec_m)
   seurat__standard <- SCTransform(seurat__standard, assay = "unspliced",new.assay.name = 'unspliced_sct')
   seurat__standard <- SCTransform(seurat__standard, assay = "RNA",new.assay.name = 'spliced_sct')
