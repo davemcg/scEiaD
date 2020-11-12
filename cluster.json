@@ -15,7 +15,7 @@
 	"bus" : 
 	{
 		"mem" : "120G",
-		"time" : "16:00:00"
+		"time" : "24:00:00"
 	},
 	"bustools_sort" : 
 	{
@@ -62,9 +62,9 @@
 	},
 	"make_seurat_objs" :
 	{
-		"mem" : "200G",
-		"partition" : "norm",
-		"time" : "6:00:00",
+		"mem" : "600G",
+		"partition" : "largemem",
+		"time" : "8:00:00",
 		"extra" : " --gres=lscratch:10"
 	},
 	"make_seurat_objs_filtered" :
