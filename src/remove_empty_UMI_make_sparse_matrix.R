@@ -41,46 +41,111 @@ read_bus <- function(indir){
                        unspliced_dir = indir,
                        unspliced_name = "unspliced") 
   colnames(l$spliced) <- paste(colnames(l$spliced), sample_id, sep = ':')
+  if( length(colnames(l$spliced)) != length(colnames(l$spliced))  ){
+    message(' more cells than barcodes')
+    }
+  
   colnames(l$unspliced) <- paste(colnames(l$unspliced), sample_id, sep = ':')
   return(l)
 }
 
+calc_spl_ratio <- function(x, cells){
+  spl_sum <- sum(x$spliced[,cells])
+  uns_sum <- sum(x$unspliced[,cells])
+  return(uns_sum / (uns_sum + spl_sum))
+  
+}
+
+remove_empty_droplets <- function(x, srs){
+  tot_count_spliced <- colSums(x$spliced)
+  tot_count_unspliced <- colSums(x$unspliced)
+  
+  prefilter_common <- intersect(colnames(x$spliced), colnames(x$unspliced))
+  
+  bc_spliced <- tryCatch( expr = barcodeRanks(x$spliced), error=function(cond) return(NULL) )
+  if(is.null(bc_spliced)){
+    message('sample failed to meet umi threshold')
+    df <- tibble(
+      sample=srs,
+      ncell_pf_spliced = -1,
+      ncell_pf_unspliced = -1,
+      pref_common  = -1,
+      nbc_pass_spliced =  -1,
+      nbc_pass_unspliced = -1,
+      nbc_common = -1,
+      nbc_union = -1,
+      common_spl_ratio = -1,
+      union_spl_ratio = -1
+    )
+    return(list(spliced = NULL,
+                unspliced = NULL,
+                stats = df))
+  }
+  bc_unspliced <- tryCatch( expr = barcodeRanks(x$unspliced), error=function(cond) return(NULL))
+  if(is.null(bc_unspliced)){
+    # keep only the spliced cells that meet filtering, but keep the other spliced cells as well,
+    # to keep data the same shape
+    bc_spliced_pass <- colnames(x$spliced)[tot_count_spliced > metadata(bc_spliced)$inflection]
+    bc_unspliced_pass <- bc_spliced_pass
+    df <- tibble(
+      ncell_pf_spliced = ncol(x$spliced),
+      ncell_pf_unspliced = ncol(x$unspliced),
+      pref_common  = length(prefilter_common),
+      nbc_pass_spliced = length(bc_spliced_pass),
+      nbc_pass_unspliced = 0,
+      nbc_common =-1,
+      nbc_union = -1,
+      common_spl_ratio = -1,
+      union_spl_ratio = -1,
+      
+    )
+  } else{
+    bc_spliced_pass <- colnames(x$spliced)[tot_count_spliced > metadata(bc_spliced)$inflection]
+    bc_unspliced_pass <- colnames(x$unspliced)[tot_count_unspliced > metadata(bc_unspliced)$inflection]
+    
+    
+    common <- intersect(bc_spliced_pass, bc_unspliced_pass)
+    bc_union <- union(bc_spliced_pass, bc_unspliced_pass) %>% intersect(prefilter_common)
+    df <- tibble(
+      ncell_pf_spliced = ncol(x$spliced),
+      ncell_pf_unspliced = ncol(x$unspliced),
+      pref_common  = length(prefilter_common),
+      nbc_pass_spliced = length(bc_spliced_pass),
+      nbc_pass_unspliced = length(bc_unspliced_pass),
+      nbc_common = common %>% length,
+      nbc_union = length(bc_union),
+      common_spl_ratio = calc_spl_ratio(x, common),
+      union_spl_ratio = calc_spl_ratio(x, bc_union),
+      
+    )
+    
+  }
+  #keep cells that meet criteria in splcied data 
+  common <- bc_spliced_pass %>% intersect(prefilter_common)
+  return(list(spliced = x$spliced[,common], 
+              unspliced = x$unspliced[,common], 
+              stats = df))
+
+}
+
+
 study_counts_list <- lapply(srs_directories,read_bus) 
-spliced <- lapply(study_counts_list, function(x) x[['spliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
-unspliced <- lapply(study_counts_list, function(x) x[['unspliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
+
+srs_names <- str_extract(srs_directories, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+names(study_counts_list) <- srs_names
+
+filtered_counts <- lapply(seq_along(study_counts_list), function(i) remove_empty_droplets(study_counts_list[[i]], 
+                                                                                         names(study_counts_list)[i]) )
 
 
-tot_count <- Matrix::colSums(spliced)
+spliced <- lapply(filtered_counts, function(x) x[['spliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
+unspliced <- lapply(filtered_counts, function(x) x[['unspliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
+stats <-  lapply(filtered_counts, function(x) x[['stats']]) %>% bind_rows
 
-
-bc_rank <- barcodeRanks(spliced)
-bc_uns <- barcodeRanks(unspliced)
-bcs_use <- colnames(spliced)[tot_count > metadata(bc_rank)$inflection]
-# Remove genes that aren't detected
-tot_genes <- Matrix::rowSums(spliced)
-genes_use <- rownames(spliced)[tot_genes > 0]
-sf <- spliced[genes_use, bcs_use]
-uf <- unspliced[genes_use, bcs_use[bcs_use %in% colnames(unspliced)]]
-
-
-# write out pre/post UMI counts
-stats <- tibble(pre_spliced_umi = sum(spliced) , 
-                pre_unspliced_umi = sum(unspliced),
-                post_spliced_umi = sum(sf),
-                post_unspliced_umi = sum(uf),
-                pre_spliced_gene_number = nrow(spliced) , 
-                pre_unspliced_gene_number = nrow(unspliced),
-                post_spliced_gene_number = nrow(sf),
-                post_unspliced_gene_number = nrow(uf),
-                pre_pt_uns  = sum(unspliced) /(sum(unspliced) +sum(spliced) ),
-                post_pt_uns = sum(uf) /(sum(uf) +sum(sf) ),
-                pt_uns_diff =   post_pt_uns - pre_pt_uns
-)
-print(stats)
 write_tsv(stats, path = stats_file)
 
 # save pared down counts
-save(sf, file = spliced_matrix_file)
-save(uf, file = unspliced_matrix_file)
+save(spliced, file = spliced_matrix_file)
+save(unspliced, file = unspliced_matrix_file)
 message('finished successfully')
 

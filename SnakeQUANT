@@ -390,8 +390,8 @@ rule bustools_whitelist_correct_count:
 	shell:
 		''' 
 		
-		{bustools_path}/./bustools capture -s -x -o {params.bus_out}/TMP.spliced.bus -c {params.vref}/introns_tx_to_capture.txt -e {input.matrix} -t {input.tx_name} {params.bus_out}/TMP.correct.sort.bus
-		{bustools_path}/./bustools capture -s -x -o {params.bus_out}/TMP.unspliced.bus -c {params.vref}/cDNA_tx_to_capture.txt -e {input.matrix} -t {input.tx_name} {params.bus_out}/TMP.correct.sort.bus
+		{bustools_path}/./bustools capture -s -x -o {params.bus_out}/TMP.spliced.bus -c {params.vref}/introns_tx_to_capture.txt -e {input.matrix} -t {input.tx_name} {input.bus}
+		{bustools_path}/./bustools capture -s -x -o {params.bus_out}/TMP.unspliced.bus -c {params.vref}/cDNA_tx_to_capture.txt -e {input.matrix} -t {input.tx_name} {input.bus}
 
 		{bustools_path}/./bustools count -o {params.bus_out}/spliced -g {params.vref}/tr2g.tsv -e {input.matrix}  -t {input.tx_name}  --genecounts {params.bus_out}/TMP.spliced.bus
 		{bustools_path}/./bustools count -o {params.bus_out}/unspliced -g {params.vref}/tr2g.tsv -e {input.matrix} -t {input.tx_name}  --genecounts {params.bus_out}/TMP.unspliced.bus
@@ -418,8 +418,8 @@ rule create_sparse_matrix:
 	shell:
 		"""
 		module load R/3.6
-		echo HA
-        #Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {params.bus_outdirs}
+		
+        Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {params.bus_outdirs}
 
 		"""		
 # spit out both intron and exon counts 
