@@ -4,7 +4,7 @@
     },
     "TabulaDroplet":{
         "default": {
-			"method" : ["scVI"],
+			"method" : ["scVI", "linearSCVI"],
 			"transform" : ["counts"],
             "n_features" : [1000],
             "dims" : [10],
@@ -15,7 +15,7 @@
     },
     "Homo_sapiens":{
         "default": {
-			"method" : ["scVI"],
+			"method" : ["scVI", "linearSCVI"],
 			"transform" : ["counts"],
             "n_features" : [1000],
             "dims" : [10],
@@ -26,7 +26,7 @@
     },
     "Mus_musculus":{
         "default": {
-			"method" : ["scVI"],
+			"method" : ["scVI", "linearSCVI"],
 			"transform" : ["counts"],
             "n_features" : [1000],
             "dims" : [10],
