@@ -6,7 +6,8 @@ make_seurat_obj <- function(m,
                             nfeatures = n_features,
                             keep_well = TRUE,
                             keep_droplet = TRUE,
-                            qumi = FALSE){
+                            qumi = FALSE, 
+                            mito_geneids){
   well_m <- m[,cell_info %>% filter(value %in% colnames(m), !Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   if (keep_well){
@@ -64,7 +65,7 @@ make_seurat_obj <- function(m,
 
 
   seurat_m <- CreateSeuratObject(m_filter)
-  seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, pattern = "^MT-")
+  seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, features = mito_geneids)
   seurat_m <- subset(seurat_m, subset = percent.mt < 10)
 
   seurat_m@meta.data$batch <- left_join(seurat_m@meta.data %>%
