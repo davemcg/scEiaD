@@ -1,7 +1,7 @@
 # build seurat obj with the "classic" findvariablegenes -> normalize -> scaledata processing
 # output use for integration with various algorithms
 # scanorama, CCT, harmony, liger
-args <- c('/data/swamyvs/scEiaD/rson_tmp/qrtqisbi.json', '/data/swamyvs/scEiaD/config.yaml')
+args <- c('/data/swamyvs/scEiaD/rson_tmp/qjecvlvb.json', '/data/swamyvs/scEiaD/config.yaml')
 args <- commandArgs(trailingOnly = TRUE)
 #Sys.setenv(SCIAD_CONFIG = '/data/swamyvs/scEiaD/config.yaml')
 
@@ -16,7 +16,7 @@ library(future)
 library(quminorm)
 library(glue)
 
-rule <- read_json( args[1] )
+rule <- read_json(args[1])
 config <- read_yaml(args[2])
 
 
@@ -25,6 +25,7 @@ plan(strategy = "multicore", workers = 4)
 git_dir=config$git_dir
 working_dir=config$working_dir
 setwd(working_dir)
+print(working_dir)
 # the first term is roughly the number of MB of RAM you expect to use
 # 40000 ~ 40GB
 options(future.globals.maxSize = 500000 * 1024^2)
@@ -41,6 +42,11 @@ cell_info <- cell_info %>%
   mutate(batch = case_when(study_accession == 'SRP125998' ~ paste0(study_accession, "_", Platform, '_NA'),
                            TRUE ~ batch)) %>% 
   mutate(batch = gsub(' ', '_', batch))
+
+gtf <- rtracklayer::readGFF('references/gtf/hs-homo_sapiens_anno.gtf.gz')
+mito_geneids <- gtf %>% 
+  filter(grepl('^MT-', ignore.case = T, gene_name)) %>% 
+  pull(gene_id) %>% unique %>% str_remove_all('\\.\\d+$')
 
 load_rdata <- function(x){
   load(x)
@@ -84,7 +90,7 @@ precursors <- c('AC/HC_Precurs', 'Early RPCs', 'Late RPCs', 'Neurogenic Cells', 
 # }
 
 
-m_onlyDROPLET <-  m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
+m_onlyDROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
 
 m_TABULA_DROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
 m_onlyWELL <- m[,cell_info %>% filter(!Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
@@ -117,15 +123,18 @@ if (set == 'early'){
 }  else if (set == 'TabulaDroplet'){
   print("Running onlyDROPLET with Tabula Muris (no well)")
   m <- m_TABULA_DROPLET
-  seurat__standard <- make_seurat_obj(m_TABULA_DROPLET, split.by = covariate, keep_well = FALSE)
+  mito_geneids <- mito_geneids[mito_geneids%in% rownames(m_TABULA_DROPLET)]
+  seurat__standard <- make_seurat_obj(m_TABULA_DROPLET, split.by = covariate, keep_well = FALSE,mito_geneids=mito_geneids)
 } else if (set == 'onlyWELL' & transform == 'counts'){
   print("Running onlyWELL with quminorm (remove droplet based)") 
   m <- m_onlyWELL
-  seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE, qumi = TRUE)
+  mito_geneids <- mito_geneids[mito_geneids%in% rownames(m_onlyWELL)]
+  seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE, qumi = TRUE,mito_geneids=mito_geneids)
 } else if (set == 'onlyWELL') {
   print("Running onlyWELL (remove droplet based)") 
   m <- m_onlyWELL
-  seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE)
+  mito_geneids <- mito_geneids[mito_geneids%in% rownames(m_onlyWELL)]
+  seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE, mito_geneids=mito_geneids)
 } else if (set == 'downsample'){
   print("Running downsample")
   m <- m_downsample
@@ -140,30 +149,21 @@ if (set == 'early'){
 } else if(set %in% c('Homo_sapiens', 'Mus_musculus')){ ##hacky way to loading in species specific data
   print(glue('loading {set} quant') )
   ## need to keep squaring off the data to keep uniformity for seurat
+  
+  if (set == 'Mus_musculus'){
+    gtf <- rtracklayer::readGFF('references/gtf/mm-mus_musculus_anno.gtf.gz')
+    mito_geneids <- gtf %>% 
+      filter(grepl('^MT-', ignore.case = T, gene_name)) %>% 
+      pull(gene_id) %>% unique %>% str_remove_all('\\.\\d+$')
+    
+  }
+  
   species <- set 
   m_file <- str_replace_all(rule$input$all_species_quant_file, 'all_species_', glue('{species}/'))
-  intron_m_file <- str_replace_all(m_file, 'matrix.Rdata', 'unspliced_matrix.Rdata')
-  spec_m <- load_rdata(m_file)
-  species_dropletOnly <- cell_info %>% 
-    filter( organism == str_replace_all(species,'_',' '), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)
-  spec_m <- spec_m[,species_dropletOnly]# right now lets do species with only 
-  gene_sums <- rowSums(spec_m) # keep only the 15000 highest expressed genes 
-  top_15k_lim <- quantile(gene_sums, (nrow(spec_m)-15000 )/nrow(spec_m))
-  spec_m <- spec_m[gene_sums >= top_15k_lim, ]
-  intron_spec_m <- load_rdata(intron_m_file)
-  intron_spec_m <- intron_spec_m[rownames(intron_spec_m )%in% rownames(spec_m ), colnames(intron_spec_m )%in% colnames(spec_m )]
-  spec_m <- spec_m[rownames( spec_m )%in% rownames(intron_spec_m), colnames(spec_m )%in% colnames(intron_spec_m)]
-  seurat__standard <- make_seurat_obj(spec_m, split.by = covariate, keep_well = FALSE)
-  ss_colnames <- seurat__standard@assays$RNA@counts %>% colnames()
-  intron_spec_m <- intron_spec_m[, colnames(intron_spec_m)%in% ss_colnames]
-  # sct will fail if we do not remove empty droplets 
-  empty_intron_cells <-  colSums(intron_spec_m) == 0
-  intron_spec_m <- intron_spec_m[,!empty_intron_cells]
-  seurat__standard <- seurat__standard[,colnames(seurat__standard) %in% colnames(intron_spec_m)]
-  seurat__standard[['unspliced']] <- CreateAssayObject(intron_spec_m)
-  seurat__standard <- SCTransform(seurat__standard, assay = "unspliced",new.assay.name = 'unspliced_sct')
-  seurat__standard <- SCTransform(seurat__standard, assay = "RNA",new.assay.name = 'spliced_sct')
+  spec_m = load_rdata(m_file)
+  seurat__standard =  make_seurat_obj(spec_m, split.by = covariate, keep_well = FALSE, mito_geneids=mito_geneids)
 } 
+
 
 
 if (transform == 'SCT'){
