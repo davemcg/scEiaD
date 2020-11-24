@@ -17,15 +17,21 @@ args <- commandArgs(trailingOnly = TRUE)
 load(args[1]) #load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.seuratObj.Rdata')
 load(args[2]) # load('Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features2000__counts__onlyDROPLET__batch__scVI__dims6__preFilter__mindist0.1__nneighbors500.umap.Rdata')
 load(args[3])
-comp <- args[4]
+load(args[4])
+comp <- args[5]
 #partition = args[4] %>% as.numeric()
-out <- args[5]
+out <- args[6]
 ###############
 # functions -------
 ###############
 
 source( paste0(git_dir, '/src/pseudoBulk_functions.R'))
 #####################
+# cluster into droplet umap
+#####################
+colnames(meta)[2] <- 'cluster'
+umap <- umap %>% select(-cluster) %>% left_join(meta[,c(1,2)], by = 'Barcode')
+####################
 umap_well <- well_metadata <- seurat_obj@meta.data %>% 
 				as_tibble() %>%
 		 		select(-contains('RNA_snn'), -cluster) %>% 
