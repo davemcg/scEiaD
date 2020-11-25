@@ -37,8 +37,11 @@ elif rule in custom_config_rules:
             params['partition']='quick'
             params['time'] = '2:00:00'
             params['mem'] = '50G'
+        elif job_properties['wildcards']['method'] == 'CCA':
+            params['mem'] = '300G'
+            params['partition']='norm'
+            params['time'] = '12:00:00'
         else:
-            params['mem'] = '200G'
             params['partition']='norm'
             params['mem'] = '200G'
     if rule == 'calculate_umap':
@@ -56,11 +59,19 @@ elif rule in custom_config_rules:
             params['mem'] = '40G'
             params['partition']='quick'
             params['time'] = '1:00:00'
+        elif job_properties['wildcards']['method'] == 'CCA':
+            params['mem'] = '400G'
+            params['partition']='largemem'
+            params['time'] = '12:00:00'
         else:
             params['mem'] = '175G'
             params['partition']='norm'
             params['time'] = '6:00:00'
     if rule == 'integrate_00':
+        if job_properties['wildcards']['method'] == 'scVIprojection':
+            params['partition']='gpu'
+            params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
+            params['time'] = '24:00:00'
         if job_properties['wildcards']['method'] == 'scVI':
             params['partition']='gpu'
             params['extra'] = '--gres=gpu:v100x:1,lscratch:5'

@@ -13,7 +13,7 @@ cluster_config=$4
 conda_sh=$5
 # activate conda
 source ${conda_sh}
-
+module load python
 snakemake -s $snakefile \
 -pr --jobs 1999 \
 --configfile $config \
