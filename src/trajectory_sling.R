@@ -1,4 +1,4 @@
-#kkkkkk Use >= R/4.0
+#Use >= R/4.0
 library(tidyverse)
 library(scran)
 library(slingshot)
@@ -10,7 +10,8 @@ load(args[1]) # load('cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_s
 load(args[2]) # load('umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features2000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.001__nneighbors500.umapFilter.predictions.Rdata')
 load(args[3]) # load('seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features2000__counts__TabulaDroplet__batch__scVI__dims8__preFilter.seuratV3.Rdata')
 method = args[4]
-out <- args[5]
+org = gsub('_', ' ', args[5])
+out <- args[6]
 
 integrated_obj@meta.data$cluster <- meta[,2] %>% pull() %>% as.factor()
 colnames(meta)[c(2,3)] <- c('cluster','subcluster')
@@ -56,8 +57,10 @@ cut_down_objs <- function(org = 'all'){
 		umapRetinaCluster <- umap %>% filter(CellType_predict %in% c('AC/HC_Precurs','Amacrine Cells','Astrocytes','Bipolar Cells','Cones','Early RPCs','Horizontal Cells','Late RPCs','Muller Glia','Neurogenic Cells','Pericytes','Photoreceptor Precursors','Retinal Ganglion Cells','Rod Bipolar Cells','Rods','RPCs') | is.na(CellType_predict)) %>% left_join(cl_quick, by = 'cluster')
 	}
 	if (org == 'all'){
+		print('Using all cells')
 		umapRetinaCluster = umapRetinaCluster
 	} else {
+		print(paste0('Using ', org, ' cells'))
 		umapRetinaCluster = umapRetinaCluster %>% filter(organism == org)
 	}
 	sCT_CL = seurat[, umapRetinaCluster$Barcode]
@@ -134,7 +137,7 @@ if (method == 'CCA'){
 
 rm(integrated_obj)
 
-obj_cut <- cut_down_objs()
-sling <- run_sling(obj_cut$seurat, obj_cut$umap$seurat_cluster_CT, reduction, ncell = nrow(obj_cut$umap)
+obj_cut <- cut_down_objs(org)
+sling <- run_sling(obj_cut$seurat, obj_cut$umap$seurat_cluster_CT, reduction, ncell = nrow(obj_cut$umap))
 umap_cut <- obj_cut$umap
 save(umap, umap_cut, sling, file = out)
