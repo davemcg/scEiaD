@@ -327,7 +327,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     
     seurat_obj[["scArches"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "scArches_", assay = DefaultAssay(seurat_obj))
 	obj <- seurat_obj 
-  } else if (method == 'scVI') {
+  } else if (grepl('scVI', method, ignore.case = TRUE)) { #method == 'scVI') {
     # scVI ----
     assay <- 'RNA'
     vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
@@ -369,7 +369,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     n_hidden = 128 
     n_latent = latent
     n_layers = 2 
-    
+     
     scVI_command = paste(glue('{conda_dir}/envs/scVI/bin/./python {git_dir}/src/run_scVI.py'),
                          out,
                          n_epochs,
@@ -379,36 +379,64 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_latent,
                          n_layers,
 						 'FALSE')
+	if (method == 'scVIprojection') {
+    	scVI_command = paste(glue('{conda_dir}/envs/scvitools/bin/./python {git_dir}/src/run_scVI_projection.py'),
+                         out,
+                         n_epochs,
+                         lr,
+                         use_cuda,
+                         n_hidden,
+                         n_latent,
+                         n_layers,
+						 'FALSE')
+	}
     # run scVI     
 	print(scVI_command) 
     system(scVI_command)
     # import reduced dim (latent)
-    latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
-	#normalized_values <- fread(paste0(out, '.normalized.csv'), header = FALSE) %>% 
-	#  as.matrix()  
-	if (latent_dims[1,1] == 'NaN'){
-		print('scVI fail, rerunning with fewer hidden dims')
-		    scVI_command = paste( glue('{conda_dir}/envs/scVI/bin/./python {git_dir}/src/run_scVI.py'), 
-							out, n_epochs, lr, use_cuda, 64, n_latent, n_layers, 'FALSE')
-    	# run scVI
-   	 	print(scVI_command);  system(scVI_command); latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
-		if (latent_dims[1,1] == 'NaN'){
-			print('scVI fail, rerunning with even fewer hidden dims')
-			 scVI_command = paste(glue('{conda_dir}/envs/scVI/bin/./python {git_dir}/src/run_scVI.py'),
-                            out, n_epochs, lr, use_cuda, 50, n_latent, n_layers, 'FALSE')
-			# run scVI
-        print(scVI_command);  system(scVI_command); latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
-			 if (latent_dims[1,1] == 'NaN'){print("scVI fail again! One more try!"); stop()}
-		}
-	#   normalized_values <- fread(paste0(out, '.normalized.csv'), header = FALSE) %>% 
-	#		as.matrix() 
-	}
+	if (method == 'scVI'){
+   		latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
 
-    row.names(latent_dims) <- colnames(seurat_obj)
-    colnames(latent_dims) <- paste0("scVI_", 1:ncol(latent_dims))
+		#normalized_values <- fread(paste0(out, '.normalized.csv'), header = FALSE) %>% 
+		#  as.matrix()  
+		if (latent_dims[1,1] == 'NaN'){
+			print('scVI fail, rerunning with fewer hidden dims')
+			    scVI_command = paste( glue('{conda_dir}/envs/scVI/bin/./python {git_dir}/src/run_scVI.py'), 
+								out, n_epochs, lr, use_cuda, 64, n_latent, n_layers, 'FALSE')
+   	 	# run scVI
+   		 	print(scVI_command);  system(scVI_command); latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
+			if (latent_dims[1,1] == 'NaN'){
+				print('scVI fail, rerunning with even fewer hidden dims')
+				 scVI_command = paste(glue('{conda_dir}/envs/scVI/bin/./python {git_dir}/src/run_scVI.py'),
+   	                         out, n_epochs, lr, use_cuda, 50, n_latent, n_layers, 'FALSE')
+				# run scVI
+   	     print(scVI_command);  system(scVI_command); latent_dims <- read.csv(paste0(out, '.csv'), header = FALSE)
+				 if (latent_dims[1,1] == 'NaN'){print("scVI fail again! One more try!"); stop()}
+			}
+		#   normalized_values <- fread(paste0(out, '.normalized.csv'), header = FALSE) %>% 
+		#		as.matrix() 
+		}
+	
+
+  	  row.names(latent_dims) <- colnames(seurat_obj)
+   	  colnames(latent_dims) <- paste0("scVI_", 1:ncol(latent_dims))
     
-    seurat_obj[["scVI"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "scVI_", assay = DefaultAssay(seurat_obj))
-   	#seurat_obj <- SetAssayData(object = seurat_obj, slot = 'scale.data', new.data = normalized_values)
+   	  seurat_obj[["scVI"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "scVI_", assay = DefaultAssay(seurat_obj))
+	} else {
+		meta <- read_csv(paste0(out, '.meta.csv'))
+		#ld <- read_csv('scVIlatent_MM-MF_projected_to_HS.csv')
+		
+		ld <- read_csv(paste0(out, '.latent.csv'))
+		metald <- cbind(meta, ld[,2:ncol(ld)])
+		ld_ordered <- seurat__standard@meta.data %>% as_tibble(rownames = 'Barcode') %>% left_join(metald %>% mutate(Barcode = gsub('-1$|-0$','', X1)), by = c('Barcode'))
+		scVI_cols <- grep('^\\d+$', colnames(ld_ordered))
+		ld_ordered <- ld_ordered[,scVI_cols] 
+		colnames(ld_ordered) <- paste0("scVI_", 1:ncol(ld_ordered))
+		ld_ordered <- ld_ordered %>% as.matrix()
+		row.names(ld_ordered) <- colnames(seurat__standard)
+		seurat_obj[["scVI"]] <- CreateDimReducObject(embeddings = ld_ordered, key = "scVI_", assay = DefaultAssay(seurat_obj))	
+	}  	
+#seurat_obj <- SetAssayData(object = seurat_obj, slot = 'scale.data', new.data = normalized_values)
 	#save(normalized_values, file = gsub('.seuratV3.Rdata', '.scVI_scaled.Rdata', args[6]), compress = FALSE)
 	# system(paste0('rm ', out, '.normalized.csv'))
 	obj <- seurat_obj 

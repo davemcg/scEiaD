@@ -1,16 +1,15 @@
-#!/data/mcgaugheyd/conda/envs/scVI/bin/python
-
 import sys
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
-
+import random
 import scanpy as sc
 import scvi
 
 sc.settings.n_jobs = 8
+random.seed(234)
 
 args = sys.argv
 adata = sc.read_loom(args[1])

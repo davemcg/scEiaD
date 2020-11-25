@@ -42,6 +42,7 @@ create_umap_and_cluster <- function(integrated_obj,
                                     knn = 4,
                                     cluster = FALSE,
                                     umap = FALSE){
+  set.seed(354)
   if (umap) {
   # UMAP
   #print("UMAP 3D Starting")
@@ -170,7 +171,7 @@ if (method == 'CCA'){
 } else if (method == 'liger'){
   reduction <- 'iNMF'
   reduction.key <- 'ligerUMAP_'
-} else if (method == 'scVI'){
+} else if (grepl('scVI', method)){
   reduction <- 'scVI'
   reduction.key <- 'scviUMAP_'
 } else if (method == 'magic') {

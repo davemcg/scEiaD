@@ -52,7 +52,7 @@ if (method == 'CCA'){
 } else if (method == 'liger'){
   reduction <- 'iNMF'
   reduction.key <- 'iNMFUMAP_'
-} else if (method == 'scVI'){
+} else if (grepl('scVI', method)) {
    reduction <- 'scVI'
    reduction.key <- 'scviUMAP_'
 } else {
