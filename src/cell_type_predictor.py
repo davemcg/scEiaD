@@ -122,7 +122,7 @@ parser.add_argument('--workingDir', action = 'store', default = None, help = 'ch
 parser.add_argument('--inputMatrix', action = 'store', default=None, help = 'input .tsv matrix to train / predict on ')
 parser.add_argument('--featureCols', action = 'store', default = None, help = 'Optional file with newline seperated feature names to train on')
 parser.add_argument('--trainedModelFile', action = 'store', default = 'cell_type_predictor.xgb', help = 'file to save or load trained model')
-parser.add_argument('--generateProb', action = 'store_true', default = None, help = 'generate probabilities for training and test data(used for plots')
+parser.add_argument('--generateProb', action = 'store', default = None, help = 'prefix for file to output generate probabilities for training and test data (for plotting)')
 parser.add_argument('--predProbThresh', action = 'store', type = float, default = None, help = 'minimum threshold for sample to consider belonging to a class. Default: .5')
 parser.add_argument('--predictions', action = 'store', default='predictions.tsv', help = 'output .tsv file to save predictions')
 args = parser.parse_args()
@@ -173,16 +173,16 @@ def train(args, non_feature_cols, bad_cell_types):
     trained_model = data_obj.model
     with open(args.trainedModelFile, 'wb+') as modelfile:
         pickle.dump((trained_model, feature_cols, cell_type2id ),modelfile )
-    if args.generateProb:
+    if args.generateProb != None:
         ## generate probabilities for training and test data 
         test_probs = data_obj.model.predict_proba(data_obj.X_test)
         test_pred_df =  prob2df(test_probs, data_obj.test_bc, cell_type2id,data_obj.Y_test )
-        test_pred_df.to_csv('data/cell_type_predictor_test_data_probabilities.csv.gz', index = False)
+        test_pred_df.to_csv(args.generateProb + 'test_data_probabilities.csv.gz', index = False)
         #### generate training data probabilities with k fold CV 
         predictor =  XGBClassifier(tree_method = 'gpu_hist', gpu_id = 0)
         training_probs = cross_val_predict(predictor, data_obj.X_train, data_obj.Y_train, method = 'predict_proba')
         training_probs_df = prob2df(training_probs, data_obj.train_bc, cell_type2id, data_obj.Y_train)
-        training_probs_df.to_csv('data/cell_type_predictor_training_data_probabilities.csv.gz', index = False)
+        training_probs_df.to_csv(args.generateProb + 'training_data_probabilities.csv.gz', index = False)
 
 def predict(args, non_feature_cols, bad_cell_types):
     print('\nLoading Data...\n')

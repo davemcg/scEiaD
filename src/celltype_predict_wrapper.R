@@ -50,6 +50,7 @@ run_xgboost_py <- function(embeddings, full_embeddings, temp_name, tm = FALSE, p
 	write_tsv(embeddings, path = embeddings_file)
 	write_tsv(full_embeddings, path = full_embeddings_file)
 	write_features_file <- paste0(rand_num, '_features.txt')
+	prob_file <- paste0(rand_num, '_CTpredictor')	
 	if (!tm) {
 		features <- c(grep('scVI', colnames(embeddings), value = TRUE),
 						'UMAP_1', 'UMAP_2', 'nCount_RNA', 'nFeature_RNA', 'percent.mt',
@@ -59,29 +60,37 @@ run_xgboost_py <- function(embeddings, full_embeddings, temp_name, tm = FALSE, p
 						'UMAP_1', 'UMAP_2', 'nCount_RNA', 'nFeature_RNA', 'percent.mt')
 	}
 	write(features, write_features_file)
-
+	
 	# train on pre-labelled cells
 	pickle <- paste0(temp_name, '_', rand_num, '.pickle' )
-	system(glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictor.py train --predProbThresh {probThresh} --workingDir {working_dir} --inputMatrix  {embeddings_file}  --trainedModelFile  {pickle}  --featureCols  {write_features_file}'))
+	system(glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictor.py train --workingDir {working_dir} --predProbThresh {probThresh} --inputMatrix  {embeddings_file}  --trainedModelFile  {pickle}  --featureCols  {write_features_file} --generateProb {prob_file}'))
 
 	# apply model to predict labels for all cells
 	predictions_file <- temp_name
-	system(glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictor.py predict --predProbThresh  {probThresh} --workingDir {working_dir} --inputMatrix  {full_embeddings_file} --trainedModelFile  {pickle} --predictions  {predictions_file}'))
+	system(glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictor.py predict --workingDir {working_dir} --predProbThresh  {probThresh} --inputMatrix  {full_embeddings_file} --trainedModelFile  {pickle} --predictions  {predictions_file}'))
 
 	# import in predictions
 	predictions <- read_tsv(predictions_file)
-
-	predictions
+	# import test_data probabilities
+	test_data <- read_csv(paste0(prob_file, 'test_data_probabilities.csv.gz'))
+	training_data <- read_csv(paste0(prob_file, 'training_data_probabilities.csv.gz'))
+	out <- list()	
+	out[['predictions']] <- predictions
+	out[['test_data']] <- test_data
+	out[['training_data']] <- training_data
+	out
 }
 
 # full data set
-predictions <- run_xgboost_py(out, full_out, 'fullTemp', tm = FALSE, probThresh = 0.5)
+model_out <- run_xgboost_py(out, full_out, 'fullTemp', tm = FALSE, probThresh = 0.5)
+predictions <- model_out$predictions
 umapX <- left_join(umap, predictions %>% select(Barcode, CellType_predict = CellType), by = 'Barcode')
 ## remove tabula muris
 umapX <- umapX %>% filter(study_accession != 'SRP131661')
 
 # just tabula muris to fill in missing "TabulaMurisCellType"
-predictions_tm <- run_xgboost_py(out_tm, full_tm, 'tmTemp', tm = TRUE, probThresh = 0.5)
+modelTM_out <- run_xgboost_py(out_tm, full_tm, 'tmTemp', tm = TRUE, probThresh = 0.5)
+predictions_tm <- modelTM_out$predictions
 umapX2 <- left_join(umap %>% filter(study_accession == 'SRP131661'), predictions_tm %>% select(Barcode, TabulaMurisCellType_predict = CellType), by = 'Barcode')
 
 # glue together
@@ -93,5 +102,5 @@ if (nrow(umapX3) != nrow(umap)){
 
 umap <- umapX3 
 umap$CellType_predict <- gsub('None', NA, umap$CellType_predict)
-save(predictions, predictions_tm, file = args[3])
+save(predictions, predictions_tm, model_out, modelTM_out, file = args[3])
 save(umap, file = args[4])
