@@ -131,6 +131,9 @@ m_onlyDROPLET <-  m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '1
 m_TABULA_DROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
 m_onlyWELL <- m[,cell_info %>% filter(!Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
 
+m_onlyDROPLET_hs <-  m[,cell_info %>% filter(organism == 'Homo sapiens', Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
+m_onlyDROPLET_mm  <-  m[,cell_info %>% filter(organism == 'Mus musculus', Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
+
 downsample_samples <- 
   cell_info %>% 
   group_by(batch) %>% 
@@ -156,8 +159,12 @@ if (set == 'early'){
 }  else if (set == 'TabulaDroplet'){
   print("Running onlyDROPLET with Tabula Muris (no well)")
   seurat__standard <- make_seurat_obj(m_TABULA_DROPLET, split.by = covariate, keep_well = FALSE)
+} else if (set == 'HSdroplet') {
+  seurat__standard <- make_seurat_obj(m_onlyDROPLET_hs, split.by = covariate, keep_well = FALSE)  
+} else if (set == 'MMdroplet') {
+  seurat__standard <- make_seurat_obj(m_onlyDROPLET_mm, split.by = covariate, keep_well = FALSE)
 } else if (set == 'onlyWELL' & transform == 'counts'){
-  print("Running onlyWELL with quminorm (remove droplet based)") 
+  print("Running onlyWELL with gene length correction as per scVI (remove droplet based)") 
   seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE, lengthCor = TRUE)
 } else if (set == 'onlyWELL') {
   print("Running onlyWELL (remove droplet based)") 
