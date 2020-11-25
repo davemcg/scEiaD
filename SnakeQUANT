@@ -414,12 +414,13 @@ rule create_sparse_matrix:
 	params:
 		matrix_outdir = lambda wildcards: f'pipeline_data/clean_quant/{wildcards.srp}/{wildcards.reference}/',
 		bus_outdirs = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, '', SRS_dict),
+		gtf = lambda wildcards: f'references/gtf/{wildcards.reference}_anno.gtf.gz'
 	#group: "bus"	
 	shell:
 		"""
 		module load R/3.6
 		
-        Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {params.bus_outdirs}
+        Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {params.gtf} {params.bus_outdirs}
 
 		"""		
 # spit out both intron and exon counts 

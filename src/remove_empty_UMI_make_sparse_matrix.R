@@ -7,8 +7,8 @@ save(args, file = 'testing/nu_reumi_args.Rdata')
 #SRS = args[1]
 #REF = args[2]
 outdir <- args[1]
-
-srs_directories <- args[-1]
+gtf <-rtracklayer::readGFF(args[2])
+srs_directories <- args[-(1:2)]
 ####
 # base_dir = '/data/swamyvs/scEiaD/'
 # SRS = 'SRS6424747'
@@ -33,7 +33,7 @@ library(zeallot)
 # input data from project
 ## its embarssing i didnt think of this first.
 
-## SRS5396948
+
 read_bus <- function(indir){
   sample_id <- str_extract(indir, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
   l <- read_velocity_output(spliced_dir = indir,
@@ -122,8 +122,25 @@ remove_empty_droplets <- function(x, srs){
   }
   #keep cells that meet criteria in splcied data 
   common <- bc_spliced_pass %>% intersect(prefilter_common)
-  return(list(spliced = x$spliced[,common], 
-              unspliced = x$unspliced[,common], 
+  spliced = x$spliced[,common] 
+  unspliced = x$unspliced[,common]
+  
+  ## quality control: remove high mito cells, and remove high count(doublet) cells 
+  seu <- CreateSeuratObject(spliced)
+  cells_above_min_umi <-  seu$nFeature_RNA > 200
+  cells_below_max_umi <- seu$nFeature_RNA < 3000 
+  
+  mito_genes <- gtf %>% filter(type == 'gene', grepl('^MT-', gene_name)) %>% pull(gene_id) %>% paste0('.')
+  seu[["percent.mt"]] <- PercentageFeatureSet(seu, features = mito_genes)
+  cells_below_max_mito_pt <-  seu$percent.mt < 10
+  keep_cells <- cells_below_max_mito_pt & cells_above_min_umi & cells_below_max_umi
+  df <- df %>% mutate(ncells_pre_qc = ncol(spliced), 
+                      ncells_failed_min_umi = sum(!cells_above_min_umi), 
+                      ncells_failed_max_umi = sum(!cells_below_max_umi), 
+                      ncells_failed_mito = sum(!cells_below_max_mito_pt), 
+                      ncells_total_pass_qc = sum(keep_cells))
+  return(list(spliced = spliced[,keep_cells],
+              unspliced = unspliced[,keep_cells],
               stats = df))
 
 }
