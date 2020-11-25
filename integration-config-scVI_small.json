@@ -4,9 +4,9 @@
     },
     "TabulaDroplet":{
         "default": {
-			"method" : ["scVI", "linearSCVI"],
+			"method" : ["scVI", "ldvae"],
 			"transform" : ["counts"],
-            "n_features" : [1000],
+            "n_features" : [5000],
             "dims" : [10],
             "knn" : [5],
             "dist": [0.1],
@@ -15,9 +15,9 @@
     },
     "Homo_sapiens":{
         "default": {
-			"method" : ["scVI", "linearSCVI"],
+			"method" : ["scVI", "ldvae"],
 			"transform" : ["counts"],
-            "n_features" : [1000],
+            "n_features" : [5000],
             "dims" : [10],
             "knn" : [5],
             "dist": [0.1],
@@ -26,9 +26,9 @@
     },
     "Mus_musculus":{
         "default": {
-			"method" : ["scVI", "linearSCVI"],
+			"method" : ["scVI", "ldvae"],
 			"transform" : ["counts"],
-            "n_features" : [1000],
+            "n_features" : [5000],
             "dims" : [10],
             "knn" : [5],
             "dist": [0.1],
@@ -38,7 +38,7 @@
     "onlyWELL":{
         "default": {
             "transform" : ["counts"],
-            "method" : ["scVI"],
+            "method" : ["scVI", "ldvae"],
             "n_features" : [500],
             "covariate" : ["batch"],
             "dims" : [4],

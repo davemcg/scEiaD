@@ -376,10 +376,14 @@ intg_obj_pfx ='seurat_obj/integrated/'
 intg_obj_param = seu_obj_param + [ 'method', 'dims']
 intg_obj_sfx = 'preFilter.seuratV3.Rdata'
 
-if 'scVI' in config['integration_json']:
-	mm = 'merge_methods_scvi_ONLY.R'
-else:
-	mm = 'merge_methods.R'
+
+def which_method(p):
+	if p == 'scVI':
+		return 'merge_methods_scvi_ONLY.R'
+	elif p == 'ldvae':
+		return 'merge_methods_ldvae.R'
+	else:
+		return 'merge_methods.R'
 
 rule integrate_00:
 	input:
@@ -388,15 +392,17 @@ rule integrate_00:
 	output:
 		#temp('seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
 		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx)
+	params:
+		mm = lambda wildcards: which_method(wildcards.method)
 	threads: 2 	
 	shell:
 		"""
 
-		module load R/3.6
+		module load R/4.0.3
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
-		cmd="Rscript {git_dir}/src/{mm} \
+		cmd="Rscript {git_dir}/src/{params.mm} \
 				  {wildcards.method} \
 				  {wildcards.transform} \
 				  {wildcards.covariate} \
