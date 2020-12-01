@@ -15,7 +15,7 @@ def ldvae_wrapper(adata, batch, prefix):
     #adata.raw = adata # freeze the state in `.raw`
     scvi.data.setup_anndata(adata, layer="counts", batch_key = 'batch')
     model = scvi.model.LinearSCVI(adata, n_latent=10)
-    model.train(n_epochs=250, lr = 5e-3, frequency = 10)
+    model.train(n_epochs=250,  frequency = 10, n_epochs_kl_warmup = 1)
     training_info = pd.DataFrame.from_dict(
                         {'train_elbo' : model.trainer.history['elbo_train_set'][1:],
                         'test_elbo' : model.trainer.history['elbo_test_set'][1:]})
