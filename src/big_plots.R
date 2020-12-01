@@ -9,7 +9,7 @@ args <- commandArgs(trailingOnly = TRUE)
 red <- args[1]
 load(args[2])
 ptsize = 4
-ALPHA=.5
+ALPHA=.1
 if (grepl('onlyWELL', args[2])){
 	umapO <- umap
 	load(args[4])
