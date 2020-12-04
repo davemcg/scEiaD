@@ -115,6 +115,14 @@ def well_and_droplet_input(organism, reference, quant_path, SRS_dict, otd):
 				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/matrix.Rdata' for srs in organism_droplet_dict[organism]]
 	return(out)
 
+def well_and_droplet_stats(organism, reference, quant_path, SRS_dict, otd):
+	if organism == 'Macaca_fascicularis':
+		out = [f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/stats.tsv' for srs in organism_droplet_dict[organism]]
+	else:
+		out = [f'{quant_path}/quant/{organism}/{tech}/{reference}__counts.Rdata' for tech in otd[organism]] + \
+				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/stats.tsv' for srs in organism_droplet_dict[organism]]
+	return(out)
+
 def REF_idx(organism, ref, org2tech):
 	out = [f'references/velocity/{tech}/{ref}/tr2g.tsv' for tech in org2tech[organism]]
 	return out
@@ -189,33 +197,12 @@ if config['subset_clustering'] == 'False':
 	rule all:
 		input:
 			#expand('quant/{sample}/hs/output.bus', sample = SRS_UMI_samples),	
-			expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
-					transform = ['counts'], \
-					n_spec_genes = [0], \
-					method = ['scVIprojection'], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['universe'], \
-					n_features = [5000], \
-					covariate = ['batch'], \
-					dims = [6],
-					dist = [0.1],
-					neighbors = [500]),
 			# unfiltered matrix
+			#'mito_counts.tsv',
 			'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features1000__counts__raw__batch__preFilter.seuratV3.Rdata',
-			#expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plotPredictions.png', \
-			#		transform = ['libSize'], \
-			#		method = ['fastMNN'], \
-			#		n_spec_genes = [0], \
-			#		combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-			#		partition = ['onlyWELL'], \
-			#		n_features = [2000], \
-			#		covariate = ['batch'], \
-			#		dims = [30],
-			#		dist = [0.1],
-			#		neighbors = [50]),
 			expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 					transform = ['counts'], \
-					method = ['scVI', 'scVIprojection'], \
+					method = ['scVI'], \
 					n_spec_genes = [0], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['TabulaDroplet'], \
@@ -224,6 +211,17 @@ if config['subset_clustering'] == 'False':
 					dims = [4,6,8,10,20,30,50,100],
 					dist = [0.001,0.1],
 					neighbors = [15, 30,  100, 500]),
+			expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
+					transform = ['counts'], \
+					method = ['scVIprojection'], \
+					n_spec_genes = [0], \
+					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+					partition = ['universe'], \
+					n_features = [2000, 5000, 10000], \
+					covariate = ['batch'], \
+					dims = [4,6,8,10,20,30],
+					dist = [0.001,0.1],
+					neighbors = [15, 100, 500, 1000]),
 			expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 					transform = ['counts'], \
 					method = ['scArches'], \
@@ -246,9 +244,7 @@ if config['subset_clustering'] == 'False':
 					dims = [8, 30],
 					dist = [0.3],
 					neighbors = [30]),
-			'merged_stats_2020_11_17.Rdata',
-			#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-2000-counts-TabulaDroplet-batch-scVI-50-0.1-15-0.4.sqlite.gz'
-			#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite.gz',
+			'merged_stats_2020_11_17.Rdata'
 else:
 	rule all:
 		input:	
@@ -275,7 +271,7 @@ rule download_annotation:
 		'''
 		mkdir -p references
 		wget -O {output.mouse_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/gencode.vM25.annotation.gtf.gz
-		wget -O {output.macaque_mul_anno} ftp://ftp.ensembl.org/pub/release-99/gtf/macaca_mulatta/Macaca_mulatta.Mmul_10.99.gtf.gz
+		wget -O {output.macaque_mul_anno} ftp://ftp.ensembl.org/pub/release-101/gtf/macaca_mulatta/Macaca_mulatta.Mmul_10.101.gtf.gz
 		wget -O {output.human_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_35/gencode.v35.annotation.gtf.gz
 		'''
 		#wget -O {output.macaque_faca_anno} ftp://ftp.ensembl.org/pub/release-98/gtf/macaca_fascicularis/Macaca_fascicularis.Macaca_fascicularis_5.0.98.gtf.gz
@@ -430,7 +426,7 @@ rule create_sparse_matrix:
 	input:
 		spliced = quant_path +'/quant/{SRS}/{tech}/{reference}/genecount/spliced.mtx', 
 		unspliced = quant_path +'/quant/{SRS}/{tech}/{reference}/genecount/unspliced.mtx', 
-
+		gtf = 'references/gtf/{reference}_anno.gtf.gz'
 	output:
 		stats_spliced = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/stats.tsv',
 		stats_unspliced = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/stats_unspliced.tsv',
@@ -442,10 +438,9 @@ rule create_sparse_matrix:
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {params.bus_out} spliced {output.stats_spliced} {working_dir}
-		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {params.bus_out} unspliced {output.stats_unspliced} {working_dir}
+		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {params.bus_out} spliced {output.stats_spliced} {input.gtf} {working_dir}
+		Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {wildcards.SRS} {wildcards.reference} {params.bus_out} unspliced {output.stats_unspliced} {input.gtf} {working_dir}
 		"""		
-
 
 rule merge_nonUMI_quant_by_organism:
 	input:
@@ -476,14 +471,27 @@ rule combine_well_and_umi:
 		Rscript {git_dir}/src/build_sparse_matrix.R {wildcards.organism} {output} {input}
 		"""
 
+rule mito_stats:
+	input:
+		human_hs_quant = well_and_droplet_stats('Homo_sapiens', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
+		mouse_mm_quant = well_and_droplet_stats('Mus_musculus', 'mm-mus_musculus', quant_path, SRS_dict, organism_welltech_dict),
+		monkey_mf_quant = well_and_droplet_stats('Macaca_fascicularis', 'mf-macaca_mulatta', quant_path, SRS_dict, organism_welltech_dict),
+		monkey_hs_quant = well_and_droplet_stats('Macaca_fascicularis', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
+	output:
+		'mito_counts.tsv'
+	shell:
+		"""
+
+		"""
+
 rule merge_across_references:
 	input:
 		matrix = [ORG_ref(organism, 'matrix') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ],
 		cell_info = [ORG_ref(organism, 'cell_info') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ]
 	output:
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
-		'pipeline_data/cell_info/all_cell_info.tsv',
-		'references/complete_id_mapping.tsv'
+		'pipeline_data/cell_info/all_cell_info.tsv'
+		#'references/complete_id_mapping.tsv'
 	shell:
 		"""
 		module load R/3.6
@@ -720,33 +728,21 @@ if config['subset_clustering'] == 'False':
 					method = ['scVI'], \
 					n_spec_genes = [0], \
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					partition = ['universe'], \
-					n_features = [2000, 5000, 10000], \
-					covariate = ['batch'], \
-					dims = [30,50,100],
-					knn= [7]),
-			expand('scIB_stats/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-					n_features = [2000, 5000, 10000], \
-					transform = ['counts'], \
-					n_spec_genes = [0], \
-					partition = [ 'universe'], \
-					covariate = ['batch'], \
-					method = ['scVI'], \
-					dims = [30,50,100], \
-					dist = [0.1], \
-					neighbors = [100], \
-					knn = [7]),
-			expand('perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
-					transform = ['counts'], \
-					method = ['scVI', 'scVIprojection'], \
-					n_spec_genes = [0], \
-					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					partition = ['TabulaDroplet'], \
 					n_features = [1000, 2000, 5000, 10000], \
 					covariate = ['batch'], \
 					dims = [4,6,8,10,20,30,50,100],
 					knn = [0.8,0.4,0.6,5, 7, 10]),
+			expand('perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
+					transform = ['counts'], \
+					method = ['scVIprojection'], \
+					n_spec_genes = [0], \
+					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+					partition = ['universe'], \
+					n_features = [2000, 5000, 10000], \
+					covariate = ['batch'], \
+					dims = [4,6,8,10,20,30],
+					knn = [0.4,0.6, 0.8, 0.99, 5, 7, 10]),
 			expand('perf_metrics/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__knn{knn}.Rdata', \
 					transform = ['counts'], \
 					method = ['scArches'], \
@@ -793,12 +789,24 @@ if config['subset_clustering'] == 'False':
 					transform = ['counts'], \
 					partition = [ 'TabulaDroplet'], \
 					covariate = ['batch'], \
-					method = ['scVI', 'scVIprojection'], \
+					method = ['scVI'], \
 					dims = [4,6,8,10,20,30,50,100], \
 					dist = [0.1], \
 					n_spec_genes = [0], \
 					neighbors = [500], \
 					knn = [0.8,0.4,0.6,5,7,10]),
+			expand('scIB_stats/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
+					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+					n_features = [2000, 5000, 10000], \
+					transform = ['counts'], \
+					partition = ['universe'], \
+					covariate = ['batch'], \
+					method = ['scVIprojection'], \
+					dims = [4,6,8,10,20,30], \
+					dist = [0.1], \
+					n_spec_genes = [0], \
+					neighbors = [500], \
+					knn = [0.4,0.6,0.8, 0.99, 5,7,10]),
 			expand('scIB_stats/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__knn{knn}___stats.csv', \	
 					combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
 					n_features = [2000], \

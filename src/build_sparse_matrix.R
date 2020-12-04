@@ -26,6 +26,7 @@ load_rdata <- function(x){
   load(x)
   env <- ls.str()
   var <- env[!grepl('^x$', env)]
+  print(x)
   print(var)
   stopifnot(length(var) == 1)
   return(get(var))
@@ -52,7 +53,9 @@ for (sample in droplet_samples ){
   sample_accession = str_extract(sample, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
   if (is.null(dim(drops))){
     empty_droplets <- c(empty_droplets, sample_accession)
-  } else{
+  } else if (ncol(drops) == 0) {
+    empty_droplets <- c(empty_droplets, sample_accession)
+  } else {
   
   droplet_sample_accessions<- c(droplet_sample_accessions, sample_accession)
 
