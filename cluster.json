@@ -15,7 +15,7 @@
 	"bus" : 
 	{
 		"mem" : "120G",
-		"time" : "16:00:00"
+		"time" : "2:00:00"
 	},
 	"bustools_sort" : 
 	{
@@ -35,7 +35,8 @@
 	"kallisto_index":
 	{
 		"time" : "08:00:00",
-		"mem" : "120G"
+		"mem" : "120G",
+		"partition" : "norm"
 	},
 	"kallisto_quant" :
 	{
@@ -48,7 +49,8 @@
 	},
 	"kallisto_bus": {
 		"mem": "120g",
-		"time": "04:45:00"
+		"time": "04:45:00",
+		"partition" : "norm"
 	},
 	"merge_nonUMI_quant_by_organism" : 
 	{
@@ -261,10 +263,10 @@
 	{
 		"mem" : "140G",
 		"time" : "4:00:00",
-		"partition" : "gpu",
-		"extra" : " --gres=gpu:v100x:1,lscratch:5"	
+		"partition" : "norm",
+		"extra" : " --gres=lscratch:5"	
 	},
-	"calculate_trajectory_slingshot" :
+	"sling" :
 	{
 		"mem" : "150G",
 		"time" : "8:00:00",
@@ -291,5 +293,12 @@
 		"time" : "8:00:00",
 		"partition" : "norm",
 		"extra" : " --gres=lscratch:5"
+	},
+	"rebuild_scVI_data" :
+	{
+		"mem" : "120G",
+		"partition" : "gpu",
+		"time" : "3:00:00",
+		"extra" : " --gres=gpu:k80:1,lscratch:5"
 	}	
 }	

@@ -71,7 +71,8 @@ elif rule in custom_config_rules:
         if job_properties['wildcards']['method'] == 'scVIprojection':
             params['partition']='gpu'
             params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
-            params['time'] = '24:00:00'
+            params['time'] = '8:00:00'
+            params['mem'] = '200G'
         if job_properties['wildcards']['method'] == 'scVI':
             params['partition']='gpu'
             params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
@@ -80,7 +81,7 @@ elif rule in custom_config_rules:
         elif job_properties['wildcards']['method'] == 'CCA' and job_properties['wildcards']['partition'] != 'onlyWELL':
             params['partition']='largemem'
             params['time']='96:00:00'
-            params['mem']='500G'
+            params['mem']='600G'
             params['time']='96:00:00'
             params['extra'] = '--gres=lscratch:5'
         elif job_properties['wildcards']['method'] == 'CCA' and job_properties['wildcards']['partition'] == 'onlyWELL':
@@ -102,6 +103,9 @@ elif rule in custom_config_rules:
             params['mem']='250G'
             params['time']='24:00:00'
             params['extra'] = '--gres=lscratch:5'
+    if rule == "make_seurat_objs" and job_properties['wildcards']['transform'] == 'scran':
+        params['mem'] = '1000G'
+
 else:# use default parameters
     params = cluster_json['__default__'] 
 
