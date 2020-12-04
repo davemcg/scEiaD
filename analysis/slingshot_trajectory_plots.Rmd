@@ -1,4 +1,4 @@
-```{r, fig.width=15, fig.height=15, echo = FALSE}
+```{r, fig.width=15, fig.height=15, echo = FALSE, results = 'hide'}
 library(tidyverse)
 library(Seurat)
 library(scattermore)
@@ -11,8 +11,8 @@ library(tidymodels)
 library(rsample)
 #load('~/data/massive_integrated_eye_scRNA/sling_trajectory.Rdata')
 #load('/Volumes/data/projects/nei/mcgaughey/scEiaD_me/site_make/sling_mus.Rdata')
-load('~/data/massive_integrated_eye_scRNA/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features2000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.001__nneighbors500__knn0.6__trajHomo_sapiens.Rdata')
-load('~/data/massive_integrated_eye_scRNA/diffPT_sling_HS.Rdata')
+load('~/data/massive_integrated_eye_scRNA/Mus_musculus_Macaca_fascicularis_Homo_sapiens__0__n_features5000__counts__universe__batch__scVIprojectionSO__dims10__mindist0.1__nneighbors500__knn0.6__trajHomo_sapiens.Rdata')
+load('~/data/massive_integrated_eye_scRNA/trajDiffHS_5000_10.Rdata')
 gene_id_converter <- read_tsv('~/git/massive_integrated_eye_scRNA/data/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
                               col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
                                            'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
@@ -48,12 +48,32 @@ create_layout(as_tbl_graph(lin@adjacency), #%>%
 
 ```{r, fig.width=15, fig.height=10}
 umap %>%
-  #mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unknown', TRUE ~ CellType_predict)) %>% 
+  filter(is.na(TabulaMurisCellType_predict)) %>% 
+  mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unknown', TRUE ~ CellType_predict)) %>% 
   ggplot(aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + 
-  geom_scattermore(pointsize =  1, pixels = c(1000,1000), alpha = 0.2) + 
-  scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname()) + 
+  geom_scattermore(pointsize =  0, pixels = c(1000,1000), alpha = 0.6) + 
+  scale_color_manual(values = c(pals::watlington(), pals::alphabet()) %>% unname()) + 
   cowplot::theme_cowplot() +
-  guides(color = guide_legend(override.aes = list(size = 3, alpha = 1) ) ) 
+  guides(color = guide_legend(override.aes = list(size = 7, alpha = 1) ) ) 
+
+umap %>%
+  filter(is.na(TabulaMurisCellType_predict)) %>% 
+  mutate(cluster = as.factor(cluster)) %>% 
+  #mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unknown', TRUE ~ CellType_predict)) %>% 
+  ggplot(aes(x=UMAP_1, y=UMAP_2, color = cluster)) + 
+  geom_scattermore(pointsize =  0, pixels = c(1000,1000), alpha = 0.6) + 
+  scale_color_manual(values = c(pals::watlington(), pals::alphabet(), pals::kelly()) %>% unname()) + 
+  cowplot::theme_cowplot() +
+  guides(color = guide_legend(override.aes = list(size = 7, alpha = 1) ) ) 
+
+umap %>%
+  filter(!is.na(TabulaMurisCellType_predict)) %>% 
+  mutate(CellType_predict = case_when(is.na(TabulaMurisCellType_predict) ~ 'Unknown', TRUE ~ TabulaMurisCellType_predict)) %>% 
+  ggplot(aes(x=UMAP_1, y=UMAP_2, color = TabulaMurisCellType_predict)) + 
+  geom_scattermore(pointsize =  0, pixels = c(1000,1000), alpha = 0.6) + 
+  scale_color_manual(values = c(pals::watlington(), pals::alphabet(), pals::tableau20()) %>% unname()) + 
+  cowplot::theme_cowplot() +
+  guides(color = guide_legend(override.aes = list(size = 7, alpha = 1) ) ) 
 
 
 ```
@@ -81,7 +101,7 @@ umap %>%
 ```
 
 ```{r, fig.width=15, fig.height=5}
-umap  %>% ggplot(aes(x=UMAP_1, y=UMAP_2, color = Platform)) + geom_scattermore(size = 5, pixels = c(1000,1000)) + scale_color_manual(values = c(pals::alphabet()) %>% unname()) + cowplot::theme_cowplot() + facet_wrap(~Platform)
+umap  %>% ggplot(aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + geom_scattermore(pointsize = 10, pixels = c(1000,1000)) + scale_color_manual(values = c(pals::alphabet(), pals::alphabet2()) %>% unname()) + cowplot::theme_cowplot() + facet_wrap(~Platform)
 umap  %>% ggplot(aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + geom_scattermore(size = 5, pixels = c(1000,1000)) + scale_color_manual(values = c(pals::alphabet(), pals::alphabet2()) %>% unname()) + cowplot::theme_cowplot() + facet_wrap(~organism)
 ```
 
@@ -116,7 +136,7 @@ psTime %>%
 
 # Bar plot
 ## All
-```{r, fig.width=15, fig.height=25}
+```{r, fig.width=7, fig.height=10}
 ct_proportion <- umap %>% group_by(CellType_predict) %>% summarise(CT_Count = n()) %>% mutate(CT_Proportion = CT_Count/sum(CT_Count) * 100)
 
 celltype_pseudotime <- psTime %>% 
@@ -133,7 +153,7 @@ celltype_pseudotime <- psTime %>%
   mutate(Proportion  = Count / sum(Count) * 100) %>% 
   left_join(ct_proportion, by = 'CellType_predict') %>% 
   mutate(Enrichment = Proportion/CT_Proportion) %>% 
-  filter(Enrichment > 0.6) %>% 
+  filter(Enrichment > 1) %>% 
   mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% arrange(Curve, Pseudotime) %>% data.frame()
 
 psTime_data <- psTime %>% 
@@ -216,14 +236,15 @@ psTime %>%
   filter(!is.na(Pseudotime)) %>% 
   left_join(umap) %>% 
   mutate(curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% 
-  filter(curve %in% select_curves) %>% 
+  #filter(curve %in% select_curves) %>% 
   ggplot(aes(x=UMAP_1, y = UMAP_2)) + 
   geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0.1, alpha = 0.4) + 
-  geom_scattermore(pointsize = 1, alpha = 0.4) + 
+  #geom_scattermore(pointsize = 1, alpha = 0.4) + 
   cowplot::theme_cowplot() + 
-  scale_color_manual(values = pals::alphabet2() %>% unname()) +
+  scale_color_manual(values = c(pals::cols25(), pals::alphabet2()) %>% unname()) +
   xlab('UMAP 1') + ylab('UMAP 2') +
-  geom_path(data = path %>% bind_rows() %>% filter(curve %in% select_curves), aes(x=UMAP_1, y = UMAP_2, color = as.factor(curve), group = curve), size = 1) 
+  #geom_path(data = path %>% bind_rows() %>% filter(curve %in% select_curves), aes(x=UMAP_1, y = UMAP_2, color = as.factor(curve), group = curve), size = 1) 
+  geom_path(data = path %>% bind_rows(), aes(x=UMAP_1, y = UMAP_2, color = as.factor(curve), group = curve), size = 1) 
 ```
 
 # Find diverging points
@@ -259,9 +280,9 @@ psTime %>%
   filter(curve %in% c(1,4,5,6,7)) %>% 
   filter(Pseudotime > 5.75, Pseudotime < 7.25) %>% 
   mutate(Pseudotime = (round(Pseudotime * 4) / 4) %>% as.character()) %>% 
- # mutate(Pseudotime = floor(Pseudotime) %>% as.character()) %>% 
+  # mutate(Pseudotime = floor(Pseudotime) %>% as.character()) %>% 
   ggplot(aes(x=UMAP_1, y = UMAP_2, color = Pseudotime)) + 
-#  geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0.1, alpha = 0.4) + 
+  #  geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0.1, alpha = 0.4) + 
   geom_scattermore(pointsize = 1, alpha = 1) + 
   cowplot::theme_cowplot() + 
   scale_color_manual(values = pals::alphabet2() %>% unname()) +
@@ -270,38 +291,6 @@ psTime %>%
   facet_wrap(~curve, nrow = 1)
 
 ```
-
-# heatmaps for 1,4,5,6,7 with matched set of genes
-```{r, fig.width=15, fig.height=6}
-genes <- diffPT_tibble %>% 
-  filter(Trajectory == 'slingPseudotime_4') %>% 
-  filter(Gene %in% tf$ID) %>% filter(FDR == 0) %>% 
-  filter(Gene %in% 
-           (lmCalc$slingPseudotime_1$lm_covariate %>% 
-              unnest(g_results) %>% 
-              group_by(Gene, group) %>% 
-              filter(`p.value` < (0.01  / nrow(lmCalc$slingPseudotime_1$lm_covariate))) %>% 
-              group_by(Gene) %>% 
-              summarise(Count = n()) %>% 
-              arrange(-Count) %>% 
-              head(30) %>% 
-              pull(Gene))) %>% 
-  pull(Gene)
-a <- hm_maker('slingPseudotime_1', round_to = 0.1, genes = genes, onlyShowTF = TRUE, max_pseudotime = 10, column_title = 'Curve 1 (Bipolar)')
-b <- hm_maker('slingPseudotime_4', round_to = 0.1, genes = genes, onlyShowTF = TRUE, max_pseudotime = 10, column_title = 'Curve 4 (Cones)')
-c <- hm_maker('slingPseudotime_5', round_to = 0.1, genes = genes, onlyShowTF = TRUE, max_pseudotime = 10, column_title = 'Curve 5 (Rods)')
-# vertical
-# draw(a %v% b %v% c %v% d %v% e)
-draw(a + b + c,  
-     show_heatmap_legend = c(FALSE, FALSE, FALSE, FALSE, TRUE))
-```
-
-```{r}
-celltype_pseudotime %>% arrange(Curve, Pseudotime) %>% data.frame()
-
-sling$lineage
-```
-
 # Which TF across the curves appear most often?
 ```{r}
 diffPT_tibble <- list()
@@ -310,7 +299,7 @@ for (i in names(diffPT)){
 }
 diffPT_tibble <- diffPT_tibble %>% bind_rows(.id = 'Trajectory')
 diffPT_tibble %>% 
-  filter(Trajectory %in% paste0('slingPseudotime_', select_curves)) %>% 
+  #filter(Trajectory %in% paste0('slingPseudotime_', select_curves)) %>% 
   left_join(gene_id_converter %>% select(Gene = hs_gene_id, hs_gene_name) %>% unique()) %>% 
   filter(FDR == 0, Gene %in% tf$ID) %>% 
   group_by(Trajectory) %>% 
@@ -319,6 +308,52 @@ diffPT_tibble %>%
   summarise(Count = n(), abs_logFC = mean(abs(logFC))) %>% 
   arrange(-Count, -abs_logFC)
 ```
+
+# heatmaps for 1,4,5,6,7 with matched set of genes
+```{r, fig.width=15, fig.height=6}
+genes <- diffPT_tibble %>% 
+  filter(Trajectory == 'slingPseudotime_4') %>% 
+  filter(Gene %in% tf$ID) %>% 
+  filter(FDR == 0)
+lm <- lm_maker(make_tidy_time('slingPseudotime_4', genes$Gene))
+pval_cutoff <- 0.01  / nrow(lm$lm_covariate)
+genesV <- genes %>% 
+  filter(Gene %in% 
+           (lm$lm_covariate %>% 
+              unnest(g_results) %>% 
+              group_by(Gene, group) %>% 
+              filter(`p.value` < pval_cutoff) %>% 
+              group_by(Gene) %>% 
+              summarise(Count = n()) %>% 
+              arrange(-Count) %>% 
+              head(30) %>% 
+              pull(Gene))) %>% 
+  pull(Gene)
+a <- hm_maker('slingPseudotime_1', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 10, column_title = 'Curve 1 (Rods)')
+b <- hm_maker('slingPseudotime_2', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 10, column_title = 'Curve 2 (Rods)')
+c <- hm_maker('slingPseudotime_4', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 10, column_title = 'Curve 4 (Rods)')
+# vertical
+# draw(a %v% b %v% c %v% d %v% e)
+draw(a + b + c,  
+     show_heatmap_legend = c(FALSE, FALSE, FALSE, FALSE, TRUE))
+```
+
+```{r, fig.width =  12, fig.height=12}
+tidyPT_145 <- list()
+for (i in paste0('slingPseudotime_', c(1,4,5))){
+  tidyPT_145[[i]] <- make_tidy_time(i, genes = genesV, rounding_digits = 0.5)
+}
+
+tidyPT_145 %>% bind_rows(.id = 'Curve') %>% filter(Gene %in% genesV, Curve %in% c('slingPseudotime_1','slingPseudotime_4','slingPseudotime_5')) %>% left_join(gene_id_converter %>% select(Gene = hs_gene_id, hs_gene_name)) %>% ggplot(aes(x=PT, y=CPM, color = Curve)) + geom_smooth()  + facet_wrap(~hs_gene_name) + cowplot::theme_cowplot()
+```
+
+```{r}
+celltype_pseudotime %>% arrange(Curve, Pseudotime) %>% data.frame()
+
+sling$lineage
+```
+
+
 
 
 ```{r}
