@@ -12,6 +12,8 @@ sc.settings.n_jobs = 8
 random.seed(234)
 
 args = sys.argv
+print(len(args))
+print(args)
 adata = sc.read_loom(args[1])
 adata.layers["counts"] = adata.X.copy()
 
@@ -47,6 +49,8 @@ vae_ref.train(n_epochs = n_epochs, n_epochs_kl_warmup=1, lr = lr)
 
 # save the reference model
 dir_path = "scVI_HSdroplet_model/" + str(adata.shape[1]) + "HVG_" + str(n_latent) + "ld/"
+if len(args) == 11:
+	dir_path = args[9]
 vae_ref.save(dir_path, overwrite=True)
 adata_ref.obsm["X_scVI"] = vae_ref.get_latent_representation()
 
@@ -75,5 +79,6 @@ scvi_latent.to_csv(args[1] + '.latent.csv')
 #scvi_latent=pd.DataFrame(adata_ref.obsm['X_scVI'])
 #scvi_latent.to_csv('scVIlatent_HS__10ld.csv')
 
-
+if len(args) == 11:
+	adata_full.write_h5ad(args[10])
 
