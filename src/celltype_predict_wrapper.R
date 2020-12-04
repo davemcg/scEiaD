@@ -32,7 +32,7 @@ rm_outlier <- function(out, TM = FALSE){
 		scVI_mean <- colMeans(temp)
 		euc_dist <- function(x1, x2) sqrt(sum((x1 - x2) ^ 2))
 		D <- apply(as.matrix(temp), 1, function(x) euc_dist(scVI_mean, x))
-		cutoff = sd(D) * 4
+		cutoff = sd(D) * 3 
 		bc_retain[[i]] <- D[D < cutoff] %>% names()
 	}
 	out %>% filter(Barcode %in% (bc_retain %>% unlist()))
