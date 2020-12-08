@@ -6,6 +6,7 @@ hm_maker <- function(pseudotime,
                      output_smooth = FALSE, 
                      round_to = 0.5, 
                      column_title = NULL,
+                     min_pseudotime = NULL,
                      max_pseudotime = NULL){
   options(dplyr.summarise.inform=F) 
   if (is.null(genes)){
@@ -53,6 +54,10 @@ hm_maker <- function(pseudotime,
  #mutate(group = (round(PT * multiplier, digits = round_to)) / multiplier)
   if (!is.null(max_pseudotime)){
     long <- long %>% filter(group <= max_pseudotime)
+  }
+  
+  if (!is.null(min_pseudotime)){
+    long <- long %>% filter(group >= min_pseudotime)
   }
   long <- long %>% 
     mutate(group = as.character(group)) %>% 
@@ -102,7 +107,8 @@ hm_maker <- function(pseudotime,
   ct_p_colors <- c('white', ct_p_colors)
   names(ct_p_colors)[1] <- 'Unlabelled'
   
-  anno_mark_at <- seq(1,ncol(mat_smooth), round(ncol(mat_smooth)/long$group %>% max() %>% floor()))
+  by_increment <- (1 / round_to) %>% floor()
+  anno_mark_at <- seq(1,ncol(mat_smooth), by_increment)
   anno_mark_labels <- (long$group %>% min() %>% floor()):(long$group %>% max() %>% floor())
   if (length(anno_mark_at) != length(anno_mark_labels)){
     anno_mark_labels <- anno_mark_labels[-length(anno_mark_labels)]
