@@ -1,0 +1,40 @@
+---
+title: "Download New Sampls"
+output: html_notebook
+---
+
+Date searched: 12/07/2020
+- Search GEO DataSet for "(((single[Description]) AND cell[Description]) AND ((retina[Description]) OR RPE[Description])) AND (((Homo sapiens[Organism]) OR Mus Musculus[Organism]) OR Macaca[Organism])"
+"
+- set publication date to within 1 yr
+- Find related data > SRA 
+- send to file  > full xml 
+- send to runSelector > download metadata
+
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+library(xml2)
+library(tidyverse)
+full_xml <- read_xml('~/Downloads/SraExperimentPackage-4.xml') %>% as_list()
+curr_sampletable <- read_tsv('../data/sample_run_layout_organism_tech.tsv')
+curr_studies <- curr_sampletable$study_accession %>% unique
+exp_set <- full_xml$EXPERIMENT_PACKAGE_SET
+exp_set_list <- lapply(exp_set, function(x) unlist(x, recursive = T))
+common_names <- lapply(exp_set_list, names) %>% reduce(intersect)
+res <-lapply(exp_set_list , function(x) x[common_names]) %>%   do.call(rbind,.) %>% as.data.frame()
+colnames(res)
+study_cols <- c("EXPERIMENT.STUDY_REF.IDENTIFIERS.PRIMARY_ID", "STUDY.DESCRIPTOR.STUDY_TITLE" ,"STUDY.DESCRIPTOR.STUDY_ABSTRACT"  )
+res_by_study <- res %>% select(all_of(study_cols)) %>% distinct
+metadata <- read_csv('~/Downloads/SraRunTable.txt-4.csv')
+res_by_study_with_date <- metadata %>% select( EXPERIMENT.STUDY_REF.IDENTIFIERS.PRIMARY_ID=`SRA Study`, ReleaseDate) %>% 
+  distinct %>% left_join(res_by_study, .) %>% 
+  rename(study_accession =EXPERIMENT.STUDY_REF.IDENTIFIERS.PRIMARY_ID)
+new_studies <- filter(res_by_study_with_date, !study_accession %in% curr_studies)
+
+write_csv(new_studies, 'new_potential_Studies.csv')
+```
+
