@@ -3,7 +3,8 @@ make_seurat_obj <- function(m,
                             nfeatures = n_features,
                             keep_well = TRUE,
                             keep_droplet = TRUE,
-                            lengthCor = FALSE){
+                            lengthCor = FALSE,
+							dont_use_well_for_FVF = FALSE){
   well_m <- m[,cell_info %>% filter(value %in% colnames(m), !Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   if (keep_well){
@@ -84,9 +85,12 @@ well_mm <- cell_info %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3'
   # scale data and regress
   seurat_m <- NormalizeData(seurat_m)
   # find var features
-
-  seurat_m <- FindVariableFeatures(seurat_m, nfeatures = nfeatures, selection.method = 'vst')
-
+  if (dont_use_well_for_FVF == TRUE) {
+	seurat_mDrop <- FindVariableFeatures(seurat_droplet, nfeatures = nfeatures, selection.method = 'vst')
+    VariableFeatures(seurat_m) <- VariableFeatures(seurat_mDrop)
+  } else {
+    seurat_m <- FindVariableFeatures(seurat_m, nfeatures = nfeatures, selection.method = 'vst')
+  }
   # don't use mito genes
   var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
 
@@ -167,9 +171,11 @@ scran_norm <- function(seurat_obj = seurat__standard, split.by = 'batch'){
   for (obj in names(seurat_list)){
     print(obj)
     print(seurat_list[[obj]] %>% dim())
-    if (ncol(seurat_list[[obj]]) > 50){
+    if (obj == 'SRP131661_10xv2_3-M-8'){
+	  seurat_list[[obj]] <- NULL
+	} else if (ncol(seurat_list[[obj]]) > 100){
       sce_list[[obj]] <- SingleCellExperiment(assays = list(counts = as.matrix(x = seurat_list[[obj]]$RNA@data)))
-      clusters = quickCluster(sce_list[[obj]], min.size=50)
+      clusters = quickCluster(sce_list[[obj]], min.size=100)
       sce_list[[obj]] = computeSumFactors(sce_list[[obj]], cluster=clusters)
       sce_list[[obj]] = scater::logNormCounts(sce_list[[obj]], log=TRUE)
       #sce_list[[obj]] = normalize(sce_list[[obj]], return_log = FALSE)

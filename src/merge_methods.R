@@ -390,6 +390,19 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_layers,
 						 'FALSE')
 	}
+	if (method == 'scVIprojectionSO') {
+    	scVI_command = paste(glue('{conda_dir}/envs/scvitools/bin/./python {git_dir}/src/run_scVI_projection.py'),
+                         out,
+                         n_epochs,
+                         lr,
+                         use_cuda,
+                         n_hidden,
+                         n_latent,
+                         n_layers,
+						 'FALSE',
+						 args[7],
+						 args[8])
+	}
     # run scVI     
 	print(scVI_command) 
     system(scVI_command)

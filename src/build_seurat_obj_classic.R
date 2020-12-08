@@ -173,7 +173,7 @@ if (set == 'early'){
   print("Running downsample")
   seurat__standard <- make_seurat_obj(m_downsample, split.by = covariate)
 } else if (set == 'universe'){
-  seurat__standard <- make_seurat_obj(m, split.by = covariate, lengthCor = TRUE)
+  seurat__standard <- make_seurat_obj(m, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE)
 } else if (set %in% c('cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods' )){
   seurat__standard <- make_seurat_obj(m_subset, split.by = covariate, keep_well = FALSE)
 } else if (set == 'raw') {

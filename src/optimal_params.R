@@ -1,5 +1,6 @@
 library(tidyverse)
 
+args = commandArgs(trailingOnly=TRUE)
 #library(cowplot)
 #library(splancs)
 # load annotations
@@ -145,7 +146,8 @@ x10 = '.*n_features10000.*count.*scVI'
 
 # process ari / silhouette / etc data 
 perf_all <- list()
-for (x in c('.*TabulaDroplet.*', '.*onlyWELL.*', '.*universe.*')){
+types <- str_split(list.files('perf_metrics', pattern = '*Rdata', full.names=TRUE), pattern = '__') %>% map(., 5) %>% unlist() %>% unique()
+for (x in types){
   print(x)
   # load all clustering params -----
   files <- list.files('perf_metrics',
@@ -154,7 +156,7 @@ for (x in c('.*TabulaDroplet.*', '.*onlyWELL.*', '.*universe.*')){
   for (i in files){
 	print(i)
     load(i)
-	if (x == '.*onlyWELL.*') {
+	if (!x %in% c('universe', 'TabulaDroplet', 'HSdroplet', 'MMdroplet')) {
 	table_score <- rbind(c('LISI', scores$LISI_batch %>% pull(1) %>% mean(), 'Batch'),
 								c('LISI', scores$LISI_cluster %>% pull(1) %>% mean(), 'Cluster'),
 								c('Silhouette', scores$silhouette_batch, 'Batch'),
@@ -178,14 +180,16 @@ for (x in c('.*TabulaDroplet.*', '.*onlyWELL.*', '.*universe.*')){
 	nf = str_extract(i, 'n_features\\d+') %>% gsub('n_features', '', .) %>% as.numeric()
     dims = str_extract(i, 'dims\\d+') %>% gsub('dims', '', .) %>% as.numeric()
     method = str_extract(i, 'batch__[^\\W_]+') %>% gsub('batch__','',.)
-    knn = str_extract(i, 'knn\\d+') %>% gsub('knn', '', .) %>% as.numeric()
+    knn = str_extract(i, 'knn\\d+\\.\\d+|knn\\d+') %>% gsub('knn', '', .) %>% as.numeric()
+	table_score$clusterN = max(as.numeric(scores$cluster_count$Cluster))
+	table_score$clusterMedian = median(as.numeric(scores$cluster_count$Count))
 	table_score$dims = dims
     table_score$nf = nf
 	table_score$knn <- knn
 	table_score$method <- method	
 	table_score$normalization <- norm
-	table_score$subset <- x
-	table_score$set <- str_extract(i, 'TabulaDroplet|universe|onlyDROPLET|onlyWELL')
+	table_score$set <- x
+	#table_score$set <- str_extract(i, 'TabulaDroplet|universe|onlyDROPLET|onlyWELL')
 	perf_all[[i]] <- table_score
   }
   #perf_all <- perf_all %>% bind_rows()
@@ -201,14 +205,14 @@ for (i in files){
     nf = str_extract(i, 'n_features\\d+') %>% gsub('n_features', '', .) %>% as.numeric()
     dims = str_extract(i, 'dims\\d+') %>% gsub('dims', '', .) %>% as.numeric()
     method = str_extract(i, 'batch__[^\\W_]+') %>% gsub('batch__','',.)
-    knn = str_extract(i, 'knn\\d+') %>% gsub('knn', '', .) %>% as.numeric()
+    knn = str_extract(i, 'knn\\d+\\.\\d+|knn\\d+') %>% gsub('knn', '', .) %>% as.numeric()	
 	table_score <- read_csv(i, col_names = FALSE)
 	table_score$dims = dims
     table_score$nf = nf
     table_score$knn <- knn
     table_score$method <- method
     table_score$normalization <- norm
-	table_score$set <- str_extract(i, 'TabulaDroplet|universe|onlyDROPLET|onlyWELL')
+	table_score$set <- str_split(i, '__')[[1]][5]
 	colnames(table_score)[1:2] <- c('Score', 'Value')
 	data[[i]] <- table_score
 }
@@ -222,4 +226,4 @@ perf_two <- data %>% bind_rows() %>%
 			mutate(Score = toupper(Score))
 
 perf <- bind_rows(perf_one %>% filter(Score != 'ARI'), perf_two)
-save(perf, file = 'metrics_2020_07_24.Rdata')
+save(perf, file = args[1]) 

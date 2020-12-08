@@ -12,7 +12,6 @@ load(args[3]) # load('seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__
 method = args[4]
 org = gsub('_', ' ', args[5])
 out <- args[6]
-
 integrated_obj@meta.data$cluster <- meta[,2] %>% pull() %>% as.factor()
 colnames(meta)[c(2,3)] <- c('cluster','subcluster')
 umap <- umap %>% select(-cluster, -subcluster) %>% left_join(meta, by = 'Barcode')
@@ -72,7 +71,7 @@ cut_down_objs <- function(org = 'all'){
 	
 }	
 
-run_sling <- function(seurat, group, reduction = 'scVI', ncell = 50000){
+run_sling <- function(seurat, group, reduction = 'scVI', ncell = 50000, start = NULL){
 	sce <- as.SingleCellExperiment(seurat)
 	sce$group <- group
 	colLabels(sce) <- sce$group
@@ -80,7 +79,8 @@ run_sling <- function(seurat, group, reduction = 'scVI', ncell = 50000){
 		grep_against <- 'bloop'
 	} else {grep_against <- '^RPC'
 	}
-	start <- colLabels(sce) %>% 
+	if (is.null(start)){
+		start <- colLabels(sce) %>% 
 				table() %>% 
 				enframe() %>% 
 				arrange(-value) %>% 
@@ -88,11 +88,13 @@ run_sling <- function(seurat, group, reduction = 'scVI', ncell = 50000){
 				filter(grepl('RPC', name)) %>%
 				head(1) %>%
 				pull(name)
+	} else {start <- grep(paste0('^', start), unique(colLabels(sce)), value = TRUE)
+    }
 	print(start)
 	 ends <-  colLabels(sce) %>% 
 					unique() %>% 
 					enframe() %>% 
-					filter(!grepl('RPC|Prec|Neuro', value)) %>% 
+					filter(!grepl('RPC|Prec|Neuro', value) | grepl('Retinal Ganglio', value)) %>% 
 					pull(value)
 	print(ends)
 	set.seed(90645)
@@ -128,7 +130,7 @@ if (method == 'CCA'){
   reduction <- 'pca'
 } else if (method == 'liger'){
   reduction <- 'iNMF'
-} else if (method == 'scVI'){
+} else if (grepl('scVI', method)){
    reduction <- 'scVI'
 } else {
   print("GUESSING!")
@@ -138,6 +140,11 @@ if (method == 'CCA'){
 rm(integrated_obj)
 
 obj_cut <- cut_down_objs(org)
-sling <- run_sling(obj_cut$seurat, obj_cut$umap$seurat_cluster_CT, reduction, ncell = nrow(obj_cut$umap))
+if (length(args) == 7) {
+	start_clus <- args[7]
+	sling <- run_sling(obj_cut$seurat, obj_cut$umap$seurat_cluster_CT, reduction, ncell = nrow(obj_cut$umap), start = start_clus)
+} else {
+	sling <- run_sling(obj_cut$seurat, obj_cut$umap$seurat_cluster_CT, reduction, ncell = nrow(obj_cut$umap))
+}
 umap_cut <- obj_cut$umap
 save(umap, umap_cut, sling, file = out)

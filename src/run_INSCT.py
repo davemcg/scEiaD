@@ -17,7 +17,7 @@ sc.tl.pca(adata)
 if 'onlyWE' in args[1]:
 	k = 10
 else:
-	k = 100
+	k = 50 
 
 # semi-supervised
 adata_tnn = adata.copy()
