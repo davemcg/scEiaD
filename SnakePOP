@@ -267,13 +267,14 @@ report: "report.rst"
 # 	nfeatures = '|'.join([str(x) for x in [2000,5000]]),
 # 	dims = '|'.join([str(x) for x in dims]),
 # 	model = '|'.join(model)	
-
+#TabulaDropletLabelledq
 if config['subset_clustering'] == 'False':
 	# partitions_to_run = ['universe', 'TabulaDroplet', 'onlyWELL']
 	# scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
 	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
-	partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
-	scIB_partitions_to_run =  [ 'TabulaDroplet',"Homo_sapiens", "Mus_musculus"] 
+	#partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
+	partitions_to_run = [ 'TabulaDropletLabelled', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
+	scIB_partitions_to_run =  [ 'TabulaDropletLabelled',"Homo_sapiens", "Mus_musculus"] 
 else:
 	partitions_to_run = ['celltype_subset']
 	scIB_partitions_to_run = ['celltype_subset']
@@ -360,7 +361,8 @@ rule make_seurat_objs:
 	input:
 		cell_info = 'pipeline_data/cell_info/all_cell_info.tsv',
 		all_species_quant_file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
-		labelled_cell_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata'
+		labelled_cell_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
+		mitogene_list = 'references/mito_genes/hs-homo_sapiens_mitogenes.txt' # created by SnakeQUANT
 	output:
 		seurat = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx)
 	params:
@@ -686,7 +688,7 @@ rule centrality_merge:
 	input:
 		parse_integration_config(file = config['integration_json'],
 		output_string = make_wc_string(cntr_traj_pfx, cntr_traj_param, cntr_traj_sfx), 
-		which_partitions = ['TabulaDroplet']
+		which_partitions = ['TabulaDropletLabelled']
 		)
 	output:
 		'trajectory_metrics/merged.Rdata'
