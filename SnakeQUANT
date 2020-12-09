@@ -184,15 +184,6 @@ dims = [4,6,8,10,20,25,30,50,75,100,200]
 knn = [0.2,0,4,0.6, 5, 7, 10, 15]
 model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 report: "report.rst"
-wildcard_constraints:
-	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
-	method = '|'.join(method),
-	transform = '|'.join(transform),
-	covariate = '|'.join(covariate),
-	organism = '|'.join(organism),
-	nfeatures = '|'.join([str(x) for x in [2000,5000]]),
-	dims = '|'.join([str(x) for x in dims]),
-	model = '|'.join(model)	
 
 if config['subset_clustering'] == 'False':
 	# partitions_to_run = ['universe', 'TabulaDroplet', 'onlyWELL']
