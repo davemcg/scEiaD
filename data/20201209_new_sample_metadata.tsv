@@ -1,0 +1,179 @@
+sample_accession	run_accession	library_layout	organism	Platform	UMI	study_accession	Tissue	Covariate	Age	integration_group	TissueNote
+SRX4106042	SRR7189318	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE07	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4106043	SRR7189319	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE07	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4106044	SRR7189320	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE08	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4106045	SRR7189321	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE08	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4106046	SRR7189322	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE08	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4106047	SRR7189323	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE08	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4106048	SRR7189324	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE08	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4106049	SRR7189325	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE09	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4106050	SRR7189326	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE09	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4106051	SRR7189327	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE09	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4106052	SRR7189328	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE10	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4106053	SRR7189329	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE10	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4106054	SRR7189330	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE10	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4106055	SRR7189331	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE10	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4106056	SRR7189332	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE10	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4106057	SRR7189333	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE11	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4106058	SRR7189334	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE11	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4106059	SRR7189335	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE11	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4106060	SRR7189336	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE11	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4106061	SRR7189337	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE11	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4106062	SRR7189338	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE12	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4106063	SRR7189339	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE12	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4106064	SRR7189340	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE12	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4106065	SRR7189341	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE12	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4106066	SRR7189342	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE13	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4106067	SRR7189343	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE13	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4106068	SRR7189344	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE13	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4106069	SRR7189345	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE14	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4106070	SRR7189346	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE14	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4106071	SRR7189347	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE14	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4106072	SRR7189348	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE14	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4106073	SRR7189349	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE14	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4106074	SRR7189350	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE15	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4106075	SRR7189351	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE15	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4106076	SRR7189352	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE15	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4106077	SRR7189353	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE15	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4106078	SRR7189354	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE15	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4018013	SRR7089019	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE04	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4018015	SRR7089021	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE05	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4018017	SRR7089023	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE05	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4018019	SRR7089025	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE05	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4018021	SRR7089027	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE06	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4018022	SRR7089028	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE06	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4018023	SRR7089029	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE06	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4018025	SRR7089031	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE07	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4018026	SRR7089032	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE07	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4018028	SRR7089034	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE13	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4018029	SRR7089035	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE13	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4018031	SRR7089037	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE16	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4018032	SRR7089038	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE16	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4018033	SRR7089039	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE16	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4018034	SRR7089040	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE16	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4018036	SRR7089042	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE17	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4018037	SRR7089043	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE17	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4018038	SRR7089044	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE17	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4018039	SRR7089045	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE17	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4150434	SRR7245608	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE01	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4150435	SRR7245609	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE01	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4150436	SRR7245610	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE01	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4150437	SRR7245611	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE01	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4150438	SRR7245612	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE01	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4150439	SRR7245613	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE03	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4150440	SRR7245614	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE03	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4150441	SRR7245615	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE03	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4150442	SRR7245616	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE03	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4150443	SRR7245617	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE03	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4150444	SRR7245618	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE04	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4150445	SRR7245619	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE04	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Nasal
+SRX4150446	SRR7245620	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE04	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4150447	SRR7245621	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE09	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4150448	SRR7245622	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE09	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4150449	SRR7245623	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE12	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4018012	SRR7089018	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE04	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4018014	SRR7089020	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE05	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4018016	SRR7089022	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE05	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Pigment epithelium
+SRX4018018	SRR7089024	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE05	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Temporal
+SRX4018020	SRR7089026	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE06	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4018024	SRR7089030	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE06	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4018027	SRR7089033	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE07	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Ventral
+SRX4018030	SRR7089036	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE16	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4018035	SRR7089041	PAIRED	Macaca fascicularis	STRT-seq	YES	SRP144200	Retina	CE17	NA	12/09/2020	Retina tissue cells;Retina tissue cells;Dorsal
+SRX4321487	SRR7450978	SINGLE	Mus musculus	10x??	YES	SRP151599	Retina	SRP151599	post natal week 10	12/09/2020	mixed sample (non-demultiplexed);Retina (spanning 11 cell types)
+SRX5975001	SRR9203789	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	16 weeks	12/09/2020	adult dissociated WT retina
+SRX5975003	SRR9203791	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	12 weeks	12/09/2020	adult dissociated WT retina
+SRX5975005	SRR9203793	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	11 weeks	12/09/2020	adult dissociated WT retina
+SRX5975007	SRR9203795	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	11 weeks	12/09/2020	adult dissociated WT retina
+SRX6621276	SRR9867760	PAIRED	Mus musculus	10xv2	YES	SRP216903	RPE	SRP216903	3 month-old	12/09/2020	RPE/choroid single cells;RPE/choroid single cells
+SRX6621277	SRR9867761	PAIRED	Mus musculus	10xv2	YES	SRP216903	RPE	SRP216903	3 month-old	12/09/2020	RPE/choroid single cells;RPE/choroid single cells
+SRX6621278	SRR9867762	SINGLE	Mus musculus	10xv2	YES	SRP216903	Retina	SRP216903	1 month-old	12/09/2020	Neural retina endothelial cells;Neural retina endothelial cells
+SRX6621278	SRR9867763	SINGLE	Mus musculus	10xv2	YES	SRP216903	Retina	SRP216903	1 month-old	12/09/2020	Neural retina endothelial cells;Neural retina endothelial cells
+SRX6621278	SRR9867764	SINGLE	Mus musculus	10xv2	YES	SRP216903	Retina	SRP216903	1 month-old	12/09/2020	Neural retina endothelial cells;Neural retina endothelial cells
+SRX6621279	SRR9867765	SINGLE	Mus musculus	10xv2	YES	SRP216903	Retina	SRP216903	1 month-old	12/09/2020	Neural retina endothelial cells;Neural retina endothelial cells
+SRX6621279	SRR9867766	SINGLE	Mus musculus	10xv2	YES	SRP216903	Retina	SRP216903	1 month-old	12/09/2020	Neural retina endothelial cells;Neural retina endothelial cells
+SRX6621279	SRR9867767	SINGLE	Mus musculus	10xv2	YES	SRP216903	Retina	SRP216903	1 month-old	12/09/2020	Neural retina endothelial cells;Neural retina endothelial cells
+SRX6621280	SRR9867768	PAIRED	Mus musculus	10xv2	YES	SRP216903	Retina	SRP216903	1 month-old	12/09/2020	Neural retina endothelial cells;Neural retina endothelial cells
+SRX6621280	SRR9867769	PAIRED	Mus musculus	10xv2	YES	SRP216903	Retina	SRP216903	1 month-old	12/09/2020	Neural retina endothelial cells;Neural retina endothelial cells
+SRX6621280	SRR9867770	PAIRED	Mus musculus	10xv2	YES	SRP216903	Retina	SRP216903	1 month-old	12/09/2020	Neural retina endothelial cells;Neural retina endothelial cells
+SRX6621290	SRR9867800	PAIRED	Mus musculus	10xv2	YES	SRP216903	RPE	SRP216903	6 month-old	12/09/2020	RPE/choroid tissue;RPE/choroid tissue
+SRX6621291	SRR9867801	PAIRED	Mus musculus	10xv2	YES	SRP216903	RPE	SRP216903	6 month-old	12/09/2020	RPE/choroid tissue;RPE/choroid tissue
+SRX6621292	SRR9867802	PAIRED	Mus musculus	10xv2	YES	SRP216903	RPE	SRP216903	6 month-old	12/09/2020	RPE/choroid tissue;RPE/choroid tissue
+SRX6657700	SRR9906743	PAIRED	Mus musculus	10xv2	YES	SRP217505	Retina	Replicate 1	NA	12/09/2020	Retina
+SRX6657701	SRR9906744	PAIRED	Mus musculus	10xv2	YES	SRP217505	Retina	Replicate 2	NA	12/09/2020	Retina
+SRX6657704	SRR9906747	PAIRED	Mus musculus	10xv2	YES	SRP217505	Retina	Replicate 1	NA	12/09/2020	Retina
+SRX6657705	SRR9906748	PAIRED	Mus musculus	10xv2	YES	SRP217505	Retina	Replicate 2	NA	12/09/2020	Retina
+SRX6801451	SRR10067868	SINGLE	Mus musculus	SCRB-seq	YES	SRP220355	Retina	SRP220355	1 month	12/09/2020	Wildtype_1month
+SRX6801452	SRR10067869	SINGLE	Mus musculus	SCRB-seq	YES	SRP220355	Retina	SRP220355	3 month	12/09/2020	Wildtype_3month
+SRX6801453	SRR10067870	SINGLE	Mus musculus	SCRB-seq	YES	SRP220355	Retina	SRP220355	6 month	12/09/2020	Wildtype_6month
+SRX7423411	SRR10748519	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748520	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748521	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748522	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748523	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748524	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748525	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748526	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748527	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748528	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748529	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748530	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748531	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748532	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748533	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423411	SRR10748534	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748551	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748552	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748553	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748554	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748555	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748556	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748557	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748558	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748559	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748560	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748561	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748562	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748563	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748564	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748565	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7423413	SRR10748566	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	NA	12/09/2020	Retina
+SRX7556710	SRR10887776	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	NA	12/09/2020	stem cell derived retinal organoid
+SRX7556711	SRR10887777	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	NA	12/09/2020	stem cell derived retinal organoid
+SRX7556712	SRR10887778	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	NA	12/09/2020	stem cell derived retinal organoid
+SRX7556713	SRR10887779	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	NA	12/09/2020	stem cell derived retinal organoid
+SRX7556720	SRR10887786	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	NA	12/09/2020	stem cell derived retinal organoid
+SRX7556721	SRR10887787	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	NA	12/09/2020	stem cell derived retinal organoid
+SRX7556722	SRR10887788	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	NA	12/09/2020	stem cell derived retinal organoid
+SRX8149876	SRR11582194	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	NA	12/09/2020	Retina_het
+SRX9537751	SRR13091936	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	NA	12/09/2020	Retina
+SRX8241383	SRR11680518	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	NA	12/09/2020	P19 Mouse retina
+SRX8241384	SRR11680519	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	NA	12/09/2020	P19 Mouse retina
+SRX8241385	SRR11680520	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	NA	12/09/2020	P19 Mouse retina
+SRX8241386	SRR11680521	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	NA	12/09/2020	P19 Mouse retina
+SRX8241387	SRR11680522	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	NA	12/09/2020	P19 Mouse retina
+SRX8241388	SRR11680523	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	NA	12/09/2020	P19 Mouse retina
+SRX8241389	SRR11680524	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	NA	12/09/2020	P19 Mouse retina
+SRX8241390	SRR11680525	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	NA	12/09/2020	P19 Mouse retina
+SRX8241391	SRR11680526	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	NA	12/09/2020	P19 Mouse retina
+SRX8241392	SRR11680527	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	NA	12/09/2020	P19 Mouse retina
+SRX8651871	SRR12130643	PAIRED	Mus musculus	10x2	YES	SRP269634	Retina	nuclei suspension	3 month	12/09/2020	Retina
+SRX8651871	SRR12130644	PAIRED	Mus musculus	10x2	YES	SRP269634	Retina	nuclei suspension	3 month	12/09/2020	Retina
+SRX8651871	SRR12130645	PAIRED	Mus musculus	10x2	YES	SRP269634	Retina	nuclei suspension	3 month	12/09/2020	Retina
+SRX8651871	SRR12130646	PAIRED	Mus musculus	10x2	YES	SRP269634	Retina	nuclei suspension	3 month	12/09/2020	Retina
+SRX8651872	SRR12130647	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina
+SRX8651872	SRR12130648	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina
+SRX8651872	SRR12130649	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina
+SRX8651872	SRR12130650	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina
+SRX8651873	SRR12130651	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina
+SRX8651873	SRR12130652	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina
+SRX8651873	SRR12130653	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina
+SRX8651873	SRR12130654	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina
+SRX8651874	SRR12130655	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	methanol fixation	1 month	12/09/2020	Retina
+SRX8651874	SRR12130656	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	methanol fixation	1 month	12/09/2020	Retina
+SRX8651874	SRR12130657	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	methanol fixation	1 month	12/09/2020	Retina
+SRX8651874	SRR12130658	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	methanol fixation	1 month	12/09/2020	Retina
+SRX8651875	SRR12130659	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina
+SRX8651875	SRR12130660	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina
+SRX8651876	SRR12130661	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina
+SRX8651876	SRR12130662	PAIRED	Mus musculus	10xv2	YES	SRP269635	Retina	fresh tissue	1 month	12/09/2020	Retina

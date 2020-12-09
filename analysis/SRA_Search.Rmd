@@ -37,4 +37,64 @@ new_studies <- filter(res_by_study_with_date, !study_accession %in% curr_studies
 
 write_csv(new_studies, 'new_potential_Studies.csv')
 ```
+ 
+what is Tamoxifen?
+
+SRP238409 - only Donor 4 and 5 deposited? look like the damaged one\
+
+
+```{r}
+keep_samples <- read_csv('new_potential_Studies_selected.csv') 
+
+# use grepl to ignore NAs
+metadata_keep_samples <-  filter(metadata, `SRA Study` %in% keep_samples$study_accession, 
+       !grepl('mut|Mutant|KO|knockout|treated|-/-|Lung|Liver|Heart|GLI1\\+', source_name), 
+       !grepl('Light damage|NMDA treatment', Condition), 
+       !grepl('Danio rerio', Organism), 
+       !grepl('Ihhi', `genotype/variation`),
+       !grepl('Donor 5', Donor),
+       !grepl('L75Pfs|/\\+|Nrl-L-EGFP', Genotype),
+       !grepl('Retinal ganglion cell deficiency', PHENOTYPE)
+       ) %>% 
+  rename(study_accession =  `SRA Study`, 
+         )
+kcols <- apply(metadata_keep_samples, 2, function(x) all(is.na(x)))
+metadata_keep_samples <- metadata_keep_samples[,!kcols]
+cols <- c('preparation', 'Donor', 'Individual', 'Replicate')
+cov_df <-  lapply(cols, function(x) select(metadata_keep_samples, Run, Covariate = !!x ) %>% 
+                    filter(!is.na(Covariate))) %>% bind_rows
+sum(duplicated(cov_df$Run))
+new_sample_metadata <-  left_join(metadata_keep_samples, cov_df) %>% 
+  select(sample_accession = Experiment, 
+         run_accession = Run, 
+         library_layout = LibraryLayout,
+         organism=Organism, 
+         study_accession,
+         msg_tissue=Tissue, 
+         Covariate,
+         Age=AGE,
+         Cell_type,
+         source_name,
+         position
+         ) %>% arrange(study_accession) %>% 
+  mutate(Tissue = case_when(
+    grepl('retina', msg_tissue, ignore.case = T) ~ 'Retina',
+    grepl('retina', Cell_type)~ 'Retina',
+    grepl('RPE', Cell_type) ~ 'RPE',
+    grepl('retina',source_name, ignore.case = T) ~ 'Retina'
+    
+  )) %>% unite('TissueNote', Cell_type:position, sep = ';') %>% 
+  mutate(TissueNote = str_remove_all(TissueNote,'^NA;|;NA;|;NA$'), 
+         UMI='YES', 
+         integration_group = '12/09/2020', 
+         Covariate = replace(Covariate, is.na(Covariate), study_accession[is.na(Covariate) ])) %>% 
+  inner_join(keep_samples %>% select(study_accession,Platform)) %>% 
+  select(all_of(colnames(curr_sampletable)))
+
+colnames(metadata_keep_samples)
+write_tsv(new_sample_metadata, '../data/20201209_new_sample_metadata.tsv')
+```
+
+
+
 
