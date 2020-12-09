@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # to run snakemake as batch job
- module load snakemake || exit 1
+ module load snakemake/5.4.4 || exit 1
 
 # activate conda
 rm -rf 00log/
