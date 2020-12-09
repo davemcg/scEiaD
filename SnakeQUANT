@@ -244,6 +244,8 @@ rule download_annotation:
 		'''
 		#wget -O {output.macaque_faca_anno} ftp://ftp.ensembl.org/pub/release-98/gtf/macaca_fascicularis/Macaca_fascicularis.Macaca_fascicularis_5.0.98.gtf.gz
 
+
+
 rule get_velocity_files:
 	input: 
 		gtf = 'references/gtf/{reference}_anno.gtf.gz', 
@@ -259,6 +261,22 @@ rule get_velocity_files:
 		Rscript {git_dir}/src/get_velocity_annotation.R {input.gtf} {wildcards.reference} {wildcards.tech} {params.out_dir} {git_dir}
 		'''
 
+rule make_mitochondiral_gene_lists:
+	input:
+		mouse_anno = 'references/gtf/mm-mus_musculus_anno.gtf.gz',
+		macaque_mul_anno = 'references/gtf/mf-macaca_mulatta_anno.gtf.gz',
+		human_anno = 'references/gtf/hs-homo_sapiens_anno.gtf.gz',
+		anno_conv = 'references/ensembl_biomart_human2mouse_macaque.tsv',
+		maca_tr2g = 'references/velocity/10xv2/mf-macaca_mulatta/tr2g.tsv'
+	output:
+		mouse_mito = 'references/mito_genes/mm-mus_musculus_mitogenes.txt',
+		macaque_mito = 'references/mito_genes/mf-macaca_mulatta_mitogenes.txt',
+		human_mito = 'references/mito_genes/hs-homo_sapiens_mitogenes.txt'
+	shell:
+		'''
+		module load R/4.0.3
+		Rscript src/make_mito_genelists.R {input} {output}
+		'''
 
 # need to make mouse, human, macaque
 rule kallisto_index:
@@ -405,22 +423,21 @@ rule bustools_whitelist_correct_count:
 rule create_sparse_matrix:
 	input:
 		spliced = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, 'spliced.mtx', SRS_dict),
-		unspliced = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, 'unspliced.mtx',SRS_dict)
-
+		unspliced = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, 'unspliced.mtx',SRS_dict),
+		mito_genelist = 'references/mito_genes/{reference}_mitogenes.txt'
 	output:
 		stats= 'pipeline_data/clean_quant/{srp}/{reference}/stats.tsv',
 		spliced_matrix = 'pipeline_data/clean_quant/{srp}/{reference}/matrix.Rdata',
 		unspliced_matrix = 'pipeline_data/clean_quant/{srp}/{reference}/unspliced_matrix.Rdata'
 	params:
 		matrix_outdir = lambda wildcards: f'pipeline_data/clean_quant/{wildcards.srp}/{wildcards.reference}/',
-		bus_outdirs = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, '', SRS_dict),
-		gtf = lambda wildcards: f'references/gtf/{wildcards.reference}_anno.gtf.gz'
+		bus_outdirs = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, '', SRS_dict)
 	#group: "bus"	
 	shell:
 		"""
 		module load R/3.6
 		
-        Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {params.gtf} {params.bus_outdirs}
+        Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {input.mito_genelist} {params.bus_outdirs}
 
 		"""		
 # spit out both intron and exon counts 
@@ -471,7 +488,8 @@ rule merge_across_references:
 		'pipeline_data/cell_info/all_cell_info.tsv',
 		'references/ENSG2gene_name.tsv.gz',
 		expand('pipeline_data/clean_quant/{species}/full_sparse_matrix.Rdata',species= ['Homo_sapiens', 'Mus_musculus']),
-		expand('pipeline_data/clean_quant/{species}/full_sparse_unspliced_matrix.Rdata',species= ['Homo_sapiens', 'Mus_musculus'])
+		expand('pipeline_data/clean_quant/{species}/full_sparse_unspliced_matrix.Rdata',species= ['Homo_sapiens', 'Mus_musculus']),
+		'pipeline_data/clean_quant/droplet_quant_stats.tsv'
 	shell:
 		"""
 		module load R/3.6

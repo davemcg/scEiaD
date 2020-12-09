@@ -7,15 +7,15 @@ save(args, file = 'testing/nu_reumi_args.Rdata')
 #SRS = args[1]
 #REF = args[2]
 outdir <- args[1]
-gtf <-rtracklayer::readGFF(args[2])
+mito_genelist <-scan(args[2], what = character(), sep = '\n')
 srs_directories <- args[-(1:2)]
-####
+########################################################
 # base_dir = '/data/swamyvs/scEiaD/'
 # SRS = 'SRS6424747'
 # REF = 'hs-homo_sapiens'
 # matrix_file_dir <- '/data/OGVFB_BG/new_quant_sciad/quant/SRS6424747/10xv2/hs-homo_sapiens/genecount/'
 # stats_file <- args[4]
-####
+################################################
 
 
 spliced_matrix_file <- paste(outdir, 'matrix.Rdata', sep = '/')
@@ -56,7 +56,8 @@ calc_spl_ratio <- function(x, cells){
   
 }
 
-remove_empty_droplets <- function(x, srs){
+remove_empty_droplets <- function(x, srs, mito_genelist){
+
   tot_count_spliced <- colSums(x$spliced)
   tot_count_unspliced <- colSums(x$unspliced)
   
@@ -129,9 +130,7 @@ remove_empty_droplets <- function(x, srs){
   seu <- CreateSeuratObject(spliced)
   cells_above_min_umi <-  seu$nFeature_RNA > 200
   cells_below_max_umi <- seu$nFeature_RNA < 3000 
-  
-  mito_genes <- gtf %>% filter(type == 'gene', grepl('^MT-', gene_name)) %>% pull(gene_id) %>% paste0('.')
-  seu[["percent.mt"]] <- PercentageFeatureSet(seu, features = mito_genes)
+  seu[["percent.mt"]] <- PercentageFeatureSet(seu, features = mito_genelist)
   cells_below_max_mito_pt <-  seu$percent.mt < 10
   keep_cells <- cells_below_max_mito_pt & cells_above_min_umi & cells_below_max_umi
   df <- df %>% mutate(ncells_pre_qc = ncol(spliced), 
@@ -152,7 +151,8 @@ srs_names <- str_extract(srs_directories, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
 names(study_counts_list) <- srs_names
 
 filtered_counts <- lapply(seq_along(study_counts_list), function(i) remove_empty_droplets(study_counts_list[[i]], 
-                                                                                         names(study_counts_list)[i]) )
+                                                                                         names(study_counts_list)[i],
+                                                                                         mito_genelist))
 
 
 spliced <- lapply(filtered_counts, function(x) x[['spliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
