@@ -42,7 +42,7 @@ elif rule in custom_config_rules:
         elif job_properties['wildcards']['method'] == 'ldvae':
             params['partition']='gpu'
             params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
-            params['time'] = '24:00:00'
+            params['time'] = '48:00:00'
             params['mem'] = '200G'
         elif job_properties['wildcards']['method'] == 'CCA':
             params['partition']='largemem'
