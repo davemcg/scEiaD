@@ -174,8 +174,14 @@ all_intron_data = RowMergeSparseMatrices(intron_homo_hs_matrix, intron_mus_mm_ma
   RowMergeSparseMatrices(all_intron_macaque_data)
 save(all_intron_data, file ='pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata')
 
-stats_files <- list.files('pipeline_data/clean_quant/', pattern = 'stats.tsv', recursive= T, full.names=T)
-all_stats <- lapply(stats_files, read_tsv) %>% bind_rows
+stats_files <- list.files('pipeline_data/clean_quant', pattern = 'stats.tsv', recursive= T, full.names=T) %>% 
+  .[!grepl('droplet_quant_stats.tsv', .)]
+studies = str_split(stats_files, '/') %>% sapply(function(x)x[3])
+all_stats <- lapply(seq_along(stats_files), function(i) read_tsv(stats_files[i]) %>%  
+                      mutate(study_accession = studies[i]) %>% 
+                      select(study_accession, everything())) %>% bind_rows 
+  
+
 write_tsv(all_stats, 'pipeline_data/clean_quant/droplet_quant_stats.tsv')
 
 
