@@ -1,7 +1,7 @@
 # build seurat obj with the "classic" findvariablegenes -> normalize -> scaledata processing
 # output use for integration with various algorithms
 # scanorama, CCT, harmony, liger
-args <- c('/data/swamyvs/scEiaD/rson_tmp/qjecvlvb.json', '/data/swamyvs/scEiaD/config.yaml')
+args <- c('testing/test.yaml', '/data/swamyvs/scEiaD/config.yaml')
 args <- commandArgs(trailingOnly = TRUE)
 #Sys.setenv(SCIAD_CONFIG = '/data/swamyvs/scEiaD/config.yaml')
 
@@ -43,11 +43,8 @@ cell_info <- cell_info %>%
                            TRUE ~ batch)) %>% 
   mutate(batch = gsub(' ', '_', batch))
 
-gtf <- rtracklayer::readGFF('references/gtf/hs-homo_sapiens_anno.gtf.gz')
-mito_geneids <- gtf %>% 
-  filter(grepl('^MT-', ignore.case = T, gene_name)) %>% 
-  pull(gene_id) %>% unique %>% str_remove_all('\\.\\d+$')
-
+mito_geneids = scan(rule$input$mitogene_list, character(), sep= '\n') %>% 
+  str_remove_all('\\.\\d+\\.$')
 load_rdata <- function(x){
   load(x)
   env <- ls.str()
@@ -59,91 +56,80 @@ load_rdata <- function(x){
 m <- load_rdata(rule$input$all_species_quant_file)
 
 print('Splitting time')
-# custom combos / sets
-m_early <- m[,cell_info %>% filter(Age < 10) %>% pull(value)]
-m_late <- m[,cell_info %>% filter(Age >= 10) %>% pull(value)]
-m_test <- m[,sample(1:ncol(m), 10000)]
-
-
-precursors <- c('AC/HC_Precurs', 'Early RPCs', 'Late RPCs', 'Neurogenic Cells', 'Photoreceptor Precursors', 'RPCs')
-# load(config$mso_umap_file)
-# if (set == 'cones') {
-# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Cones', precursors)) %>% pull(Barcode)]
-# }
-# if (set == 'bipolar') {
-# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Bipolar Cells', precursors)) %>% pull(Barcode)]
-# }
-# if (set == 'rods') {
-# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Rods', precursors)) %>% pull(Barcode)]
-# }
-# if (set == 'mullerglia') {
-# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Muller Glia', precursors)) %>% pull(Barcode)]
-# }
-# if (set == 'amacrine') {
-# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Amacrine Cells', precursors)) %>% pull(Barcode)]
-# }
-# if (set == 'rgc') {
-# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Retinal Ganglion Cells', precursors)) %>% pull(Barcode)]
-# }
-# if (set == 'hc') {
-# 	m_subset = m[, umap %>% filter(CellType_predict %in% c('Horizontal Cells', precursors)) %>% pull(Barcode)]
-# }
-
-
-m_onlyDROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
-
-m_TABULA_DROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
-m_onlyWELL <- m[,cell_info %>% filter(!Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
-
-downsample_samples <- 
-  cell_info %>% 
-  group_by(batch) %>% 
-  sample_n(2000, replace = TRUE) %>% 
-  unique() %>% 
-  pull(value)
-m_downsample <- m[,downsample_samples]
+# # custom combos / sets
 
 source(glue('{git_dir}/src/make_seurat_obj_functions.R') )
 
 if (set == 'early'){
   print("Running Early")
-  m <- m_early
-  seurat__standard <- make_seurat_obj(m_early, split.by = covariate)
+  m_early <- m[,cell_info %>% filter(Age < 10) %>% pull(value)]
+  seurat__standard <- make_seurat_obj(m_early,cell_info, split.by = covariate)
 } else if (set == 'late'){
   print("Running Late")
-  m <- m_late
-  seurat__standard <- make_seurat_obj(m_late, split.by = covariate)
+  m_late <- m[,cell_info %>% filter(Age >= 10) %>% pull(value)]
+  seurat__standard <- make_seurat_obj(m_late,cell_info, split.by = covariate)
 } else if (set == 'full'){
   print("Running Full")
-  seurat__standard <- make_seurat_obj(m, split.by = covariate)
+  seurat__standard <- make_seurat_obj(m,cell_info, split.by = covariate)
 } else if (set == 'onlyDROPLET'){
   print("Running onlyDROPLET (remove well based)")
-  m <- m_onlyDROPLET
-  seurat__standard <- make_seurat_obj(m_onlyDROPLET, split.by = covariate, keep_well = FALSE)
+  m_onlyDROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
+  seurat__standard <- make_seurat_obj(m_onlyDROPLET,cell_info, split.by = covariate, keep_well = FALSE)
 }  else if (set == 'TabulaDroplet'){
   print("Running onlyDROPLET with Tabula Muris (no well)")
-  m <- m_TABULA_DROPLET
-  mito_geneids <- mito_geneids[mito_geneids%in% rownames(m_TABULA_DROPLET)]
-  seurat__standard <- make_seurat_obj(m_TABULA_DROPLET, split.by = covariate, keep_well = FALSE,mito_geneids=mito_geneids)
-} else if (set == 'onlyWELL' & transform == 'counts'){
+  m_TABULA_DROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
+  seurat__standard <- make_seurat_obj(m_TABULA_DROPLET,cell_info, split.by = covariate, keep_well = FALSE,mito_geneids=mito_geneids)
+} else if (set == 'TabulaDropletLabelled'){
+  print("Running onlyDROPLET labelled samples only with Tabula Muris (no well)")
+  cells <- load_rdata('testing/TabulaDropletLabelled_barcodes.Rdata') %>% 
+    .[.%in% colnames(m)]
+  m <- m[,cells]
+  seurat__standard <- make_seurat_obj(m,cell_info, split.by = covariate, keep_well = FALSE,mito_geneids=mito_geneids)
+}else if (set == 'onlyWELL' & transform == 'counts'){
   print("Running onlyWELL with quminorm (remove droplet based)") 
-  m <- m_onlyWELL
-  mito_geneids <- mito_geneids[mito_geneids%in% rownames(m_onlyWELL)]
-  seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE, qumi = TRUE,mito_geneids=mito_geneids)
+  m_onlyWELL <- m[,cell_info %>% filter(!Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
+  seurat__standard <- make_seurat_obj(m_onlyWELL,cell_info, split.by = covariate, keep_droplet = FALSE, qumi = TRUE,mito_geneids=mito_geneids)
 } else if (set == 'onlyWELL') {
   print("Running onlyWELL (remove droplet based)") 
-  m <- m_onlyWELL
-  mito_geneids <- mito_geneids[mito_geneids%in% rownames(m_onlyWELL)]
-  seurat__standard <- make_seurat_obj(m_onlyWELL, split.by = covariate, keep_droplet = FALSE, mito_geneids=mito_geneids)
+  m_onlyWELL <- m[,cell_info %>% filter(!Platform %in% c('DropSeq', '10xv2', '10xv3'), study_accession != 'SRP131661') %>% pull(value)]
+  seurat__standard <- make_seurat_obj(m_onlyWELL,cell_info, split.by = covariate, keep_droplet = FALSE, mito_geneids=mito_geneids)
 } else if (set == 'downsample'){
   print("Running downsample")
-  m <- m_downsample
-  seurat__standard <- make_seurat_obj(m_downsample, split.by = covariate)
+  downsample_samples <- 
+    cell_info %>% 
+    group_by(batch) %>% 
+    sample_n(2000, replace = TRUE) %>% 
+    unique() %>% 
+    pull(value)
+  m_downsample <- m[,downsample_samples]
+  seurat__standard <- make_seurat_obj(m_downsample,cell_info, split.by = covariate)
 } else if (set == 'universe'){
-  seurat__standard <- make_seurat_obj(m, split.by = covariate, qumi = TRUE)
+  seurat__standard <- make_seurat_obj(m, cell_info, split.by = covariate, qumi = TRUE)
 } else if (set %in% c('cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods' )){
-  m <- m_subset
-  seurat__standard <- make_seurat_obj(m_subset, split.by = covariate, keep_well = FALSE)
+  # no circular dependencies!
+  precursors <- c('AC/HC_Precurs', 'Early RPCs', 'Late RPCs', 'Neurogenic Cells', 'Photoreceptor Precursors', 'RPCs')
+  if (set == 'cones') {
+  	m_subset = m[, cell_info %>% filter(CellType %in% c('Cones', precursors)) %>% pull(value)]
+  }
+  if (set == 'bipolar') {
+  	m_subset = m[, cell_info %>% filter(CellType %in% c('Bipolar Cells', precursors)) %>% pull(value)]
+  }
+  if (set == 'rods') {
+  	m_subset = m[, cell_info %>% filter(CellType %in% c('Rods', precursors)) %>% pull(value)]
+  }
+  if (set == 'mullerglia') {
+  	m_subset = m[, cell_info %>% filter(CellType %in% c('Muller Glia', precursors)) %>% pull(value)]
+  }
+  if (set == 'amacrine') {
+  	m_subset = m[, cell_info %>% filter(CellType %in% c('Amacrine Cells', precursors)) %>% pull(value)]
+  }
+  if (set == 'rgc') {
+  	m_subset = m[, cell_info %>% filter(CellType %in% c('Retinal Ganglion Cells', precursors)) %>% pull(value)]
+  }
+  if (set == 'hc') {
+  	m_subset = m[, cell_info %>% filter(CellType %in% c('Horizontal Cells', precursors)) %>% pull(value)]
+  }
+  seurat__standard <- make_seurat_obj(m_subset, cell_info,split.by = covariate, keep_well = FALSE)
 } else if (set == 'raw') {
   seurat__standard <- m
 } else if(set %in% c('Homo_sapiens', 'Mus_musculus')){ ##hacky way to loading in species specific data
@@ -151,17 +137,15 @@ if (set == 'early'){
   ## need to keep squaring off the data to keep uniformity for seurat
   
   if (set == 'Mus_musculus'){
-    gtf <- rtracklayer::readGFF('references/gtf/mm-mus_musculus_anno.gtf.gz')
-    mito_geneids <- gtf %>% 
-      filter(grepl('^MT-', ignore.case = T, gene_name)) %>% 
-      pull(gene_id) %>% unique %>% str_remove_all('\\.\\d+$')
+    mito_geneids=scan('references/mito_genes/mm-mus_musculus_mitogenes.txt', character(), sep = '\n') %>% 
+      str_remove_all('\\.\\d+\\.$')
     
   }
   
   species <- set 
   m_file <- str_replace_all(rule$input$all_species_quant_file, 'all_species_', glue('{species}/'))
   spec_m = load_rdata(m_file)
-  seurat__standard =  make_seurat_obj(spec_m, split.by = covariate, keep_well = FALSE, mito_geneids=mito_geneids)
+  seurat__standard =  make_seurat_obj(spec_m,cell_info, split.by = covariate, keep_well = FALSE, mito_geneids=mito_geneids)
 } 
 
 

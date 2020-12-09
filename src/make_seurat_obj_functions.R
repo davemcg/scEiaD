@@ -2,12 +2,14 @@ library(glue)
 library(yaml)
 
 make_seurat_obj <- function(m,
+                            cell_info,
                             split.by = 'study_accession',
                             nfeatures = n_features,
                             keep_well = TRUE,
                             keep_droplet = TRUE,
-                            qumi = FALSE, 
-                            mito_geneids){
+                            qumi = FALSE,
+                            mito_geneids
+                            ){
   well_m <- m[,cell_info %>% filter(value %in% colnames(m), !Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   if (keep_well){
@@ -27,12 +29,11 @@ make_seurat_obj <- function(m,
       print('QUMINORM!!')
       seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
       #qumi_counts <- quminorm(seurat_well@assays$RNA@counts)
-  	  load('pipeline_data/cell_info/cell_info_labelled.Rdata')
       source(glue('{git_dir}/src/extract_gene_length.R'))
     	geneL_mm <- gene_length( 'references/gtf/mm-mus_musculus_anno.gtf.gz')
     	geneL_hs <-  gene_length('references/gtf/hs-homo_sapiens_anno.gtf.gz')
-    	well_hs <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Homo sapiens') %>% pull(value)
-      well_mm <- cell_info_labels %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Mus musculus') %>% pull(value)
+    	well_hs <- cell_info %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Homo sapiens') %>% pull(value)
+      well_mm <- cell_info %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Mus musculus') %>% pull(value)
     	mat <- seurat_well@assays$RNA@counts
     	hs_mat <- mat[, well_hs[well_hs %in% colnames(mat)]]
     	mm_mat <-  mat[, well_mm[well_mm %in% colnames(mat)]]
@@ -44,9 +45,6 @@ make_seurat_obj <- function(m,
   	  seurat_well <- CreateSeuratObject(mat_cor)
       seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
       print('QUMI DONE!')
-  }
-  if (keep_droplet){
-    seurat_droplet <- subset(seurat_droplet, subset = nFeature_RNA > 200 & nFeature_RNA < 3000 )
   }
   # cells to keep
   if (!keep_well & keep_droplet){
@@ -65,9 +63,8 @@ make_seurat_obj <- function(m,
 
 
   seurat_m <- CreateSeuratObject(m_filter)
-  seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, features = mito_geneids)
-  seurat_m <- subset(seurat_m, subset = percent.mt < 10)
-
+  mito_geneids_present <- mito_geneids[mito_geneids%in% rownames(seurat_m)]
+  seurat_m[["percent.mt"]] <- PercentageFeatureSet(seurat_m, features = mito_geneids_present)
   seurat_m@meta.data$batch <- left_join(seurat_m@meta.data %>%
                                           row.names() %>% enframe(),
                                         cell_info, by = 'value') %>%
