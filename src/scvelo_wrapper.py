@@ -2,10 +2,24 @@ import scvelo as scv
 import scanpy as sc
 import pandas as pd
 def run_velocity(adata,embedding_key, dkey, vrank_gb):
+    #adata.write_h5ad('testing/tabulaDroplet_scvel0.h5ad')
     adata.layers['spliced'] = adata.X.copy()
     scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=1000)
     ekey=f'X_{embedding_key}'
-    scv.pp.moments(adata, use_rep=ekey, n_pcs=30, n_neighbors=30)
+    try:
+        scv.pp.moments(adata, use_rep=ekey, n_neighbors=30)
+    except:
+        print('saving neighbor graph')
+        scv.pp.neighbors(
+            adata=adata,
+            n_neighbors=30,
+            use_rep=embedding_key,
+            use_highly_variable=True,
+            n_pcs=None,
+            method='umap'
+        )
+        adata.write_h5ad('testing/tabulaDroplet_scvel0_neighbors.h5ad')
+    
     scv.tl.velocity(adata)
     scv.tl.velocity_graph(adata)
     scv.tl.velocity_pseudotime(adata)
