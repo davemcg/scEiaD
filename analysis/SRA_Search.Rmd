@@ -1,10 +1,11 @@
 ---
-title: "Download New Sampls"
+title: "Download New Samples"
 output: html_notebook
 ---
 
 Date searched: 12/07/2020
 - Search GEO DataSet for "(((single[Description]) AND cell[Description]) AND ((retina[Description]) OR RPE[Description])) AND (((Homo sapiens[Organism]) OR Mus Musculus[Organism]) OR Macaca[Organism])"
+  - search GEO and not SRA because theres no publication data filter on SRA
 "
 - set publication date to within 1 yr
 - Find related data > SRA 
@@ -39,8 +40,9 @@ write_csv(new_studies, 'new_potential_Studies.csv')
 ```
  
 what is Tamoxifen?
+ - induces the CRE transgene
 
-SRP238409 - only Donor 4 and 5 deposited? look like the damaged one\
+SRP238409 - only Donor 4 and 5 deposited? look like the damaged ones
 
 
 ```{r}
