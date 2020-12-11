@@ -95,6 +95,11 @@ new_sample_metadata <-  left_join(metadata_keep_samples, cov_df) %>%
 
 colnames(metadata_keep_samples)
 write_tsv(new_sample_metadata, '../data/20201209_new_sample_metadata.tsv')
+
+most_curr_sample_table <- read_tsv('https://raw.githubusercontent.com/davemcg/scEiaD/velocity/data/sample_run_layout_organism_tech_20201030.tsv')
+
+full_sample_table <- bind_rows(most_curr_sample_table,new_sample_metadata %>% mutate(Age=1000000))
+write_tsv(full_sample_table, '../data/sample_run_layout_organism_tech_20201210.tsv')
 ```
 
 

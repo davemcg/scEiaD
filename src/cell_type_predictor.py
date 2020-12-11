@@ -13,19 +13,20 @@ import pickle
 warnings.filterwarnings("ignore")
 
 class SklDataObj:
-    def __init__(self, X_data, feature_cols,  lab2id,name=None, sampling_method = None, k=None):
+    def __init__(self, X_data, feature_cols, lab2id, label_id_col, label_name_col, name=None, sampling_method=None, k=None):
         self.label2id = lab2id
         if sampling_method is None:
-            Y_arr = X_data['cell_type_id'].to_numpy()
+            Y_arr = X_data[label_id_col].to_numpy()
             X_train, X_test, Y_train, Y_test =train_test_split(X_data,Y_arr,
                                                              test_size=.25, random_state=42,stratify=Y_arr)
 
         elif sampling_method == 'downsample': 
-            X_data_ds, removed_data = self.down_sampler(X_data, k)
+            X_data_ds, removed_data = self.down_sampler(
+                X_data, k, label_name_col=label_name_col)
             X_arr = X_data_ds.filter(feature_cols).to_numpy()# first test on scvi only 
-            Y_arr = X_data_ds['cell_type_id'].to_numpy()
+            Y_arr = X_data_ds[label_id_col].to_numpy()
             remove_x_arr = removed_data.filter(feature_cols).to_numpy()
-            remove_y_arr = removed_data['cell_type_id'].to_numpy()
+            remove_y_arr = removed_data[label_id_col].to_numpy()
             X_train, X_tmp, Y_train, Y_tmp =train_test_split(X_arr,Y_arr,
                                                              test_size=.25, random_state=42,stratify=Y_arr)
             X_test = np.concatenate([X_tmp, remove_x_arr])
@@ -40,12 +41,12 @@ class SklDataObj:
         self.Y_test=Y_test
         self.name=name
         self.model = None
-    def down_sampler(self, df,k):
+    def down_sampler(self, df,k, label_name_col):
         # down sample all celltypes that have total count above k
         cell_counts = df.CellType.value_counts()
         cells_to_ds = list(cell_counts[ cell_counts > k ].index)
-        downsampled_data = df[df['CellType'].isin(cells_to_ds)].groupby('CellType').apply(pd.DataFrame.sample, n=k)
-        clean_data_downsampled = pd.concat( [df[~df['CellType'].isin(cells_to_ds)], downsampled_data]) 
+        downsampled_data = df[df[label_name_col].isin(cells_to_ds)].groupby(label_name_col).apply(pd.DataFrame.sample, n=k)
+        clean_data_downsampled = pd.concat( [df[~df[label_name_col].isin(cells_to_ds)], downsampled_data]) 
         removed_samples = df[~df.Barcode.isin(clean_data_downsampled['Barcode'])]
         return clean_data_downsampled, removed_samples
     
@@ -57,7 +58,8 @@ class SklDataObj:
         diff = end - start
         print(f'\nTraining Time: {int(diff/60)} min {diff%60} seconds\n')
         self.model_name = model_name
-    def test(self, test_ext_data=False, X=None, test_threshold = None, Y=None):
+
+    def test(self, label_id_col, test_ext_data=False, X=None, test_threshold=None, Y=None):
         if test_ext_data:
             self.X_test = X
             self.Y_test = Y
@@ -83,11 +85,11 @@ class SklDataObj:
         num_celltype = self.label2id.shape[0]
         ids = [str(i) for i in range(num_celltype)]
         class_df = pd.DataFrame([ cr[i] for i in ids  ])
-        class_df['cell_type_id'] = pd.Series(ids).astype('int64')
-        class_df = class_df.merge(self.label2id, on = 'cell_type_id')
+        class_df[label_id_col] = pd.Series(ids).astype('int64')
+        class_df = class_df.merge(self.label2id, on = label_id_col)
         self.class_rep_df = class_df.sort_values(by= 'f1-score')
         print(class_df.sort_values(by= 'f1-score').to_string() )
-    def predict(X):
+    def predict(self, X):
         start = time.time()
         pred_probs = self.model.predict_proba(X)
         preds = np.asarray([np.argmax(i) for i in pred_probs] )
@@ -123,6 +125,8 @@ parser.add_argument('--inputMatrix', action = 'store', default=None, help = 'inp
 parser.add_argument('--featureCols', action = 'store', default = None, help = 'Optional file with newline seperated feature names to train on')
 parser.add_argument('--trainedModelFile', action = 'store', default = 'cell_type_predictor.xgb', help = 'file to save or load trained model')
 parser.add_argument('--generateProb', action = 'store', default = None, help = 'prefix for file to output generate probabilities for training and test data (for plotting)')
+parser.add_argument('--labelIdCol', action='store', default='cell_type_id',help = 'column of inputMatrix that contains numeric ID associated with label')
+parser.add_argument('--labelNameCol', action = 'store', default = 'CellType', help= 'column of inputMatrix that contains Character label for each obs')
 parser.add_argument('--predProbThresh', action = 'store', type = float, default = None, help = 'minimum threshold for sample to consider belonging to a class. Default: .5')
 parser.add_argument('--predictions', action = 'store', default='predictions.tsv', help = 'output .tsv file to save predictions')
 args = parser.parse_args()
@@ -136,25 +140,28 @@ non_feature_cols = ['cluster', 'batch', 'cluster', 'subcluster', 'sample_accessi
 bad_cell_types = ["RPE/Margin/Periocular Mesenchyme/Lens Epithelial Cells", "Droplet", "Droplets", 'Doublet', 'Doublets', 'Mast']
 
 
-def prob2df(pred_probs, barcodes, cell_type2id, true_class=None):
+def prob2df(pred_probs, barcodes, cell_type2id, label_id_col, label_name_col, true_class=None):
     preds_class = np.asarray([np.argmax(i) for i in pred_probs] )
-    pred_probs_df = pd.DataFrame(pred_probs, columns = list(cell_type2id['CellType']))
+    pred_probs_df = pd.DataFrame(pred_probs, columns = list(cell_type2id[label_name_col]))
     pred_probs_df['Barcode'] = barcodes
-    pred_probs_df['cell_type_id'] = preds_class
+    pred_probs_df[label_id_col] = preds_class
     if true_class is not None:
-        pred_probs_df['true_cell_id'] = true_class
+        pred_probs_df['true_label_id'] = true_class
     full_pred_df = pred_probs_df.merge(cell_type2id)
     return full_pred_df
 
+
 def train(args, non_feature_cols, bad_cell_types):
+    label_id_col = args.labelIdCol
+    label_name_col = args.labelNameCol
     all_data = pd.read_csv(args.inputMatrix, sep = '\t')
     is_bad_celltype = (all_data.CellType.isin(bad_cell_types)) |(all_data.CellType.isnull())
     print(f'Removing {sum(is_bad_celltype)} cells with missing or excluded cell types\n')
     cell_types =  list(all_data[~is_bad_celltype].CellType.value_counts().index)
-    cell_type2id =pd.DataFrame({ 'CellType': cell_types , 'cell_type_id': list(range(len(cell_types))) } )
+    cell_type2id =pd.DataFrame({ label_name_col: cell_types , label_id_col: list(range(len(cell_types))) } )
     clean_labeled_data = encode_age(all_data[~is_bad_celltype])
-    clean_labeled_data = clean_labeled_data.merge(cell_type2id, on = 'CellType', how = 'left')
-    id_cols = ['Barcode', 'CellType', 'cell_type_id']
+    clean_labeled_data = clean_labeled_data.merge(cell_type2id, on = label_name_col, how = 'left')
+    id_cols = ['Barcode', label_name_col, label_id_col]
 
     if args.featureCols is not None:
         with open(args.featureCols) as infile:
@@ -163,35 +170,41 @@ def train(args, non_feature_cols, bad_cell_types):
         feature_cols = list(clean_labeled_data.drop(columns = non_feature_cols + id_cols).columns)
     print('Training on Following Features:')
     print(feature_cols)
-    data_obj = SklDataObj(clean_labeled_data, feature_cols, cell_type2id)
+    data_obj = SklDataObj(clean_labeled_data, feature_cols, cell_type2id,
+                          label_id_col=label_id_col, label_name_col=label_name_col)
     xgbc_gpu = XGBClassifier(tree_method = 'gpu_hist', gpu_id = 0)
     data_obj.train(xgbc_gpu)
-    data_obj.test()
+    data_obj.test(label_id_col=label_id_col)
     if args.predProbThresh is not None:
         print(f'\n\n\n\nRe-testing with minimum class probability  > {str(args.predProbThresh)}')
-        data_obj.test(test_threshold = args.predProbThresh)
+        data_obj.test(label_id_col=label_id_col,test_threshold = args.predProbThresh)
     trained_model = data_obj.model
     with open(args.trainedModelFile, 'wb+') as modelfile:
         pickle.dump((trained_model, feature_cols, cell_type2id ),modelfile )
     if args.generateProb != None:
         ## generate probabilities for training and test data 
         test_probs = data_obj.model.predict_proba(data_obj.X_test)
-        test_pred_df =  prob2df(test_probs, data_obj.test_bc, cell_type2id,data_obj.Y_test )
+        test_pred_df = prob2df(test_probs, data_obj.test_bc, cell_type2id,
+                               data_obj.Y_test, label_id_col=label_id_col, label_name_col=label_name_col)
         test_pred_df.to_csv(args.generateProb + 'test_data_probabilities.csv.gz', index = False)
         #### generate training data probabilities with k fold CV 
         predictor =  XGBClassifier(tree_method = 'gpu_hist', gpu_id = 0)
         training_probs = cross_val_predict(predictor, data_obj.X_train, data_obj.Y_train, method = 'predict_proba')
-        training_probs_df = prob2df(training_probs, data_obj.train_bc, cell_type2id, data_obj.Y_train)
+        training_probs_df = prob2df(training_probs, data_obj.train_bc,
+                                    cell_type2id, data_obj.Y_train, label_id_col=label_id_col, label_name_col=label_name_col)
         training_probs_df.to_csv(args.generateProb + 'training_data_probabilities.csv.gz', index = False)
 
+
 def predict(args, non_feature_cols, bad_cell_types):
+    label_id_col = args.labelIdCol
+    label_name_col = args.labelNameCol
     print('\nLoading Data...\n')
     with open(args.trainedModelFile, 'rb') as modelfile:
         model_info= pickle.load(modelfile )
         trained_model = model_info[0]
         feature_cols = model_info[1]
         cell_type2id = model_info[2]
-        cell_type2id = cell_type2id.sort_values('cell_type_id')
+        cell_type2id = cell_type2id.sort_values(label_id_col)
         all_data = pd.read_csv(args.inputMatrix, sep = '\t').pipe(encode_age)
     barcodes = all_data.loc[:,'Barcode']
     if args.featureCols is not None:
@@ -202,11 +215,12 @@ def predict(args, non_feature_cols, bad_cell_types):
     pred_probs = trained_model.predict_proba(X)
     if args.predProbThresh is None:
         args.predProbThresh = .5
-    full_pred_df =  prob2df(pred_probs, barcodes, cell_type2id)
-    max_prob_below_threshold = full_pred_df[list(cell_type2id['CellType']) ].max(axis = 1)  < args.predProbThresh
+    full_pred_df = prob2df(pred_probs, barcodes,
+                           cell_type2id, label_id_col=label_id_col, label_name_col=label_name_col)
+    max_prob_below_threshold = full_pred_df[list(cell_type2id[label_name_col]) ].max(axis = 1)  < args.predProbThresh
     print(f'{sum(max_prob_below_threshold)} samples Failed to meet classification threshold of {args.predProbThresh}')
-    full_pred_df.loc[max_prob_below_threshold, 'cell_type_id']=-1
-    full_pred_df.loc[max_prob_below_threshold, 'CellType']='None'
+    full_pred_df.loc[max_prob_below_threshold, label_id_col]=-1
+    full_pred_df.loc[max_prob_below_threshold, label_name_col]='None'
     full_pred_df.to_csv(args.predictions, sep = '\t', index = False)
 
 if args.mode == 'train':
