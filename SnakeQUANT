@@ -272,7 +272,7 @@ rule make_mitochondiral_gene_lists:
 	shell:
 		'''
 		module load R/4.0.3
-		Rscript src/make_mito_genelists.R {input} {output}
+		Rscript {git_dir}/src/make_mito_genelists.R {input} {output}
 		'''
 
 # need to make mouse, human, macaque
