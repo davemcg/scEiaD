@@ -21,7 +21,7 @@ srs_directories <- args[-(1:2)]
 spliced_matrix_file <- paste(outdir, 'matrix.Rdata', sep = '/')
 unspliced_matrix_file = paste(outdir, 'unspliced_matrix.Rdata', sep = '/')
 stats_file <- paste(outdir, 'stats.tsv', sep = '/')
-
+pct_mt_file = paste(outdir, 'pct_mt.tsv', sep='/')
 library(Seurat)
 library(BUSpaRse)
 library(tidyverse)
@@ -89,6 +89,7 @@ remove_empty_droplets <- function(x, srs, mito_genelist){
     bc_spliced_pass <- colnames(x$spliced)[tot_count_spliced > metadata(bc_spliced)$inflection]
     bc_unspliced_pass <- bc_spliced_pass
     df <- tibble(
+      sample=srs,
       ncell_pf_spliced = ncol(x$spliced),
       ncell_pf_unspliced = ncol(x$unspliced),
       pref_common  = length(prefilter_common),
@@ -108,6 +109,7 @@ remove_empty_droplets <- function(x, srs, mito_genelist){
     common <- intersect(bc_spliced_pass, bc_unspliced_pass)
     bc_union <- union(bc_spliced_pass, bc_unspliced_pass) %>% intersect(prefilter_common)
     df <- tibble(
+      sample=srs,
       ncell_pf_spliced = ncol(x$spliced),
       ncell_pf_unspliced = ncol(x$unspliced),
       pref_common  = length(prefilter_common),
@@ -131,6 +133,7 @@ remove_empty_droplets <- function(x, srs, mito_genelist){
   cells_above_min_umi <-  seu$nFeature_RNA > 200
   cells_below_max_umi <- seu$nFeature_RNA < 3000 
   seu[["percent.mt"]] <- PercentageFeatureSet(seu, features = mito_genelist)
+  pct_mt_df = tibble(srs=srs,barcode = colnames(seu), `percent.mt` = seu$percent.mt)
   cells_below_max_mito_pt <-  seu$percent.mt < 10
   keep_cells <- cells_below_max_mito_pt & cells_above_min_umi & cells_below_max_umi
   df <- df %>% mutate(ncells_pre_qc = ncol(spliced), 
@@ -140,7 +143,8 @@ remove_empty_droplets <- function(x, srs, mito_genelist){
                       ncells_total_pass_qc = sum(keep_cells))
   return(list(spliced = spliced[,keep_cells],
               unspliced = unspliced[,keep_cells],
-              stats = df))
+              stats = df, 
+              pct_mt_df = pct_mt_df))
 
 }
 
@@ -158,9 +162,9 @@ filtered_counts <- lapply(seq_along(study_counts_list), function(i) remove_empty
 spliced <- lapply(filtered_counts, function(x) x[['spliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
 unspliced <- lapply(filtered_counts, function(x) x[['unspliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
 stats <-  lapply(filtered_counts, function(x) x[['stats']]) %>% bind_rows
-
+pct_mt = lapply(filtered_counts, function(x) x[['pct_mt_df']]) %>% bind_rows
 write_tsv(stats, path = stats_file)
-
+write_tsv(pct_mt, path = pct_mt_file)
 # save pared down counts
 save(spliced, file = spliced_matrix_file)
 save(unspliced, file = unspliced_matrix_file)

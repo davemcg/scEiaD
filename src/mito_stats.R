@@ -1,25 +1,17 @@
+args= commandArgs(trailingOnly = T)
 library(tidyverse)
+wd = args[1]
+drop_mt_pfx = args[2]
+quant_path =args[3]
+mito_gene_stem = args[4]
+outfile = args[5]
 
-files_drop <- list.files('quant/', pattern = '^matrix.seu*', recursive=TRUE, full.names=TRUE)
-files_well <- list.files('quant/', pattern = 'abundance_spliced.tsv.gz', recursive=TRUE, full.names=TRUE)
 
-drop_meta <- list()
-for (i in files_drop){
-	load(i)
-	drop_meta[[i]] <- seu@meta.data %>% as_tibble(rownames = 'Barcode')
-	drop_meta[[i]]$sample <- str_extract(i, 'SRS\\d+|ERS\\d+|E-MTAB\\d+|iPSC_RPE_scRNA_\\d+')
-}
-
-# grab mito genes
-gtf_HS <-rtracklayer::readGFF('references/gtf/hs-homo_sapiens_anno.gtf.gz')
-gtf_MM <-rtracklayer::readGFF('references/gtf/mm-mus_musculus_anno.gtf.gz')
-gtf_MF <-rtracklayer::readGFF('references/gtf/mf-macaca_mulatta_anno.gtf.gz')
-
-mito_genes_HS <- gtf_HS %>% filter(type == 'transcript', grepl('^MT-', transcript_name, ignore.case = TRUE)) %>% pull(transcript_id) %>% paste0('.')
-mito_genes_MM <- gtf_MM %>% filter(type == 'transcript', grepl('^MT-', transcript_name, ignore.case = TRUE)) %>% pull(transcript_id) %>% paste0('.')
-mito_genes_MF <-   gtf_MF %>% filter(type == 'transcript', seqid == 'MT', !is.na(transcript_name)) %>% pull(transcript_id)
-
-mito_genes <- c(mito_genes_HS, mito_genes_MM, mito_genes_MF)
+files_drop <- list.files('pipeline_data/', pattern = drop_mt_pfx, recursive=TRUE, full.names=TRUE)
+files_well <- list.files(quant_path, pattern = 'abundance_spliced.tsv.gz', recursive=TRUE, full.names=TRUE)
+mito_gene_files <- list.files('references/', pattern = mito_gene_stem, full.names = T, recursive = T)
+drop_mito <- lapply(files_drop, read_tsv) %>% bind_rows
+mito_genes <- lapply(mito_gene_files, function(x) scan(x, character(), sep= '\n')) %>%  reduce( c)
 
 
 
@@ -41,11 +33,9 @@ for (i in files_well){
 
 
 
-drop_mito <- drop_meta %>% bind_rows() %>% mutate(Barcode = glue::glue("{Barcode}_{sample}")) %>% select(Barcode, `percent.mt`)
-
 well_mito <- well_meta %>% bind_rows() %>% pivot_longer(everything()) %>% arrange(-value)
 colnames(well_mito) <- c('Barcode', 'percent.mt')
 
-mito <- bind_rows(well_mito, drop_mito)
+mito <- bind_rows(well_mito, drop_mito %>% select(Barcode = barcode,`percent.mt` ))
 
 write_tsv(mito, file = 'mito_counts.tsv')

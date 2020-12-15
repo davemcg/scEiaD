@@ -424,6 +424,7 @@ rule create_sparse_matrix:
 		mito_genelist = 'references/mito_genes/{reference}_mitogenes.txt'
 	output:
 		stats= 'pipeline_data/clean_quant/{srp}/{reference}/stats.tsv',
+		pct_mt = 'pipeline_data/clean_quant/{srp}/{reference}/pct_mt.tsv',
 		spliced_matrix = 'pipeline_data/clean_quant/{srp}/{reference}/matrix.Rdata',
 		unspliced_matrix = 'pipeline_data/clean_quant/{srp}/{reference}/unspliced_matrix.Rdata'
 	params:
@@ -476,16 +477,19 @@ rule combine_well_and_umi:
 
 rule mito_stats:
 	input:
-		human_hs_quant = well_and_droplet_stats('Homo_sapiens', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
-		mouse_mm_quant = well_and_droplet_stats('Mus_musculus', 'mm-mus_musculus', quant_path, SRS_dict, organism_welltech_dict),
-		monkey_mf_quant = well_and_droplet_stats('Macaca_fascicularis', 'mf-macaca_mulatta', quant_path, SRS_dict, organism_welltech_dict),
-		monkey_hs_quant = well_and_droplet_stats('Macaca_fascicularis', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
+		human_hs_quant = well_and_droplet_input('Homo_sapiens', 'hs-homo_sapiens',quant_path, srp_droplet_dict, organism_welltech_dict, 'pct_mt.tsv'),
+		mouse_mm_quant = well_and_droplet_input('Mus_musculus', 'mm-mus_musculus',quant_path, srp_droplet_dict, organism_welltech_dict, 'pct_mt.tsv'),
+		monkey_mf_quant = well_and_droplet_input('Macaca_fascicularis', 'mf-macaca_mulatta', quant_path, srp_droplet_dict, organism_welltech_dict, 'pct_mt.tsv'),
+		monkey_hs_quant = well_and_droplet_input('Macaca_fascicularis', 'hs-homo_sapiens', quant_path, srp_droplet_dict, organism_welltech_dict, 'pct_mt.tsv'),
 	output:
 		'mito_counts.tsv'
+	params:
+		drop_mt_pfx = 'pct_mt.tsv',
+		mito_gene_stem = '_mitogenes.txt'
 	shell:
 		"""
 		module load R/4.0
-		Rscript {git_dir}/src/mito_stats.R
+		Rscript {git_dir}/src/mito_stats.R {working_dir} {params.drop_mt_pfx} {quant_path} {params.mito_gene_stem} {output}
 		"""
 
 rule merge_across_references:
