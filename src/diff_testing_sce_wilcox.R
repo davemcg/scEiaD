@@ -10,12 +10,16 @@ load(args[1]) # seurat obj
 load(args[2]) # cluster
 load(args[3]) # cell type prediction
 int_sce <-  as.SingleCellExperiment(integrated_obj)
+int_sce <- int_sce[,umap$Barcode]
 
-umap <- umap %>% mutate(CellType = case_when(!CellType %in% c('Astrocytes', 'Fibroblasts', 'Red Blood Cells', 'RPE/Margin/Periocular Mesenchyme/Lens Epithelial Cells', 'Doublet', 'Doublets') ~ CellType))
+meta <- umap %>% select(Barcode) %>% left_join(meta)
+
+#umap <- umap %>% mutate(CellType = case_when(!CellType %in% c('Astrocytes', 'Fibroblasts', 'Red Blood Cells', 'RPE/Margin/Periocular Mesenchyme/Lens Epithelial Cells', 'Doublet', 'Doublets') ~ CellType))
 if (all(colnames(int_sce) == (meta$Barcode))) {
 	int_sce$cluster <- meta[,2] %>% pull(1)
-	int_sce$subcluster <- meta[,3] %>% pull(1)
-    int_sce$CellType <- umap$CellType  
+	#int_sce$subcluster <- meta[,3] %>% pull(1)
+    int_sce$CellType_predict <- umap$CellType_predict
+	int_sce$CellType <- umap$CellType  
 } else {
 	stop('Cluster Barcodes != SCE barcode order')
 }
@@ -44,7 +48,7 @@ if (args[4] == 'subcluster'){
 				block = sub_int_sce$batch, 
 				pval.type = 'some',
 				test="wilcox", 
-				min.prop = 0.8,
+				min.prop = 0.5,
 				BPPARAM=MulticoreParam(as.integer(args[5])))
 	}
 	markers_wilcox <- do.call(c, unlist(marker_list))
@@ -52,22 +56,27 @@ if (args[4] == 'subcluster'){
 				group = group, 
 				block = int_sce$batch, 
 				pval.type = 'some',
-				test="wilcox", 
-				min.prop = 0.8,
+				test="wilcox",
+				direction = 'up',
+				lfc = 1, 
+				min.prop = 0.2,
 				BPPARAM=MulticoreParam(as.integer(args[5])))
 }
 
 
 markers_summary <- list()
+markers_summary <- list()
 for (i in names(markers_wilcox)){
-  print(i)
-  temp <- markers_wilcox[[i]][,4:ncol(markers_wilcox[[i]])] %>% as.matrix()
-  count <-  apply(temp, 1, function(x) sum(x > 0.7))
-  med_auc <- apply(temp, 1, function(x) median(x))
-  mean_auc <- apply(temp, 1, function(x) mean(x))
-  gene <- row.names(temp)
-  cluster <- i
-  markers_summary[[i]] <- cbind(gene, count, med_auc, mean_auc, cluster) %>% as_tibble()
+    print(i)
+    temp <- markers_wilcox[[i]][,4:ncol(markers_wilcox[[i]])] %>% as.matrix()
+    count <-  apply(temp, 1, function(x) sum(x > 0.7, na.rm = TRUE))
+	pval = markers_wilcox[[i]][,1]
+	FDR = markers_wilcox[[i]][,2]
+    med_auc <- apply(temp, 1, function(x) median(x, na.rm = TRUE))
+    mean_auc <- apply(temp, 1, function(x) mean(x, na.rm = TRUE))
+    gene <- row.names(temp)
+    cluster <- i
+    markers_summary[[i]] <- cbind(gene, pval, FDR, count, med_auc, mean_auc, cluster) %>% as_tibble()
 }
 markers_summary <- markers_summary %>% bind_rows() %>% mutate(count = as.numeric(count), med_auc = as.numeric(med_auc), mean_auc = as.numeric(mean_auc))
 

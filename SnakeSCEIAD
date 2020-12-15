@@ -43,22 +43,20 @@ rule all:
 			dist = [0.1], \ 
 			knn = [0.6], \
 			neighbors = [500], \
-			organism = ['all','Homo_sapiens','Mus_musculus']), 
-		#expand('trajectory_slingshot/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.scEiaDprojected__mindist{dist}__nneighbors{neighbors}__knn{knn}__start{start_clus}__numcells{num_cells}.Rdata', \
-		#	combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
-		#	n_features = [10000], \
-		#	transform = ['counts'], \
-		#	partition = ['TabulaDroplet'], \
-		#	covariate = ['batch'], \
-		#	method = ['scVIprojectionSO'], \
-		#	dims = [10], \
-		#	dist = [0.1], \
-		#	neighbors = [15], \
-		#	knn = [10], \
-		#	start_clus = [14], \
-		#	num_cells = [250000]),
-		'site/scEiaD_droplet_seurat_v3.Rdata'
-		#'site/MOARTABLES__anthology_limmaFALSE___Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVIprojectionSO-8-0.1-15-7.sqlite.gz',
+			organism = ['Homo_sapiens','Mus_musculus']), 
+		expand('diff_wilcox/diff_testing/{combination}__{n_spec_genes}__{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__{knn}__{neighbors}__{dist}.sceWilcox.Rdata',
+			combination = ['Mus_musculus_Macaca_fascicularis_Homo_sapiens'], \
+			n_spec_genes = [0], \
+			n_features = [5000], \
+			transform = ['counts'], \
+			partition = ['universe'], \
+			covariate = ['batch'], \
+			method = ['scVIprojectionSO'], \
+			dims = [10], \
+			dist = [0.1], \ 
+			knn = [0.6], \
+			neighbors = [500]), 
+		'site/scEiaD_all_seurat_v3.Rdata'
 	
 # take winner params from SnakePOP
 # and rebuild model with training data
@@ -295,6 +293,29 @@ rule pseudoBulk_DGE_buildObj:
 		module load R/4.0
 		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_buildObj.R {input} {wildcards.pseudoTest} {output}		
 		"""
+rule diff_test_wilcox:
+	input:
+		'seurat_obj/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.scEiaDprojected.seuratV3.Rdata',
+		'cluster/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.scEiaDprojected__knn{knn}.cluster.Rdata',
+		'umap/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.scEiaDprojected__mindist{dist}__nneighbors{neighbors}.umapFilter.predictions.Rdata',
+	output:
+		'diff_testing/{combination}__{n_spec_genes}__{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__{knn}__{neighbors}__{dist}__{group}.sceWilcox.Rdata',
+		'diff_testing/{combination}__{n_spec_genes}__{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__{knn}__{neighbors}__{dist}__{group}.sceWilcox_summary.Rdata'
+	threads: 12
+	shell:
+		"""
+		module load R/3.6
+		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_sce_wilcox.R {input} {wildcards.group} {threads} {output}
+		"""
+rule diff_test_wilcox_merge:
+	input:
+		diff_wilcox = expand('diff_testing/{{combination}}__{{n_spec_genes}}__{{n_features}}__{{transform}}__{{partition}}__{{covariate}}__{{method}}__dims{{dims}}__{{knn}}__{{neighbors}}__{{dist}}__{group}.sceWilcox.Rdata', \
+					group = [ 'cluster','CellType_predict','CellType'])
+	output:
+		'diff_wilcox/diff_testing/{combination}__{n_spec_genes}__{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__{knn}__{neighbors}__{dist}.sceWilcox.Rdata'
+	shell:
+		"""
+		"""
 
 rule pseudoBulk_DGE_difftest:
 	input:
@@ -386,7 +407,7 @@ rule make_PLAE_objs:
 		cluster = 'cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features5000__counts__universe__batch__scVIprojectionSO__dims10__preFilter.scEiaDprojected__knn0.6.cluster.Rdata', 
 		seurat = 'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features5000__counts__universe__batch__scVIprojectionSO__dims10__preFilter.scEiaDprojected.seuratV3.Rdata'
 	output:
-		'site/scEiaD_droplet_seurat_v3.Rdata',
+		'site/scEiaD_all_seurat_v3.Rdata',
 		#'site/scEiaD_well_seurat_v3.Rdata',
 		'site/counts_unfiltered.Rdata',
 		'site/counts.Rdata',
@@ -404,13 +425,13 @@ rule make_PLAE_objs:
 			{input.cluster} \
 			{input.raw_obj} \
 			{input.sqlite}
-		Rscript ~/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad_core.R site/scEiaD_droplet_seurat_v3.Rdata scEiaD_droplet site/scEiaD_droplet_anndata.h5ad
+		Rscript ~/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad_core.R site/scEiaD_all_seurat_v3.Rdata scEiaD_droplet site/scEiaD_all_anndata.h5ad
 		#Rscript ~/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad_core.R site/scEiaD_well_seurat_v3.Rdata scEiaD_well site/scEiaD_well_anndata.h5ad
 
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features5000__counts__universe__batch__scVIprojectionSO__dims10__preFilter.scEiaDprojected__mindist0.1__nneighbors500__7__A1__edgeR_obj.Rdata site/pseudoBulk_celltype.tsv.gz
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features5000__counts__universe__batch__scVIprojectionSO__dims10__preFilter.scEiaDprojected__mindist0.1__nneighbors500__7__B1__edgeR_obj.Rdata site/pseudoBulk_celltypePredict.tsv.gz
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features5000__counts__universe__batch__scVIprojectionSO__dims10__preFilter.scEiaDprojected__mindist0.1__nneighbors500__7__C1__edgeR_obj.Rdata site/pseudoBulk_clusterDroplet.tsv.gz
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features5000__counts__universe__batch__scVIprojectionSO__dims10__preFilter.scEiaDprojected__mindist0.1__nneighbors500__7__Cw1__edgeR_obj.Rdata site/pseudoBulk_clusterWell.tsv.gz
+		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features5000__counts__universe__batch__scVIprojectionSO__dims10__preFilter.scEiaDprojected__mindist0.1__nneighbors500__0.6__A1__edgeR_obj.Rdata site/pseudoBulk_celltype.tsv.gz
+		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features5000__counts__universe__batch__scVIprojectionSO__dims10__preFilter.scEiaDprojected__mindist0.1__nneighbors500__0.6__B1__edgeR_obj.Rdata site/pseudoBulk_celltypePredict.tsv.gz
+		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features5000__counts__universe__batch__scVIprojectionSO__dims10__preFilter.scEiaDprojected__mindist0.1__nneighbors500__0.6__C1__edgeR_obj.Rdata site/pseudoBulk_clusterDroplet.tsv.gz
+		#Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R pseudoBulk_DGE/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features5000__counts__universe__batch__scVIprojectionSO__dims10__preFilter.scEiaDprojected__mindist0.1__nneighbors500__0.6__Cw1__edgeR_obj.Rdata site/pseudoBulk_clusterWell.tsv.gz
 
 		Rscript ~/git/massive_integrated_eye_scRNA/src/build_QC_stats.R {input.umapFilter} site/counts_unfiltered.Rdata
 		"""

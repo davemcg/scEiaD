@@ -1,4 +1,5 @@
 library(pool)
+
 library(tidyverse)
 library(Seurat)
 args = commandArgs(trailingOnly=TRUE)
@@ -38,13 +39,13 @@ integrated_obj <- AddMetaData(integrated_obj, meta[,2] %>% pull(1), col.name = '
 
 scEiaD_droplet <- integrated_obj
 
-save(scEiaD_droplet, file = 'site/scEiaD_droplet_seurat_v3.Rdata')
+save(scEiaD_droplet, file = 'site/scEiaD_all_seurat_v3.Rdata')
 
 #load(args[5])
-load('well_data_seurat_obj_labelled.Rdata')
-seurat_obj <- AddMetaData(seurat_obj, seurat_obj@meta.data$seurat_clusters, col.name=  'cluster')
-scEiaD_well <- seurat_obj
-save(scEiaD_well, file = 'site/scEiaD_well_seurat_v3.Rdata')
+#load('well_data_seurat_obj_labelled.Rdata')
+#seurat_obj <- AddMetaData(seurat_obj, seurat_obj@meta.data$seurat_clusters, col.name=  'cluster')
+#scEiaD_well <- seurat_obj
+#save(scEiaD_well, file = 'site/scEiaD_well_seurat_v3.Rdata')
 
 # rename raw data
 library(Matrix)
@@ -54,16 +55,10 @@ raw_counts <- seurat__standard
 save(raw_counts, file = 'site/counts_unfiltered.Rdata')
 
 # extract counts and cpm
-cpm_drop <- RelativeCounts(integrated_obj@assays$RNA@counts, scale.factor= 1e6)
-cpm_well <- RelativeCounts(seurat_obj@assays$RNA@counts, scale.factor= 1e6)
+cpm <- RelativeCounts(integrated_obj@assays$RNA@counts, scale.factor= 1e6)
 
-if (row.names(cpm_drop) == row.names(cpm_well)) {
-    cpm = cbind(cpm_drop, cpm_well)
-} else {
-    stop('Row names do not line up!')
-}
 
-counts = cbind(integrated_obj@assays$RNA@counts, seurat_obj@assays$RNA@counts)
+counts = integrated_obj@assays$RNA@counts
 save(cpm, file = 'site/cpm.Rdata')
 save(counts, file = 'site/counts.Rdata')
 

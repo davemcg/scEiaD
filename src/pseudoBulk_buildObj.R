@@ -40,10 +40,9 @@ umap <- umap %>%
 	#mutate(CellType_predict = gsub('Rod Bipolar Cells', 'Bipolar Cells', CellType_predict)) %>%
 	mutate(CTall = case_when(!is.na(CellType) ~ CellType, 
 							!is.na(TabulaMurisCellType) ~ TabulaMurisCellType)) %>%
-	mutate(CT_p_all = case_when(!is.na(CellType_predict) ~ CellType, 
+	mutate(CT_p_all = case_when(!is.na(CellType_predict) ~ CellType_predict, 
 							!is.na(TabulaMurisCellType_predict) ~ TabulaMurisCellType)) %>%
-	mutate(CTall = case_when(!grepl('Doub|Margin', CTall) ~ CTall)) %>%
-	mutate(CT_p_all = case_when(!grepl('Doub|Margin', CT_p_all) ~ CT_p_all)) 
+	mutate(CTall = case_when(!grepl('Doub|Margin', CTall) ~ CTall))
 if (grepl('A', comp)){
   ######################
   # celltype (pre-labelled/published) -------
