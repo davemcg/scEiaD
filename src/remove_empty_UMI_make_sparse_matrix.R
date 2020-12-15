@@ -80,6 +80,7 @@ cells_below_max_mito_pt <-  seu$percent.mt < 10
 fail_cells <- seu$percent.mt >= 10
 keep_cells <- cells_below_max_mito_pt
 ncell_pre <- ncol(res_matrix)
+res_matrix_full <- res_matrix
 res_matrix <- res_matrix[,keep_cells]
 
 stats <- data.frame('Gene_Number' = c(dim(raw_matrix)[1], dim(res_matrix)[1]), 
@@ -92,4 +93,5 @@ write_tsv(stats, path = stats_file)
 
 # save pared down counts
 #save(res_matrix, file = out_matrix_file)
+save(seu, file = gsub('Rdata','seurat.Rdata', out_matrix_file))
 message('finished successfully')
