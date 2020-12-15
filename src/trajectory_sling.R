@@ -53,7 +53,7 @@ cut_down_objs <- function(org = 'all'){
 	cl_quick <- quick_label_cluster(umap)
 	umapRetinaCluster <- umap %>% filter(cluster %in% cl_quick$cluster) %>% left_join(cl_quick, by = 'cluster')
 	if ('CellType_predict' %in% colnames(umap)){
-		umapRetinaCluster <- umap %>% filter(CellType_predict %in% c('AC/HC_Precurs','Amacrine Cells','Astrocytes','Bipolar Cells','Cones','Early RPCs','Horizontal Cells','Late RPCs','Muller Glia','Neurogenic Cells','Pericytes','Photoreceptor Precursors','Retinal Ganglion Cells','Rod Bipolar Cells','Rods','RPCs') | is.na(CellType_predict)) %>% left_join(cl_quick, by = 'cluster')
+		umapRetinaCluster <- umap %>% filter(CellType_predict %in% c('AC/HC_Precurs','Amacrine Cells','Astrocytes','Bipolar Cells','Cones','Early RPCs','Horizontal Cells','Late RPCs','Muller Glia','Neurogenic Cells','Photoreceptor Precursors','Retinal Ganglion Cells','Rod Bipolar Cells','Rods','RPCs') | is.na(CellType_predict)) %>% left_join(cl_quick, by = 'cluster')
 	}
 	if (org == 'all'){
 		print('Using all cells')
@@ -67,6 +67,7 @@ cut_down_objs <- function(org = 'all'){
                                 umapRetinaCluster[,2:3] %>% as.matrix(),
                                 key = "UMAP_",
                                 assay = DefaultAssay(sCT_CL))
+	
 	list(umap = umapRetinaCluster, seurat = sCT_CL)
 	
 }	
@@ -103,7 +104,7 @@ run_sling <- function(seurat, group, reduction = 'scVI', ncell = 50000, start = 
     sling  <- slingshot(sceL, 
 						clusterLabels=colLabels(sceL), 
 						reducedDim=toupper(reduction), 
-						approx = 200, 
+						approx = 200,  
 						start.clus = start,
 						end.clus = ends) 
 	toc()
