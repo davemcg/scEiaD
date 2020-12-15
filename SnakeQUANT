@@ -85,7 +85,13 @@ def well_and_droplet_input(organism, reference, quant_path, SRP_droplet_dict, ot
 				[f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
 	return(out)
 
-
+def well_and_droplet_stats(organism, reference, quant_path, SRS_dict, otd):
+	if organism == 'Macaca_fascicularis':
+		out = [f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/stats.tsv' for srs in organism_droplet_dict[organism]]
+	else:
+		out = [f'{quant_path}/quant/{organism}/{tech}/{reference}__counts.Rdata' for tech in otd[organism]] + \
+				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/stats.tsv' for srs in organism_droplet_dict[organism]]
+	return(out)
 
 
 def REF_idx(organism, ref, org2tech):
@@ -215,7 +221,8 @@ rule all:
 	input:
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
 		'pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata',
-		'pipeline_data/cell_info/all_cell_info.tsv'
+		'pipeline_data/cell_info/all_cell_info.tsv',
+		'mito_counts.tsv'
 	
 # get annotation for each species 
 rule download_annotation:
@@ -239,8 +246,7 @@ rule download_annotation:
 
 rule get_velocity_files:
 	input: 
-		gtf = 'references/gtf/{reference}_anno.gtf.gz', 
-		gffread = 'gffread/gffread'
+		gtf = 'references/gtf/{reference}_anno.gtf.gz'
 	output:
 		'references/velocity/{tech}/{reference}/cDNA_introns.fa',
 		'references/velocity/{tech}/{reference}/tr2g.tsv'
@@ -468,6 +474,19 @@ rule combine_well_and_umi:
 		Rscript {git_dir}/src/build_sparse_matrix.R {wildcards.organism} {output} {input.srr_metadata} {input.gtf} {input.spliced_counts}
 		"""
 
+rule mito_stats:
+	input:
+		human_hs_quant = well_and_droplet_stats('Homo_sapiens', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
+		mouse_mm_quant = well_and_droplet_stats('Mus_musculus', 'mm-mus_musculus', quant_path, SRS_dict, organism_welltech_dict),
+		monkey_mf_quant = well_and_droplet_stats('Macaca_fascicularis', 'mf-macaca_mulatta', quant_path, SRS_dict, organism_welltech_dict),
+		monkey_hs_quant = well_and_droplet_stats('Macaca_fascicularis', 'hs-homo_sapiens', quant_path, SRS_dict, organism_welltech_dict),
+	output:
+		'mito_counts.tsv'
+	shell:
+		"""
+		module load R/4.0
+		Rscript {git_dir}/src/mito_stats.R
+		"""
 
 rule merge_across_references:
 	input:

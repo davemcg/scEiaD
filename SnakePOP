@@ -82,155 +82,6 @@ def make_wc_string(pfx, wildcards, sfx, skip_db=None):
 		wc_str = wc + lbr + wc + rbr 
 		pfx+= wc_str
 	return pfx + sfx
-# builds dictionary of dictionaries where first dict key is SRS 
-# and second dict key are SRS properties
-def metadata_builder(file, SRS_dict = {}, discrepancy = False):
-	with open(file) as file:
-		for line in file:
-			if line[0] == '#':
-				continue
-			info = line.strip('\n').split('\t')
-			if info[0] == 'sample_accession':
-				continue
-			SRS = info[0]
-			if SRS not in SRS_dict:
-				SRS_dict[SRS]={'SRR': [info[1]],
-					    	  'paired':True if info[2]=='PAIRED' else False, 
-					          'organism':info[3].replace(' ', '_'),
-		            	      'tech':info[4],
-						      'UMI':True if info[5]=='YES' else False,
-							  'Study': info[6]}
-			else:
-				# this is mostly for SRA having the 'paired' status wrong
-				# don't want to hand-edit the main metadata file
-				# so I think better to create a new file with
-				# hand edited values for just the ones i want to change
-				if discrepancy:
-					runs = SRS_dict[SRS]['SRR']
-					SRS_dict[SRS] = {'SRR':runs,
-									 'paired':True if info[2]=='PAIRED' else False,
-									 'organism':info[3],
-									 'tech':info[4],
-									 'UMI':True if info[5]=='YES' else False,
-									 'Study': info[6]}
-				else:
-					runs = SRS_dict[SRS]['SRR']
-					runs.append(info[1])
-					SRS_dict[SRS]['SRR'] = runs
-	return(SRS_dict)
-def lookup_run_from_SRS(SRS, fqp):
-	SRR_files=SRS_dict[SRS]['SRR']
-	out = []
-	for SRR in SRR_files:
-		if SRS_dict[SRS]['paired']:
-			#PE
-			out.append(f'{fqp}/fastq/{SRR}_1.fastq.gz')
-			out.append(f'{fqp}/fastq/{SRR}_2.fastq.gz')
-		else:
-			#SE
-			out.append(f'{fqp}/fastq/{SRR}.fastq.gz')
-	return(out)
-
-
-def SRP_2_SRS(quant_path, SRP, reference, sfx, srs_dict):
-	out=[]
-	for sample in srs_dict.keys():
-		tech = srs_dict[sample]['tech']
-		if srs_dict[sample]['Study'] == SRP and tech in ['DropSeq', '10xv2', '10xv3']:
-			out.append(f'{quant_path}/quant/{sample}/{tech}/{reference}/genecount/{sfx}')
-	return out
-
-
-# return dummy well file for macaca ,as there is no well data at this time
-# def OLDwell_and_droplet_input(organism, reference, quant_path, SRS_dict, otd, sfx):
-# 	if organism == 'Macaca_fascicularis':
-# 		out = [f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/{sfx}' for srs in organism_droplet_dict[organism]]
-# 	else:
-# 		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + \
-# 				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/{sfx}' for srs in organism_droplet_dict[organism]]
-# 	return(out)
-
-def well_and_droplet_input(organism, reference, quant_path, SRP_droplet_dict, otd, sfx):
-	target_srps = [ srp for srp in  SRP_droplet_dict.keys() if SRP_droplet_dict[srp]['organism'] == organism ] 
-	if organism == 'Macaca_fascicularis':
-		out = [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
-	else:
-		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + \
-				[f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
-	return(out)
-
-
-
-
-def REF_idx(organism, ref, org2tech):
-	out = [f'references/velocity/{tech}/{ref}/tr2g.tsv' for tech in org2tech[organism]]
-	return out
-
-
-
-def ORG_ref(organism, which_return):
-	if organism.lower() == 'mus_musculus':
-		refs = ['mm-mus_musculus']
-	elif organism.lower() == 'homo_sapiens':
-		refs = ['hs-homo_sapiens']
-	elif organism.lower() == 'macaca_fascicularis':
-		refs = ['hs-homo_sapiens','mf-macaca_mulatta']
-	else:
-		print(organism + ' NO MATCH')
-		exit()
-
-	if which_return == 'matrix':
-		out = [f'pipeline_data/clean_quant/{organism}/{ref}_full_sparse_matrix.Rdata' for ref in refs] + [f'pipeline_data/clean_quant/{organism}/{ref}_full_sparse_unspliced_matrix.Rdata' for ref in refs]
-	else:
-		out = [f'pipeline_data/cell_info/{organism}_{ref}_cell_info.tsv' for ref in refs]
-
-	return(out)
-
-srr_sample_file = config['srr_sample_file']
-SRS_dict = metadata_builder(srr_sample_file)
-
-# pp.pprint(SRS_dict)
-# hand edited file which corrects mistakes that in the 
-# various databases
-# SRS_dict = metadata_builder(srr_sample_discrepancy_file, SRS_dict, discrepancy = True)
-
-# build organism <-> SRS dict for nonUMI data
-organism_well_dict = {}
-organism_welltech_dict ={'Homo_sapiens':[], 'Mus_musculus':[], 'Macaca_fascicularis':[] }
-		
-	
-for x in SRS_dict:
-	if not SRS_dict[x]['UMI'] or not SRS_dict[x]['paired']:
-		organism = SRS_dict[x]['organism']
-		tech = SRS_dict[x]['tech']
-		if tech not in organism_welltech_dict[organism]:
-			organism_welltech_dict[organism].append(tech)
-		if organism not in organism_well_dict:
-			organism_well_dict[organism] = [x]
-		else:
-			srs = organism_well_dict[organism]
-			srs.append(x)
-			organism_well_dict[organism] = srs
-# build organsim <-> SRS dict for UMI/droplet data
-organism_droplet_dict = {}
-droplet_samples = set()
-srp_droplet_dict = dict()
-for x in SRS_dict:
-	if SRS_dict[x]['UMI'] and SRS_dict[x]['paired']:
-		droplet_samples.add(x)
-		organism = SRS_dict[x]['organism']
-		study = SRS_dict[x]['Study']
-		tech = SRS_dict[x]['tech']
-		if study not in srp_droplet_dict:
-			srp_droplet_dict[study] = {'tech':tech, 'organism':organism }
-		if organism not in organism_droplet_dict:
-			organism_droplet_dict[organism] = [x]
-		else:
-			srs = organism_droplet_dict[organism]
-			srs.append(x)
-			organism_droplet_dict[organism] = srs
-
-
 
 git_dir = config['git_dir']
 bustools_path = config['bustools_path']
@@ -241,14 +92,6 @@ fi_tsne_dir = config['fi_tsne_dir']
 quant_path = config['quant_path']
 config_abspath=config['config_abspath']
 
-SRS_UMI_samples = []
-SRS_nonUMI_samples = []
-for SRS in SRS_dict.keys():
-	if SRS_dict[SRS]['UMI'] and SRS_dict[SRS]['paired']:
-		SRS_UMI_samples.append(SRS)
-	elif SRS_dict[SRS]['tech'] != 'BULK':
-		SRS_nonUMI_samples.append(SRS)
-
 method = ['scArches', 'bbknn','insct','magic', 'scVI','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
 transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
@@ -258,41 +101,17 @@ dims = [4,6,8,10,20,25,30,50,75,100,200]
 knn = [0.2,0,4,0.6, 5, 7, 10, 15]
 model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 report: "report.rst"
-# wildcard_constraints:
-# 	SRS = '|'.join(SRS_UMI_samples + SRS_nonUMI_samples),
-# 	method = '|'.join(method),
-# 	transform = '|'.join(transform),
-# 	covariate = '|'.join(covariate),
-# 	organism = '|'.join(organism),
-# 	nfeatures = '|'.join([str(x) for x in [2000,5000]]),
-# 	dims = '|'.join([str(x) for x in dims]),
-# 	model = '|'.join(model)	
-#TabulaDropletLabelledq
+
 if config['subset_clustering'] == 'False':
 	# partitions_to_run = ['universe', 'TabulaDroplet', 'onlyWELL']
 	# scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
 	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
 	#partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
-	partitions_to_run = [ 'TabulaDropletLabelled', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
-	scIB_partitions_to_run =  [ 'TabulaDropletLabelled',"Homo_sapiens", "Mus_musculus"] 
+	partitions_to_run = [ 'TabulaDropletLabelled', 'TabulaDroplet',  "Homo_sapiens", "Mus_musculus"]
+	scIB_partitions_to_run =  [ 'TabulaDropletLabelled', 'TabulaDroplet', "Homo_sapiens", "Mus_musculus"] 
 else:
 	partitions_to_run = ['celltype_subset']
 	scIB_partitions_to_run = ['celltype_subset']
-
-# start = time.time()
-# seu_obj_param =['combination','add_intron','n_features','transform','partition', 'covariate']
-# intg_obj_param = seu_obj_param + [ 'method', 'dims']
-# umap_obj_param =intg_obj_param + ['dist', 'neighbors']
-# extr_umap_param = umap_obj_param+['knn']
-# perf_met_pfx ='pipeline_data/perf_metrics/'
-# perf_met_param = extr_umap_param
-# perf_met_sfx = 'perf.Rdata'
-# parse_integration_config(file = config['integration_json'], 
-# output_string =make_wc_string(perf_met_pfx, perf_met_param, perf_met_sfx),
-# which_partitions = partitions_to_run )
-# end = time.time()
-# diff = str(end-start)
-# print(f'{diff} seconds to generate final output')
 
 
 rule all:
