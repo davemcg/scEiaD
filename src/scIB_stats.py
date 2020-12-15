@@ -23,8 +23,8 @@ before = scIB.metrics.pcr(adata, 'batch', embed = 'X_pca', recompute_pca = False
 after = scIB.metrics.pcr(adata, 'batch', embed = reduction_method, recompute_pca = False)
 pcr = (before-after)/before
 
-
-f = open(args[4], 'w')
+print(f'writing to {args[4]}')
+f = open(args[4], 'w+')
 
 f.write("pcr," + str(pcr) + '\n')
 f.write("nmi," + str(nmi) + '\n')

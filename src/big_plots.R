@@ -3,13 +3,13 @@ library(tidyverse)
 #library(ggrepel)
 library(cowplot)
 library(scattermore)
-
+library(glue)
+options(rgl.useNULL=TRUE)
 args <- commandArgs(trailingOnly = TRUE)
-
 red <- args[1]
 load(args[2])
 ptsize = 4
-
+ALPHA=.1
 if (grepl('onlyWELL', args[2])){
 	umapO <- umap
 	load(args[4])
@@ -46,17 +46,19 @@ type_col <- scale_colour_manual(values = type_val)
 type_fill <- scale_fill_manual(values = type_val)
 
 # cell type known
+ncells <- nrow(umap)
 plot1 <- umap %>% 
   ggplot() + 
   geom_scattermore(aes(x=umap[,paste0(red,'_1')] %>% pull(1), 
                        y = umap[,paste0(red,'_2')] %>% pull(1), 
-                       colour = CellType), pointsize = (ptsize/3), alpha = 0.1) + 
+                       colour = CellType), pointsize = (ptsize/3), alpha = ALPHA) + 
   guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
   theme_cowplot() + 
   #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num ), alpha = 0.8, size = 2) +
   type_col + 
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
-  xlab(paste(red, '1')) + ylab(paste(red, '2'))
+  xlab(paste(red, '1')) + ylab(paste(red, '2')) + 
+  ggtitle(glue('Number of Cells: {ncells}'))
 
 # Age
 #plot2 <- umap %>% 
@@ -76,7 +78,7 @@ plot3 <- umap %>%
   ggplot() + 
   geom_scattermore(aes(x = umap[,paste0(red,'_1')] %>% pull(1), 
                        y = umap[,paste0(red,'_2')] %>% pull(1),   
-                       colour = CellType, pointsize = ptsize), alpha = 0.1) + 
+                       colour = CellType, pointsize = ptsize), alpha = ALPHA) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
   theme_cowplot() + 
   scale_size(guide = 'none') +
@@ -93,7 +95,7 @@ plot4 <- umap %>%
   ggplot() + 
   geom_scattermore(aes(x = umap[,paste0(red,'_1')] %>% pull(1), 
                        y = umap[,paste0(red,'_2')] %>% pull(1), 
-                       colour = organism), pointsize = ptsize,  alpha = 0.1) + 
+                       colour = organism), pointsize = ptsize,  alpha = ALPHA) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
   theme_cowplot() + 
   scale_size(guide = 'none') +
@@ -108,7 +110,7 @@ plot5 <- umap %>%
   ggplot() + 
   geom_scattermore(aes(x = umap[,paste0(red,'_1')] %>% pull(1), 
                        y = umap[,paste0(red,'_2')] %>% pull(1),  
-                       colour = CellType), pointsize = ptsize, alpha = 0.05) + 
+                       colour = CellType), pointsize = ptsize, alpha = ALPHA/2) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
   theme_cowplot() + 
   type_col + 
@@ -125,7 +127,7 @@ plot6 <- umap %>%
   geom_scattermore(aes(x = umap[,paste0(red,'_1')] %>% pull(1), 
                        y = umap[,paste0(red,'_2')] %>% pull(1), 
                        colour = study_accession), 
-                   pointsize = ptsize, alpha = 0.1) + 
+                   pointsize = ptsize, alpha = ALPHA) + 
   guides(colour = guide_legend(override.aes = list(size=10, alpha = 1))) + 
   theme_cowplot() + 
   scale_size(guide = 'none') +

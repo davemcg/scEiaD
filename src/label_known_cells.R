@@ -7,7 +7,7 @@ git_dir=config$git_dir
 working_dir=config$working_dir# this is where cell_info lives 
 setwd(working_dir)
 
-load(glue('{git_dir}/data/sra_metadata_extended.Rdata') )
+load(glue('{git_dir}/data/sra_metadata_extended.Rdata'))
 meta <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv')) %>% select(-TissueNote)
 # load labelled data from clark et all
 # NO WRONG NOW https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1

@@ -1,0 +1,73 @@
+{
+    "global_default" :{
+        "covariate" : ["batch"]
+    },
+    "TabulaDroplet":{
+        "default": {
+			"method" : ["scVI", "ldvae"],
+			"transform" : ["counts"],
+            "n_features" : [5000],
+            "dims" : [10],
+            "knn" : [5],
+            "dist": [0.1],
+            "neighbors": [500]
+        }
+    },
+    "Homo_sapiens":{
+        "default": {
+			"method" : ["scVI", "ldvae"],
+			"transform" : ["counts"],
+            "n_features" : [5000],
+            "dims" : [10],
+            "knn" : [5],
+            "dist": [0.1],
+            "neighbors": [500]
+        }
+    },
+    "Mus_musculus":{
+        "default": {
+			"method" : ["scVI", "ldvae"],
+			"transform" : ["counts"],
+            "n_features" : [5000],
+            "dims" : [10],
+            "knn" : [5],
+            "dist": [0.1],
+            "neighbors": [500]
+        }
+    },
+    "onlyWELL":{
+        "default": {
+            "transform" : ["counts"],
+            "method" : ["scVI", "ldvae"],
+            "n_features" : [500],
+            "covariate" : ["batch"],
+            "dims" : [4],
+            "dist" : [0.1],
+            "knn" : [7],
+            "neighbors": [30]
+        }
+    },
+    "universe":{
+        "default": {
+            "transform" : ["counts"],
+            "method" : ["scVI"],
+            "n_features" : [2000],            
+            "dims" : [30],
+            "knn": [7],
+            "dist" : [0.1],
+            "neighbors" : [100]
+        }
+    },
+    "celltype_subset":{
+        "default": {
+            "transform" : ["counts"],
+            "method" : ["scVI"],
+            "partition" : ["cones", "hc", "rgc", "amacrine", "mullerglia", "bipolar", "rods"],
+            "n_features" : [ 1000, 2000],
+            "dims" : [4,6,10,30],
+            "knn" : [7, 10, 15],
+            "dist" : [0.1], 
+			"neighbors" : [30]
+        }
+    }
+}

@@ -1,37 +1,67 @@
 # extract UMAP coords labelled with meta data
+args= c('/data/swamyvs/scEiaD/rson_tmp/_7dbjtmv.json', 'UMAP')
 args <- commandArgs(trailingOnly = TRUE)
 library(Seurat)
 library(tidyverse)
+<<<<<<< HEAD
 # read in ENS <-> HGNC gene mapping info
 gene_map <- read_tsv('references/ENSG2gene_name.tsv.gz') %>% mutate(hs_gene_name = toupper(hs_gene_name))
+=======
+library(jsonlite)
+rule <- read_json(args[1])
+# read in ENS <-> HGNC gene mapping info
+partition <- rule$wildcards$partition
+
+if(partition %in% c('Homo_sapiens',  'Mus_musculus')){
+  gene_map <- rtracklayer::readGFF(rule$input$gene_id_mapper) %>% 
+    as_tibble %>% 
+    filter(type == 'transcript') %>% 
+    select(gene_id, gene_name) %>% distinct %>% 
+    mutate(gene_name = toupper(gene_name),
+           gene_id = str_split(gene_id ,'\\.') %>% sapply(function(x) x[1]))
+}else{
+  gene_map <- read_tsv(rule$input$gene_id_mapper) %>% 
+    mutate(hs_gene_name = toupper(hs_gene_name))  %>% 
+    rename(gene_id = hs_gene_id, gene_name = hs_gene_name)
+}
+
+>>>>>>> velocity
 
 # load cluster data
-load(args[3])
+load(rule$input$cluster_rdata)
 cluster <- meta %>% pull(2)
 subcluster <- meta %>% pull(3)
+<<<<<<< HEAD
 # load pre int seurat obj, calc cell cycle
 load(args[1])
 # convert Seurat cell cycle HGNC to ENSGENE
 s.genes <- cc.genes$s.genes %>% enframe(value = 'hs_gene_name') %>% left_join(gene_map) %>% pull(hs_gene_id) 
 g2m.genes <- cc.genes$g2m.genes %>% enframe(value = 'hs_gene_name') %>% left_join(gene_map) %>% pull(hs_gene_id)
+=======
+# load int seurat obj, calc cell cycle
+load(rule$input$intg_seu_obj)
+# convert Seurat cell cycle HGNC to ENSGENE
+s.genes <- cc.genes$s.genes %>% enframe(value = 'gene_name') %>% left_join(gene_map) %>% pull(gene_id) 
+g2m.genes <- cc.genes$g2m.genes %>% enframe(value = 'gene_name') %>% left_join(gene_map) %>% pull(gene_id)
+>>>>>>> velocity
 if (DefaultAssay(integrated_obj) == 'integrated'){
-	DefaultAssay(integrated_obj) <- 'RNA'
+  DefaultAssay(integrated_obj) <- 'RNA'
 }
 integrated_obj <- CellCycleScoring(integrated_obj, s.features = s.genes, g2m.features = g2m.genes)
 meta <- integrated_obj@meta.data
-# load integrated seurat obj
-load(args[2])
+# load umap seurat obj.
+load(rule$input$umap_seu_obj)
 integrated_obj@meta.data$`S.Score` <- meta$`S.Score`
 integrated_obj@meta.data$`G2M.Score` <- meta$`G2M.Score`
 integrated_obj@meta.data$`Phase` <- meta$`Phase`
 integrated_obj@meta.data$cluster <- cluster
 integrated_obj@meta.data$subcluster <- subcluster
 # load labelled cell data
-load(args[4])
+load(rule$input$cell_info_labeled)
 # load predicted cell data (+ labelled)
 #load(args[4])
 # method
-method <- args[6]
+method <- rule$wildcards$method
 
 if (method == 'CCA'){
   reduction <- 'pca'
@@ -52,9 +82,15 @@ if (method == 'CCA'){
 } else if (method == 'liger'){
   reduction <- 'iNMF'
   reduction.key <- 'iNMFUMAP_'
+<<<<<<< HEAD
 } else if (grepl('scVI', method)) {
    reduction <- 'scVI'
    reduction.key <- 'scviUMAP_'
+=======
+} else if (method == 'scVI'){
+  reduction <- 'scVI'
+  reduction.key <- 'scviUMAP_'
+>>>>>>> velocity
 } else {
   print("GUESSING!")
   reduction <- method
@@ -62,7 +98,7 @@ if (method == 'CCA'){
 }
 reduction.name <- gsub('_','', reduction.key)
 
-if (args[6] == 'TSNE'){
+if (rule$wildcards$method == 'TSNE'){
   reduction.key <- gsub('UMAP','TSNE', reduction.key)
   reduction.name <- gsub('UMAP','TSNE', reduction.name)
 }
@@ -80,8 +116,8 @@ umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'B
 #                                      TRUE ~ CellType_predict))
 
 umap$Method <- method
-if (args[7] == 'UMAP'){
-colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
+if (args[2] == 'UMAP'){
+  colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 } else {
   colnames(umap)[2:3] <- c('TSNE_1', 'TSNE_2')
 }
@@ -89,14 +125,14 @@ colnames(umap)[2:3] <- c('UMAP_1', 'UMAP_2')
 # https://www.sciencedirect.com/science/article/pii/S1534580720303075?via%3Dihub
 # In mice, the transition from early and late-stage RPCs occurs rapidly between E16 and E18 (Clark et al., 2019), but in humans this process occurs between 11 and 15 GW (Figure S2B) and likely reflects the differences in the timing of human retina development between central and peripheral regions (Diaz-Araya and Provis, 1992, van Driel et al., 1990).
 umap <- umap %>% mutate(integration_group = case_when(organism == 'Homo sapiens' & Age <= -175 ~ 'Early Dev.',
-												organism == 'Homo sapiens' & Age <= 0 ~ 'Late Dev.',
-												organism == 'Homo sapiens' & Age <= 360 ~ 'Maturing',
-												organism == 'Homo sapiens' ~ 'Mature', 
-												organism == 'Mus musculus' & Age < -2 ~ 'Early Dev.',
-												organism == 'Mus musculus' & Age <= 0 ~ 'Late Dev.',
-												organism == 'Mus musculus' & Age < 14 ~ 'Maturing',
-												organism == 'Mus musculus' ~ 'Mature',
-												organism == 'Macaca fascicularis' ~ 'Mature'))
+                                                      organism == 'Homo sapiens' & Age <= 0 ~ 'Late Dev.',
+                                                      organism == 'Homo sapiens' & Age <= 360 ~ 'Maturing',
+                                                      organism == 'Homo sapiens' ~ 'Mature', 
+                                                      organism == 'Mus musculus' & Age < -2 ~ 'Early Dev.',
+                                                      organism == 'Mus musculus' & Age <= 0 ~ 'Late Dev.',
+                                                      organism == 'Mus musculus' & Age < 14 ~ 'Maturing',
+                                                      organism == 'Mus musculus' ~ 'Mature',
+                                                      organism == 'Macaca fascicularis' ~ 'Mature'))
 
 # add core markers
 # Rho for rods
@@ -129,6 +165,5 @@ umap <- umap %>% mutate(integration_group = case_when(organism == 'Homo sapiens'
 
 #umap <-   left_join(umap, core_expression, by = 'Barcode')
 
-save(umap, file = args[5])
-
+save(umap, file = rule$output$umap_data )
 

@@ -15,7 +15,7 @@
 	"bus" : 
 	{
 		"mem" : "120G",
-		"time" : "2:00:00"
+		"time" : "24:00:00"
 	},
 	"bustools_sort" : 
 	{
@@ -64,9 +64,9 @@
 	},
 	"make_seurat_objs" :
 	{
-		"mem" : "800G",
+		"mem" : "600G",
 		"partition" : "largemem",
-		"time" : "6:00:00",
+		"time" : "8:00:00",
 		"extra" : " --gres=lscratch:10"
 	},
 	"make_seurat_objs_filtered" :
@@ -225,7 +225,7 @@
 	},
 	"scIB_stats" :
 	{
-		"mem" : "30G",
+		"mem" : "120G",
 		"time" : "1:00:00",
 		"partition" : "norm"
 	},

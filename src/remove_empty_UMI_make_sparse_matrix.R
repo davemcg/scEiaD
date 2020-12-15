@@ -1,97 +1,168 @@
 #!/usr/bin/env Rscript
-args = commandArgs(trailingOnly=TRUE)
-#system('mkdir -p testing')
-#save(args, file = 'testing/reumimspm_args.Rdata')
-base_dir = args[7]
-SRS = args[1]
-REF = args[2]
 
-matrix_file_dir <- args[3]
-bus_pfx <- args[4]
-stats_file <- args[5]
-gtf <-rtracklayer::readGFF(args[6])
-outpfx <- ifelse(bus_pfx == 'spliced', 'matrix.Rdata', 'unspliced_matrix.Rdata')
-out_matrix_file <- paste(matrix_file_dir, outpfx, sep = '/')
+args = commandArgs(trailingOnly=TRUE)
+save(args, file = 'testing/nu_reumi_args.Rdata')
+
+#base_dir = args[5]
+#SRS = args[1]
+#REF = args[2]
+outdir <- args[1]
+mito_genelist <-scan(args[2], what = character(), sep = '\n')
+srs_directories <- args[-(1:2)]
+########################################################
+# base_dir = '/data/swamyvs/scEiaD/'
+# SRS = 'SRS6424747'
+# REF = 'hs-homo_sapiens'
+# matrix_file_dir <- '/data/OGVFB_BG/new_quant_sciad/quant/SRS6424747/10xv2/hs-homo_sapiens/genecount/'
+# stats_file <- args[4]
+################################################
+
+
+spliced_matrix_file <- paste(outdir, 'matrix.Rdata', sep = '/')
+unspliced_matrix_file = paste(outdir, 'unspliced_matrix.Rdata', sep = '/')
+stats_file <- paste(outdir, 'stats.tsv', sep = '/')
 
 library(Seurat)
 library(BUSpaRse)
+library(tidyverse)
 library(Matrix)
 library(DropletUtils)
 library(readr)
-library(tidyverse)
+library(zeallot)
 
 # input data from project
-
-raw_matrix <- BUSpaRse::read_count_output(matrix_file_dir,bus_pfx, FALSE)
-dim(raw_matrix)
-tot_counts <- Matrix::colSums(raw_matrix)
+## its embarssing i didnt think of this first.
 
 
-bc_rank <- try({ barcodeRanks(raw_matrix) })
-n=50
-while(class(bc_rank) == 'try-error' & n >=0) {
-  bc_rank <- try({ barcodeRanks(raw_matrix,lower = n) })
-  n = n-10
+read_bus <- function(indir){
+  sample_id <- str_extract(indir, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+  l <- read_velocity_output(spliced_dir = indir,
+                       spliced_name = "spliced",
+                       unspliced_dir = indir,
+                       unspliced_name = "unspliced") 
+  colnames(l$spliced) <- paste(colnames(l$spliced), sample_id, sep = ':')
+  if( length(colnames(l$spliced)) != length(colnames(l$spliced))  ){
+    message(' more cells than barcodes')
+    }
+  
+  colnames(l$unspliced) <- paste(colnames(l$unspliced), sample_id, sep = ':')
+  return(l)
 }
 
-if(n <0){ # there were no samples 
-  bc_rank  = barcodeRanks(raw_matrix,lower = 0, fit.bounds=c(0,10000 ))
+calc_spl_ratio <- function(x, cells){
+  spl_sum <- sum(x$spliced[,cells])
+  uns_sum <- sum(x$unspliced[,cells])
+  return(uns_sum / (uns_sum + spl_sum))
+  
+}
+
+remove_empty_droplets <- function(x, srs, mito_genelist){
+
+  tot_count_spliced <- colSums(x$spliced)
+  tot_count_unspliced <- colSums(x$unspliced)
+  
+  prefilter_common <- intersect(colnames(x$spliced), colnames(x$unspliced))
+  
+  bc_spliced <- tryCatch( expr = barcodeRanks(x$spliced), error=function(cond) return(NULL) )
+  if(is.null(bc_spliced)){
+    message('sample failed to meet umi threshold')
+    df <- tibble(
+      sample=srs,
+      ncell_pf_spliced = -1,
+      ncell_pf_unspliced = -1,
+      pref_common  = -1,
+      nbc_pass_spliced =  -1,
+      nbc_pass_unspliced = -1,
+      nbc_common = -1,
+      nbc_union = -1,
+      common_spl_ratio = -1,
+      union_spl_ratio = -1
+    )
+    return(list(spliced = NULL,
+                unspliced = NULL,
+                stats = df))
+  }
+  bc_unspliced <- tryCatch( expr = barcodeRanks(x$unspliced), error=function(cond) return(NULL))
+  if(is.null(bc_unspliced)){
+    # keep only the spliced cells that meet filtering, but keep the other spliced cells as well,
+    # to keep data the same shape
+    bc_spliced_pass <- colnames(x$spliced)[tot_count_spliced > metadata(bc_spliced)$inflection]
+    bc_unspliced_pass <- bc_spliced_pass
+    df <- tibble(
+      ncell_pf_spliced = ncol(x$spliced),
+      ncell_pf_unspliced = ncol(x$unspliced),
+      pref_common  = length(prefilter_common),
+      nbc_pass_spliced = length(bc_spliced_pass),
+      nbc_pass_unspliced = 0,
+      nbc_common =-1,
+      nbc_union = -1,
+      common_spl_ratio = -1,
+      union_spl_ratio = -1,
+      
+    )
+  } else{
+    bc_spliced_pass <- colnames(x$spliced)[tot_count_spliced > metadata(bc_spliced)$inflection]
+    bc_unspliced_pass <- colnames(x$unspliced)[tot_count_unspliced > metadata(bc_unspliced)$inflection]
+    
+    
+    common <- intersect(bc_spliced_pass, bc_unspliced_pass)
+    bc_union <- union(bc_spliced_pass, bc_unspliced_pass) %>% intersect(prefilter_common)
+    df <- tibble(
+      ncell_pf_spliced = ncol(x$spliced),
+      ncell_pf_unspliced = ncol(x$unspliced),
+      pref_common  = length(prefilter_common),
+      nbc_pass_spliced = length(bc_spliced_pass),
+      nbc_pass_unspliced = length(bc_unspliced_pass),
+      nbc_common = common %>% length,
+      nbc_union = length(bc_union),
+      common_spl_ratio = calc_spl_ratio(x, common),
+      union_spl_ratio = calc_spl_ratio(x, bc_union),
+      
+    )
+    
+  }
+  #keep cells that meet criteria in splcied data 
+  common <- bc_spliced_pass %>% intersect(prefilter_common)
+  spliced = x$spliced[,common] 
+  unspliced = x$unspliced[,common]
+  
+  ## quality control: remove high mito cells, and remove high count(doublet) cells 
+  seu <- CreateSeuratObject(spliced)
+  cells_above_min_umi <-  seu$nFeature_RNA > 200
+  cells_below_max_umi <- seu$nFeature_RNA < 3000 
+  seu[["percent.mt"]] <- PercentageFeatureSet(seu, features = mito_genelist)
+  cells_below_max_mito_pt <-  seu$percent.mt < 10
+  keep_cells <- cells_below_max_mito_pt & cells_above_min_umi & cells_below_max_umi
+  df <- df %>% mutate(ncells_pre_qc = ncol(spliced), 
+                      ncells_failed_min_umi = sum(!cells_above_min_umi), 
+                      ncells_failed_max_umi = sum(!cells_below_max_umi), 
+                      ncells_failed_mito = sum(!cells_below_max_mito_pt), 
+                      ncells_total_pass_qc = sum(keep_cells))
+  return(list(spliced = spliced[,keep_cells],
+              unspliced = unspliced[,keep_cells],
+              stats = df))
 
 }
 
-# qplot(bc_rank$total, bc_rank$rank, geom = "line") +
-#   geom_vline(xintercept = metadata(bc_rank)$knee, color = "blue", linetype = 2) +
-#   geom_vline(xintercept = metadata(bc_rank)$inflection, color = "green", linetype = 2) +
-#   annotate("text", y = 1000, x = 1.5 * c(metadata(bc_rank)$knee, metadata(bc_rank)$inflection),
-#   label = c("knee", "inflection"), color = c("blue", "green")) +
-#   scale_x_log10() +
-#   scale_y_log10() +
-#   labs(y = "Barcode rank", x = "Total UMI count")
 
-res_matrix <- raw_matrix[, tot_counts > metadata(bc_rank)$inflection, drop=FALSE] 
+study_counts_list <- lapply(srs_directories,read_bus) 
 
-# dim(res_matrix)
-# 
-# seu <- CreateSeuratObject(res_matrix, min.cells = 3) %>%
-#   NormalizeData(verbose = FALSE) %>%
-#   ScaleData(verbose = FALSE) %>%
-#   FindVariableFeatures(verbose = FALSE)
-# 
-# 
-# seu <- RunPCA(seu, verbose = FALSE, npcs = 30)
-# ElbowPlot(seu, ndims = 30)
-# DimPlot(seu, reduction = "pca", pt.size = 0.5)
-# 
-# seu <- RunTSNE(seu, dims = 1:20, check_duplicates = FALSE)
-# DimPlot(seu, reduction = "tsne", pt.size = 0.5)
+srs_names <- str_extract(srs_directories, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+names(study_counts_list) <- srs_names
 
-# write out pre/post UMI counts
+filtered_counts <- lapply(seq_along(study_counts_list), function(i) remove_empty_droplets(study_counts_list[[i]], 
+                                                                                         names(study_counts_list)[i],
+                                                                                         mito_genelist))
 
-# remove high mito cells now
-mito_genes <- gtf %>% filter(type == 'gene', grepl('^MT-', gene_name, ignore.case = TRUE)) %>% pull(gene_id) %>% paste0('.')
-if (mito_genes == '.'){
-	# macaque
-	mito_genes <-	gtf %>% filter(type == 'gene', seqid == 'MT', !is.na(gene_name)) %>% pull(gene_id) 
-	mito_genes <- grep(paste(mito_genes, collapse = '|'), row.names(res_matrix), value = TRUE)
-}
-seu <- CreateSeuratObject(res_matrix)
-seu[["percent.mt"]] <- PercentageFeatureSet(seu, features = mito_genes)
-cells_below_max_mito_pt <-  seu$percent.mt < 10
-fail_cells <- seu$percent.mt >= 10
-keep_cells <- cells_below_max_mito_pt
-ncell_pre <- ncol(res_matrix)
-res_matrix_full <- res_matrix
-res_matrix <- res_matrix[,keep_cells]
 
-stats <- data.frame('Gene_Number' = c(dim(raw_matrix)[1], dim(res_matrix)[1]), 
-                    'UMI_Count' = c(dim(raw_matrix)[2], dim(res_matrix)[2]),
-                    'State' = c('Raw', 'Processed'),
-                    'SRS' = c(SRS,SRS),
-					'Mito_Pass_fail' = c(ncell_pre, ncol(res_matrix))
-)
+spliced <- lapply(filtered_counts, function(x) x[['spliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
+unspliced <- lapply(filtered_counts, function(x) x[['unspliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
+stats <-  lapply(filtered_counts, function(x) x[['stats']]) %>% bind_rows
+
 write_tsv(stats, path = stats_file)
 
 # save pared down counts
-#save(res_matrix, file = out_matrix_file)
-save(seu, file = gsub('Rdata','seurat.Rdata', out_matrix_file))
+save(spliced, file = spliced_matrix_file)
+save(unspliced, file = unspliced_matrix_file)
 message('finished successfully')
+
