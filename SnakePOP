@@ -198,7 +198,7 @@ if config['subset_clustering'] == 'False':
 		input:
 			#expand('quant/{sample}/hs/output.bus', sample = SRS_UMI_samples),	
 			# unfiltered matrix
-			#'mito_counts.tsv',
+			'mito_counts.tsv',
 			'seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features1000__counts__raw__batch__preFilter.seuratV3.Rdata',
 			expand('plots/{combination}__n_spec_genes-{n_spec_genes}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}.big_plot.png', \
 					transform = ['counts'], \
@@ -431,7 +431,8 @@ rule create_sparse_matrix:
 		stats_spliced = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/stats.tsv',
 		stats_unspliced = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/stats_unspliced.tsv',
 		spliced_matrix = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/matrix.Rdata',
-		unspliced_matrix = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/unspliced_matrix.Rdata'
+		unspliced_matrix = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/unspliced_matrix.Rdata',
+		seurat_full = quant_path + '/quant/{SRS}/{tech}/{reference}/genecount/matrix.seurat.Rdata'
 	params:
 		bus_out = lambda wildcards: f'{quant_path}/quant/{wildcards.SRS}/{wildcards.tech}/{wildcards.reference}/genecount/'
 	group: "bus"	
@@ -481,7 +482,8 @@ rule mito_stats:
 		'mito_counts.tsv'
 	shell:
 		"""
-
+		module load R/4.0
+		Rscript {git_dir}/src/mito_stats.R
 		"""
 
 rule merge_across_references:
