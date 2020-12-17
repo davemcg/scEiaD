@@ -3,10 +3,8 @@ args= c('/data/swamyvs/scEiaD/rson_tmp/_7dbjtmv.json', 'UMAP')
 args <- commandArgs(trailingOnly = TRUE)
 library(Seurat)
 library(tidyverse)
-<<<<<<< HEAD
 # read in ENS <-> HGNC gene mapping info
 gene_map <- read_tsv('references/ENSG2gene_name.tsv.gz') %>% mutate(hs_gene_name = toupper(hs_gene_name))
-=======
 library(jsonlite)
 rule <- read_json(args[1])
 # read in ENS <-> HGNC gene mapping info
@@ -25,25 +23,17 @@ if(partition %in% c('Homo_sapiens',  'Mus_musculus')){
     rename(gene_id = hs_gene_id, gene_name = hs_gene_name)
 }
 
->>>>>>> velocity
 
 # load cluster data
 load(rule$input$cluster_rdata)
 cluster <- meta %>% pull(2)
 subcluster <- meta %>% pull(3)
-<<<<<<< HEAD
 # load pre int seurat obj, calc cell cycle
-load(args[1])
-# convert Seurat cell cycle HGNC to ENSGENE
-s.genes <- cc.genes$s.genes %>% enframe(value = 'hs_gene_name') %>% left_join(gene_map) %>% pull(hs_gene_id) 
-g2m.genes <- cc.genes$g2m.genes %>% enframe(value = 'hs_gene_name') %>% left_join(gene_map) %>% pull(hs_gene_id)
-=======
 # load int seurat obj, calc cell cycle
 load(rule$input$intg_seu_obj)
 # convert Seurat cell cycle HGNC to ENSGENE
 s.genes <- cc.genes$s.genes %>% enframe(value = 'gene_name') %>% left_join(gene_map) %>% pull(gene_id) 
 g2m.genes <- cc.genes$g2m.genes %>% enframe(value = 'gene_name') %>% left_join(gene_map) %>% pull(gene_id)
->>>>>>> velocity
 if (DefaultAssay(integrated_obj) == 'integrated'){
   DefaultAssay(integrated_obj) <- 'RNA'
 }
@@ -82,15 +72,9 @@ if (method == 'CCA'){
 } else if (method == 'liger'){
   reduction <- 'iNMF'
   reduction.key <- 'iNMFUMAP_'
-<<<<<<< HEAD
 } else if (grepl('scVI', method)) {
    reduction <- 'scVI'
    reduction.key <- 'scviUMAP_'
-=======
-} else if (method == 'scVI'){
-  reduction <- 'scVI'
-  reduction.key <- 'scviUMAP_'
->>>>>>> velocity
 } else {
   print("GUESSING!")
   reduction <- method
