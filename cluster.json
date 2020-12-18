@@ -1,7 +1,7 @@
 {
 	"__default__" :
 	{
-		"partition" : "quick",
+		"partition" : "norm",
 		"time" : "04:00:00",
 		"mem" : "8g",
 		"extra" : "",

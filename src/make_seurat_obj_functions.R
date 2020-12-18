@@ -8,7 +8,9 @@ make_seurat_obj <- function(m,
                             keep_well = TRUE,
                             keep_droplet = TRUE,
                             qumi = FALSE,
-                            mito_geneids
+                            mito_geneids,
+							lengthCor = FALSE, 
+							dont_use_well_for_FVF = FALSE
                             ){
   well_m <- m[,cell_info %>% filter(value %in% colnames(m), !Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
