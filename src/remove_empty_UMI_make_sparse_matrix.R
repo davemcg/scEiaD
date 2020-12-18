@@ -127,11 +127,22 @@ remove_empty_droplets <- function(x, srs, mito_genelist){
   common <- bc_spliced_pass %>% intersect(prefilter_common)
   spliced = x$spliced[,common] 
   unspliced = x$unspliced[,common]
+  if(all(grepl('\\.\\d+$', sample(rownames(spliced), 10))) & 
+     all(!grepl('\\.\\d+$', mito_genelist, 10))) {
+    #if rownames have version, but  mito genes do not, remove  versions before making seurat object
+    s <- spliced# however, do not change the output rownames. the versions will be removed in the
+    # next step 
+    rownames(s) <- str_remove_all(rownames(spliced), '\\.\\d+$')
+    seu <- CreateSeuratObject(s)
+  }else {
+    seu <- CreateSeuratObject(spliced)
+  }
   
   ## quality control: remove high mito cells, and remove high count(doublet) cells 
-  seu <- CreateSeuratObject(spliced)
+  
   cells_above_min_umi <-  seu$nFeature_RNA > 200
   cells_below_max_umi <- seu$nFeature_RNA < 3000 
+  
   seu[["percent.mt"]] <- PercentageFeatureSet(seu, features = mito_genelist)
   pct_mt_df = tibble(srs=srs,barcode = colnames(seu), `percent.mt` = seu$percent.mt)
   cells_below_max_mito_pt <-  seu$percent.mt < 10

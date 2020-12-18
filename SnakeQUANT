@@ -262,9 +262,7 @@ rule make_mitochondiral_gene_lists:
 	input:
 		mouse_anno = 'references/gtf/mm-mus_musculus_anno.gtf.gz',
 		macaque_mul_anno = 'references/gtf/mf-macaca_mulatta_anno.gtf.gz',
-		human_anno = 'references/gtf/hs-homo_sapiens_anno.gtf.gz',
-		anno_conv = 'references/ensembl_biomart_human2mouse_macaque.tsv',
-		maca_tr2g = 'references/velocity/10xv2/mf-macaca_mulatta/tr2g.tsv'
+		human_anno = 'references/gtf/hs-homo_sapiens_anno.gtf.gz'
 	output:
 		mouse_mito = 'references/mito_genes/mm-mus_musculus_mitogenes.txt',
 		macaque_mito = 'references/mito_genes/mf-macaca_mulatta_mitogenes.txt',

@@ -7,7 +7,6 @@ args <- commandArgs(trailingOnly = TRUE)
 library(Matrix)
 library(tidyverse)
 library(Seurat)
-library(Matrix)
 library(Matrix.utils)
 
 species <- args[1]
@@ -27,12 +26,14 @@ load_rdata <- function(x){
   return(get(var))
 }
 
-print(species)
-if (species != "Macaca_fascicularis"){
+
+if (length(well_samples) > 0){
 
   all_well_data <- lapply(well_samples, load_rdata) %>% reduce(RowMergeSparseMatrices) 
   ## make row names for count (well) upper case
-} 
+} else{
+ all_well_data <- NULL 
+}
 
 # roll through UMI data, 
 # correct gene names (upper case), force to be unique
@@ -62,14 +63,19 @@ all_spliced_droplet_data <- read_all_droplet_data(spliced_droplet_samples)
 # NOTE: Because sum(well_counts) >>> sum(droplet_counts), spliced/vs unspliced ratio will *look* off
 # but its accurate. Double check 
 ################
-if (species != "Macaca_fascicularis"){
+
+
+
+## if well data exists, add it to droplet 
+if (all(!is.null(all_well_data)) ){
   all_data <- RowMergeSparseMatrices(all_spliced_droplet_data, all_well_data)
 } else {
   all_data <- all_spliced_droplet_data 
-  if (!grepl('hs-homo_sapiens', args[5])){
-    row.names(all_data) <- row.names(all_data) %>% str_remove('\\.\\d+$')
-    # macaque gtf doesnt have gene versions 
-  }
+}
+
+if(all(grepl('\\.\\d+$', sample(rownames(all_data), 10))) ){
+  # if the gene ids have versions 
+  rownames(all_data) <- str_remove_all(rownames(all_data), '\\.\\d+$')
 }
 
 all_data  <- all_data [row.names(all_data ) != 'fill.x', ] 
@@ -96,13 +102,11 @@ save(all_data, file = final_sparse_matrix_file, compress = FALSE)
 
 intron_droplet_samples = spliced_droplet_samples %>% str_replace_all('matrix.Rdata', 'unspliced_matrix.Rdata')
 all_intron_droplets = read_all_droplet_data(intron_droplet_samples)
-if (species == "Macaca_fascicularis"){
-   
-  if (!grepl('hs-homo_sapiens', args[5])){
-    row.names(all_intron_droplets) <- row.names(all_intron_droplets) %>% str_remove('\\.\\d+$')
-    # macaque gtf doesnt have gene versions 
-  }
+if(all(grepl('\\.\\d+$', sample(rownames(all_intron_droplets), 10))) ){
+  # if the gene ids have versions 
+  rownames(all_intron_droplets) <- str_remove_all(rownames(all_intron_droplets), '\\.\\d+$')
 }
+
 colnames(all_intron_droplets) <- str_replace_all(colnames(all_intron_droplets), ':', '_')
 
 save(all_intron_droplets, file = intron_sparse_matrix_file)

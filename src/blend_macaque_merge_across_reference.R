@@ -14,7 +14,6 @@ load_rdata <- function(x){
   var <- env[!grepl('^x$', env)]
   stopifnot(length(var) == 1)
   all_data= get(var)# the mistake was here, I orignally fixing rownames in here, but deleted it by accident
-  rownames(all_data) <- rownames(all_data) %>% str_remove_all('\\.\\d+$') 
   return(all_data)
 }
 maca_mf_matrix <- load_rdata('pipeline_data/clean_quant/Macaca_fascicularis/mf-macaca_mulatta_full_sparse_matrix.Rdata')
