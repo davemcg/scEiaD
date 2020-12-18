@@ -27,5 +27,20 @@ map <- read_tsv('~/Downloads/EGAD00001006350/delimited_maps/Sample_File.map', co
 colnames(map) <- c('ID', 'EGAN','bam','EGAF')
 
 coldata <- coldata %>% mutate(ID = str_extract(info, '^.*_lib\\d+')) %>% left_join(map)
-
                       
+
+# extract more meta
+c_HS <- coldata %>% filter(grepl('^HS', ID)) %>% 
+  mutate(ID = gsub('_Rt','Rt',ID) %>% 
+           gsub('_Lf','Lf',.)) %>% 
+  separate(ID, remove = FALSE, sep = '_|-', into = c('Source','Donor','Tissue','Location','PI','Lib')) %>% 
+  mutate(Covariate = paste0(Donor, '_', Tissue), Age = NA, integration_group = 'Late', TissueNote = info)
+c_Organoid <- coldata %>% filter(!grepl('^HS', ID)) %>% 
+  mutate(ID = gsub('_Rt','Rt',ID) %>% 
+           gsub('_Lf','Lf',.)) %>% 
+  separate(ID, remove = FALSE, sep = '_|-', into = c('Source','Weeks','Batch','Sample','PI','Lib')) %>% 
+  mutate(Covariate = Batch, Age = str_extract(Weeks, '\\d+') %>% as.integer() * 7, integration_group = 'Early', TissueNote = info)
+
+coldata <- bind_rows(c_HS, c_Organoid)
+
+write_tsv(coldata, file = '~/git/massive_integrated_eye_scRNA/data/EGAD00001006350_meta.tsv.gz')
