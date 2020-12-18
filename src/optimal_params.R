@@ -6,7 +6,7 @@ rule <- read_json(args[1])
 partitions_run = str_split(rule$input$perf_data %>% unlist, '__') %>% 
   unlist %>% 
   .[grepl('partition', .)] %>% 
-  str_split('-') %>% sapply(function(x) x[2])
+  str_split('-') %>% sapply(function(x) x[2]) %>% unique()
 #library(cowplot)
 #library(splancs)
 # load annotations
