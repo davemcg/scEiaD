@@ -54,9 +54,10 @@ for (x in partitions_run){
     nf = str_extract(i, 'n_features-\\d+') %>% gsub('n_features-', '', .) %>% as.numeric()
     dims = str_extract(i, 'dims-\\d+') %>% gsub('dims-', '', .) %>% as.numeric()
     method = str_extract(i, 'method-[a-zA-Z]+') %>% gsub('method-','',.)
-    knn = str_extract(i, 'knn-\\d+') %>% gsub('knn-', '', .) %>% as.numeric()
-    knn
-    table_score$dims = dims
+    knn = str_extract(i, 'knn-\\d+\\.\\d+|knn-\\d+') %>% gsub('knn-', '', .) %>% as.numeric()
+    table_score$clusterN = max(as.numeric(scores$cluster_count$Cluster))
+	table_score$clusterMedian = median(as.numeric(scores$cluster_count$Count))
+	table_score$dims = dims
     table_score$nf = nf
     table_score$knn <- knn
     table_score$method <- method	
@@ -78,7 +79,7 @@ for (i in files){
   nf = str_extract(i, 'n_features-\\d+') %>% gsub('n_features-', '', .) %>% as.numeric()
   dims = str_extract(i, 'dims-\\d+') %>% gsub('dims-', '', .) %>% as.numeric()
   method = str_extract(i, 'method-[a-zA-Z]+') %>% gsub('method-','',.)
-  knn = str_extract(i, 'knn-\\d+') %>% gsub('knn-', '', .) %>% as.numeric()
+  knn = str_extract(i, 'knn-\\d+\\.\\d+|knn-\\d+') %>% gsub('knn-', '', .) %>% as.numeric() 
   set = str_split(i %>% unlist, '__') %>% 
     unlist %>% 
     .[grepl('partition', .)] %>% 
