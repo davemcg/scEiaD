@@ -135,7 +135,7 @@ all_cells_all_species_matrix <-  RowMergeSparseMatrices(homo_hs_matrix_cg, mus_m
 metadata <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv'))
 
 all_cell_info <- colnames(all_cells_all_species_matrix) %>% enframe() %>% 
-  mutate(sample_accession = str_extract(value, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')) %>% 
+  mutate(sample_accession = str_extract(value, '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')) %>% 
   left_join(metadata %>% select(-run_accession) %>% unique()) %>% 
   data.frame() %>% 
   mutate(batch = paste(study_accession, Platform, Covariate, sep = '_'),

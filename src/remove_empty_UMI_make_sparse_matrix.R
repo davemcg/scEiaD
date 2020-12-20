@@ -35,7 +35,7 @@ library(zeallot)
 
 
 read_bus <- function(indir){
-  sample_id <- str_extract(indir, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+  sample_id <- str_extract(indir, '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')
   l <- read_velocity_output(spliced_dir = indir,
                        spliced_name = "spliced",
                        unspliced_dir = indir,
@@ -162,7 +162,7 @@ remove_empty_droplets <- function(x, srs, mito_genelist){
 
 study_counts_list <- lapply(srs_directories,read_bus) 
 
-srs_names <- str_extract(srs_directories, '(ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+srs_names <- str_extract(srs_directories, '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')
 names(study_counts_list) <- srs_names
 
 filtered_counts <- lapply(seq_along(study_counts_list), function(i) remove_empty_droplets(study_counts_list[[i]], 
