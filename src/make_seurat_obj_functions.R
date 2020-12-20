@@ -7,10 +7,10 @@ make_seurat_obj <- function(m,
                             nfeatures = n_features,
                             keep_well = TRUE,
                             keep_droplet = TRUE,
-                            qumi = FALSE,
                             mito_geneids,
 							lengthCor = FALSE, 
-							dont_use_well_for_FVF = FALSE
+							dont_use_well_for_FVF = FALSE,
+							only_use_human_for_FVF = FALSE
                             ){
   well_m <- m[,cell_info %>% filter(value %in% colnames(m), !Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
@@ -19,16 +19,17 @@ make_seurat_obj <- function(m,
   }
   if (keep_droplet){
      seurat_droplet <- CreateSeuratObject(droplet_m)
+	 droplet_hs <- m[,cell_info %>% filter(value %in% colnames(m), organism %in% c('Homo sapiens')) %>% pull(value)]
+	 hs_seurat_droplet <- CreateSeuratObject(droplet_hs)
   }
 
   # FILTER STEP!!!!
   # keep cells with < 10% mito genes, and more than 200 and less than 3000 detected genes for UMI
   # for well, drop the 3000 gene top end filter as there shouldn't be any droplets
   if (keep_well & !lengthCor){
-    print('No QUMI')
+    print('No Length Correction')
     seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
-  } else if (keep_well && qumi) {
-      print('QUMINORM!!')
+  } else if (keep_well && lengthCor) {
       seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
       #qumi_counts <- quminorm(seurat_well@assays$RNA@counts)
       source(glue('{git_dir}/src/extract_gene_length.R'))
@@ -46,7 +47,7 @@ make_seurat_obj <- function(m,
 
   	  seurat_well <- CreateSeuratObject(mat_cor)
       seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
-      print('QUMI DONE!')
+      print('Length Correction for Well DONE!')
   }
   # cells to keep
   if (!keep_well & keep_droplet){
@@ -97,12 +98,17 @@ make_seurat_obj <- function(m,
   # scale data and regress
   seurat_m <- NormalizeData(seurat_m)
   # find var features
+  seurat_m <- FindVariableFeatures(seurat_m, nfeatures = nfeatures, selection.method = 'vst')
   if (dont_use_well_for_FVF == TRUE) {
 	seurat_mDrop <- FindVariableFeatures(seurat_droplet, nfeatures = nfeatures, selection.method = 'vst')
     VariableFeatures(seurat_m) <- VariableFeatures(seurat_mDrop)
-  } else {
-    seurat_m <- FindVariableFeatures(seurat_m, nfeatures = nfeatures, selection.method = 'vst')
   }
+
+  if (only_use_human_for_FVF == TRUE) {
+    hs_seurat_droplet  <- FindVariableFeatures(hs_seurat_droplet, nfeatures = nfeatures, selection.method = 'vst')
+    VariableFeatures(seurat_m) <- VariableFeatures(hs_seurat_droplet)
+  }  
+  
   # don't use mito genes
   var_genes <- grep('^MT-', seurat_m@assays$RNA@var.features, value = TRUE, invert = TRUE)
 

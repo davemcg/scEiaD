@@ -77,7 +77,8 @@ if (set == 'early'){
   seurat__standard <- make_seurat_obj(m_onlyDROPLET, cell_info, split.by = covariate, keep_well = FALSE, mito_geneids = mito_geneids)
 }  else if (set == 'TabulaDroplet'){
   print("Running onlyDROPLET with Tabula Muris (no well)")
-  m_TABULA_DROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
+  #m_TABULA_DROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
+  m_TABULA_DROPLET <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
   seurat__standard <- make_seurat_obj(m_TABULA_DROPLET,cell_info, split.by = covariate, keep_well = FALSE,mito_geneids=mito_geneids)
 } else if (set == 'TabulaDropletLabelled'){
   print("Running onlyDROPLET labelled samples only with Tabula Muris (no well)")
@@ -105,6 +106,8 @@ if (set == 'early'){
   seurat__standard <- make_seurat_obj(m_downsample,cell_info, split.by = covariate,mito_geneids=mito_geneids)
 } else if (set == 'universe'){
   seurat__standard <- make_seurat_obj(m, cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids)
+} else if (set == 'universeX'){
+  seurat__standard <- make_seurat_obj(m, cell_info, split.by = covariate, lengthCor = TRUE, only_use_human_for_FVF = TRUE, mito_geneids = mito_geneids)
 } else if (set %in% c('cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods' )){
   # no circular dependencies!
   precursors <- c('AC/HC_Precurs', 'Early RPCs', 'Late RPCs', 'Neurogenic Cells', 'Photoreceptor Precursors', 'RPCs')
