@@ -14,7 +14,7 @@
 	},
 	"bus" : 
 	{
-		"mem" : "120G",
+		"mem" : "160G",
 		"time" : "24:00:00"
 	},
 	"bustools_sort" : 
@@ -44,11 +44,11 @@
 		"time" : "01:45:00"
 	},
 	"quant": {
-		"mem": "120g",
+		"mem": "160g",
 		"time": "08:00:00"
 	},
 	"kallisto_bus": {
-		"mem": "120g",
+		"mem": "175g",
 		"time": "04:45:00",
 		"partition" : "norm"
 	},

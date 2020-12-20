@@ -3,7 +3,8 @@
 import os
 import sys
 import json
-import pickle 
+import pickle
+import re 
 from snakemake.utils import read_job_properties
 #%%
 cluster_json_file =sys.argv[1]
@@ -68,7 +69,7 @@ elif rule in custom_config_rules:
             params['partition']='norm'
             params['time'] = '6:00:00'
     if rule == 'integrate_00':
-        if job_properties['wildcards']['method'] == 'scVIprojection':
+        if re.search('scVI', job_properties['wildcards']['method']):
             params['partition']='gpu'
             params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
             params['time'] = '8:00:00'
@@ -104,10 +105,11 @@ elif rule in custom_config_rules:
             params['time']='24:00:00'
             params['extra'] = '--gres=lscratch:5'
         else:
-            params['partition']='norm'
-            params['mem']='250G'
-            params['time']='24:00:00'
-            params['extra'] = '--gres=lscratch:5'
+            print(job_properties['wildcards']['method'])
+            params['partition']='gpu'
+            params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
+            params['time'] = '24:00:00'
+            params['mem'] = '200G'
     if rule == "make_seurat_objs" and job_properties['wildcards']['transform'] == 'scran':
         params['mem'] = '1000G'
 
