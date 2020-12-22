@@ -2,6 +2,8 @@ library(tidyverse)
 library(yaml)
 library(glue)
 
+
+
 config=read_yaml(Sys.getenv('SCIAD_CONFIG'))
 git_dir=config$git_dir
 working_dir=config$working_dir# this is where cell_info lives 
@@ -42,7 +44,7 @@ macosko_labels <- macosko_labels %>%
          UMI = gsub('\\w\\d_','', Cell))
 
 # wong retina
-cell_info <- read_tsv(config$cell_info) %>% select(-TissueNote)
+cell_info <- data.table::fread(config$cell_info) %>% select(-TissueNote)
 cell_info <- cell_info %>% filter(study_accession == 'E-MTAB-7316') %>%
 				mutate(UMI = gsub('_\\w+', '', value)) %>%
 				mutate(sample = case_when(sample_accession == 'ERS2852885' ~ '5',
@@ -76,7 +78,7 @@ rgc_crush <- rgc_crush %>%
 #rgc_crush$CellType <- 'Retinal Ganglion Cells'
 rgc_crush$CellType <- NA
 ## load cell info
-cell_info <- read_tsv(config$cell_info) %>% select(-TissueNote)
+cell_info <- data.table::fread(config$cell_info) %>% select(-TissueNote)
 cell_info <- cell_info %>% mutate(UMI = gsub('_\\w+', '', value)) %>%
   mutate(sample = case_when(sample_accession == 'SRS5030712' ~ 'aRGC6',
 							sample_accession == 'SRS5030713' ~ 'aRGC7',
@@ -122,7 +124,7 @@ karthik <- karthik %>%
          UMI = gsub('.*_','', CELL_NAME)) 
 
 ## load cell info
-cell_info <- read_tsv(config$cell_info) %>% select(-TissueNote)
+cell_info <- data.table::fread(config$cell_info) %>% select(-TissueNote)
 # see below for how I got the labelling
 cell_info <- cell_info %>% mutate(UMI = gsub('_\\w+', '', value)) %>% 
   mutate(label = case_when(sample_accession == 'SRS866911' ~ 'r2',
@@ -178,7 +180,7 @@ meta_SRP075719 <- cell_info %>%
 
 # lu clark human dev scRNA
 ## load cell info
-cell_info <- read_tsv(config$cell_info)  
+cell_info <- data.table::fread(config$cell_info)  
 lu_clark <- data.table::fread(glue('{git_dir}/data/GSE138002_Final_barcodes.csv.gz')) %>%
 							mutate(UMI = gsub('^.*\\.','', barcode) %>% gsub('-.*','',.)) %>%
 				dplyr::rename(CellType = umap2_CellType) %>%
@@ -209,7 +211,7 @@ meta_srp223254 <- cell_info %>%
 				by = c('UMI', 'sample')) %>% 
   select(value:batch,CellType) %>% mutate(Paper = 'Lu et al. 2020')
 ## sanes macaque 
-cell_info <- read_tsv(config$cell_info) %>% select(-TissueNote)
+cell_info <- data.table::fread(config$cell_info) %>% select(-TissueNote)
 sanes_files <- list.files( glue('{git_dir}/data/'), "Macaque*", full.names = TRUE)
 sanes <- sanes_files %>% 
   map(read_csv) %>% 
@@ -324,7 +326,7 @@ SRP257883_GSE_meta <- SRP257883_GSE_meta %>%
                               TRUE ~ stringr::str_to_title(celltype))) %>% 
   filter(!CellType %in% c('Rod_rpe')) %>% 
   select(-celltype)
-cell_info <- read_tsv(config$cell_info) %>%  
+cell_info <- data.table::fread(config$cell_info) %>%  
 	filter(study_accession == 'SRP257883') %>%
 	mutate(UMI = gsub('_\\w+', '', value)) %>%
 	mutate(donor = case_when(sample_accession == 'SRS6517605' ~ 'donor_22_mac_CD31_pos',
@@ -342,7 +344,7 @@ meta_SRP257883 <- cell_info %>% left_join(., SRP257883_GSE_meta %>%
 								unique() %>%
 								mutate(Paper = 'Voigt et al. 2020')
 # SRP218652 mullins/scheetz RPE
-cell_info <- read_tsv(config$cell_info) %>%
+cell_info <- data.table::fread(config$cell_info) %>%
     filter(study_accession == 'SRP218652') %>%
     mutate(UMI = gsub('_\\w+', '', value))
 load(glue('{git_dir}/data/SRP218652__meta.Rdata'))
@@ -352,7 +354,7 @@ SRP218652 <- SRP218652 %>%  select(Barcode, sample_accession, CellType) %>%
 meta_SRP218652 <- cell_info %>% left_join(., SRP218652, by = c('UMI', 'sample_accession'))
 
 # tabula muris
-cell_info <- read_tsv(config$cell_info) %>% select(-TissueNote) %>% filter(study_accession == 'SRP131661') 
+cell_info <- data.table::fread(config$cell_info) %>% select(-TissueNote) %>% filter(study_accession == 'SRP131661') 
 tm <- data.table::fread(glue('{git_dir}/data/tabula_muris_meta.tsv.gz')) %>%
 			dplyr::rename(TabulaMurisCellType = CellType) %>% 
   			mutate(CellType = case_when(TabulaMurisCellType == 'B cell' ~ 'B-Cell',
@@ -364,7 +366,7 @@ tm <- data.table::fread(glue('{git_dir}/data/tabula_muris_meta.tsv.gz')) %>%
 meta_TM <- cell_info %>% left_join(., tm, by = 'value' )
 
 ## Yan ... Sanes retina rod/cone 
-cell_info <- read_tsv(config$cell_info) %>%
+cell_info <- data.table::fread(config$cell_info) %>%
     filter(study_accession == 'SRP255195')
 sample_meta <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv')) %>% filter(study_accession == 'SRP255195')
 yan_pr <- read_csv(glue('{git_dir}/data/yan_sanes_PR____Human_retina_combined_all_meta.csv'))
@@ -390,10 +392,50 @@ yan_pr <- yan_pr %>%
   mutate(Paper = 'Yan et al. 2020')
 meta_SRP255195 <- cell_info %>% left_join(., yan_pr %>% select(value, Paper, CellType, SubCellType), by = 'value')
 
-cell_info <- read_tsv(config$cell_info)
+# cowan roska
+cowan <- data.table::fread(glue('{git_dir}/data/EGAD00001006350_meta.tsv.gz'))
+cell_info <- data.table::fread(config$cell_info) %>%
+				filter(study_accession == 'EGAD00001006350')
+
+cowan_meta <- cowan %>% 
+  mutate(CellType = case_when(grepl('^AC', cell_type)  ~ 'Amacrine Cells',
+							  cell_type == 'Ast' ~ 'Astrocytes',
+							  cell_type == 'BCell' ~ 'B-Cell',
+							  grepl('BC_', cell_type) ~ 'Bipolar Cells',
+							  cell_type == 'CM' ~ 'Melanocytes',
+							  grepl('END', cell_type) ~ 'Vascular Endothelium',
+							  grepl('FB_', cell_type) ~ 'Fibroblasts',
+						      grepl('GC_', cell_type) ~ 'Retinal Ganglion Cells',
+							  grepl('HC_', cell_type) ~ 'Horizontal Cells',
+							  grepl('cone', cell_type) ~ 'Cones',
+							  grepl('MAST', cell_type) ~ 'Mast',
+						      grepl('MC_', cell_type) ~ 'Muller Glia',
+							  grepl('MO_', cell_type) ~ 'Monocyte',
+        					  cell_type == 'NK' ~ 'Natural Killer',
+							  cell_type == 'PER' ~ 'Pericytes',
+							  cell_type == 'RBC' ~ 'Rod Bipolar Cells',
+							  cell_type == 'rod' ~ 'Rods',
+							  cell_type == 'RPE' ~ 'RPE',
+							  cell_type == 'TCell' ~ 'T-Cell',
+							  cell_type == 'uG' ~ 'Microglia'), 
+		SubCellType = cell_type,
+		UMI = str_extract(cell_id, '[ACTG]+-') %>% gsub('-','', .)) %>% 
+  filter(!is.na(CellType)) %>%
+  mutate(value = paste0(UMI, '_', EGAF)) %>%
+  mutate(Paper = 'Cowan et al. 2020')
+meta_EGAD00001006350 <- cell_info %>% left_join(., cowan_meta %>% select(value, Paper, CellType, SubCellType), by = 'value')
+
+
+
+
+
+
+# MERGE
+
+cell_info <- data.table::fread(config$cell_info)
 
 meta_SRP <- bind_rows(meta_SRP218652, meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, 
-						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195) %>%
+						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195, meta_EGAD00001006350) %>%
 	mutate(CellType = gsub('Melanotype', 'Melanocytes', CellType),
 			CellType = gsub('B-cell', 'B-Cell', CellType),
 			CellType = gsub('Macrophages', 'Macrophage', CellType),
@@ -404,6 +446,11 @@ cell_info_labels <- bind_rows(meta_SRP,
                               cell_info %>% select(value:batch) %>% 
                                 filter(!value %in% meta_SRP$value) %>% 
                                 mutate(Paper = NA, TissueNote = NA))
+
+
+
+
+
 # this is crude, but SRP16660 has selected Muller Glia via FACS of R26R mouse line
 # SRP186407 uses Cx3cr1+ FACS to select Microglia
 #cell_info_labels <- cell_info_labels %>% 
