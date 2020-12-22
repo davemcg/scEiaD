@@ -30,8 +30,7 @@ read_well_pt_mito <- function(file){
 well_meta <- lapply(files_well, read_well_pt_mito)
 
 well_mito <- well_meta %>% bind_rows()
-yu
-mito <- bind_rows(well_mito, drop_mito )
+mito <- bind_rows(well_mito, drop_mito)
 
 write_tsv(mito, file = 'mito_counts.tsv')
 
