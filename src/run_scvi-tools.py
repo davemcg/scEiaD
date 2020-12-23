@@ -12,7 +12,7 @@ from scvi.data import read_loom, setup_anndata  #LDVAE #gone..
 import scanpy as sc
 import os 
 import loompy
-os.chdir('/data/swamyvs/scEiaD')
+#os.chdir('/data/swamyvs/scEiaD')
 #%%
 args = sys.argv
 ## convert loom to anndata
