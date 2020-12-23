@@ -68,8 +68,8 @@ if (grepl('ABC', output)) {
 	DE__CELLTYPE__res_againstAll <- binder(DE__CELLTYPE__res_againstAll) %>% mutate(PB_Test = 'CellType against Remaining') 
 	DE__CELLTYPE__res_pairwise <- binder(DE__CELLTYPE__res_pairwise) %>% mutate(PB_Test = 'Pairwise CellType against CellType')
 	DE__CELLTYPE__res_organism_celltype <- binder(DE__CELLTYPE__res_organism_celltype) %>% mutate(PB_Test = 'Organism against Organism within CellType')
-	DE__CLUSTER__res_againstAll <- binder(DE__CLUSTER__res_againstAll) %>% mutate(PB_Test = 'Cluster (Droplet) against Remaining')
-	DE__CLUSTER__res_organism_celltype <- binder(DE__CLUSTER__res_organism_celltype) %>% mutate(PB_Test = 'Organism against Organism within Cluster (Droplet)')
+	DE__CLUSTER__res_againstAll <- binder(DE__CLUSTER__res_againstAll) %>% mutate(PB_Test = 'Cluster against Remaining')
+	DE__CLUSTER__res_organism_celltype <- binder(DE__CLUSTER__res_organism_celltype) %>% mutate(PB_Test = 'Organism against Organism within Cluster ')
 	#DE__CLUSTER__res_againstAllWell <- binder(DE__CLUSTER__res_againstAllWell) %>% mutate(PB_Test = 'Cluster (Well) against Remaining')
 	#DE__CLUSTER__res_pairwiseWell <- binder(DE__CLUSTER__res_pairwiseWell) %>% mutate(PB_Test = 'Pairwise Cluster against Cluster (Well)')
 	#DE__CLUSTER__res_organism_celltypeWell <- binder(DE__CLUSTER__res_organism_celltypeWell) %>% mutate(PB_Test = 'Organism against Organism within Cluster (Well)')
@@ -88,7 +88,7 @@ if (grepl('ABC', output)) {
 								#	DE__CLUSTER__res_organism_celltypeWell)
 	save(PB_resultsABC, file = output)
 } else {
-	DE__CLUSTER__res_pairwise <- binder(DE__CLUSTER__res_pairwise) %>% mutate(PB_Test = 'Pairwise Cluster against Cluster (Droplet)')
+	DE__CLUSTER__res_pairwise <- binder(DE__CLUSTER__res_pairwise) %>% mutate(PB_Test = 'Pairwise Cluster against Cluster')
 	PB_resultsC2 <- DE__CLUSTER__res_pairwise
 	save(PB_resultsC2, file = output)
 }
