@@ -34,7 +34,7 @@ set = rule$wildcards$partition # early, late, full, downsampled
 covariate = rule$wildcards$covariate # study_accession, batch, etc.
 transform = rule$wildcards$transform # SCT or standard seurat # mouse, mouse and macaque, mouse and macaque and human
 n_features =as.numeric(rule$wildcards$n_features )
-cell_info <-read_tsv(rule$input$cell_info) # cell_info.tsv
+cell_info <- data.table::fread(rule$input$cell_info) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
 print('cell info import')
@@ -78,7 +78,7 @@ if (set == 'early'){
 }  else if (set == 'TabulaDroplet'){
   print("Running onlyDROPLET with Tabula Muris (no well)")
   #m_TABULA_DROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
-  m_TABULA_DROPLET <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
+  m_TABULA_DROPLET <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3'), Tissue != 'Organoid') %>% pull(value)]
   seurat__standard <- make_seurat_obj(m_TABULA_DROPLET,cell_info, split.by = covariate, keep_well = FALSE,mito_geneids=mito_geneids)
 } else if (set == 'TabulaDropletLabelled'){
   print("Running onlyDROPLET labelled samples only with Tabula Muris (no well)")
@@ -105,7 +105,7 @@ if (set == 'early'){
   m_downsample <- m[,downsample_samples]
   seurat__standard <- make_seurat_obj(m_downsample,cell_info, split.by = covariate,mito_geneids=mito_geneids)
 } else if (set == 'universe'){
-  seurat__standard <- make_seurat_obj(m, cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids)
+  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(Tissue != 'Organoid') %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids)
 } else if (set == 'universeX'){
   seurat__standard <- make_seurat_obj(m, cell_info, split.by = covariate, lengthCor = TRUE, only_use_human_for_FVF = TRUE, mito_geneids = mito_geneids)
 } else if (set %in% c('cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods' )){
