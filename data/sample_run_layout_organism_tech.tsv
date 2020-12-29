@@ -531,22 +531,22 @@ SRS5434860	Adult_retina_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP2232
 SRS5434860	Adult_retina_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	31360	Late	Retina  adult;dissociated retina
 SRS5434860	Adult_retina_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	31360	Late	Retina  adult;dissociated retina
 SRS5434860	Adult_retina_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	31360	Late	Retina  adult;dissociated retina
-SRS5434850	30_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid
-SRS5434850	30_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid
-SRS5434850	30_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid
-SRS5434850	30_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid
-SRS5434849	24_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid
-SRS5434849	24_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid
-SRS5434849	24_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid
-SRS5434849	24_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid
-SRS5434851	42_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid
-SRS5434851	42_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid
-SRS5434851	42_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid
-SRS5434851	42_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid
-SRS5434852	59_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid
-SRS5434852	59_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid
-SRS5434852	59_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid
-SRS5434852	59_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid
+SRS5434850	30_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	30 days in culture; dissociated retinal organoid
+SRS5434850	30_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	30 days in culture; dissociated retinal organoid
+SRS5434850	30_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	30 days in culture; dissociated retinal organoid
+SRS5434850	30_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	30 days in culture; dissociated retinal organoid
+SRS5434849	24_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	24 days in culture; dissociated retinal organoid
+SRS5434849	24_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	24 days in culture; dissociated retinal organoid
+SRS5434849	24_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	24 days in culture; dissociated retinal organoid
+SRS5434849	24_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	24 days in culture; dissociated retinal organoid
+SRS5434851	42_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	42 days in culture; dissociated retinal organoid
+SRS5434851	42_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	42 days in culture; dissociated retinal organoid
+SRS5434851	42_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	42 days in culture; dissociated retinal organoid
+SRS5434851	42_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	42 days in culture; dissociated retinal organoid
+SRS5434852	59_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	59 days in culture; dissociated retinal organoid
+SRS5434852	59_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	59 days in culture; dissociated retinal organoid
+SRS5434852	59_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	59 days in culture; dissociated retinal organoid
+SRS5434852	59_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Organoid	NA	-217	Early	59 days in culture; dissociated retinal organoid
 SRS866907	SRR1853183	PAIRED	Mus musculus	DropSeq	YES	SRP050054	Retina	retina6	14	Late	NA
 SRS1397477	SRR3375552	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP073242	Retina	NA	17	Late	NA
 SRS1397471	SRR3375558	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP073242	Retina	NA	17	Late	NA
@@ -1403,10 +1403,10 @@ SRS3770598	SRR7825755	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	60	
 SRS3770603	SRR7825763	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	60	Late	NA
 SRS3770607	SRR7825765	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	200	Late	NA
 SRS3770615	SRR7825773	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	200	Late	NA
-SRS3971244	SRR8099199	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA
-SRS3971244	SRR8099201	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA
-SRS3971244	SRR8099198	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA
-SRS3971244	SRR8099200	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA
+#SRS3971244	SRR8099199	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA
+#SRS3971244	SRR8099201	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA
+#SRS3971244	SRR8099198	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA
+#SRS3971244	SRR8099200	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA
 SRS4069757	SRR8234325	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA
 SRS4069763	SRR8234331	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA
 SRS4069767	SRR8234335	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA
@@ -4573,10 +4573,10 @@ SRS3770589	SRR7825746	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	60	
 SRS3770590	SRR7825749	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	200	Late	NA
 SRS3770594	SRR7825751	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	90	Late	NA
 SRS3770612	SRR7825769	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	200	Late	NA
-SRS3971245	SRR8099202	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA
-SRS3971245	SRR8099205	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA
-SRS3971245	SRR8099203	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA
-SRS3971245	SRR8099204	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA
+#SRS3971245	SRR8099202	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA
+#SRS3971245	SRR8099205	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA
+#SRS3971245	SRR8099203	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA
+#SRS3971245	SRR8099204	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA
 SRS4069756	SRR8234324	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA
 SRS4069768	SRR8234336	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA
 SRS4069777	SRR8234345	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA
