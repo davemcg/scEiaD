@@ -14,7 +14,7 @@
 	},
 	"bus" : 
 	{
-		"mem" : "160G",
+		"mem" : "200G",
 		"time" : "24:00:00"
 	},
 	"bustools_sort" : 
@@ -30,7 +30,7 @@
 	"create_sparse_matrix" : 
 	{
 		"time" : "00:40:00",
-		"mem" : "32G"
+		"mem" : "64G"
 	},
 	"kallisto_index":
 	{
@@ -44,8 +44,9 @@
 		"time" : "01:45:00"
 	},
 	"quant": {
-		"mem": "160g",
-		"time": "08:00:00"
+		"mem": "40g",
+		"time": "01:00:00",
+		"partition": "quick"
 	},
 	"kallisto_bus": {
 		"mem": "175g",
@@ -54,8 +55,9 @@
 	},
 	"merge_nonUMI_quant_by_organism" : 
 	{
-		"time" : "03:00:00",
-		"mem" : "120G",
+		"time" : "4:00:00",
+		"mem" : "150G",
+		"partition" : "norm",
 		"extra" : " --gres=lscratch:20"
 	},
 	"seurat_scTransform" :
@@ -64,9 +66,9 @@
 	},
 	"make_seurat_objs" :
 	{
-		"mem" : "600G",
-		"partition" : "largemem",
-		"time" : "8:00:00",
+		"mem" : "200G",
+		"partition" : "norm",
+		"time" : "3:00:00",
 		"extra" : " --gres=lscratch:10"
 	},
 	"make_seurat_objs_filtered" :
@@ -167,7 +169,7 @@
 	"pseudoBulk_DGE_buildObj" :
 	{
 		"partition" : "norm",
-		"mem" : "75G",
+		"mem" : "150G",
 		"time" : "10:00:00",
 		"extra" : " --gres=lscratch:2"
 	},
@@ -175,8 +177,15 @@
 	{
 		"partition" : "norm",
 		"mem" : "8G",
-		"time" : "12:00:00",
-		"extra" : " --gres=lscratch:2"
+		"time" : "4:00:00",
+		"extra" : " --gres=lscratch:1"
+	},
+	"merge_pseudoBulk_pairwise" :
+	{
+		"partition" : "quick",
+		"mem" : "16G",
+		"time" : "0:30:00",
+		"extra" : " --gres=lscratch:1"
 	},
 	"monocle_diff_merge" :
 	{
@@ -255,7 +264,7 @@
 	"sqlite_add_tables" :
 	{
 		"mem" : "50G",
-		"time" : "2:00:00",
+		"time" : "4:00:00",
 		"partition" : "norm",
 		"extra" : " --gres=lscratch:50"
 	},
