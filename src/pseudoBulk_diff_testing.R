@@ -43,6 +43,7 @@ if (grepl('A', comp)){
   CELLTYPE__res_pairwise <- pseudoBulk_testing(processed_data, 
                                                organism_covariate=TRUE,
                                                pairwise=TRUE,
+								               pieces = 500,
 											   edgeR_obj = edgeR_obj,
 														partition = partition)
   save(CELLTYPE__res_pairwise, file = out)
@@ -75,6 +76,7 @@ if (grepl('A', comp)){
   CELLTYPEPREDICT__res_pairwise <- pseudoBulk_testing(processed_data, 
                                                       organism_covariate=TRUE,
                                                       pairwise=TRUE,
+													  pieces = 500,
       												  edgeR_obj = edgeR_obj,
 														partition = partition)
   save(CELLTYPEPREDICT__res_pairwise, file = out)
