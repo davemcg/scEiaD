@@ -16,6 +16,9 @@ for (each_batch in unique(integrated_obj@meta.data$batch)){
 	prep <- scr$Scrublet(matrix %>% t())
 	out <- list()
 	out <- tryCatch(prep$scrub_doublets(), error = function(e) {list(0,'FAIL')})
+	if (is.null(out[[2]]) ) {
+		out[[2]] <- rep(FALSE, length(out[[1]]))
+	} 
 	out[[3]] <- bc
 	df <- cbind(out[[3]], out[[1]], out[[2]])
 	colnames(df) <- c('Barcode', 'Doublet Probability', 'Doublet')
