@@ -19,9 +19,11 @@ gene_id_converter <- suppressWarnings(read_tsv('~/git/massive_integrated_eye_scR
   select(-hs_gene_id_v))
 tf <- suppressWarnings(readxl::read_xlsx('~/git/massive_integrated_eye_scRNA/data/1-s2.0-S0092867418301065-mmc2.xlsx', skip = 1, sheet = 'Table S1. Related to Figure 1B'))
 source('../src/pseudotime_analysis.R')
+
 org <- umap_cut$organism %>% unique()
 umap <- umap %>% mutate(UMAP_1 = UMAP_1 * -1, UMAP_2 = UMAP_2 * -1)
 umap_cut <- umap_cut %>% mutate(UMAP_1 = UMAP_1 * -1, UMAP_2 = UMAP_2 * -1)
+
 ```
 
 
@@ -32,7 +34,7 @@ lin <- sling$lineage
 node_pos <- umap_cut %>%
   group_by(seurat_cluster_CT) %>% 
   summarise(x=mean(UMAP_1), y = mean(UMAP_2)) %>% 
-  rename(name = seurat_cluster_CT)
+  dplyr::rename(name = seurat_cluster_CT)
 xy = colnames(lin@adjacency) %>% 
   enframe(name = 'row', value = 'name') %>% 
   left_join(node_pos) %>% select(name, x,y) %>% 
@@ -46,7 +48,11 @@ create_layout(as_tbl_graph(lin@adjacency), #%>%
               y=xy$y)  %>% 
   ggraph() + 
   geom_edge_link() +
+<<<<<<< HEAD
   geom_scattermore(data = umap %>% filter(organism == org), aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + geom_edge_link(color = 'black') + geom_node_point(color = 'black', size = 3) + scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname()) + cowplot::theme_cowplot()
+=======
+  geom_scattermore(data = umap %>% filter(organism == org), aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + geom_edge_link(color = 'yellow') + geom_node_point(color = 'yellow', size = 3) + scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname()) + cowplot::theme_cowplot()
+>>>>>>> 01b513648389e635f15bcc016a213cb36f1c5d1f
 ```
 
 ```{r, fig.width=15, fig.height=10}
@@ -158,7 +164,7 @@ psTime_data <- psTime %>%
   as_tibble(rownames = 'Barcode') %>% 
   pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
   filter(!is.na(Pseudotime)) %>% 
-  left_join(umap) %>% 
+  left_join(umap %>% filter(organism == org)) %>% 
   #mutate(CellType = gsub('\\d+: ','', seurat_cluster_CT)) %>% 
   mutate(Curve = str_extract(Curve, '\\d+') %>% 
            as.numeric()) %>% filter(!is.na(Pseudotime), 
@@ -169,7 +175,11 @@ psTime_data$Curve <- psTime_data$Curve + runif(nrow(psTime_data), -0.2, 0.2)
 
 psTime_data %>% 
   ggplot(aes(x=Pseudotime, color = `CellType_predict`, y = Curve)) + 
+<<<<<<< HEAD
   geom_scattermore(alpha = 0.7, pointsize = 0) + 
+=======
+  geom_scattermore(alpha = 1, pointsize = 0) + 
+>>>>>>> 01b513648389e635f15bcc016a213cb36f1c5d1f
   scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% 
                        unname()) + 
   ggrepel::geom_label_repel(data = celltype_pseudotime, 
