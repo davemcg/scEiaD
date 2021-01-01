@@ -3,7 +3,15 @@ args <- commandArgs(trailingOnly = TRUE)
 library(tidyverse)
 
 output <- args[length(args)]
-input <- args[-length(args)]
+file_example <- args[1] 
+prefix <- gsub('__[ABC][123]__\\d+.Rdata', '', file_example)
+files <- list.files(path = 'pseudoBulk_DGE', full.names=TRUE)
+files <- files[grepl(prefix, files)]
+if (grepl('A2|B2|C2', file_example)){
+	input <- files[grepl('__A2__|__B2__|__C2__', files)]
+} else {
+	 input <- files[!grepl('__A2__|__B2__|__C2__', files)]
+}
 
 DE__CELLTYPEPREDICT__res_againstAll <- list()
 DE__CELLTYPEPREDICT__res_pairwise <- list()
@@ -63,10 +71,8 @@ PB_resultsABC <- list()
 PB_resultsC2 <- list()
 if (grepl('ABC', output)) {
 	DE__CELLTYPEPREDICT__res_againstAll <- binder(DE__CELLTYPEPREDICT__res_againstAll) %>% mutate(PB_Test = 'CellType (Predict) against Remaining')
-	DE__CELLTYPEPREDICT__res_pairwise <- binder(DE__CELLTYPEPREDICT__res_pairwise) %>% mutate(PB_Test = 'Pairwise CellType (Predict) against CellType (Predict)')
 	DE__CELLTYPEPREDICT__res_organism_celltype <- binder(DE__CELLTYPEPREDICT__res_organism_celltype) %>% mutate(PB_Test = 'Organism against Organism within CellType (Predict)')
 	DE__CELLTYPE__res_againstAll <- binder(DE__CELLTYPE__res_againstAll) %>% mutate(PB_Test = 'CellType against Remaining') 
-	DE__CELLTYPE__res_pairwise <- binder(DE__CELLTYPE__res_pairwise) %>% mutate(PB_Test = 'Pairwise CellType against CellType')
 	DE__CELLTYPE__res_organism_celltype <- binder(DE__CELLTYPE__res_organism_celltype) %>% mutate(PB_Test = 'Organism against Organism within CellType')
 	DE__CLUSTER__res_againstAll <- binder(DE__CLUSTER__res_againstAll) %>% mutate(PB_Test = 'Cluster against Remaining')
 	DE__CLUSTER__res_organism_celltype <- binder(DE__CLUSTER__res_organism_celltype) %>% mutate(PB_Test = 'Organism against Organism within Cluster ')
@@ -76,20 +82,24 @@ if (grepl('ABC', output)) {
 
 
 	PB_resultsABC <- bind_rows(DE__CELLTYPEPREDICT__res_againstAll,
-									DE__CELLTYPEPREDICT__res_pairwise,
+								#	DE__CELLTYPEPREDICT__res_pairwise,
 									DE__CELLTYPEPREDICT__res_organism_celltype,
 									DE__CELLTYPE__res_againstAll,
-									DE__CELLTYPE__res_pairwise,
+								#	DE__CELLTYPE__res_pairwise,
 									DE__CELLTYPE__res_organism_celltype,
 									DE__CLUSTER__res_againstAll,
 									DE__CLUSTER__res_organism_celltype)
 								#	DE__CLUSTER__res_againstAllWell,
 								#	DE__CLUSTER__res_pairwiseWell,
 								#	DE__CLUSTER__res_organism_celltypeWell)
-	save(PB_resultsABC, file = output)
+	save(PB_resultsABC, file = output, compress = FALSE)
 } else {
+	DE__CELLTYPEPREDICT__res_pairwise <- binder(DE__CELLTYPEPREDICT__res_pairwise) %>% mutate(PB_Test = 'Pairwise CellType (Predict) against CellType (Predict)')
+	DE__CELLTYPE__res_pairwise <- binder(DE__CELLTYPE__res_pairwise) %>% mutate(PB_Test = 'Pairwise CellType against CellType')
 	DE__CLUSTER__res_pairwise <- binder(DE__CLUSTER__res_pairwise) %>% mutate(PB_Test = 'Pairwise Cluster against Cluster')
-	PB_resultsC2 <- DE__CLUSTER__res_pairwise
-	save(PB_resultsC2, file = output)
+	PB_resultsC2 <- bind_rows(DE__CELLTYPEPREDICT__res_pairwise,
+								DE__CELLTYPE__res_pairwise,
+								DE__CLUSTER__res_pairwise)
+	save(PB_resultsC2, file = output, compress = FALSE)
 }
 

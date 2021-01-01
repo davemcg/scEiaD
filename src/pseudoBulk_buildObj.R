@@ -7,7 +7,7 @@ library(Seurat)
 library(edgeR)
 library(scuttle)
 library(BiocParallel)
-multicoreParam <- MulticoreParam(workers = 12)
+multicoreParam <- MulticoreParam(workers = 28)
 
 conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
 git_dir = Sys.getenv('SCIAD_GIT_DIR')
@@ -66,6 +66,7 @@ if (grepl('A', comp)){
   edgeR_obj <- pseudoBulk_testing(processed_data2, 
                                                organism_covariate=TRUE,
                                                pairwise=TRUE,
+											   pieces = 500,
 											   save_edgeR_obj = TRUE)
   } else if (grepl('3', comp)){
   # species against species, WITHIN A CELLTYPE
@@ -97,6 +98,7 @@ if (grepl('A', comp)){
   edgeR_obj <- pseudoBulk_testing(processed_data3, 
                                                       organism_covariate=TRUE,
                                                       pairwise=TRUE,
+													  pieces = 500,
       												  save_edgeR_obj = TRUE)
   } else if (grepl('3', comp)){
   # species against species, WITHIN A CELLTYPE_PREDICT
