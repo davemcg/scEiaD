@@ -67,7 +67,7 @@ write_tsv(meta_filter, path = 'site/metadata_filter.tsv.gz')
 # get coords for cell labels
 celltype_predict_labels <-  meta_filter %>%
               group_by(CellType_predict) %>%
-              summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2), TechType = unique(TechType)) 
+              summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2)) 
 
 celltype_labels <- meta_filter %>%
   group_by(CellType) %>%
@@ -80,7 +80,7 @@ tabulamuris_predict_labels <- meta_filter %>%
   summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2))
 # get coords for cell labels
 cluster_labels <- meta_filter %>%
-              group_by(cluster) %>% summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2), TechType = unique(TechType))
+              group_by(cluster) %>% summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2))
 
 # haystack
 load(args[5])
