@@ -76,6 +76,8 @@ run_sling <- function(seurat, group, reduction = 'scVI', ncell = 50000, start = 
 	sce <- as.SingleCellExperiment(seurat)
 	sce$group <- group
 	colLabels(sce) <- sce$group
+	print(table(sce$group))
+	print("\n\n")
 	if (length(umap$organism %>% unique()) == 1 & umap$organism %>% unique()  == 'Mus musculus'){
 		grep_against <- 'bloop'
 	} else {grep_against <- '^RPC'
@@ -89,15 +91,19 @@ run_sling <- function(seurat, group, reduction = 'scVI', ncell = 50000, start = 
 				filter(grepl('RPC', name)) %>%
 				head(1) %>%
 				pull(name)
-	} else {start <- grep(paste0('^', start), unique(colLabels(sce)), value = TRUE)
+	} else {start <- grep(paste0('^', start, ':'), unique(colLabels(sce)), value = TRUE)
     }
+	print("Start clusters")
 	print(start)
-	 ends <-  colLabels(sce) %>% 
+	print("")
+	ends <-  colLabels(sce) %>% 
 					unique() %>% 
 					enframe() %>% 
-					filter(!grepl('RPC|Prec|Neuro', value) | grepl('Retinal Ganglio', value)) %>% 
+					filter(!grepl('RPC|Prec|Neuro', value) ) %>% 
 					pull(value)
+	print("End clusters")
 	print(ends)
+	print("")
 	set.seed(90645)
 	sceL <- sce[,sample(1:ncol(sce), ncell)]
 	tic()
