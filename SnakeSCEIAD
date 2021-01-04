@@ -17,7 +17,7 @@ fi_tsne_dir = config['fi_tsne_dir']
 quant_path = config['quant_path']
 config_abspath=config['config_abspath']
 
-dist = [0.001,0.1,0.3]
+dist = [0.001,0.1,0.2,0.3]
 method = ['bbknn','insct','magic', 'scVI','scVIprojection','scVIprojectionSO','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
 transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
@@ -94,7 +94,7 @@ rule project_scVI_onto_all_data:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		export SCIAD_WORKING_DIR={working_dir}
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/project_scVI_onto_all_data.R {input} None {output} integrated_obj 
+		Rscript {git_dir}/src/project_scVI_onto_all_data.R {input} None {output} integrated_obj 
 		"""
 
 rule calculate_umap:
@@ -178,7 +178,7 @@ rule celltype_predict_VS_xgboost:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		export SCIAD_WORKING_DIR={working_dir}
-		Rscript  /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/celltype_predict_wrapper.R {input} {output}
+		Rscript  {git_dir}/src/celltype_predict_wrapper.R {input} {output}
 		"""
 
 rule doublet_ID:
@@ -192,7 +192,7 @@ rule doublet_ID:
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/doublet_ID.R {input} {output}
+		Rscript {git_dir}/src/doublet_ID.R {input} {output}
 		"""
 
 rule calculate_phate:
@@ -207,7 +207,7 @@ rule calculate_phate:
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_phate.R {input} {output}
+		Rscript {git_dir}/src/run_phate.R {input} {output}
 		"""
 
 #slingshot trajectory
@@ -221,7 +221,7 @@ rule sling:
 	shell:
 		"""
 		module load R/4.0
-		Rscript ~/git/massive_integrated_eye_scRNA/src/trajectory_sling.R {input} {wildcards.method} {wildcards.organism} {output}
+		Rscript {git_dir}/src/trajectory_sling.R {input} {wildcards.method} {wildcards.organism} {output}
 		"""
 
 rule doublet_filtering:
@@ -233,7 +233,7 @@ rule doublet_filtering:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/doublet_filtering.R {input} {output}
+		Rscript {git_dir}/src/doublet_filtering.R {input} {output}
 		"""
 
 rule make_sqlite:
@@ -253,7 +253,7 @@ rule make_sqlite:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/make_sqlite.R \
+		Rscript {git_dir}/src/make_sqlite.R \
 			{input.seurat} \
 			{input.meta} \
 			{input.cluster} \
@@ -275,7 +275,7 @@ rule haystack:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		module load R/3.6
-		Rscript ~/git/massive_integrated_eye_scRNA/src/haystack.R \
+		Rscript {git_dir}/src/haystack.R \
 			{input} \
 			max \
 			{output}
@@ -296,7 +296,7 @@ rule pseudoBulk_DGE_buildObj:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		module load R/4.0
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_buildObj.R {input} {wildcards.pseudoTest} {output}		
+		Rscript {git_dir}/src/pseudoBulk_buildObj.R {input} {wildcards.pseudoTest} {output}		
 		"""
 rule diff_test_wilcox:
 	input:
@@ -310,7 +310,7 @@ rule diff_test_wilcox:
 	shell:
 		"""
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/diff_testing_sce_wilcox.R {input} {wildcards.group} {threads} {output}
+		Rscript {git_dir}/src/diff_testing_sce_wilcox.R {input} {wildcards.group} {threads} {output}
 		"""
 
 rule pseudoBulk_DGE_difftest:
@@ -324,7 +324,7 @@ rule pseudoBulk_DGE_difftest:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		module load R/4.0
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_diff_testing.R {input} {wildcards.pseudoTest} {wildcards.piece} {output}		
+		Rscript {git_dir}/src/pseudoBulk_diff_testing.R {input} {wildcards.pseudoTest} {wildcards.piece} {output}		
 		"""
 	
 rule merge_pseudoBulk_against:
@@ -339,7 +339,7 @@ rule merge_pseudoBulk_against:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_merge.R {input[0]} {output}
+		Rscript {git_dir}/src/pseudoBulk_merge.R {input[0]} {output}
 		"""
 
 rule merge_pseudoBulk_pairwise:
@@ -353,7 +353,7 @@ rule merge_pseudoBulk_pairwise:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/pseudoBulk_merge.R {input[0]} {output}
+		Rscript {git_dir}/src/pseudoBulk_merge.R {input[0]} {output}
 		"""
 
 
@@ -367,12 +367,12 @@ rule sqlite_add_tables:
 		#diff_glm_subcluster = 'diff_testing/{combination}__{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__{dims}__{dist}__knn-{knn}__{neighbors}.G.SC.diff.coef_table.Rdata',
 		#marker_monocle = expand('diff_test/{{combination}}__n_spec_genes-{n_spec_genes}__n_features{{n_features}}__{transform-{transform}}__partition-{{partition}}__covariate-{{covariate}}__method-{{method}}__dims-{{dims}}__preFilter.scEiaDprojected__dist{{dist}}__nneighbors{{neighbors}}__{group}.monocleTopMarker.Rdata', \
 		#			group = ['seuratCluster','CellType_predict']),
-		against = 'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}__knn-{knn}__ABC.Rdata',
-		pairwise = 'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}__knn-{knn}__pairwise.Rdata',
+		#against = 'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}__knn-{knn}__ABC.Rdata',
+		#pairwise = 'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}__knn-{knn}__pairwise.Rdata',
 		doublet = 'doublet_calls/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}.doublets.Rdata',
 		haystack = 'haystack/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}.haystack.Rdata',
 		diff_wilcox = expand('diff_testing/n_features-{{n_features}}__transform-{{transform}}__partition-{{partition}}__covariate-{{covariate}}__method-{{method}}__dims-{{dims}}__knn-{{knn}}__neighbors-{{neighbors}}__dist-{{dist}}__{group}.sceWilcox.Rdata', \
-					group = [ 'cluster','CellType_predict','CellType'])
+					group = ['CellType_predict','CellType', 'cluster'])
 	output:
 		uncompressed = 'site/MOARTABLES__anthology_limma{correction}___{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite',
 		compressed = 'site/MOARTABLES__anthology_limma{correction}___{n_features}-transform-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite.gz'
@@ -386,9 +386,8 @@ rule sqlite_add_tables:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		module load R/3.6
-		Rscript /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/sqlite_add_diff_tables.R {params.inp} \
-			{input.against} \
-			{input.pairwise} \
+		Rscript {git_dir}/src/sqlite_add_diff_tables.R {params.inp} \
+			{input.diff_wilcox} \
 			{input.doublet} \
 			{input.haystack} 
 		pigz -c -p {threads} {params.inp} > {output.compressed}
@@ -406,9 +405,9 @@ rule make_PLAE_objs:
 		seurat_umap = 'seurat_obj/integrated/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '.umap.Rdata',
 		cluster = 'cluster/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__knn-' + config['knn'] + '.cluster.Rdata', 
 		seurat = 'seurat_obj/integrated/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected.seuratV3.Rdata',
-		a1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__A1__edgeR_obj.Rdata',
-		b1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__B1__edgeR_obj.Rdata',
-		c1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__C1__edgeR_obj.Rdata',
+		#a1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__A1__edgeR_obj.Rdata',
+		#b1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__B1__edgeR_obj.Rdata',
+		#c1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__C1__edgeR_obj.Rdata',
 	output:
 		'site/scEiaD_all_seurat_v3.Rdata',
 		#'site/scEiaD_well_seurat_v3.Rdata',
@@ -421,20 +420,16 @@ rule make_PLAE_objs:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		module load R/3.6
-		Rscript ~/git/massive_integrated_eye_scRNA/src/output_objs_for_plae.R \
+		Rscript {git_dir}/src/output_objs_for_plae.R \
 			{input.seurat_umap} \
 			{input.seurat} \
 			{input.umap} \
 			{input.cluster} \
 			{input.raw_obj} \
 			{input.sqlite}
-		Rscript ~/git/massive_integrated_eye_scRNA/src/seurat_to_h5ad_core.R site/scEiaD_all_seurat_v3.Rdata scEiaD_droplet site/scEiaD_all_anndata.h5ad
+		Rscript {git_dir}/src/seurat_to_h5ad_core.R site/scEiaD_all_seurat_v3.Rdata scEiaD_droplet site/scEiaD_all_anndata.h5ad
 
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R {input.a1_obj} site/pseudoBulk_celltype.tsv.gz
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R {input.b1_obj}  site/pseudoBulk_celltypePredict.tsv.gz
-		Rscript ~/git/massive_integrated_eye_scRNA/src/pseudoBulk_output_for_site.R {input.c1_obj} site/pseudoBulk_cluster.tsv.gz
-
-		Rscript ~/git/massive_integrated_eye_scRNA/src/build_QC_stats.R {input.umapFilter} site/counts_unfiltered.Rdata
+		Rscript {git_dir}/src/build_QC_stats.R {input.umapFilter} site/counts_unfiltered.Rdata
 		"""
 
 
