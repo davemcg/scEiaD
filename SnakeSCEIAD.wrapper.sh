@@ -17,11 +17,11 @@ sbcmd="sbatch --cpus-per-task={threads} \
 {cluster.extra}"
 
 
-snakemake -s /home/mcgaugheyd/git/massive_integrated_eye_scRNA/SnakeSCEIAD \
+snakemake -s /home/mcgaugheyd/git/scEiaD/SnakeSCEIAD \
 -pr --jobs 1999 \
 --configfile $1 \
 --use-conda \
---cluster-config /home/mcgaugheyd/git/massive_integrated_eye_scRNA/cluster.json \
+--cluster-config /home/mcgaugheyd/git/scEiaD/cluster.json \
 --cluster "$sbcmd"  --latency-wait 120 --rerun-incomplete \
 -k --restart-times 0 \
 --resources parallel=4
