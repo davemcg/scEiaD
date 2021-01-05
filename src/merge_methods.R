@@ -350,11 +350,12 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 	if (sum(colSums(matrix)==0) > 0){
 		matrix[,colSums(matrix) == 0] <- one0
 	}
-	
+	seurat_obj@meta.data$SA = row.names(seurat__standard@meta.data) %>%  str_extract(., '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')	
 	create(filename= out, 
            overwrite = TRUE,
            data = matrix, 
            cell.attrs = list(batch = seurat_obj@meta.data[,covariate],
+						     sample_accession = seurat_obj@meta.data[,'SA'],
                              batch_indices = seurat_obj@meta.data[,covariate] %>% 
                                as.factor() %>% 
                                as.numeric()))
@@ -380,7 +381,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_layers,
 						 'FALSE')
 	if (method == 'scVIprojection') {
-    	scVI_command = paste(glue('{conda_dir}/envs/scvitools/bin/./python {git_dir}/src/run_scVI_projection.py'),
+    	scVI_command = paste(glue('{conda_dir}/envs/scvitools080/bin/./python {git_dir}/src/run_scVI_projection.py'),
                          out,
                          n_epochs,
                          lr,
@@ -391,7 +392,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 						 'FALSE')
 	}
 	if (method == 'scVIprojectionSO') {
-    	scVI_command = paste(glue('{conda_dir}/envs/scvitools/bin/./python {git_dir}/src/run_scVI_projection.py'),
+    	scVI_command = paste(glue('{conda_dir}/envs/scvitools080/bin/./python {git_dir}/src/run_scVI_projection.py'),
                          out,
                          n_epochs,
                          lr,

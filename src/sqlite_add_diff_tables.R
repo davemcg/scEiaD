@@ -65,35 +65,22 @@ write_tsv(meta_filter, path = 'site/metadata_filter.tsv.gz')
 
 # coordinates
 # get coords for cell labels
-celltype_predict_labels <-
-  bind_rows(meta_filter %>%
-              filter(TechType == 'Droplet') %>%
+celltype_predict_labels <-  meta_filter %>%
               group_by(CellType_predict) %>%
-              summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2), TechType = unique(TechType)), 
-            meta_filter %>%
-              filter(TechType == 'Well') %>%
-              group_by(CellType_predict) %>%
-              summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2), TechType = unique(TechType)))
+              summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2)) 
 
 celltype_labels <- meta_filter %>%
   group_by(CellType) %>%
-  summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2)) %>%
-  mutate(TechType = 'Droplet')
+  summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2))
 # tabulamuris_labels <- meta_filter %>%
 #   group_by(TabulaMurisCellType) %>%
 #   summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2))
 tabulamuris_predict_labels <- meta_filter %>%
   group_by(TabulaMurisCellType_predict) %>%
-  summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2)) %>%
-  mutate(TechType = 'Droplet')
+  summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2))
 # get coords for cell labels
-cluster_labels <-
-  bind_rows(meta_filter %>%
-              filter(TechType == 'Droplet') %>%
-              group_by(cluster) %>% summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2), TechType = unique(TechType)),
-            meta_filter %>%
-              filter(TechType == 'Well') %>%
-              group_by(cluster) %>% summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2), TechType = unique(TechType)))
+cluster_labels <- meta_filter %>%
+              group_by(cluster) %>% summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2))
 
 # haystack
 load(args[5])

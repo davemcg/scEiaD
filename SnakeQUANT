@@ -435,7 +435,7 @@ rule create_sparse_matrix:
 rule merge_nonUMI_quant_by_organism:
 	input:
 		quant = lambda wildcards: expand(quant_path + '/quant/{SRS}/well/{{reference}}/abundance.tsv.gz', 
-										SRS = [srs for srs in SRS_dict.keys() if SRS_dict[srs]['organism'] == wildcards.organism ] ),
+										SRS = [srs for srs in SRS_dict.keys() if SRS_dict[srs]['organism'] == wildcards.organism and SRS_dict[srs]['tech'] not in ['DropSeq', '10xv2', '10xv3']]),
 		tx_map = 'references/velocity/well/{reference}/tr2g.tsv',
 		gtf = 'references/gtf/{reference}_anno.gtf.gz'
 	output:

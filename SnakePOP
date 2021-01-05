@@ -107,8 +107,8 @@ if config['subset_clustering'] == 'False':
 	# scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
 	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
 	#partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
-	partitions_to_run = [ 'TabulaDropletLabelled', 'TabulaDroplet',  "Homo_sapiens", "Mus_musculus"]
-	scIB_partitions_to_run =  [ 'TabulaDropletLabelled', 'TabulaDroplet', "Homo_sapiens", "Mus_musculus"] 
+	partitions_to_run = ['universe', 'TabulaDroplet']
+	scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
 else:
 	partitions_to_run = ['celltype_subset']
 	scIB_partitions_to_run = ['celltype_subset']
@@ -116,7 +116,8 @@ else:
 
 rule all:
 	input:
-		'pipeline_data/results/merged_stats.Rdata'
+		'pipeline_data/results/merged_stats.Rdata',
+		"seurat_obj/raw/n_features-1000__transform-counts__partition-raw__covariate-batch__preFilter.seuratV3.Rdata"
 	
 # get annotation for each species 
 rule download_annotation:
@@ -146,6 +147,7 @@ rule label_known_cells_with_type:
 	shell:
 		"""
 		module load R/3.6
+		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		Rscript {git_dir}/src/label_known_cells.R 
 		"""
@@ -189,6 +191,7 @@ rule make_seurat_objs:
 	shell:
 		"""
 		module load R/3.6
+		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		Rscript {git_dir}/src/build_seurat_obj_classic.R {params.rson} {config_abspath}
 		"""
@@ -200,7 +203,7 @@ intg_obj_sfx = 'preFilter.seuratV3.Rdata'
 
 def which_method(p):
 	if p == 'scVI':
-		return 'merge_methods_scvi_ONLY.R'
+		return 'merge_methods.R'
 	elif p == 'ldvae':
 		return 'merge_methods_ldvae.R'
 	else:
@@ -219,7 +222,7 @@ rule integrate_00:
 	shell:
 		"""
 
-		module load R/4.0.3
+		module load R/3.6
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
@@ -456,67 +459,6 @@ rule scIB_stats:
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
 		Rscript {git_dir}/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
-		"""
-
-q_traj_pfx ='pipeline_data/trajectory/data/'
-q_traj_param = mk_h5ad_param
-q_traj_sfx = 'quickTSCANmst.Rdata'
-rule quick_trajectory:
-	input:
-		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx),
-		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx),
-		make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx)	
-	output:
-		make_wc_string(q_traj_pfx, q_traj_param, q_traj_sfx)
-	shell:
-		"""
-		module load R/4.0
-		Rscript{git_dir}/src/trajectory_tscan.R {input} {wildcards.method} {output}
-		"""
-plt_traj_pfx ='pipeline_data/trajectory/plot/'
-plt_traj_param = mk_h5ad_param
-plt_traj_sfx = 'quickTSCANmst.png'
-
-rule plot_quick_trajectory:
-	input:
-		make_wc_string(q_traj_pfx, q_traj_param, q_traj_sfx)
-	output:
-		make_wc_string(plt_traj_pfx, plt_traj_param, plt_traj_sfx)
-	shell:
-		"""
-		module load R/4.0
-		Rscript {git_dir}/src/trajectory_plot.R {input} {output}
-		"""
-
-cntr_traj_pfx ='pipeline_data/trajectory/metrics/'
-cntr_traj_param = mk_h5ad_param
-cntr_traj_sfx = 'centrality.tsv'
-rule centrality_quick_trajectory:
-	input:
-		make_wc_string(plt_traj_pfx, plt_traj_param, plt_traj_sfx)
-	output:
-		make_wc_string(cntr_traj_pfx, cntr_traj_param, cntr_traj_sfx)
-	shell:
-		"""
-		module load R/4.0
-		Rscript {git_dir}/src/trajectory_centrality.R {input} {output}
-		"""
-#this is for input
-# cntr_mrg_pfx ='pipeline_data/trajectory/metrics/'
-# cntr_mrg_param = mk_h5ad_param
-# cntr_mrg_sfx = 'centrality.tsv'	
-rule centrality_merge:
-	input:
-		parse_integration_config(file = config['integration_json'],
-		output_string = make_wc_string(cntr_traj_pfx, cntr_traj_param, cntr_traj_sfx), 
-		which_partitions = ['TabulaDropletLabelled']
-		)
-	output:
-		'trajectory_metrics/merged.Rdata'
-	shell:
-		"""
-		module load R/4.0
-		Rscript  {git_dir}/src/trajectory_centrality_merge.R {input} {output}
 		"""
 
 # for input 

@@ -4,7 +4,7 @@
 # module load snakemake || exit 1
 
 # activate conda
-rm -rf 00log/
+#rm -rf 00log/
 mkdir -p 00log/ 
 snakefile=$1
 config=$2
