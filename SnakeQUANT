@@ -78,20 +78,14 @@ def SRP_2_SRS(quant_path, SRP, reference, sfx, srs_dict):
 
 def well_and_droplet_input(organism, reference, quant_path, SRP_droplet_dict, otd, sfx):
 	target_srps = [ srp for srp in  SRP_droplet_dict.keys() if SRP_droplet_dict[srp]['organism'] == organism ] 
-	if organism == 'Macaca_fascicularis':
-		out = [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
-	else:
-		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + \
-				[f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
-	return(out)
+	well = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ]
+	droplet =  [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
+	return well + droplet
 
 def well_and_droplet_stats(organism, reference, quant_path, SRS_dict, otd):
-	if organism == 'Macaca_fascicularis':
-		out = [f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/stats.tsv' for srs in organism_droplet_dict[organism]]
-	else:
-		out = [f'{quant_path}/quant/{organism}/{tech}/{reference}__counts.Rdata' for tech in otd[organism]] + \
-				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/stats.tsv' for srs in organism_droplet_dict[organism]]
-	return(out)
+	well = [f'{quant_path}/quant/{organism}/{tech}/{reference}__counts.Rdata' for tech in otd[organism]]
+	droplet = [f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/stats.tsv' for srs in organism_droplet_dict[organism]]
+	return well + droplet
 
 
 def REF_idx(organism, ref, org2tech):
@@ -132,7 +126,7 @@ organism_welltech_dict ={'Homo_sapiens':[], 'Mus_musculus':[], 'Macaca_fascicula
 		
 	
 for x in SRS_dict:
-	if not SRS_dict[x]['UMI'] or not SRS_dict[x]['paired']:
+	if not SRS_dict[x]['UMI']:# not UMI == Well
 		organism = SRS_dict[x]['organism']
 		tech = SRS_dict[x]['tech']
 		if tech not in organism_welltech_dict[organism]:
@@ -148,7 +142,7 @@ organism_droplet_dict = {}
 droplet_samples = set()
 srp_droplet_dict = dict()
 for x in SRS_dict:
-	if SRS_dict[x]['UMI'] and SRS_dict[x]['paired']:
+	if SRS_dict[x]['UMI']:
 		droplet_samples.add(x)
 		organism = SRS_dict[x]['organism']
 		study = SRS_dict[x]['Study']
