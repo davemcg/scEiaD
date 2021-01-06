@@ -1,13 +1,13 @@
 args = commandArgs(trailingOnly=TRUE)
 working_dir = args[1]
 git_dir = args[2]
-
 library(tidyverse)
 library(Matrix)
 library(Matrix.utils)
 library(Seurat)
 library(glue)
 setwd(working_dir)
+patterns <- scan(args[3], what = character(), sep='\n') %>% paste0(collapse = '|')
 load_rdata <- function(x){
   load(x)
   env <- ls.str()
@@ -135,7 +135,7 @@ all_cells_all_species_matrix <-  RowMergeSparseMatrices(homo_hs_matrix_cg, mus_m
 metadata <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv'))
 
 all_cell_info <- colnames(all_cells_all_species_matrix) %>% enframe() %>% 
-  mutate(sample_accession = str_extract(value, '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')) %>% 
+  mutate(sample_accession = str_extract(value, glue('({patterns})\\d+') )) %>% 
   left_join(metadata %>% select(-run_accession) %>% unique()) %>% 
   data.frame() %>% 
   mutate(batch = paste(study_accession, Platform, Covariate, sep = '_'),

@@ -8,7 +8,8 @@ save(args, file = 'testing/nu_reumi_args.Rdata')
 #REF = args[2]
 outdir <- args[1]
 mito_genelist <-scan(args[2], what = character(), sep = '\n')
-srs_directories <- args[-(1:2)]
+# patterns <- args[3]
+srs_directories <- args[-(1:3)]
 ########################################################
 # base_dir = '/data/swamyvs/scEiaD/'
 # SRS = 'SRS6424747'
@@ -29,13 +30,13 @@ library(Matrix)
 library(DropletUtils)
 library(readr)
 library(zeallot)
-
+library(glue)
 # input data from project
 ## its embarssing i didnt think of this first.
-
+patterns <- scan(args[3], what = character(), sep='\n') %>% paste0(collapse = '|')
 
 read_bus <- function(indir){
-  sample_id <- str_extract(indir, '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+  sample_id <- str_extract(indir, glue('({patterns})\\d+') )
   l <- read_velocity_output(spliced_dir = indir,
                        spliced_name = "spliced",
                        unspliced_dir = indir,
@@ -162,7 +163,8 @@ remove_empty_droplets <- function(x, srs, mito_genelist){
 
 study_counts_list <- lapply(srs_directories,read_bus) 
 
-srs_names <- str_extract(srs_directories, '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+
+srs_names <- str_extract(srs_directories, glue('({patterns})\\d+') )
 names(study_counts_list) <- srs_names
 
 filtered_counts <- lapply(seq_along(study_counts_list), function(i) remove_empty_droplets(study_counts_list[[i]], 
