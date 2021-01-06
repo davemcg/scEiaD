@@ -68,14 +68,6 @@ def SRP_2_SRS(quant_path, SRP, reference, sfx, srs_dict):
 	return out
 
 
-# return dummy well file for macaca ,as there is no well data at this time
-# def OLDwell_and_droplet_input(organism, reference, quant_path, SRS_dict, otd, sfx):
-# 	if organism == 'Macaca_fascicularis':
-# 		out = [f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/{sfx}' for srs in organism_droplet_dict[organism]]
-# 	else:
-# 		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + \
-# 				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/{sfx}' for srs in organism_droplet_dict[organism]]
-# 	return(out)
 
 def well_and_droplet_input(organism, reference, quant_path, SRP_droplet_dict, otd, sfx):
 	target_srps = [ srp for srp in  SRP_droplet_dict.keys() if SRP_droplet_dict[srp]['organism'] == organism ] 
@@ -112,6 +104,28 @@ def ORG_ref(organism, which_return):
 		out = [f'pipeline_data/cell_info/{organism}_{ref}_cell_info.tsv' for ref in refs]
 
 	return(out)
+
+def get_whitelist_from_tech(tech):
+	if tech == 'DropSeq':
+		return f'references/whitelist/DropSeq/barcodes.txt'
+	else:
+		return('references/whitelist/10x/{tech}.txt')
+
+def get_kallisto_quant_layout_flag(is_paired):
+	if is_paired:
+		return ''
+	else: 
+		return '--single -l 200 -s 30'
+
+def DROPSEQ_samples_from_reference(quant_path ,srs_dict):
+	out= []
+	for sample in srs_dict.keys():
+		if srs_dict[sample]['tech'] == 'DropSeq' :
+			if srs_dict[sample]['organism'] == 'Homo_sapiens':
+				out.append(f'{quant_path}/quant/{sample}/DropSeq/hs-homo_sapiens/output.sorted.bus')
+			else:
+				out.append(f'{quant_path}/quant/{sample}/DropSeq/mm-mus_musculus/output.sorted.bus')
+	return out 
 
 srr_sample_file = config['srr_sample_file']
 SRS_dict = metadata_builder(srr_sample_file)
@@ -294,12 +308,6 @@ rule kallisto_bus:
 
 
 # pseudoaligment for nonUMI data (e.g. smartseq)
-def get_kallisto_quant_layout_flag(is_paired):
-	if is_paired:
-		return ''
-	else: 
-		return '--single -l 200 -s 30'
-
 rule kallisto_quant:
 	input:
 		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS, fastq_path),
@@ -334,16 +342,6 @@ rule bustools_sort:
 			{input} \
 			-o {output}
 		"""
-def DROPSEQ_samples_from_reference(quant_path ,srs_dict):
-	out= []
-	for sample in srs_dict.keys():
-		if srs_dict[sample]['tech'] == 'DropSeq' :
-			if srs_dict[sample]['organism'] == 'Homo_sapiens':
-				out.append(f'{quant_path}/quant/{sample}/DropSeq/hs-homo_sapiens/output.sorted.bus')
-			else:
-				out.append(f'{quant_path}/quant/{sample}/DropSeq/mm-mus_musculus/output.sorted.bus')
-	return out 
-
 
 rule make_dropseq_whitelists:
 	input: 
@@ -364,11 +362,7 @@ rule make_dropseq_whitelists:
 		'''
 
 
-def get_whitelist_from_tech(tech):
-	if tech == 'DropSeq':
-		return f'references/whitelist/DropSeq/barcodes.txt'
-	else:
-		return('references/whitelist/10x/{tech}.txt')
+
 # find barcodes, correct barcodes
 # make these temp files
 rule bustools_whitelist_correct_count:
@@ -416,7 +410,7 @@ rule create_sparse_matrix:
 	#group: "bus"	
 	shell:
 		"""
-		module load R/3.6
+		module load R/4.0.3 #need 1.10 of droplet utils 
 		
         Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {input.mito_genelist} {pattern_file} {params.bus_outdirs}
 
