@@ -88,9 +88,10 @@ save(all_cells_macaque_hs_ids, file ='pipeline_data/clean_quant/Macaca_fascicula
 
 
 ## free up some memory
-
 gdata::keep(all_cells_macaque_hs_ids, gene_id_converter, joined, load_rdata, git_dir, working_dir, hs_to_mf, 
-            hs_genes,merge_macaque_references, sure = T)
+            hs_genes,merge_macaque_references,patterns, sure = T)
+
+
 intron_maca_mf_matrix <- load_rdata('pipeline_data/clean_quant/Macaca_fascicularis/mf-macaca_mulatta_full_sparse_unspliced_matrix.Rdata')
 intron_maca_hs_matrix <- load_rdata('pipeline_data/clean_quant/Macaca_fascicularis/hs-homo_sapiens_full_sparse_unspliced_matrix.Rdata')
 all_intron_macaque_data =  merge_macaque_references(intron_maca_mf_matrix,intron_maca_hs_matrix, hs_to_mf, hs_genes)
