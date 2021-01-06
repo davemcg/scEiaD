@@ -153,10 +153,25 @@ remove_empty_droplets <- function(x, srs, mito_genelist){
                       ncells_failed_max_umi = sum(!cells_below_max_umi), 
                       ncells_failed_mito = sum(!cells_below_max_mito_pt), 
                       ncells_total_pass_qc = sum(keep_cells))
-  return(list(spliced = spliced[,keep_cells],
-              unspliced = unspliced[,keep_cells],
-              stats = df, 
-              pct_mt_df = pct_mt_df))
+  if(sum(keep_cells)>1){
+    spliced_out = spliced[,keep_cells]
+    unspliced_out = unspliced[,keep_cells]
+    stats_out = df 
+    pct_mt_df_out = pct_mt_df
+  } else{# rare edge case where sample has only one cell
+    
+    spliced_out = Matrix(spliced[,keep_cells], ncol=1)
+    unspliced_out = Matrix(unspliced[,keep_cells], ncol=1)
+    colnames(spliced_out) <- colnames(unspliced_out) <- colnames(spliced)[keep_cells]
+    rownames(spliced_out) <- rownames(spliced)
+    rownames(unspliced_out) <- rownames(unspliced)
+    stats_out = df 
+    pct_mt_df_out = pct_mt_df
+  }
+  return(list(spliced = spliced_out,
+              unspliced = unspliced_out,
+              stats = stats_out, 
+              pct_mt_df = pct_mt_df_out))
 
 }
 
