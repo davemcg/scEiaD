@@ -71,9 +71,12 @@ def SRP_2_SRS(quant_path, SRP, reference, sfx, srs_dict):
 
 def well_and_droplet_input(organism, reference, quant_path, SRP_droplet_dict, otd, sfx):
 	target_srps = [ srp for srp in  SRP_droplet_dict.keys() if SRP_droplet_dict[srp]['organism'] == organism ] 
-	well = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ]
-	droplet =  [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
-	return well + droplet
+	if organism == 'Macaca_fascicularis':
+		out = [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
+	else:
+		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]	
+	return(out)
+
 
 def well_and_droplet_stats(organism, reference, quant_path, SRS_dict, otd):
 	well = [f'{quant_path}/quant/{organism}/{tech}/{reference}__counts.Rdata' for tech in otd[organism]]
