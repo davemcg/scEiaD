@@ -55,7 +55,7 @@ umap %>%
   mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unknown', TRUE ~ CellType_predict)) %>% 
   ggplot(aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + 
   geom_scattermore(pointsize =  0, pixels = c(1000,1000), alpha = 0.6) + 
-  scale_color_manual(values = c(pals::watlington(), pals::alphabet()) %>% unname()) + 
+  scale_color_manual(values = c(pals::cols25()[1:23],pals::alphabet()) %>% unname()) + 
   cowplot::theme_cowplot() +
   guides(color = guide_legend(override.aes = list(size = 7, alpha = 1) ) ) 
 
@@ -65,7 +65,7 @@ umap %>%
   #mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unknown', TRUE ~ CellType_predict)) %>% 
   ggplot(aes(x=UMAP_1, y=UMAP_2, color = cluster)) + 
   geom_scattermore(pointsize =  0, pixels = c(1000,1000), alpha = 0.6) + 
-  scale_color_manual(values = c(pals::watlington(), pals::alphabet(), pals::kelly()) %>% unname()) + 
+  scale_color_manual(values = c(pals::cols25()[1:23],pals::alphabet(), pals::kelly()) %>% unname()) + 
   cowplot::theme_cowplot() +
   guides(color = guide_legend(override.aes = list(size = 7, alpha = 1) ) ) 
 
@@ -78,19 +78,19 @@ umap %>%
   #mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unknown', TRUE ~ CellType_predict)) %>% 
   ggplot(aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + 
   geom_scattermore(pointsize =  5, pixels = c(1000,1000), alpha = 0.2) + 
-  scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname()) + 
+  scale_color_manual(values = c(pals::cols25()[1:23],pals::alphabet()) %>% unname()) + 
   cowplot::theme_cowplot() +
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1) ) ) +
   facet_wrap(~CellType_predict)
 ```
 
-```{r, fig.width=15, fig.height=10}
+```{r, fig.width=10, fig.height=6}
 umap %>%
   filter(organism == org) %>% 
   #mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unknown', TRUE ~ CellType_predict)) %>% 
   ggplot(aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + 
   geom_scattermore(pointsize =  5, pixels = c(1000,1000), alpha = 0.2) + 
-  scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname()) + 
+  scale_color_manual(values = c(pals::cols25()[1:23],pals::alphabet()) %>% unname()) + 
   cowplot::theme_cowplot() +
   guides(color = guide_legend(override.aes = list(size = 3, alpha = 1) ) ) +
   facet_wrap(~cluster)
@@ -227,7 +227,7 @@ psTime_data %>%
 <!-- ``` -->
 
 ```{r}
-select_curves <- c(1,2,3,4,5,6,8,9,10,11,12,13,14,15,16,17,19,20,21,22,23,25,27,28,30,31,33,34,35,36,38,39,40,41,42,43,44,45,47,48,49)
+select_curves <- seq(1,65,1)[-c(8,19,20,41,45, 47, 49, 52,56, 65)]
 psTime %>% 
   as_tibble(rownames = 'Barcode') %>% 
   pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
@@ -290,7 +290,7 @@ psTime %>%
 
 <!-- ``` -->
 
-```{r, fig.height=4, fig.width=5}
+```{r, fig.height=3, fig.width=3}
 for (i in paste0('slingPseudotime_', select_curves)){
   draw(hm_maker(i, 15, onlyShowTF = TRUE, round_to = 0.1, column_title = i) )
 }

@@ -51,7 +51,7 @@ hm_maker <- function(pseudotime,
   }
   
   long$group <- (round(long$PT * multiplier, digits = digits) / multiplier) 
- #mutate(group = (round(PT * multiplier, digits = round_to)) / multiplier)
+  #mutate(group = (round(PT * multiplier, digits = round_to)) / multiplier)
   if (!is.null(max_pseudotime)){
     long <- long %>% filter(group <= max_pseudotime)
   }
@@ -66,7 +66,7 @@ hm_maker <- function(pseudotime,
                  mutate(group = as.character(group)), by = 'group') %>% 
     mutate(group = as.numeric(group)) %>% 
     arrange(group)
-                               
+  
   new_colname <- long  %>% 
     select(CellType_predict, group) %>% 
     group_by(group, CellType_predict) %>% 
