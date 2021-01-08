@@ -249,4 +249,4 @@ for (i in colnames(colData(sce)) %>% grep('slingP', .,  value = TRUE)){
   toc()
 }
 
-save(umap, umap_cut, sling, diffPT, file = out
+save(umap, umap_cut, sling, diffPT, file = out)
