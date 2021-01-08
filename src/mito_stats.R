@@ -2,11 +2,13 @@ args= commandArgs(trailingOnly = T)
 #save(args, file = 'testing/mito_stargs.Rdata')
 library(parallel)
 library(tidyverse)
+library(glue)
 wd = args[1]
 drop_mt_pfx = args[2]
 quant_path =args[3]
 mito_gene_stem = args[4]
-outfile = args[5]
+patterns <- scan(args[5], what = character(), sep='\n') %>% paste0(collapse = '|')
+outfile = args[6]
 
 
 files_drop <- list.files('pipeline_data/', pattern = drop_mt_pfx, recursive=TRUE, full.names=TRUE)
@@ -16,7 +18,7 @@ drop_mito <- lapply(files_drop, read_tsv) %>% bind_rows
 mito_genes <- lapply(mito_gene_files, function(x) scan(x, character(), sep= '\n')) %>%  reduce( c)
 
 read_well_pt_mito <- function(file){
-  sample <- str_extract(file, '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+  sample <- str_extract(file, glue('({patterns})\\d+') )
   mat <- read_tsv(file, )
   m <- mat[,3, drop = FALSE] %>% as.matrix()
   row.names(m) <- mat$target_id

@@ -7,6 +7,7 @@ import json
 import string
 import itertools
 import time 
+import re
 
 # builds dictionary of dictionaries where first dict key is SRS 
 # and second dict key are SRS properties
@@ -67,20 +68,15 @@ def SRP_2_SRS(quant_path, SRP, reference, sfx, srs_dict):
 	return out
 
 
-# return dummy well file for macaca ,as there is no well data at this time
-# def OLDwell_and_droplet_input(organism, reference, quant_path, SRS_dict, otd, sfx):
-# 	if organism == 'Macaca_fascicularis':
-# 		out = [f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/{sfx}' for srs in organism_droplet_dict[organism]]
-# 	else:
-# 		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + \
-# 				[f'{quant_path}/quant/{srs}/{SRS_dict[srs]["tech"]}/{reference}/genecount/{sfx}' for srs in organism_droplet_dict[organism]]
-# 	return(out)
 
 def well_and_droplet_input(organism, reference, quant_path, SRP_droplet_dict, otd, sfx):
 	target_srps = [ srp for srp in  SRP_droplet_dict.keys() if SRP_droplet_dict[srp]['organism'] == organism ] 
-	well = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ]
-	droplet =  [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
-	return well + droplet
+	if organism == 'Macaca_fascicularis':
+		out = [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
+	else:
+		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]	
+	return(out)
+
 
 def well_and_droplet_stats(organism, reference, quant_path, SRS_dict, otd):
 	well = [f'{quant_path}/quant/{organism}/{tech}/{reference}__counts.Rdata' for tech in otd[organism]]
@@ -112,19 +108,36 @@ def ORG_ref(organism, which_return):
 
 	return(out)
 
+def get_whitelist_from_tech(tech):
+	if tech == 'DropSeq':
+		return f'references/whitelist/DropSeq/barcodes.txt'
+	else:
+		return('references/whitelist/10x/{tech}.txt')
+
+def get_kallisto_quant_layout_flag(is_paired):
+	if is_paired:
+		return ''
+	else: 
+		return '--single -l 200 -s 30'
+
+def DROPSEQ_samples_from_reference(quant_path ,srs_dict):
+	out= []
+	for sample in srs_dict.keys():
+		if srs_dict[sample]['tech'] == 'DropSeq' :
+			if srs_dict[sample]['organism'] == 'Homo_sapiens':
+				out.append(f'{quant_path}/quant/{sample}/DropSeq/hs-homo_sapiens/output.sorted.bus')
+			else:
+				out.append(f'{quant_path}/quant/{sample}/DropSeq/mm-mus_musculus/output.sorted.bus')
+	return out 
+
 srr_sample_file = config['srr_sample_file']
 SRS_dict = metadata_builder(srr_sample_file)
+sample_names = list(SRS_dict.keys())
 
-# pp.pprint(SRS_dict)
-# hand edited file which corrects mistakes that in the 
-# various databases
-# SRS_dict = metadata_builder(srr_sample_discrepancy_file, SRS_dict, discrepancy = True)
 
 # build organism <-> SRS dict for nonUMI data
 organism_well_dict = {}
 organism_welltech_dict ={'Homo_sapiens':[], 'Mus_musculus':[], 'Macaca_fascicularis':[] }
-		
-	
 for x in SRS_dict:
 	if not SRS_dict[x]['UMI']:# not UMI == Well
 		organism = SRS_dict[x]['organism']
@@ -137,6 +150,8 @@ for x in SRS_dict:
 			srs = organism_well_dict[organism]
 			srs.append(x)
 			organism_well_dict[organism] = srs
+################
+
 # build organsim <-> SRS dict for UMI/droplet data
 organism_droplet_dict = {}
 droplet_samples = set()
@@ -155,7 +170,7 @@ for x in SRS_dict:
 			srs = organism_droplet_dict[organism]
 			srs.append(x)
 			organism_droplet_dict[organism] = srs
-
+################
 
 
 git_dir = config['git_dir']
@@ -163,10 +178,9 @@ bustools_path = config['bustools_path']
 working_dir = config['working_dir']
 conda_dir = config['conda_dir']
 fastq_path = config['fastq_path']
-fi_tsne_dir = config['fi_tsne_dir']
 quant_path = config['quant_path']
 config_abspath=config['config_abspath']
-
+pattern_file=config['samplename_patterns']
 SRS_UMI_samples = []
 SRS_nonUMI_samples = []
 for SRS in SRS_dict.keys():
@@ -175,14 +189,9 @@ for SRS in SRS_dict.keys():
 	elif SRS_dict[SRS]['tech'] != 'BULK':
 		SRS_nonUMI_samples.append(SRS)
 
-method = ['scArches', 'bbknn','insct','magic', 'scVI','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
-transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
-covariate = ['study_accession', 'batch']
+
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
-combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe']
-dims = [4,6,8,10,20,25,30,50,75,100,200]
-knn = [0.2,0,4,0.6, 5, 7, 10, 15]
-model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
+# A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 report: "report.rst"
 
 if config['subset_clustering'] == 'False':
@@ -195,21 +204,6 @@ else:
 	partitions_to_run = ['celltype_subset']
 	scIB_partitions_to_run = ['celltype_subset']
 
-# start = time.time()
-# seu_obj_param =['combination','add_intron','n_features','transform','partition', 'covariate']
-# intg_obj_param = seu_obj_param + [ 'method', 'dims']
-# umap_obj_param =intg_obj_param + ['dist', 'neighbors']
-# extr_umap_param = umap_obj_param+['knn']
-# perf_met_pfx ='pipeline_data/perf_metrics/'
-# perf_met_param = extr_umap_param
-# perf_met_sfx = 'perf.Rdata'
-# parse_integration_config(file = config['integration_json'], 
-# output_string =make_wc_string(perf_met_pfx, perf_met_param, perf_met_sfx),
-# which_partitions = partitions_to_run )
-# end = time.time()
-# diff = str(end-start)
-# print(f'{diff} seconds to generate final output')
-
 
 rule all:
 	input:
@@ -219,6 +213,19 @@ rule all:
 		'mito_counts.tsv'
 	
 # get annotation for each species 
+rule make_sample_name_prefixs:
+	input: srr_sample_file
+	output: pattern_file
+	run:
+		patterns=set()
+		for sample in sample_names:									
+			int(sample[-1])#some hacky sample name checking - if the last character is not a digit(which it should bed ), 
+			#this will fail 
+			patterns.add(re.sub(r'\d+$', '', sample))
+		patterns=list(patterns)
+		with open(config['samplename_patterns'], 'w+') as infl:
+			[infl.write(p +'\n') for p in patterns]
+
 rule download_annotation:
 	output:
 		mouse_anno='references/gtf/mm-mus_musculus_anno.gtf.gz',
@@ -304,12 +311,6 @@ rule kallisto_bus:
 
 
 # pseudoaligment for nonUMI data (e.g. smartseq)
-def get_kallisto_quant_layout_flag(is_paired):
-	if is_paired:
-		return ''
-	else: 
-		return '--single -l 200 -s 30'
-
 rule kallisto_quant:
 	input:
 		fastq = lambda wildcards: lookup_run_from_SRS(wildcards.SRS, fastq_path),
@@ -344,16 +345,6 @@ rule bustools_sort:
 			{input} \
 			-o {output}
 		"""
-def DROPSEQ_samples_from_reference(quant_path ,srs_dict):
-	out= []
-	for sample in srs_dict.keys():
-		if srs_dict[sample]['tech'] == 'DropSeq' :
-			if srs_dict[sample]['organism'] == 'Homo_sapiens':
-				out.append(f'{quant_path}/quant/{sample}/DropSeq/hs-homo_sapiens/output.sorted.bus')
-			else:
-				out.append(f'{quant_path}/quant/{sample}/DropSeq/mm-mus_musculus/output.sorted.bus')
-	return out 
-
 
 rule make_dropseq_whitelists:
 	input: 
@@ -374,11 +365,7 @@ rule make_dropseq_whitelists:
 		'''
 
 
-def get_whitelist_from_tech(tech):
-	if tech == 'DropSeq':
-		return f'references/whitelist/DropSeq/barcodes.txt'
-	else:
-		return('references/whitelist/10x/{tech}.txt')
+
 # find barcodes, correct barcodes
 # make these temp files
 rule bustools_whitelist_correct_count:
@@ -413,7 +400,8 @@ rule create_sparse_matrix:
 	input:
 		spliced = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, 'spliced.mtx', SRS_dict),
 		unspliced = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, 'unspliced.mtx',SRS_dict),
-		mito_genelist = 'references/mito_genes/{reference}_mitogenes.txt'
+		mito_genelist = 'references/mito_genes/{reference}_mitogenes.txt',
+		pattern_file= pattern_file
 	output:
 		stats= 'pipeline_data/clean_quant/{srp}/{reference}/stats.tsv',
 		pct_mt = 'pipeline_data/clean_quant/{srp}/{reference}/pct_mt.tsv',
@@ -425,9 +413,9 @@ rule create_sparse_matrix:
 	#group: "bus"	
 	shell:
 		"""
-		module load R/3.6
+		module load R/4.0.3 #need 1.10 of droplet utils 
 		
-        Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {input.mito_genelist} {params.bus_outdirs}
+        Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {input.mito_genelist} {pattern_file} {params.bus_outdirs}
 
 		"""		
 # spit out both intron and exon counts 
@@ -473,6 +461,7 @@ rule mito_stats:
 		mouse_mm_quant = well_and_droplet_input('Mus_musculus', 'mm-mus_musculus',quant_path, srp_droplet_dict, organism_welltech_dict, 'pct_mt.tsv'),
 		monkey_mf_quant = well_and_droplet_input('Macaca_fascicularis', 'mf-macaca_mulatta', quant_path, srp_droplet_dict, organism_welltech_dict, 'pct_mt.tsv'),
 		monkey_hs_quant = well_and_droplet_input('Macaca_fascicularis', 'hs-homo_sapiens', quant_path, srp_droplet_dict, organism_welltech_dict, 'pct_mt.tsv'),
+		pattern_file=pattern_file
 	output:
 		'mito_counts.tsv'
 	params:
@@ -481,13 +470,14 @@ rule mito_stats:
 	shell:
 		"""
 		module load R/4.0
-		Rscript {git_dir}/src/mito_stats.R {working_dir} {params.drop_mt_pfx} {quant_path} {params.mito_gene_stem} {output}
+		Rscript {git_dir}/src/mito_stats.R {working_dir} {params.drop_mt_pfx} {quant_path} {params.mito_gene_stem} {pattern_file} {output}
 		"""
 
 rule merge_across_references:
 	input:
 		matrix = [ORG_ref(organism, 'matrix') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ],
-		cell_info = [ORG_ref(organism, 'cell_info') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ]
+		cell_info = [ORG_ref(organism, 'cell_info') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ],
+		pattern_file =pattern_file
 	output:
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
 		'pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata',
@@ -499,5 +489,5 @@ rule merge_across_references:
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/blend_macaque_merge_across_reference.R {working_dir} {git_dir}
+		Rscript {git_dir}/src/blend_macaque_merge_across_reference.R {working_dir} {git_dir} {pattern_file}
 		"""	

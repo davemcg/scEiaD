@@ -1,13 +1,14 @@
+args <- c(getwd(), getwd(), 'references/samplename_patterns.txt')
 args = commandArgs(trailingOnly=TRUE)
 working_dir = args[1]
 git_dir = args[2]
-
 library(tidyverse)
 library(Matrix)
 library(Matrix.utils)
 library(Seurat)
 library(glue)
 setwd(working_dir)
+patterns <- scan(args[3], what = character(), sep='\n') %>% paste0(collapse = '|')
 load_rdata <- function(x){
   load(x)
   env <- ls.str()
@@ -37,7 +38,7 @@ joined <- gene_id_converter %>% select(hs_gene_id, mf_gene_id) %>% distinct %>%
 ## pick a minimum threshold the total counts must be in order to be considered for blending; this is stop genes that have 
 ## a few counts from being used; the threshold I've picked is counts >  the first quantile of nonzero gene expression of 
 ## the macaque annotation
-min_hs_exp <- maca_mf_rowSums%>% filter(mf_total > 0) %>% pull(mf_total) %>% quantile(.25)
+min_hs_exp <- maca_mf_rowSums%>% filter(mf_total > 0) %>% pull(mf_total) %>% quantile(.20)
 
 
 ## next, pick macaque genes that have greater expression than human genes;
@@ -88,9 +89,10 @@ save(all_cells_macaque_hs_ids, file ='pipeline_data/clean_quant/Macaca_fascicula
 
 
 ## free up some memory
-
 gdata::keep(all_cells_macaque_hs_ids, gene_id_converter, joined, load_rdata, git_dir, working_dir, hs_to_mf, 
-            hs_genes,merge_macaque_references, sure = T)
+            hs_genes,merge_macaque_references,patterns, sure = T)
+
+
 intron_maca_mf_matrix <- load_rdata('pipeline_data/clean_quant/Macaca_fascicularis/mf-macaca_mulatta_full_sparse_unspliced_matrix.Rdata')
 intron_maca_hs_matrix <- load_rdata('pipeline_data/clean_quant/Macaca_fascicularis/hs-homo_sapiens_full_sparse_unspliced_matrix.Rdata')
 all_intron_macaque_data =  merge_macaque_references(intron_maca_mf_matrix,intron_maca_hs_matrix, hs_to_mf, hs_genes)
@@ -135,7 +137,7 @@ all_cells_all_species_matrix <-  RowMergeSparseMatrices(homo_hs_matrix_cg, mus_m
 metadata <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv'))
 
 all_cell_info <- colnames(all_cells_all_species_matrix) %>% enframe() %>% 
-  mutate(sample_accession = str_extract(value, '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')) %>% 
+  mutate(sample_accession = str_extract(value, glue('({patterns})\\d+') )) %>% 
   left_join(metadata %>% select(-run_accession) %>% unique()) %>% 
   data.frame() %>% 
   mutate(batch = paste(study_accession, Platform, Covariate, sep = '_'),

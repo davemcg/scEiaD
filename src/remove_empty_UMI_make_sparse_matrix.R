@@ -8,7 +8,8 @@ save(args, file = 'testing/nu_reumi_args.Rdata')
 #REF = args[2]
 outdir <- args[1]
 mito_genelist <-scan(args[2], what = character(), sep = '\n')
-srs_directories <- args[-(1:2)]
+# patterns <- args[3]
+srs_directories <- args[-(1:3)]
 ########################################################
 # base_dir = '/data/swamyvs/scEiaD/'
 # SRS = 'SRS6424747'
@@ -29,13 +30,13 @@ library(Matrix)
 library(DropletUtils)
 library(readr)
 library(zeallot)
-
+library(glue)
 # input data from project
 ## its embarssing i didnt think of this first.
-
+patterns <- scan(args[3], what = character(), sep='\n') %>% paste0(collapse = '|')
 
 read_bus <- function(indir){
-  sample_id <- str_extract(indir, '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+  sample_id <- str_extract(indir, glue('({patterns})\\d+') )
   l <- read_velocity_output(spliced_dir = indir,
                        spliced_name = "spliced",
                        unspliced_dir = indir,
@@ -152,17 +153,33 @@ remove_empty_droplets <- function(x, srs, mito_genelist){
                       ncells_failed_max_umi = sum(!cells_below_max_umi), 
                       ncells_failed_mito = sum(!cells_below_max_mito_pt), 
                       ncells_total_pass_qc = sum(keep_cells))
-  return(list(spliced = spliced[,keep_cells],
-              unspliced = unspliced[,keep_cells],
-              stats = df, 
-              pct_mt_df = pct_mt_df))
+  if(sum(keep_cells)>1){
+    spliced_out = spliced[,keep_cells]
+    unspliced_out = unspliced[,keep_cells]
+    stats_out = df 
+    pct_mt_df_out = pct_mt_df
+  } else{# rare edge case where sample has only one cell
+    
+    spliced_out = Matrix(spliced[,keep_cells], ncol=1)
+    unspliced_out = Matrix(unspliced[,keep_cells], ncol=1)
+    colnames(spliced_out) <- colnames(unspliced_out) <- colnames(spliced)[keep_cells]
+    rownames(spliced_out) <- rownames(spliced)
+    rownames(unspliced_out) <- rownames(unspliced)
+    stats_out = df 
+    pct_mt_df_out = pct_mt_df
+  }
+  return(list(spliced = spliced_out,
+              unspliced = unspliced_out,
+              stats = stats_out, 
+              pct_mt_df = pct_mt_df_out))
 
 }
 
 
 study_counts_list <- lapply(srs_directories,read_bus) 
 
-srs_names <- str_extract(srs_directories, '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')
+
+srs_names <- str_extract(srs_directories, glue('({patterns})\\d+') )
 names(study_counts_list) <- srs_names
 
 filtered_counts <- lapply(seq_along(study_counts_list), function(i) remove_empty_droplets(study_counts_list[[i]], 

@@ -304,5 +304,9 @@
 	"make_PLAE_objs" :
 	{
 		"mem" : "100G"
+	},
+	"mito_stats" :
+	{
+		"mem" : "100G"
 	}	
 }	
