@@ -191,8 +191,11 @@ if (method == 'CCA'){
 rm(integrated_obj)
 
 if (subdivide_CT_by_clusters == 'TRUE'){
+	print('Use cluster subdivide strategy')
 	subdivide_CT_by_clusters = TRUE
-} else { subdivide_CT_by_clusters = FALSE
+} else { 
+	print('Do not use cluster subdivide strategy')
+	subdivide_CT_by_clusters = FALSE
 }
 
 obj_cut <- cut_down_objs(org, subdivide_CT_by_clusters = subdivide_CT_by_clusters)
@@ -200,6 +203,7 @@ obj_cut <- cut_down_objs(org, subdivide_CT_by_clusters = subdivide_CT_by_cluster
 quick_label_cluster(obj_cut$umap) %>% data.frame()
 
 if (length(args) == 8) {
+	print('Start  cluster given as user input')
 	start_clus <- args[8]
 	sling <- run_sling(obj_cut$seurat, obj_cut$umap$seurat_cluster_CT, reduction, ncell = nrow(obj_cut$umap), start = start_clus)
 } else {
