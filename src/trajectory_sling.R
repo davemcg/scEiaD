@@ -18,6 +18,10 @@ colnames(meta)[c(2,3)] <- c('cluster','subcluster')
 umap <- umap %>% select(-cluster, -subcluster) %>% left_join(meta, by = 'Barcode')
 seurat <- integrated_obj[, umap$Barcode]
 
+print("ARGS")
+print(args)
+print("")
+
 if ('CellType_predict' %in% colnames(umap)){
 	umap$CT <- umap$CellType_predict
 } else {umap$CT <- umap$CellType}
