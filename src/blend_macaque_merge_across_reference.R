@@ -1,3 +1,4 @@
+args <- c(getwd(), getwd(), 'references/samplename_patterns.txt')
 args = commandArgs(trailingOnly=TRUE)
 working_dir = args[1]
 git_dir = args[2]
@@ -37,7 +38,7 @@ joined <- gene_id_converter %>% select(hs_gene_id, mf_gene_id) %>% distinct %>%
 ## pick a minimum threshold the total counts must be in order to be considered for blending; this is stop genes that have 
 ## a few counts from being used; the threshold I've picked is counts >  the first quantile of nonzero gene expression of 
 ## the macaque annotation
-min_hs_exp <- maca_mf_rowSums%>% filter(mf_total > 0) %>% pull(mf_total) %>% quantile(.25)
+min_hs_exp <- maca_mf_rowSums%>% filter(mf_total > 0) %>% pull(mf_total) %>% quantile(.20)
 
 
 ## next, pick macaque genes that have greater expression than human genes;
