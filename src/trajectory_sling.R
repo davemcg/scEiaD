@@ -131,20 +131,29 @@ run_sling <- function(seurat, group, reduction = 'scVI', ncell = 50000, start = 
   dev_cluster = obj_cut$umap %>% 
     group_by(cluster) %>% summarise(CT = paste(unique(seurat_cluster_CT), collapse = ' ')) %>% 
     filter(grepl('RPC|Precur|Neuro', CT)) %>% 
+    filter(!grepl('RPE', CT)) %>% 
     pull(cluster) %>% 
     as.character()
   ends <-  colLabels(sce) %>%
     unique() %>%
     enframe() %>%
     filter(!grepl('RPC|Prec|Neuro', value) ) %>%
-    mutate(cluster = str_extract('^\\d+', value)) %>% 
+    mutate(cluster = str_extract(value, '^\\d+')) %>% 
     filter(!cluster %in% dev_cluster) %>% 
+    pull(value)
+  
+  intermediate <- colLabels(sce) %>%
+    unique() %>%
+    enframe() %>%
+    filter(!value %in% ends) %>% 
     pull(value)
   
   set.seed(90645)
   sceL <- sce[,sample(1:ncol(sce), ncell)]
   tic()
   if (sling_guess_ends == FALSE){
+    print("intermediate groups")
+    print(intermediate %>% sort())
     print("End clusters")
     print(ends %>% sort())
     print('')
