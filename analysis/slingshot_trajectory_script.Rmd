@@ -147,7 +147,7 @@ psTime %>%
   geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0.1, alpha = 0.4) + 
   #geom_scattermore(pointsize = 1, alpha = 0.4) + 
   cowplot::theme_cowplot() + 
-  scale_color_manual(values = c(pals::cols25(), pals::alphabet2()) %>% unname()) +
+  scale_color_manual(values = c(pals::cols25(), pals::alphabet2(), pals::glasbey()) %>% unname()) +
   xlab('UMAP 1') + ylab('UMAP 2') +
   geom_path(data = path %>% bind_rows() %>% filter(curve %in% select_curves), aes(x=UMAP_1, y = UMAP_2, color = as.factor(curve), group = curve), size = 1) 
   #geom_path(data = path %>% bind_rows(), aes(x=UMAP_1, y = UMAP_2, color = as.factor(curve), group = curve), size = 1) 
