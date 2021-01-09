@@ -1,0 +1,160 @@
+---
+title: "Trajectory"
+output:
+  html_document:
+    code_folding: hide
+params:
+    data: "~/data/scEiaD/HS_traj_sling__clus8__subdivideFALSE.Rdata"
+---
+
+
+```{r, fig.width=15, fig.height=15, echo = FALSE, results = 'hide'}
+library(tidyverse)
+library(Seurat)
+library(scattermore)
+library(scran)
+library(slingshot)
+library(ComplexHeatmap)
+library(ggraph)
+library(tidygraph)
+library(tidymodels)
+library(rsample)
+#load('~/data/massive_integrated_eye_scRNA/sling_trajectory.Rdata')
+#load('/Volumes/data/projects/nei/mcgaughey/scEiaD_me/site_make/sling_mus.Rdata')
+load(params$data) #sling and diffPT in one
+#load('~/data/massive_integrated_eye_scRNA/slingHS_2020_12_29.diff.Rdata')
+gene_id_converter <- suppressWarnings(read_tsv('~/git/massive_integrated_eye_scRNA//data/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
+                              col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
+                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
+  select(-hs_gene_id_v))
+tf <- suppressWarnings(readxl::read_xlsx('~/git/massive_integrated_eye_scRNA//data/1-s2.0-S0092867418301065-mmc2.xlsx', skip = 1, sheet = 'Table S1. Related to Figure 1B'))
+source('../src/pseudotime_analysis.R')
+org <- umap_cut$organism %>% unique()
+umap <- umap %>% mutate(UMAP_1 = UMAP_1 * 1, UMAP_2 = UMAP_2 * -1)
+umap_cut <- umap_cut %>% mutate(UMAP_1 = UMAP_1 * 1, UMAP_2 = UMAP_2 * -1)
+```
+
+```{r, fig.width=15, fig.height=10}
+
+lin <- sling$lineage
+
+node_pos <- umap_cut %>%
+  group_by(seurat_cluster_CT) %>% 
+  summarise(x=mean(UMAP_1), y = mean(UMAP_2)) %>% 
+  rename(name = seurat_cluster_CT)
+xy = colnames(lin@adjacency) %>% 
+  enframe(name = 'row', value = 'name') %>% 
+  left_join(node_pos) %>% select(name, x,y) %>% 
+  #filter(name %in% lin@lineages[[1]]) %>% 
+  select(-name)
+
+create_layout(as_tbl_graph(lin@adjacency), #%>% 
+              #filter(name %in% lin@lineages[[1]]),
+              'manual', 
+              x=xy$x, 
+              y=xy$y)  %>% 
+  ggraph() + 
+  geom_edge_link() +
+  geom_scattermore(data = umap %>% filter(organism == org), aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + geom_edge_link(color = 'black') + geom_node_point(color = 'black', size = 3) + scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% unname()) + cowplot::theme_cowplot()
+```
+
+```{r, fig.width=20, fig.height=20}
+embedded <- sling$embedded
+path <- list()
+for (i in seq(1:(embedded@lineages %>% length()))){
+  embedded_i = slingCurves(embedded)[[i]]
+  path[[i]] = data.frame(embedded_i$s[embedded_i$ord,]) 
+  path[[i]][,1] <- path[[i]][,1] * 1
+  path[[i]][,2] <- path[[i]][,2] * -1
+  path[[i]]$curve <- i
+}
+psTime <- slingshot::slingPseudotime(sling$sling )
+
+psTime %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  left_join(umap %>% filter(organism == org)) %>% 
+  mutate(curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% 
+  ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
+  facet_wrap(~curve) + 
+  geom_scattermore(data = umap %>% filter(organism == org), aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0.1, alpha = 0.4) + 
+  geom_scattermore(pointsize = 1, alpha = 0.4) + 
+  cowplot::theme_cowplot() + 
+  scale_color_viridis_c() + 
+  xlab('UMAP 1') + ylab('UMAP 2') +
+  facet_wrap(~curve) + 
+  geom_path(data = path %>% bind_rows(), aes(x=UMAP_1, y = UMAP_2), color = 'red', size = 1) 
+
+```
+
+# Bar plot
+## All
+```{r, fig.width=14, fig.height=10}
+ct_proportion <- umap %>% group_by(CellType_predict) %>% summarise(CT_Count = n()) %>% mutate(CT_Proportion = CT_Count/sum(CT_Count) * 100)
+
+celltype_pseudotime <- psTime %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  left_join(umap_cut) %>% 
+  filter(!is.na(CellType_predict)) %>% 
+  group_by(Curve, CellType_predict) %>% 
+  summarise(Count = n(), 
+            Pseudotime = median(Pseudotime, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  group_by(Curve) %>% 
+  mutate(Proportion  = Count / sum(Count) * 100) %>% 
+  left_join(ct_proportion, by = 'CellType_predict') %>% 
+  mutate(Enrichment = Proportion/CT_Proportion) %>% 
+  filter(Enrichment > 1) %>% 
+  mutate(Curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% arrange(Curve, Pseudotime) %>% data.frame()
+
+psTime_data <- psTime %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  left_join(umap) %>% 
+  #mutate(CellType = gsub('\\d+: ','', seurat_cluster_CT)) %>% 
+  mutate(Curve = str_extract(Curve, '\\d+') %>% 
+           as.numeric()) %>% filter(!is.na(Pseudotime), 
+                                    CellType_predict != 'Endothelial') %>% 
+  mutate(CurveO = Curve)
+
+psTime_data$Curve <- psTime_data$Curve + runif(nrow(psTime_data), -0.2, 0.2)
+
+psTime_data %>% 
+  ggplot(aes(x=Pseudotime, color = `CellType_predict`, y = Curve)) + 
+  geom_scattermore(alpha = 0.7, pointsize = 0) + 
+  scale_color_manual(values = c(pals::alphabet2(), pals::alphabet()) %>% 
+                       unname()) + 
+  ggrepel::geom_label_repel(data = celltype_pseudotime, 
+                            aes(label = CellType_predict), color = 'black') +
+  cowplot::theme_cowplot() +
+  scale_y_continuous(breaks = seq(1,max(psTime_data$CurveO), 1))
+```
+
+```{r}
+select_curves <- seq(1,80,1)#[-c(8,19,20,41,45, 47, 49, 52,56, 65)]
+psTime %>% 
+  as_tibble(rownames = 'Barcode') %>% 
+  pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
+  filter(!is.na(Pseudotime)) %>% 
+  left_join(umap) %>% 
+  mutate(curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% 
+  filter(curve %in% select_curves) %>% 
+  ggplot(aes(x=UMAP_1, y = UMAP_2)) + 
+  geom_scattermore(data = umap, aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0.1, alpha = 0.4) + 
+  #geom_scattermore(pointsize = 1, alpha = 0.4) + 
+  cowplot::theme_cowplot() + 
+  scale_color_manual(values = c(pals::cols25(), pals::alphabet2()) %>% unname()) +
+  xlab('UMAP 1') + ylab('UMAP 2') +
+  geom_path(data = path %>% bind_rows() %>% filter(curve %in% select_curves), aes(x=UMAP_1, y = UMAP_2, color = as.factor(curve), group = curve), size = 1) 
+  #geom_path(data = path %>% bind_rows(), aes(x=UMAP_1, y = UMAP_2, color = as.factor(curve), group = curve), size = 1) 
+```
+
+```{r, fig.height=10, fig.width=15}
+for (i in paste0('slingPseudotime_', select_curves)){
+  try({draw(hm_maker(i, 15, onlyShowTF = TRUE, round_to = 0.1, column_title = i) )})
+}
+```
