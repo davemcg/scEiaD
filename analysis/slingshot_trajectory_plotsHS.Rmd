@@ -11,17 +11,17 @@ library(tidymodels)
 library(rsample)
 #load('~/data/massive_integrated_eye_scRNA/sling_trajectory.Rdata')
 #load('/Volumes/data/projects/nei/mcgaughey/scEiaD_me/site_make/sling_mus.Rdata')
-load('~/data/massive_integrated_eye_scRNA/slingHS_2020_12_30.Rdata') #sling and diffPT in one
+load('~/data/massive_integrated_eye_scRNA/HS_traj_sling__clus0__subdivideFALSE.Rdata') #sling and diffPT in one
 #load('~/data/massive_integrated_eye_scRNA/slingHS_2020_12_29.diff.Rdata')
-gene_id_converter <- suppressWarnings(read_tsv('~/git/massive_integrated_eye_scRNA/data/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
+gene_id_converter <- suppressWarnings(read_tsv('~/git/scEiaD/data/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
                               col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
                                            'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
   select(-hs_gene_id_v))
-tf <- suppressWarnings(readxl::read_xlsx('~/git/massive_integrated_eye_scRNA/data/1-s2.0-S0092867418301065-mmc2.xlsx', skip = 1, sheet = 'Table S1. Related to Figure 1B'))
+tf <- suppressWarnings(readxl::read_xlsx('~/git/scEiaD/data/1-s2.0-S0092867418301065-mmc2.xlsx', skip = 1, sheet = 'Table S1. Related to Figure 1B'))
 source('../src/pseudotime_analysis.R')
 org <- umap_cut$organism %>% unique()
-umap <- umap %>% mutate(UMAP_1 = UMAP_1 * -1, UMAP_2 = UMAP_2 * -1)
-umap_cut <- umap_cut %>% mutate(UMAP_1 = UMAP_1 * -1, UMAP_2 = UMAP_2 * -1)
+umap <- umap %>% mutate(UMAP_1 = UMAP_1 * 1, UMAP_2 = UMAP_2 * -1)
+umap_cut <- umap_cut %>% mutate(UMAP_1 = UMAP_1 * -1, UMAP_2 = UMAP_2 * 1)
 ```
 
 
@@ -107,7 +107,7 @@ path <- list()
 for (i in seq(1:(embedded@lineages %>% length()))){
   embedded_i = slingCurves(embedded)[[i]]
   path[[i]] = data.frame(embedded_i$s[embedded_i$ord,]) 
-  path[[i]][,1] <- path[[i]][,1] * -1
+  path[[i]][,1] <- path[[i]][,1] * 1
   path[[i]][,2] <- path[[i]][,2] * -1
   path[[i]]$curve <- i
 }
