@@ -1,0 +1,104 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup}
+knitr::opts_knit$set(root.dir = '/data/swamyvs/scEiaD/') # quant directory 
+```
+
+
+```{r}
+library(SingleCellExperiment)
+library(tidyverse)
+library(patchwork)
+library(velociraptor)
+library(scattermore)
+load('/data/OGVFB_BG/scEiaD_2021_01_03/scEiaD_2021_01_03_scvelo_full_sce.Rdata')
+velo_sce
+```
+
+```{r}
+umap_mat <- reducedDim(velo_sce, 'X_scviUMAP')
+
+grid.df <- gridVectors(umap_mat, reducedDim(velo_sce, 'velocity_scviUMAP'))
+pdf <-  umap_mat %>% 
+  as.data.frame %>% 
+  rownames_to_column('barcode') %>% 
+  mutate(velocity_pseudotime = velo_sce$velocity_pseudotime, 
+         velocity_length = velo_sce$velocity_length) %>% 
+  dplyr::rename(UMAP1=V1, UMAP2=V2)
+
+
+velo_pt_plot <- ggplot(pdf)+
+  geom_scattermore(aes(x=UMAP1, y=UMAP2, color=velocity_pseudotime), alpha=.1)+
+  scale_color_viridis_c() +
+   geom_segment(data=grid.df, mapping=aes(x=start.1, y=start.2, 
+        xend=end.1, yend=end.2), arrow=arrow(length=unit(0.05, "inches"))) + 
+  theme_minimal()
+
+velo_len_plot <- ggplot(pdf)+
+  geom_scattermore(aes(x=UMAP1, y=UMAP2, color=log2(velocity_length)), alpha=.1)+
+  scale_color_viridis_c() +
+  theme_minimal()
+
+```
+
+```{r}
+#load('pipeline_data/cell_info/cell_info_labelled.Rdata')
+ load('/data/OGVFB_BG/scEiaD_2021_01_03/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaDprojected__dist-0.2__neighbors-500.umapFilter.predictions.Rdata')
+keep_cells <- c( "Horizontal Cells", "RPCs","Retinal Ganglion Cells", "Amacrine Cells",          "AC/HC_Precurs", "Photoreceptor Precursors","Neurogenic Cells","Bipolar Cells", "Cones"          ,"Rods" ,"Muller Glia" )
+pdf_lab_filt <-  umap %>% filter(!is.na(CellType_predict), Barcode %in% pdf$barcode) %>% 
+   select(barcode=Barcode, CellType_predict) %>% inner_join(pdf) %>% 
+    mutate(CellType =  replace(CellType_predict, !CellType_predict%in%keep_cells, 'other'))
+
+pal <- pals::alphabet2(n=n_distinct(pdf_lab_filt$CellType))
+names(pal) <- NULL
+umap_all <- ggplot(pdf_lab_filt)+
+  geom_scattermore(aes(x=UMAP1, y=UMAP2, color=CellType), alpha=.1) + 
+  scale_color_discrete(type=pal)+
+  guides(color = guide_legend(override.aes = list(alpha=1))) + 
+  theme_minimal()
+```
+
+```{r}
+velocity_rank_genes <- metadata(velo_sce)[['rank_velocity_genes_names']]
+gtf <- rtracklayer::readGFF('references/gtf/hs-homo_sapiens_anno.gtf.gz')
+geneid2gene <- gtf %>% filter(type == 'gene') %>% select(gene_name, gene_id) %>% distinct %>% 
+  mutate(gene_id = str_remove_all(gene_id,'\\.\\d+$'))
+
+
+plotPhasePortrait <- function(sce, i, j, pdf){
+  t_gene <- metadata(sce)[['rank_velocity_genes_names']][i,j]
+  gene_name <- filter(geneid2gene, gene_id == t_gene) %>% pull(gene_name) %>% .[1]
+  velo_mat <- assay(sce, 'velocity')[,pdf$barcode]
+  pdf_velo <- pdf %>% mutate(velocity = as.numeric(velo_mat[t_gene,]))
+  p <- ggplot(pdf_velo)+
+    geom_scattermore(aes(x=UMAP1, y=UMAP2, color=velocity),  alpha=.1)+
+    scale_color_viridis_c() + 
+    ggtitle(gene_name) +
+    theme_minimal()
+  print(p)
+  return(p)
+  
+}
+
+gg <- geneid2gene$gene_name
+names(gg) <- geneid2gene$gene_id
+rank_gene <- metadata(velo_sce)[['rank_velocity_genes_names']]
+mat <- matrix(nrow=nrow(rank_gene), ncol=ncol(rank_gene))
+for( i in 1:nrow(mat)){
+  for(j in 1:ncol(mat)){
+    mat[i,j] <- gg[rank_gene[i,j] ]
+    }
+}
+
+# i, j = indices for gene in rank_gene/mat 
+pp <- plotPhasePortrait(velo_sce, 1, 8, pdf_lab_filt)
+pp
+allplot <- umap_all + velo_pt_plot + velo_len_plot + pp
+
+ggsave('/data/swamyvs/scEiad_quant/testing/TabulaDroplet_veloplot.png', plot =allplot, width = 20, height = 12, bg = 'white')
+
+
+```
