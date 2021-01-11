@@ -34,11 +34,13 @@ maca_hs_rowSums <- tibble(hs_gene_id = rownames(maca_hs_matrix),  hs_total = row
 
 ## merge counts together
 joined <- gene_id_converter %>% select(hs_gene_id, mf_gene_id) %>% distinct %>% 
-  left_join(maca_mf_rowSums) %>% left_join(maca_hs_rowSums)
+  left_join(maca_mf_rowSums) %>% left_join(maca_hs_rowSums) %>% 
+  mutate(mf_total = replace_na(mf_total, 0), 
+         hs_total = replace_na(hs_total, 0))
 ## pick a minimum threshold the total counts must be in order to be considered for blending; this is stop genes that have 
 ## a few counts from being used; the threshold I've picked is counts >  the first quantile of nonzero gene expression of 
 ## the macaque annotation
-min_hs_exp <- maca_mf_rowSums%>% filter(mf_total > 0) %>% pull(mf_total) %>% quantile(.20)
+min_hs_exp <- maca_mf_rowSums%>% filter(mf_total > 0) %>% pull(mf_total) %>% quantile(.25)
 
 
 ## next, pick macaque genes that have greater expression than human genes;
@@ -46,6 +48,10 @@ mf_genes_id_greater <- joined %>% filter(hs_total < mf_total) %>% pull(mf_gene_i
 ## check to see whether the better gene also has a mapping to a human gene id
 mf_genes_in_hs <- gene_id_converter %>% filter(mf_gene_id %in% mf_genes_id_greater) %>%  pull(mf_gene_id) %>% unique
 hs_genes_outright_better <- joined %>% filter(hs_total > mf_total, hs_total > min_hs_exp) %>% pull(hs_gene_id)
+hs_genes_outright_better_mfid <- joined %>% filter(hs_total > mf_total, hs_total > min_hs_exp) %>% pull(mf_gene_id)
+### at this point, any genes that haven't been found have a human expession greater than macaque exprssion, with counts less than 9,
+### but we still want to keep any protein coding genes that have been found 
+
 
 ## for macaque genes that had a higher expression than human genes, but had no mapping, repick human genes again using the expresion threhold
 hs_genes_mf_missing <- joined %>% filter(mf_gene_id %in% mf_genes_id_greater, !mf_gene_id %in% mf_genes_in_hs, hs_total > min_hs_exp) %>% pull(hs_gene_id)
@@ -84,6 +90,8 @@ merge_macaque_references  = function(maca_mf_matrix,maca_hs_matrix, hs_to_mf, hs
 
 all_cells_macaque_hs_ids <- merge_macaque_references(maca_mf_matrix,maca_hs_matrix, hs_to_mf, hs_genes)
 all_cells_macaque_hs_ids <-  all_cells_macaque_hs_ids[rowSums(all_cells_macaque_hs_ids) >0, ]
+## not adding back missing human PC's just yet, I'll let david add them back in with the code I sent
+## any missing macaque PC genes have essentially 0 counts
 
 save(all_cells_macaque_hs_ids, file ='pipeline_data/clean_quant/Macaca_fascicularis/full_sparse_matrix.Rdata')
 
