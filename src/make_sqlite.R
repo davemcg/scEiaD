@@ -45,7 +45,7 @@ meta_filter <- metadata %>%
   filter(!is.na(study_accession), 
          !CellType_predict %in% c('Doublet', 'Doublets'))
 
-cpm <- RelativeCounts(integrated_obj@assays$RNA@counts, scale.factor= 1e6)
+cpm <- RelativeCounts(integrated_obj@assays$RNA@counts[, umap$Barcode], scale.factor= 1e6)
 
 
 chunk_num = 20
