@@ -6,9 +6,10 @@ args = commandArgs(trailingOnly=TRUE)
 git_dir = Sys.getenv('SCIAD_GIT_DIR')
 
 load(args[1])
+load(args[2])
 #load('umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15.umapFilter.Rdata')
 
-load(args[2])
+load(args[3])
 #load('/data/mcgaugheyd/datashare/scEiaD/2020_08_13/counts_unfiltered.Rdata')
 
 mt <- data.table::fread('../mito_counts.tsv')
