@@ -205,7 +205,7 @@
 	},
 	"diff_test_wilcox" :
 	{
-		"mem" : "550G",
+		"mem" : "750G",
 		"time" : "12:00:00",
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:20"
@@ -254,8 +254,8 @@
 	},
 	"sqlite_add_tables" :
 	{
-		"mem" : "50G",
-		"time" : "2:00:00",
+		"mem" : "100G",
+		"time" : "4:00:00",
 		"partition" : "norm",
 		"extra" : " --gres=lscratch:50"
 	},
@@ -308,5 +308,10 @@
 	"mito_stats" :
 	{
 		"mem" : "100G"
-	}	
+	},
+	"add_missing_genes" :
+	{
+		"mem" : "140G",
+		"extra" : " --gres=lscratch:5"
+	}
 }	
