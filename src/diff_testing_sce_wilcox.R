@@ -9,6 +9,10 @@ args = commandArgs(trailingOnly=TRUE)
 load(args[1]) # seurat obj
 load(args[2]) # cluster
 load(args[3]) # cell type prediction
+x <- CreateSeuratObject(integrated_obj@assays$RNA@counts, assay = 'RNA')
+integrated_obj@assays$RNA <- x@assays$RNA
+
+
 int_sce <-  as.SingleCellExperiment(integrated_obj)
 int_sce <- int_sce[,umap$Barcode]
 
