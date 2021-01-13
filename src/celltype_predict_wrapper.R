@@ -4,8 +4,8 @@ args <- commandArgs(trailingOnly = TRUE)
 
 load(args[1]) # seurat obj post integration
 load(args[2]) # umap metadata
-label_id_col = args[5]
-label_name_col = args[6]
+#label_id_col = args[5]
+#label_name_col = args[6]
 
 conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
 git_dir = Sys.getenv('SCIAD_GIT_DIR')
@@ -39,6 +39,8 @@ rm_outlier <- function(out, TM = FALSE){
 	}
 	out %>% filter(Barcode %in% (bc_retain %>% unlist()))
 }
+#out$id <- out$CellType %>% as.factor() %>% as.numeric()
+#out$id <- out_tm$CellType %>% as.factor() %>% as.numeric()
 
 full_out <- out
 full_tm <- out_tm
@@ -65,13 +67,15 @@ run_xgboost_py <- function(embeddings, full_embeddings, temp_name, tm = FALSE, p
 	
 	# train on pre-labelled cells
 	pickle <- paste0(temp_name, '_', rand_num, '.pickle' )
-	system(glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictor.py train --workingDir {working_dir} --predProbThresh {probThresh} --inputMatrix  {embeddings_file}  --trainedModelFile  {pickle}  --featureCols  {write_features_file} --generateProb {prob_file} --labelIdCol {label_id_col} --labelNameCol {label_name_col}'))
+	command <- glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictorO.py train --workingDir {working_dir} --predProbThresh {probThresh} --inputMatrix  {embeddings_file}  --trainedModelFile  {pickle}  --featureCols  {write_features_file} --generateProb {prob_file} ')
+	print(command)
+	system(command)
 
 	# apply model to predict labels for all cells
 	predictions_file <- temp_name
-	system(glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictor.py predict --workingDir {working_dir} --predProbThresh  {probThresh} --inputMatrix  {full_embeddings_file} --trainedModelFile  {pickle} --predictions  {predictions_file}  --labelIdCol {label_id_col} --labelNameCol {label_name_col}'))
+	system(glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictorO.py predict --workingDir {working_dir} --predProbThresh  {probThresh} --inputMatrix  {full_embeddings_file} --trainedModelFile  {pickle} --predictions  {predictions_file}'))
 
-	# import in predictions
+	#, import in predictions
 	predictions <- read_tsv(predictions_file)
 	# import test_data probabilities
 	test_data <- read_csv(paste0(prob_file, 'test_data_probabilities.csv.gz'))
