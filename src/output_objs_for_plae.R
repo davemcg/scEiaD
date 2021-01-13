@@ -1,5 +1,4 @@
 library(pool)
-
 library(tidyverse)
 library(Seurat)
 args = commandArgs(trailingOnly=TRUE)
@@ -76,11 +75,11 @@ load('pipeline_data/cell_info/cell_info_labelled.Rdata')
 write_tsv(cell_info_labels, path = 'site/cell_labels.tsv.gz')
 
 # extract diff results
-diff_results <- pool %>% tbl('PB_results') %>% collect()
-readr::write_tsv(diff_results, file = 'pseudoBulk_diff_results.tsv.gz')
-## write each PB_Test to separate file
-## remove spaces in PB_Test as they will be used in file name export
-diff_results$PB_Test <- gsub('\\s+','', diff_results$PB_Test)
+diff_results <- pool %>% tbl('wilcox_diff_testing') %>% collect()
+readr::write_tsv(diff_results, file = 'site/wilcox_diff_results.tsv.gz')
+## write each Group (e.g. CellType, Cluster, CellType (Predict)) to separate files
+## remove spaces in Group as they will be used in file name export
+diff_results$Group <- gsub('\\s+','', diff_results$Group)
 diff_results %>% 
-    group_by(PB_Test) %>%
-    group_walk(~ readr::write_tsv(.x, paste0('site/pseudoBulkTable_', .y$PB_Test, ".tsv.gz")))
+    group_by(Group) %>%
+    group_walk(~ readr::write_tsv(.x, paste0('site/wilcox_diff_results', .y$Group, ".tsv.gz")))
