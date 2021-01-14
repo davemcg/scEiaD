@@ -1,0 +1,78 @@
+---
+title: "scEiaD Human RPE LM Workup"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(Seurat)
+library(scattermore)
+library(scran)
+library(slingshot)
+library(ComplexHeatmap)
+library(ggraph)
+library(tidygraph)
+library(tidymodels)
+library(rsample)
+library(pool)
+library(RSQLite)
+load('~/data/scEiaD/sling_traj_HS_celltype_earlyRPC_start.Rdata') #sling and diffPT in one
+gene_id_converter <- suppressWarnings(read_tsv('~/git/scEiaD/data/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
+                                               col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
+                                                            'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
+                                        select(-hs_gene_id_v))
+tf <- suppressWarnings(readxl::read_xlsx('~/git/scEiaD/data/1-s2.0-S0092867418301065-mmc2.xlsx', skip = 1, sheet = 'Table S1. Related to Figure 1B'))
+source('../src/pseudotime_analysis.R')
+org <- umap_cut$organism %>% unique()
+umap <- umap %>% mutate(UMAP_1 = UMAP_1 * 1, UMAP_2 = UMAP_2 * -1)
+umap_cut <- umap_cut %>% mutate(UMAP_1 = UMAP_1 * 1, UMAP_2 = UMAP_2 * -1)
+
+select_curves <- seq(1,65,1)
+diffPT_tibble <- list()
+for (i in names(diffPT)){
+  diffPT_tibble[[i]] <- diffPT[[i]] %>% as_tibble(rownames = 'Gene') %>% select(Gene:FDR)
+}
+diffPT_tibble <- diffPT_tibble %>% bind_rows(.id = 'Trajectory')
+```
+
+
+```{r,fig.width=5, fig.height=6}
+genesRPE <- diffPT_tibble %>% 
+  filter(Trajectory == 'slingPseudotime_9') %>% 
+  filter(Gene %in% tf$ID) %>% 
+  filter(FDR < 1e-10)
+lmRPE <- lm_maker(make_tidy_time('slingPseudotime_9', genesRPE$Gene), test = 'study_covariate')
+
+#lm <- lm_maker(make_tidy_time('slingPseudotime_2', genes$Gene))
+pval_cutoff <- 0.01  / nrow(lmRPE$lm)
+# filter by pval
+genesVrpe_pval <- lmRPE$lm %>% 
+  unnest(g_results) %>% 
+  group_by(Gene, group) %>% 
+  #filter(Gene %in% tf$ID) %>% 
+  filter(`p.value` < pval_cutoff) %>% 
+  group_by(Gene) %>% 
+  summarise(Count = n(), `p.value` = mean(`p.value`), `r.squared` = mean(`r.squared`)) %>% 
+  left_join(gene_id_converter, by = c('Gene' = 'hs_gene_id')) %>% arrange(`p.value`) %>% 
+  left_join(tf, by = c('Gene' = 'ID')) %>% select(Gene:`TF assessment`) %>% 
+  pull(Gene) %>% unique()
+# now filter by slope of PT (pseudotime)
+genesVrpe_PT <- lmRPE$lm %>% 
+  unnest(t_results) %>% 
+  filter(term == 'PT', estimate > (0.5), Gene %in% genesVrpe_pval) %>%  
+  group_by(Gene) %>% 
+   summarise(Count = n(), `estimate` = mean(estimate), `p.value` = mean(`p.value`)) %>% 
+  left_join(gene_id_converter, by = c('Gene' = 'hs_gene_id')) %>% 
+  left_join(tf, by = c('Gene' = 'ID')) %>% select(Gene:`TF assessment`) %>% 
+  pull(Gene) %>% unique()
+# ADD DCT (S cone marker) and MYL4(ML cone marker)
+#genesV <- c(genesV, 'ENSG00000080166', 'ENSG00000198336')
+
+a <- hm_maker('slingPseudotime_9', round_to = 0.1, genes = genesVrpe_PT, onlyShowTF = TRUE,  column_title = 'Curve 9 (RPE)')
+#b <- hm_maker('slingPseudotime_34', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 34 (ML Cones)')
+b <- hm_maker('slingPseudotime_2', round_to = 0.1, genes = genesVrpe_PT, onlyShowTF = TRUE,  column_title = 'Curve 2 (Rods)')
+# vertical
+# draw(a %v% b %v% c %v% d %v% e)
+draw(a + b ,  
+     show_heatmap_legend = c(FALSE, FALSE, FALSE, TRUE))
+```

@@ -177,10 +177,11 @@ hm_maker <- function(pseudotime,
 #hm_maker('slingPseudotime_1', 10, onlyShowTF = TRUE, genes = c('ENSG00000134438','ENSG00000114315', 'ENSG00000148400'))
 
 
-lm_maker <- function(tidyPT){
+lm_maker <- function(tidyPT, test = 'study_covariate'){
   # remove cells in low n groups
   # grouping by GENE, GROUP (pseudotime rounded), and STUDY
   # also remove cells that are ALL ZERO in a grouping
+  out <- list()
   tidyPT_c <- tidyPT %>% 
     left_join(tidyPT %>% 
                 group_by(Gene, group, study_accession) %>% 
@@ -204,50 +205,52 @@ lm_maker <- function(tidyPT){
     filter(Study_Count > 1)
   
   # run lm (by gene - group) with study_accession as covariate (where possible)
-  print("Running LM with study_accession as covariate")
-  tidyPT_lm1 <- tidyPT_c_higher_study_n %>%
-    group_by(Gene, group) %>%   
-    nest() %>% 
-    mutate(lm = map(data, function(df) lm(CPM ~ PT + study_accession, data = df)),
-           t_results = map(lm, tidy),
-           g_results = map(lm, glance),
-           a_results = map(lm, augment, interval = 'confidence'))
-  
-  tidyPT_lm2 <- tidyPT_c_low_study_n %>%
-    group_by(Gene, group) %>%   
-    nest() %>% 
-    mutate(lm = map(data, function(df) lm(CPM ~ PT, data = df)),
-           t_results = map(lm, tidy),
-           g_results = map(lm, glance),
-           a_results = map(lm, augment, interval = 'confidence'))
-  
-  print("Running LM for each gene - group")
-  tidyPT_lmY <- tidyPT_c %>%
-    group_by(Gene, group) %>%   
-    nest() %>% 
-    mutate(lm = map(data, function(df) lm(CPM ~ PT, data = df)),
-           t_results = map(lm, tidy),
-           g_results = map(lm, glance),
-           a_results = map(lm, augment, interval = 'confidence'))
-  
-  tidyPT_lm_covariate <- bind_rows(tidyPT_lm1, tidyPT_lm2)
-  
-  # run separate lm for each gene - group - study_accession set
-  print("Running LM for each gene - group - study_accession")
-  tidyPT_lmX <- tidyPT_c %>%
-    group_by(Gene, group, study_accession) %>%
-    nest() %>%
-    mutate(lm = map(data, function(df) lm(CPM ~ PT, data = df)),
-           t_results = map(lm, tidy),
-           g_results = map(lm, glance),
-           a_results = map(lm, augment, interval = 'confidence'))
-  
-  
-  out <- list()
-  out$lm_covariate <- tidyPT_lm_covariate
-  out$lm <- tidyPT_lmY
-  out$lm_individual  <- tidyPT_lmX
-  out$tidyPT <- tidyPT
+  if (test == 'study_covariate'){
+    print("Running LM with study_accession as covariate")
+    tidyPT_lm1 <- tidyPT_c_higher_study_n %>%
+      group_by(Gene, group) %>%   
+      nest() %>% 
+      mutate(lm = map(data, function(df) lm(CPM ~ PT + study_accession, data = df)),
+             t_results = map(lm, tidy),
+             g_results = map(lm, glance),
+             a_results = map(lm, augment, interval = 'confidence'))
+    
+    tidyPT_lm2 <- tidyPT_c_low_study_n %>%
+      group_by(Gene, group) %>%   
+      nest() %>% 
+      mutate(lm = map(data, function(df) lm(CPM ~ PT, data = df)),
+             t_results = map(lm, tidy),
+             g_results = map(lm, glance),
+             a_results = map(lm, augment, interval = 'confidence'))
+    out$lm <- bind_rows(tidyPT_lm1, tidyPT_lm2)
+  } else if (test == 'no_covariate'){
+    print("Running LM for each gene - group")
+    tidyPT_lmY <- tidyPT_c %>%
+      group_by(Gene, group) %>%   
+      nest() %>% 
+      mutate(lm = map(data, function(df) lm(CPM ~ PT, data = df)),
+             t_results = map(lm, tidy),
+             g_results = map(lm, glance),
+             a_results = map(lm, augment, interval = 'confidence'))
+    out$lm <- tidyPT_lmY
+  } else if (test == 'by_study') {
+    # run separate lm for each gene - group - study_accession set
+    print("Running LM for each gene - group - study_accession")
+    tidyPT_lmX <- tidyPT_c %>%
+      group_by(Gene, group, study_accession) %>%
+      nest() %>%
+      mutate(lm = map(data, function(df) lm(CPM ~ PT, data = df)),
+             t_results = map(lm, tidy),
+             g_results = map(lm, glance),
+             a_results = map(lm, augment, interval = 'confidence'))
+    out$lm <- tidyPT_lmX
+  }
+  # 
+  # 
+  # out$lm_covariate <- tidyPT_lm_covariate
+  # out$lm <- tidyPT_lmY
+  # out$lm_individual  <- tidyPT_lmX
+  # out$tidyPT <- tidyPT
   out
   
 }
