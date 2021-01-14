@@ -15,7 +15,10 @@ library(patchwork)
 library(velociraptor)
 library(scattermore)
 load('/data/OGVFB_BG/scEiaD_2021_01_03/scEiaD_2021_01_03_scvelo_full_sce.Rdata')
-velo_sce
+
+
+velo_sce 
+
 ```
 
 ```{r}
@@ -102,3 +105,176 @@ ggsave('/data/swamyvs/scEiad_quant/testing/TabulaDroplet_veloplot.png', plot =al
 
 
 ```
+
+
+Looking at species separately now
+
+```{r}
+library(SingleCellExperiment)
+library(tidyverse)
+library(patchwork)
+library(velociraptor)
+library(scattermore)
+
+load_rdata <- function(x){
+    load(x)
+    env <- ls.str()
+    var <- env[!grepl('^x$', env)]
+    stopifnot(length(var) == 1)
+    return(get(var))
+}
+gtf <- rtracklayer::readGFF('references/gtf/hs-homo_sapiens_anno.gtf.gz')
+geneid2gene <- gtf %>% filter(type == 'gene') %>% select(gene_name, gene_id) %>% distinct %>% 
+  mutate(gene_id = str_remove_all(gene_id,'\\.\\d+$'))
+gg <- geneid2gene$gene_name
+names(gg) <- geneid2gene$gene_id
+
+human_veloSCE <-  load_rdata('/data/swamyvs/scEiaD/testing/scEiaD_2021_01_03_scvelo_full_sce_Homo sapiens_.Rdata')
+mouse_veloSCE <- load_rdata('/data/swamyvs/scEiaD/testing/scEiaD_2021_01_03_scvelo_full_sce_Mus musculus_.Rdata')
+maca_veloSCE <- load_rdata('/data/swamyvs/scEiaD/testing/scEiaD_2021_01_03_scvelo_full_sce_Macaca fascicularis_.Rdata')
+
+common_cell_types  <- intersect(metadata(human_veloSCE)[['rank_velocity_genes_names']] %>% colnames,
+                                metadata(mouse_veloSCE)[['rank_velocity_genes_names']] %>% colnames )
+                                
+
+jaccard <- function(x,y){
+  i <- length(intersect(x,y))
+  u <- length(union(x,y))
+  return(i/u)
+}
+
+rank_comp <- sapply(common_cell_types, function(x) jaccard(metadata(human_veloSCE)[['rank_velocity_genes_names']][[x]],
+                                metadata(mouse_veloSCE)[['rank_velocity_genes_names']][[x]] ))
+highvar_comp <- jaccard(rownames(assay(human_veloSCE, 'velocity')), rownames(assay(mouse_veloSCE, 'velocity'))) 
+common_genes <- intersect(rownames(assay(human_veloSCE, 'velocity')), rownames(assay(mouse_veloSCE, 'velocity'))) %>% gg[.] 
+
+common_rank_geneids <- lapply(common_cell_types, function(x) intersect(metadata(human_veloSCE)[['rank_velocity_genes_names']][[x]],
+                                metadata(mouse_veloSCE)[['rank_velocity_genes_names']][[x]] ))
+names(common_rank_geneids) <- common_cell_types
+```
+
+
+```{r}
+mouse_pdf <- make_pdf(mouse_veloSCE)
+
+load('/data/OGVFB_BG/scEiaD_2021_01_03/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaDprojected__dist-0.2__neighbors-500.umapFilter.predictions.Rdata')
+keep_cells <- c( "Horizontal Cells", "RPCs","Retinal Ganglion Cells", "Amacrine Cells",  "AC/HC_Precurs", "Photoreceptor Precursors","Neurogenic Cells","Bipolar Cells", "Cones","Late RPCs","Early RPCs" ,"Rods" ,"Muller Glia" )
+
+MASTER_PAL <- pals::alphabet2() %>% sample(size=length(keep_cells)+1)
+names(MASTER_PAL) <- c(keep_cells, 'other')
+
+
+make_pdf <- function(velo_sce){
+  umap_mat <- reducedDim(velo_sce, 'X_scviUMAP')
+
+
+pdf <-  umap_mat %>% 
+  as.data.frame %>% 
+  rownames_to_column('barcode') %>% 
+  mutate(velocity_pseudotime = velo_sce$velocity_pseudotime, 
+         velocity_length = velo_sce$velocity_length) %>% 
+  dplyr::rename(UMAP1=V1, UMAP2=V2)
+return(pdf)
+}
+
+
+plot_umap_pt <- function(velo_sce, pdf){
+  umap_mat <- reducedDim(velo_sce, 'X_scviUMAP')
+  grid.df <- gridVectors(umap_mat, reducedDim(velo_sce, 'velocity_scviUMAP'))
+  pdf_lab_filt <-  umap %>% filter(!is.na(CellType_predict), Barcode %in% pdf$barcode) %>% 
+   select(barcode=Barcode, CellType_predict) %>% inner_join(pdf) %>% 
+    mutate(CellType =  replace(CellType_predict, !CellType_predict%in%keep_cells, 'other'))
+  umap_all <- ggplot(pdf_lab_filt)+
+    geom_scattermore(aes(x=UMAP1, y=UMAP2, color=CellType), alpha=.1) + 
+    scale_color_manual(values = MASTER_PAL)+
+    guides(color = guide_legend(override.aes = list(alpha=1))) + 
+    theme_minimal()
+  
+  velo_pt_plot <- ggplot(pdf)+
+    geom_scattermore(aes(x=UMAP1, y=UMAP2, color=velocity_pseudotime), alpha=.1)+
+    scale_color_viridis_c() +
+     geom_segment(data=grid.df, mapping=aes(x=start.1, y=start.2, 
+          xend=end.1, yend=end.2), arrow=arrow(length=unit(0.05, "inches"))) + 
+    theme_minimal()
+  return(umap_all/velo_pt_plot)
+}
+
+mouse_pdf <- make_pdf(mouse_veloSCE)
+mouse_umapPT <- plot_umap_pt(mouse_veloSCE, mouse_pdf)+ggtitle('mouse') &theme(legend.position = 'none')
+human_pdf <- make_pdf(human_veloSCE)
+human_umapPT <- plot_umap_pt(human_veloSCE, human_pdf)+ggtitle('human')
+
+
+
+all_umapPT <-  mouse_umapPT| human_umapPT + plot_layout(guides = 'collect')
+```
+
+```{r}
+plotPhasePortrait <- function(sce, t_gene, pdf){
+  gene_name <- filter(geneid2gene, gene_id == t_gene) %>% pull(gene_name) %>% .[1]
+  velo_mat <- assay(sce, 'velocity')[,pdf$barcode]
+  if(any(t_gene %in% rownames(velo_mat))){
+    pdf_velo <- pdf %>% mutate(velocity = as.numeric(velo_mat[t_gene,]))
+  }else{
+      pdf_velo <- pdf %>% mutate(velocity = 0)
+    }
+  
+  p <- ggplot(pdf_velo)+
+    geom_scattermore(aes(x=UMAP1, y=UMAP2, color=velocity),  alpha=.1)+
+    scale_color_viridis_c() + 
+    ggtitle(gene_name) +
+    theme_minimal()
+  #print(p)
+  return(p)
+  
+}
+
+gg <- geneid2gene$gene_name
+names(gg) <- geneid2gene$gene_id
+conv_gene_rank <- function(velo_sce){
+  rank_gene <- metadata(velo_sce)[['rank_velocity_genes_names']]
+mat <- matrix(nrow=nrow(rank_gene), ncol=ncol(rank_gene))
+for( i in 1:nrow(mat)){
+  for(j in 1:ncol(mat)){
+    mat[i,j] <- gg[rank_gene[i,j] ]
+    }
+}
+colnames(mat) <- colnames(rank_gene)
+return(mat)
+}
+
+
+mouse_RG <- conv_gene_rank(mouse_veloSCE)
+human_RG <- conv_gene_rank(human_veloSCE)
+
+common <- plotPhasePortrait(mouse_veloSCE,common_rank_geneids$`Photoreceptor Precursors`[1], mouse_pdf ) |
+plotPhasePortrait(human_veloSCE,common_rank_geneids$`Photoreceptor Precursors`[1], human_pdf )  
+
+gid <- 'ENSG00000121454'
+lhx4_pp <- plotPhasePortrait(mouse_veloSCE,gid, mouse_pdf ) |
+plotPhasePortrait(human_veloSCE,gid, human_pdf ) 
+
+
+gid <- 'ENSG00000042781'
+ush2a_pp <- plotPhasePortrait(mouse_veloSCE,gid, mouse_pdf ) |
+plotPhasePortrait(human_veloSCE,gid, human_pdf ) 
+```
+
+
+```{r}
+l <- '
+AAAA
+AAAA
+BBBB
+CCCC
+'
+finalplot <- all_umapPT/common/lhx4_pp +plot_layout(design = l)
+
+ggsave('/data/swamyvs/scEiaD/testing/by_species_veloplot.png', plot=finalplot, height = 25, width = 12, bg = 'white')
+```
+
+```{r}
+gtf %>% filter(gene_name == 'LHX4') %>% pull(gene_id) %>% .[1]
+```
+
+

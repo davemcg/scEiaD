@@ -43,7 +43,7 @@ make_seurat_obj <- function(m,
     	hs_mat_cor <- hs_mat / geneL_hs[row.names(hs_mat)] * median(geneL_hs)
     	mm_mat_cor <- mm_mat / geneL_mm[row.names(mm_mat)] * median(geneL_mm)
     	hs_mm <- cbind(hs_mat_cor, mm_mat_cor)
-    	mat_cor <- hs_mm[, colnames(mat)]
+    	mat_cor <- hs_mm[, colnames(hs_mm) %in% colnames(mat)]
 
   	  seurat_well <- CreateSeuratObject(mat_cor)
       seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
