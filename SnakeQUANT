@@ -210,7 +210,7 @@ rule all:
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
 		'pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata',
 		'pipeline_data/cell_info/all_cell_info.tsv',
-		'mito_counts.tsv'
+		'pipeline_data/clean_quant/mito_counts.tsv'
 	
 # get annotation for each species 
 rule make_sample_name_prefixs:
@@ -463,7 +463,7 @@ rule mito_stats:
 		monkey_hs_quant = well_and_droplet_input('Macaca_fascicularis', 'hs-homo_sapiens', quant_path, srp_droplet_dict, organism_welltech_dict, 'pct_mt.tsv'),
 		pattern_file=pattern_file
 	output:
-		'mito_counts.tsv'
+		'pipeline_data/clean_quant/mito_counts.tsv'
 	params:
 		drop_mt_pfx = 'pct_mt.tsv',
 		mito_gene_stem = '_mitogenes.txt'
