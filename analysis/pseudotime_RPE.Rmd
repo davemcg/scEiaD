@@ -76,3 +76,29 @@ b <- hm_maker('slingPseudotime_2', round_to = 0.1, genes = genesVrpe_PT, onlySho
 draw(a + b ,  
      show_heatmap_legend = c(FALSE, FALSE, FALSE, TRUE))
 ```
+
+```{r}
+gene <- 'MITF'
+lmRPE$lm %>% rename(hs_gene_id = Gene) %>% 
+  left_join(gene_id_converter %>% select(hs_gene_id, Gene = hs_gene_name)) %>% 
+  filter(Gene %in% gene) %>% 
+  unnest(g_results) %>% 
+  mutate(`p value` = 
+           case_when(`p.value` < 0.05 ~ '< 0.05', 
+                     TRUE ~ '>= 0.05')) %>% 
+  unnest(a_results) %>%
+  ggplot(aes(x = PT, 
+             y =.fitted)) +
+  geom_line(aes(group = interaction(group, study_accession), 
+                color = `p value`)) +
+  #geom_line(color = 'black', size = 2, alpha = 0.5,  data = lmRPE$lm %>% rename(hs_gene_id = Gene) %>% 
+  #            left_join(gene_id_converter %>% select(hs_gene_id, Gene = hs_gene_name)) %>% 
+  #            filter(Gene %in% gene) %>% unnest(a_results)) +
+  facet_wrap(~group, nrow = 1, scales = 'free_x') +
+  cowplot::theme_cowplot() +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) +
+  scale_color_manual(values = c(pals::cols25() %>% unname())) +
+  ylab('logCounts') + xlab('Pseudotime') + 
+  theme(panel.spacing = unit(0.1, "lines")) + ggtitle(gene)
+```
