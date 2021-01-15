@@ -27,48 +27,10 @@ if ('CellType_predict' %in% colnames(umap)){
 } else {umap$CT <- umap$CellType}
 
 
-quick_label_cluster <- function(umap, cutoff = 0.25, top = 3, subdivide_CT_by_clusters = FALSE){
-  quick_label <-  umap %>%
-    #mutate(CT = gsub('Rod Bipolar Cells', 'Bipolar Cells', CT)) %>%
-    mutate(CT = CellType_predict) %>%
-    group_by(cluster, CT) %>%
-    filter(!is.na(CT), !is.na(cluster)) %>%
-    summarise(Count = n(), x = mean(UMAP_1), y = mean(UMAP_2),
-              Organism = list(unique(organism)),
-              study_accession = list(unique(study_accession))) %>%
-    mutate(freq = Count / sum(Count)) %>%
-    filter(freq > cutoff) %>%
-    ungroup() %>%
-    group_by(cluster) %>%
-    top_n(top, -freq) %>%
-    #filter(Count > 100) %>%
-    summarise(CT = paste0(CT, collapse = ' '),
-              x = mean(x), y = mean(y),
-              Count = sum(Count)) %>%
-    #filter(grepl('Precu|RPC|Gangli|Amacrine|Bipolar|Rods|Cones|Muller|Neurog|Horizon', CT)) %>%
-    unique() %>%
-    ungroup() %>%
-    rowwise() %>%
-    mutate(seurat_cluster_CT = paste0(cluster, ': ', CT, collapse = ' '))
-  if (subdivide_CT_by_clusters){
-    quick_label <-  umap %>%
-      #mutate(CT = gsub('Rod Bipolar Cells', 'Bipolar Cells', CT)) %>%
-      mutate(CT = CellType_predict) %>%
-      group_by(cluster, CT) %>%
-      filter(!is.na(CT), !is.na(cluster)) %>%
-      summarise(Count = n(), x = mean(UMAP_1), y = mean(UMAP_2),
-                Organism = list(unique(organism)),
-                study_accession = list(unique(study_accession))) %>%
-      mutate(freq = Count / sum(Count)) %>%
-      filter(freq > cutoff) %>% 
-      rowwise() %>% 
-      mutate(seurat_cluster_CT = paste0(cluster, ': ', CT, collapse = ' '))
-  }
-  quick_label
-}
-
-
-cut_down_objs <- function(org = 'all', subdivide_CT_by_clusters = FALSE, CellType_only = NULL){
+cut_down_objs <- function(org = 'all'){
+  umap %>% filter(organsim == org)
+  
+  
   if (subdivide_CT_by_clusters == TRUE){
     cl_quick <- quick_label_cluster(umap %>% filter(organism == org), cutoff = 0.1, top = 6, subdivide_CT_by_clusters = subdivide_CT_by_clusters)
     
@@ -93,6 +55,10 @@ cut_down_objs <- function(org = 'all', subdivide_CT_by_clusters = FALSE, CellTyp
   } else {
     print(paste0('Using ', org, ' cells'))
     umapRetinaCluster = umapRetinaCluster %>% filter(organism == org)
+  }
+  
+  if (!is.null(CellType_only)){
+    umapRetinaCluster <- umapRetinaCluster %>% filter(CellType_predict %in% CellType_only)
   }
   
   sCT_CL = seurat[, umapRetinaCluster$Barcode]
@@ -225,6 +191,7 @@ if (length(args) == 8) {
 } else {
 	sling <- run_sling(obj_cut$seurat, obj_cut$umap$seurat_cluster_CT, reduction, ncell = nrow(obj_cut$umap))
 }
+
 umap_cut <- obj_cut$umap
 
 
