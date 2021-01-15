@@ -36,11 +36,11 @@ diffPT_tibble <- diffPT_tibble %>% bind_rows(.id = 'Trajectory')
 ```
 
 
-```{r,fig.width=5, fig.height=6}
+```{r,fig.width=5, fig.height=4}
 genesRPE <- diffPT_tibble %>% 
   filter(Trajectory == 'slingPseudotime_9') %>% 
-  filter(Gene %in% tf$ID) %>% 
-  filter(FDR < 1e-10)
+  filter(Gene %in% (tf %>% filter(`...4` == 'Yes') %>% pull(ID))) %>% 
+  filter(FDR < 0.01)
 lmRPE <- lm_maker(make_tidy_time('slingPseudotime_9', genesRPE$Gene), test = 'study_covariate')
 
 #lm <- lm_maker(make_tidy_time('slingPseudotime_2', genes$Gene))
@@ -56,10 +56,10 @@ genesVrpe_pval <- lmRPE$lm %>%
   left_join(gene_id_converter, by = c('Gene' = 'hs_gene_id')) %>% arrange(`p.value`) %>% 
   left_join(tf, by = c('Gene' = 'ID')) %>% select(Gene:`TF assessment`) %>% 
   pull(Gene) %>% unique()
-# now filter by slope of PT (pseudotime)
+# now filter by slope (estimate) of PT (pseudotime)
 genesVrpe_PT <- lmRPE$lm %>% 
   unnest(t_results) %>% 
-  filter(term == 'PT', estimate > (0.5), Gene %in% genesVrpe_pval) %>%  
+  filter(term == 'PT', estimate > (0.4), Gene %in% genesVrpe_pval) %>%  
   group_by(Gene) %>% 
    summarise(Count = n(), `estimate` = mean(estimate), `p.value` = mean(`p.value`)) %>% 
   left_join(gene_id_converter, by = c('Gene' = 'hs_gene_id')) %>% 
@@ -77,6 +77,8 @@ draw(a + b ,
      show_heatmap_legend = c(FALSE, FALSE, FALSE, TRUE))
 ```
 
+# Linear Model for each pseudotime bin (by 1)
+Each individual line is a independent study
 ```{r}
 gene <- 'MITF'
 lmRPE$lm %>% rename(hs_gene_id = Gene) %>% 
@@ -91,9 +93,10 @@ lmRPE$lm %>% rename(hs_gene_id = Gene) %>%
              y =.fitted)) +
   geom_line(aes(group = interaction(group, study_accession), 
                 color = `p value`)) +
-  #geom_line(color = 'black', size = 2, alpha = 0.5,  data = lmRPE$lm %>% rename(hs_gene_id = Gene) %>% 
-  #            left_join(gene_id_converter %>% select(hs_gene_id, Gene = hs_gene_name)) %>% 
-  #            filter(Gene %in% gene) %>% unnest(a_results)) +
+  geom_ribbon(aes(group = interaction(group, study_accession), ymin = .lower, ymax = .upper),
+                alpha = 0.2,  data = lmRPE$lm %>% rename(hs_gene_id = Gene) %>%
+             left_join(gene_id_converter %>% select(hs_gene_id, Gene = hs_gene_name)) %>%
+             filter(Gene %in% gene) %>% unnest(a_results)) +
   facet_wrap(~group, nrow = 1, scales = 'free_x') +
   cowplot::theme_cowplot() +
   theme(axis.text.x = element_blank(),
