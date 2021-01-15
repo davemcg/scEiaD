@@ -27,47 +27,21 @@ if ('CellType_predict' %in% colnames(umap)){
 } else {umap$CT <- umap$CellType}
 
 
-cut_down_objs <- function(org = 'all'){
-  umap %>% filter(organsim == org)
+cut_down_objs <- function(umap, org = 'Homo sapiens'){
+  umapRetina = umap %>% filter(organism == org,
+                  is.na(TabulaMurisCellType_predict),
+                  CellType_predict %in% c('AC/HC_Precurs','Amacrine Cells','Astrocytes',
+                                           'Bipolar Cells','Cones','Early RPCs','Horizontal Cells', 'RPE',
+                                           'Late RPCs','Muller Glia','Neurogenic Cells','Photoreceptor Precursors',
+                                           'Retinal Ganglion Cells','Rod Bipolar Cells','Rods','RPCs') | is.na(CellType_predict))
   
-  
-  if (subdivide_CT_by_clusters == TRUE){
-    cl_quick <- quick_label_cluster(umap %>% filter(organism == org), cutoff = 0.1, top = 6, subdivide_CT_by_clusters = subdivide_CT_by_clusters)
-    
-    umapRetinaCluster <- umap %>% 
-      mutate(seurat_cluster_CT = paste0(cluster,': ', CT)) %>% 
-      filter(CellType_predict %in% c('AC/HC_Precurs','Amacrine Cells','Astrocytes',
-                                     'Bipolar Cells','Cones','Early RPCs','Horizontal Cells', 'RPE',
-                                     'Late RPCs','Muller Glia','Neurogenic Cells','Photoreceptor Precursors',
-                                     'Retinal Ganglion Cells','Rod Bipolar Cells','Rods','RPCs') | is.na(CellType_predict)) %>% 
-      filter(seurat_cluster_CT %in% cl_quick$seurat_cluster_CT)
-  } else {
-    cl_quick <- quick_label_cluster(umap %>% filter(organism == org), cutoff = 0.1, top = 6, subdivide_CT_by_clusters = FALSE)
-    cl_quick <- cl_quick %>% 
-      filter(grepl('Precurs|Amacri|Astro|Bipolar|Cones|Early|Horizon|RPE|Late|Muller|Neuroge|Photore|Retinal|Rod|RPC', seurat_cluster_CT))
-    umapRetinaCluster <- umap %>% 
-      right_join(cl_quick, by = 'cluster')
-  }
-  
-  if (org == 'all'){
-    print('Using all cells')
-    umapRetinaCluster = umapRetinaCluster
-  } else {
-    print(paste0('Using ', org, ' cells'))
-    umapRetinaCluster = umapRetinaCluster %>% filter(organism == org)
-  }
-  
-  if (!is.null(CellType_only)){
-    umapRetinaCluster <- umapRetinaCluster %>% filter(CellType_predict %in% CellType_only)
-  }
-  
-  sCT_CL = seurat[, umapRetinaCluster$Barcode]
+  sCT_CL = seurat[, umapRetina$Barcode]
   sCT_CL[["UMAP"]] <- CreateDimReducObject(embeddings =
-                                             umapRetinaCluster[,2:3] %>% as.matrix(),
+                                             umapRetina[,2:3] %>% as.matrix(),
                                            key = "UMAP_",
                                            assay = DefaultAssay(sCT_CL))
   
-  list(umap = umapRetinaCluster, seurat = sCT_CL)
+  list(umap = umapRetina, seurat = sCT_CL)
   
 }
 
@@ -94,18 +68,11 @@ run_sling <- function(seurat, group, reduction = 'scVI', ncell = 50000, start = 
   print("Start Cluster")
   print(start)
   print('')
-  dev_cluster = obj_cut$umap %>% 
-    group_by(cluster) %>% summarise(CT = paste(unique(seurat_cluster_CT), collapse = ' ')) %>% 
-    filter(grepl('RPC|Precur|Neuro', CT)) %>% 
-    filter(!grepl('RPE', CT)) %>% 
-    pull(cluster) %>% 
-    as.character()
+
   ends <-  colLabels(sce) %>%
     unique() %>%
     enframe() %>%
     filter(!grepl('RPC|Prec|Neuro', value) ) %>%
-    mutate(cluster = str_extract(value, '^\\d+')) %>% 
-    filter(!cluster %in% dev_cluster) %>% 
     pull(value)
   
   intermediate <- colLabels(sce) %>%
@@ -172,17 +139,9 @@ if (method == 'CCA'){
 
 rm(integrated_obj)
 
-if (subdivide_CT_by_clusters == 'TRUE'){
-	print('Use cluster subdivide strategy')
-	subdivide_CT_by_clusters = TRUE
-} else { 
-	print('Do not use cluster subdivide strategy')
-	subdivide_CT_by_clusters = FALSE
-}
-
-obj_cut <- cut_down_objs(org, subdivide_CT_by_clusters = subdivide_CT_by_clusters)
+obj_cut <- cut_down_objs(umap, org = 'Homo sapiens')
 # now's the time to pick a start cluster
-quick_label_cluster(obj_cut$umap) %>% data.frame()
+#quick_label_cluster(obj_cut$umap) %>% data.frame()
 
 if (length(args) == 8) {
 	print('Start  cluster given as user input')
