@@ -1,11 +1,14 @@
 library(tidyverse)
 library(glue)
+library(reticulate)
 args <- commandArgs(trailingOnly = TRUE)
 
 load(args[1]) # seurat obj post integration
 load(args[2]) # umap metadata
-#label_id_col = args[5]
-#label_name_col = args[6]
+label_id_col = args[5]# label_id_col is the name of a column that will be created and used interally within the python script,
+label_name_col = args[6]# label_name_col must a be a column in embedding/umap file - CellType, cluster etc 
+model_outfile <- args[7]
+
 
 conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
 git_dir = Sys.getenv('SCIAD_GIT_DIR')
@@ -14,7 +17,7 @@ working_dir = Sys.getenv('SCIAD_WORKING_DIR')
 out <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap, by = 'Barcode')
 out_tm <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap, by = 'Barcode') %>% filter(study_accession == 'SRP131661')
 out_tm$CellType <- out_tm$TabulaMurisCellType
-remove_low <- out_tm %>% group_by(CellType) %>% count() %>% filter(n < 40) %>% pull(CellType)
+remove_low <- out_tm %>% group_by(CellType) %>% dplyr::count() %>% filter(n < 40) %>% pull(CellType)
 out_tm <- out_tm %>% filter(!CellType %in% remove_low)
 # fantom5 tf
 #f5 <- read_tsv('~/git/massive_integrated_eye_scRNA/data/fantom5_tf.tsv')
@@ -47,14 +50,9 @@ full_tm <- out_tm
 out <- rm_outlier(out)
 out_tm <- rm_outlier(out_tm)
 
-run_xgboost_py <- function(embeddings, full_embeddings, temp_name, tm = FALSE, probThresh = 0.8){
-	rand_num <- sample(1e5:1e6, 1)
-	embeddings_file <- paste0(rand_num, '_', temp_name)
-	full_embeddings_file <- paste0(rand_num, '_FULL', temp_name)
-	write_tsv(embeddings, path = embeddings_file)
-	write_tsv(full_embeddings, path = full_embeddings_file)
-	write_features_file <- paste0(rand_num, '_features.txt')
-	prob_file <- paste0(rand_num, '_CTpredictor')	
+run_xgboost_py <- function(embeddings, full_embeddings, model_outfile, tm = FALSE, probThresh = 0.8, 
+                           label_id_col=label_id_col, label_name_col=label_name_col){
+  
 	if (!tm) {
 		features <- c(grep('scVI', colnames(embeddings), value = TRUE),
 						'UMAP_1', 'UMAP_2', 'nCount_RNA', 'nFeature_RNA', 'percent.mt',
@@ -63,31 +61,28 @@ run_xgboost_py <- function(embeddings, full_embeddings, temp_name, tm = FALSE, p
 		features <- c(grep('scVI', colnames(embeddings), value = TRUE),
 						'UMAP_1', 'UMAP_2', 'nCount_RNA', 'nFeature_RNA', 'percent.mt')
 	}
-	write(features, write_features_file)
+	#write(features, write_features_file)
 	
 	# train on pre-labelled cells
-	pickle <- paste0(temp_name, '_', rand_num, '.pickle' )
-	command <- glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictorO.py train --workingDir {working_dir} --predProbThresh {probThresh} --inputMatrix  {embeddings_file}  --trainedModelFile  {pickle}  --featureCols  {write_features_file} --generateProb {prob_file} ')
-	print(command)
-	system(command)
-
+	pickle <- paste0(model_outfile, '_.pickle' )
+  use_python(glue('{conda_dir}/envs/integrate_scRNA/bin/python'))
+  source_python( glue('{git_dir}/src/cell_type_predictor.py'))
+  train_test_predictions <-  scEiaD_classifier_train(inputMatrix=embeddings, labelIdCol=label_id_col, labelNameCol=label_name_col,  trainedModelFile=pickle,
+        featureCols=features, predProbThresh=probThresh, generateProb=TRUE)
+  
 	# apply model to predict labels for all cells
-	predictions_file <- temp_name
-	system(glue('{conda_dir}/envs/integrate_scRNA/bin/python3.6 {git_dir}/src/cell_type_predictorO.py predict --workingDir {working_dir} --predProbThresh  {probThresh} --inputMatrix  {full_embeddings_file} --trainedModelFile  {pickle} --predictions  {predictions_file}'))
-
-	#, import in predictions
-	predictions <- read_tsv(predictions_file)
-	# import test_data probabilities
-	test_data <- read_csv(paste0(prob_file, 'test_data_probabilities.csv.gz'))
-	training_data <- read_csv(paste0(prob_file, 'training_data_probabilities.csv.gz'))
-	out <- list()	
-	out[['predictions']] <- predictions
-	out[['test_data']] <- test_data
-	out[['training_data']] <- training_data
+	
+	full_embedding_predictions <-scEiaD_classifier_predict(inputMatrix=full_embeddings,labelIdCol=label_id_col, labelNameCol=label_name_col, trainedModelFile=pickle,
+	                                                       featureCols=features,  predProbThresh=probThresh)
+	out <- list()
+	out[['predictions']] <- full_embedding_predictions
+	out[['test_data']] <- train_test_predictions$test_probs_df
+	out[['training_data']] <- train_test_predictions$train_probs_df
 	out
 }
 
 # full data set
+
 model_out <- run_xgboost_py(out, full_out, 'fullTemp', tm = FALSE, probThresh = 0.5)
 predictions <- model_out$predictions
 umapX <- left_join(umap, predictions %>% select(Barcode, CellType_predict = CellType), by = 'Barcode')
