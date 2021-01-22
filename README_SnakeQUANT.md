@@ -4,7 +4,7 @@ README-SnakeQUANT
 ## Overview
 
 SnakeQUANT is a quantification pipeline to generate scRNA-seq gene
-expression data for scEiaD. SnakeQUANT handles
+expression data for scEiaD. This is run previous to `SnakePOP` and `SnakeSCEIAD`. SnakeQUANT does the following:
 
   - Builds kallisto quantification indices for human, mouse, and macaque
     originating data
@@ -15,6 +15,17 @@ expression data for scEiaD. SnakeQUANT handles
   - For macaque data, quantifies data gainst both macaque and human
     indices and picks best(highest) expresion values for the two
   - Generate statistics like % mitochondiral gene expression for QC
+  - The `pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata` removes cells which have > 10% mito gene expression (relative to full transcriptome quant)
+
+## Output
+```
+pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata
+pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata
+pipeline_data/cell_info/all_cell_info.tsv
+pipeline_data/clean_quant/mito_counts.tsv
+```
+
+
 
 ## Setup
 
