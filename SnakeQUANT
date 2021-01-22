@@ -236,8 +236,6 @@ rule download_annotation:
 		'''
 		mkdir -p references
 		wget -O {output.mouse_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/gencode.vM25.annotation.gtf.gz
-		wget -O {output.mouse_genome} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/GRCm38.primary_assembly.genome.fa.gz
-
 		wget -O {output.macaque_mul_anno} ftp://ftp.ensembl.org/pub/release-101/gtf/macaca_mulatta/Macaca_mulatta.Mmul_10.101.gtf.gz
 		wget -O {output.human_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_35/gencode.v35.annotation.gtf.gz
 		'''
@@ -344,6 +342,16 @@ rule bustools_sort:
 		{bustools_path}/./bustools sort -t {threads} -m 100G \
 			{input} \
 			-o {output}
+		"""
+
+rule get_10x_whitelists:
+	output:
+		two = 'references/whitelist/10x/10xv2.txt',
+		three = 'references/whitelist/10x/10xv3.txt'
+	shell:
+		"""
+		wget -O {output.two} https://github.com/BUStools/getting_started/releases/download/velocity_tutorial/10xv2_whitelist.txt
+		wget -O {output.three} https://github.com/BUStools/getting_started/releases/download/species_mixing/10xv3_whitelist.txt
 		"""
 
 rule make_dropseq_whitelists:
