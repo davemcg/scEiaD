@@ -469,7 +469,7 @@ cell_info_labels <- cell_info_labels %>%
                               #grepl('iPSC_RPE_scRNA_02', value) ~ 'RPE',
                               value %in% high_ttr_huf$value ~ 'RPE',
                               TRUE ~ CellType),
-         Paper = case_when(grepl('iPSC_RPE_scRNA', value) ~ 'Hufnagel 2020',
+         Paper = case_when(grepl('iPSC_RPE_scRNA', value) ~ 'Swamy et al. 2021',
                            TRUE ~ Paper))
 
 
