@@ -83,7 +83,7 @@ if (set == 'early'){
 }  else if (set == 'TabulaDroplet'){
   print("Running onlyDROPLET with Tabula Muris (no well)")
   #m_TABULA_DROPLET <- m[,cell_info %>% filter(Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
-  m_TABULA_DROPLET <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3'), !Tissue %in% c('Organoid', 'Cell Culture'), !TissueNote %in% c('Organoid','Cell Culture')) %>% pull(value)]
+  m_TABULA_DROPLET <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3'), !Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)]
   seurat__standard <- make_seurat_obj(m_TABULA_DROPLET,cell_info, split.by = covariate, keep_well = FALSE,mito_geneids=mito_geneids)
 } else if (set == 'TabulaDropletLabelled'){
   print("Running onlyDROPLET labelled samples only with Tabula Muris (no well)")
@@ -110,7 +110,7 @@ if (set == 'early'){
   m_downsample <- m[,downsample_samples]
   seurat__standard <- make_seurat_obj(m_downsample,cell_info, split.by = covariate,mito_geneids=mito_geneids)
 } else if (set == 'universe'){
-  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Tissue %in% c('Organoid', 'Cell Culture'), !TissueNote %in% c('Organoid','Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids)
+  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids)
 } else if (set == 'universeX'){
   seurat__standard <- make_seurat_obj(m, cell_info, split.by = covariate, lengthCor = TRUE, only_use_human_for_FVF = TRUE, mito_geneids = mito_geneids)
 } else if (set %in% c('cones', 'hc', 'rgc', 'amacrine', 'mullerglia', 'bipolar', 'rods' )){
