@@ -34,5 +34,6 @@ well_meta <- lapply(files_well, read_well_pt_mito)
 well_mito <- well_meta %>% bind_rows()
 mito <- bind_rows(well_mito, drop_mito)
 
-write_tsv(mito, file = 'mito_counts.tsv')
+system('mkdir -p pipeline_data/clean_quant')
+write_tsv(mito, file = 'pipeline_data/clean_quant/mito_counts.tsv')
 
