@@ -45,7 +45,9 @@ read_all_droplet_data = function(droplet_samples){
   droplet_sample_accessions <- list()
 
   i <- 1
+  print(droplet_samples)
   for (sample in droplet_samples ){
+	print(sample)
     drops <- load_rdata(sample)
     row.names(drops) <- row.names(drops) %>% str_remove_all('\\.$')
     colnames(drops) <- make.unique(colnames(drops))
