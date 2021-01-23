@@ -14,7 +14,7 @@
 	},
 	"bus" : 
 	{
-		"mem" : "160G",
+		"mem" : "180G",
 		"time" : "24:00:00"
 	},
 	"bustools_sort" : 
@@ -30,7 +30,7 @@
 	"create_sparse_matrix" : 
 	{
 		"time" : "00:40:00",
-		"mem" : "32G"
+		"mem" : "64G"
 	},
 	"kallisto_index":
 	{
@@ -44,7 +44,7 @@
 		"time" : "01:45:00"
 	},
 	"quant": {
-		"mem": "160g",
+		"mem": "180g",
 		"time": "08:00:00"
 	},
 	"kallisto_bus": {
