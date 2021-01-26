@@ -71,12 +71,9 @@ def SRP_2_SRS(quant_path, SRP, reference, sfx, srs_dict):
 
 def well_and_droplet_input(organism, reference, quant_path, SRP_droplet_dict, otd, sfx):
 	target_srps = [ srp for srp in  SRP_droplet_dict.keys() if SRP_droplet_dict[srp]['organism'] == organism ] 
-	if organism == 'Macaca_fascicularis':
-		out = [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
-	else:
-		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]	
-	return(out)
-
+	well = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ]
+	droplet =  [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
+	return well + droplet
 
 def well_and_droplet_stats(organism, reference, quant_path, SRS_dict, otd):
 	well = [f'{quant_path}/quant/{organism}/{tech}/{reference}__counts.Rdata' for tech in otd[organism]]
@@ -181,6 +178,8 @@ fastq_path = config['fastq_path']
 quant_path = config['quant_path']
 config_abspath=config['config_abspath']
 pattern_file=config['samplename_patterns']
+DNTX_gtf_path=config['DNTX_gtf_path']
+
 SRS_UMI_samples = []
 SRS_nonUMI_samples = []
 for SRS in SRS_dict.keys():
@@ -194,15 +193,6 @@ organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 report: "report.rst"
 
-if config['subset_clustering'] == 'False':
-	# partitions_to_run = ['universe', 'TabulaDroplet', 'onlyWELL']
-	# scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
-	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
-	partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
-	scIB_partitions_to_run =  [ 'TabulaDroplet',"Homo_sapiens", "Mus_musculus"] 
-else:
-	partitions_to_run = ['celltype_subset']
-	scIB_partitions_to_run = ['celltype_subset']
 
 
 rule all:
@@ -210,7 +200,8 @@ rule all:
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
 		'pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata',
 		'pipeline_data/cell_info/all_cell_info.tsv',
-		'mito_counts.tsv'
+		'mito_counts.tsv',
+		quant_path + '/quant/Homo_sapiens/well/DNTX__counts.Rdata'
 	
 # get annotation for each species 
 rule make_sample_name_prefixs:
@@ -231,7 +222,8 @@ rule download_annotation:
 		mouse_anno='references/gtf/mm-mus_musculus_anno.gtf.gz',
 		#macaque_faca_anno='references/gtf/macaca_fascicularis_anno.gtf.gz',
 		macaque_mul_anno= 'references/gtf/mf-macaca_mulatta_anno.gtf.gz',
-		human_anno='references/gtf/hs-homo_sapiens_anno.gtf.gz'
+		human_anno='references/gtf/hs-homo_sapiens_anno.gtf.gz',
+		dntx_anno = 'references/gtf/DNTX_anno.gtf'
 	shell:
 		'''
 		mkdir -p references
@@ -240,6 +232,9 @@ rule download_annotation:
 
 		wget -O {output.macaque_mul_anno} ftp://ftp.ensembl.org/pub/release-101/gtf/macaca_mulatta/Macaca_mulatta.Mmul_10.101.gtf.gz
 		wget -O {output.human_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_35/gencode.v35.annotation.gtf.gz
+		module load R
+		Rcript src/make_DNTX_gtf.R 
+		gzip references/gtf/DNTX_anno.gtf
 		'''
 		#wget -O {output.macaque_faca_anno} ftp://ftp.ensembl.org/pub/release-98/gtf/macaca_fascicularis/Macaca_fascicularis.Macaca_fascicularis_5.0.98.gtf.gz
 
