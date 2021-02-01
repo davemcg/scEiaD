@@ -247,7 +247,7 @@ meta_MacaqueSanes <- meta_MacaqueSanes %>%
 # reload
 # meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv') %>% select(-TissueNote)
 # scheetz human fovea
-scheetz_files <- list.files(glue('{git_dir}/data/'), pattern = 'GSM.*donor.*gz', full.names = TRUE)
+scheetz_files <- list.files(glue('{git_dir}/data/'), pattern = 'GSM374599.*donor.*gz', full.names = TRUE)
 scheetz <- scheetz_files %>% 
   map(read_tsv, col_types = cols_only(barcode = col_character(), cluster_label = col_character())) %>% 
   set_names(scheetz_files) %>% 
@@ -270,7 +270,7 @@ meta_SRP194595 <- cell_info %>% filter(study_accession == 'SRP194595') %>%
                               cluster_label == '12' ~ 'Microglia',
                               cluster_label %in% c('12','13','14','15','16','17') ~ 'Muller Glia')) %>% 
   select(value:batch, CellType) %>% 
-  mutate(Paper = 'Voigt et al. 2019')
+  mutate(Paper = 'Voigt et al. Scheetz 2019')
 
 # mennon et al. 
 # SRP222001, SRP222958
@@ -343,15 +343,6 @@ meta_SRP257883 <- cell_info %>% left_join(., SRP257883_GSE_meta %>%
 											by = c('UMI', 'donor')) %>%
 								unique() %>%
 								mutate(Paper = 'Voigt et al. 2020')
-# SRP218652 mullins/scheetz RPE
-cell_info <- data.table::fread(config$cell_info) %>%
-    filter(study_accession == 'SRP218652') %>%
-    mutate(UMI = gsub('_\\w+', '', value))
-load(glue('{git_dir}/data/SRP218652__meta.Rdata'))
-SRP218652 <- SRP218652 %>%  select(Barcode, sample_accession, CellType) %>% 
-	mutate(UMI =  gsub('_\\w+', '', Barcode),
-			UMI = gsub('-\\d+', '', UMI))
-meta_SRP218652 <- cell_info %>% left_join(., SRP218652, by = c('UMI', 'sample_accession'))
 
 # tabula muris
 cell_info <- data.table::fread(config$cell_info) %>% select(-TissueNote) %>% filter(study_accession == 'SRP131661') 
@@ -426,16 +417,103 @@ cowan_meta <- cowan %>%
 meta_EGAD00001006350 <- cell_info %>% left_join(., cowan_meta %>% select(value, Paper, CellType, SubCellType), by = 'value')
 
 
+## voigt mullins rpe
+cell_info <- data.table::fread(config$cell_info) %>%
+    filter(study_accession == 'SRP218652')
+mullins_files <- list.files(glue('{git_dir}/data/'), pattern = 'GSM40379.*gz', full.names = TRUE)
+mullins <- mullins_files %>%
+  map(read_delim, delim = ' ', col_types = cols_only(barcode = col_character(), final_cluster_labels = col_character(), library = col_character())) %>%
+  set_names(mullins_files) %>%
+  bind_rows(.id = 'sample') %>%
+  mutate(barcode = final_cluster_labels,
+		 final_cluster_label = library) %>%
+  select(sample, barcode, final_cluster_label) %>% 
+  mutate(sample = gsub(".*GSM\\d+_|_expression.*","",sample),
+         barcode = gsub('-\\d+|_\\d+','', barcode)) %>%
+  mutate(sample = paste0(str_extract(sample, 'macula|peripheral'), '_donor', str_extract(sample, '\\d+')))
+meta_SRP218652 <- cell_info %>% filter(study_accession == 'SRP218652') %>%
+  unique() %>%
+  mutate(sample = paste0(str_extract(TissueNote, 'Macula|Peripheral') %>% tolower() , '_', str_extract(TissueNote, 'donor\\d+')),
+         barcode = gsub('_.*','', value)) %>%
+  left_join(mullins, by =c('sample', 'barcode')) %>%
+  mutate(CellType = case_when(grepl('enriched', TissueNote) & final_cluster_label %in% c('1','2') ~ 'Schwann',
+                              grepl('enriched', TissueNote) & final_cluster_label %in% c('3') ~ 'Melanocytes',
+                              grepl('enriched', TissueNote) & final_cluster_label %in% c('4') ~ 'Endothelial',
+                              grepl('enriched', TissueNote) & final_cluster_label == '5' ~ 'Pericytes',
+                              grepl('enriched', TissueNote) & final_cluster_label == '6' ~ 'Fibroblasts',
+                              grepl('enriched', TissueNote) & final_cluster_label == '7' ~ 'RPE',
+                              grepl('enriched', TissueNote) & final_cluster_label == '8' ~ 'B-Cell',
+                              grepl('enriched', TissueNote) & final_cluster_label == '9' ~ 'T-Cell',
+							  grepl('enriched', TissueNote) & final_cluster_label == '10' ~ 'Macrophage',
+							  grepl('enriched', TissueNote) & final_cluster_label == '11' ~ 'Mast',
+                              !grepl('enriched', TissueNote) & final_cluster_label == '1' ~ 'Pericytes',
+                              !grepl('enriched', TissueNote) & final_cluster_label == '2' ~ 'Fibroblasts',
+                              !grepl('enriched', TissueNote) & final_cluster_label == '3' ~ 'Schwann',
+                              !grepl('enriched', TissueNote) & final_cluster_label == '4' ~ 'Fibroblasts',
+                              !grepl('enriched', TissueNote) & final_cluster_label %in% c('9','10', '11') ~ 'Macrophage')) %>%
+  as_tibble() %>% 
+  select(value:batch, CellType) %>%
+  unique() %>% 
+  mutate(Paper = 'Voigt et al. Mullins 2019')
+
+# SRP259930 Sanes mouse amacrine 63+ cluster paper
+cell_info <- data.table::fread(config$cell_info) %>%
+    filter(study_accession == 'SRP259930')
+metaTN  <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv'))
+sanes_mmAC <- read_csv(glue('{git_dir}/data/MouseAC_metafile.csv'), skip=1) %>% mutate(Mouse = str_extract(TYPE, 'MouseACS\\d+'), Barcode = str_extract(TYPE, '_.*') %>% gsub('_|-\\d+','',.))
+meta_SRP259930 <- cell_info %>% 
+						mutate(Barcode = gsub("_.*","", value)) %>% 
+						select(-TissueNote) %>% 
+						left_join(metaTN %>% select(sample_accession, TissueNote), by = 'sample_accession' ) %>% 
+						mutate(Mouse = str_extract(TissueNote, 'MouseACS\\d+')) %>% 
+						left_join(sanes_mmAC, by = c('Mouse','Barcode')) %>% 
+						mutate(CellType = case_when(!is.na(group) ~ 'Amacrine Cells'), SubCellType = group) %>%
+						filter(!is.na(group)) %>%  
+						select(value:batch, CellType, SubCellType) %>%
+						mutate(Paper = 'Yan et al. 2020')
 
 
+# heng nathans
+cell_info <- data.table::fread(config$cell_info) %>%
+    filter(study_accession == 'SRP200499')
+heng_files <- list.files(glue('{git_dir}/data/'), pattern = 'GSM38545.*gz', full.names = TRUE)
+heng <- heng_files %>%
+  map(read_tsv, col_names = FALSE ) %>%
+  set_names(heng_files) %>%
+  bind_rows(.id = 'sample') %>%
+  mutate(Sample = str_extract(sample, "GSM\\d+"),
+         Barcode = gsub('-\\d+','', X1),
+		 CT = X2) %>%
+ select(Sample, Barcode, CT)
+meta_SRP200499 <- cell_info %>% 
+						mutate(Barcode = gsub("_.*","", value)) %>% 
+						select(-TissueNote) %>% 
+						left_join(metaTN %>% select(sample_accession, TissueNote), by = 'sample_accession' ) %>% 
+						mutate(Sample = str_extract(TissueNote, 'GSM38545\\d+')) %>% 
+						left_join(heng, by = c('Sample','Barcode')) %>% 
+                        mutate(CellType = case_when(CT == 'Amacrine cells' ~ 'Amacrine Cells',
+          							                CT == 'Astrocytes'  ~ 'Astrocytes',
+													CT == 'Cone bipolar cells' ~ 'Cone Bipolar Cells',
+													CT == 'Rod bipolar cells' ~ 'Rod Bipolar Cells',
+													CT == 'Cones' ~ 'Cones',
+													CT == 'Horizontal cells' ~ 'Horizontal Cells',
+													CT == 'Microglia' ~ 'Microglia',
+													CT == 'Monocytes' ~ 'Monocyte',
+													CT == 'Muller glia' ~ 'Muller Glia',
+													CT == 'Multiplets' ~ 'Doublet',
+													CT == 'Retinal ganglion cells' ~ 'Retinal Ganglion Cells',
+													CT == 'Rods' ~ 'Rods',
+													CT == 'Vascular endothelial cells' ~ 'Endothelial')) %>%
+						select(-CT) %>%
+						mutate(Paper = 'Heng et al. 2019')
 
 
 # MERGE
-
 cell_info <- data.table::fread(config$cell_info)
 
-meta_SRP <- bind_rows(meta_SRP218652, meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, 
-						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195, meta_EGAD00001006350) %>%
+meta_SRP <- bind_rows(meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, 
+						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195, meta_EGAD00001006350, meta_SRP218652, meta_SRP259930, 
+						meta_SRP200499) %>%
 	mutate(CellType = gsub('Melanotype', 'Melanocytes', CellType),
 			CellType = gsub('B-cell', 'B-Cell', CellType),
 			CellType = gsub('Macrophages', 'Macrophage', CellType),
@@ -477,32 +555,14 @@ if ( sum(is.na(cell_info_labels$study_accession)) > 0 ) {
 	print('Join error, check data frame!')
 	stop()
 }
-
+cell_info <- data.table::fread('pipeline_data/cell_info/all_cell_info.tsv') %>% select(-TissueNote)
 if (((cell_info_labels$value %>% duplicated) %>% sum() == 0) & 
 	(nrow(cell_info) == nrow(cell_info_labels))) {
 	save(cell_info_labels, file = 'pipeline_data/cell_info/cell_info_labelled.Rdata')
 } else {
+	save(meta_SRP218652x, meta_SRP218652y, cell_info_labels, cell_info, file = 'pipeline_data/cell_info/cell_info_labelled_fail.Rdata')
 	print("Doubled or missing cells! Check data frame!")
+	stop()
 }
 
 
-# ## Figure out what the hell is going on as the above file lists p1, r1 through r6 and GEO lists the 7 samples as 1 - 7....
-# ## I'm guessing either goes p1, r1, r2...r6 or r1...r6, p1. 
-# ## will use barcode overlap to figure this out
-# macosko_barcodes <- colnames(fread('GSE63472_P14Retina_merged_digital_expression.txt.gz', nrows = 1))
-# macosko_barcodes <- macosko_barcodes[2:length(macosko_barcodes)]
-# ## load "mouse retina 1" and figure out what barcode set it matches best....
-# ## SRS866912
-# mr1 <- row.names(seurat_late__standard@meta.data) %>% enframe() %>% filter(grepl('SRS866912', value)) %>% mutate(umi = gsub('_.*||\\.\\d*', '', value))
-# ## this returns 6450
-# ## so retina 1 is r1
-# grep('r1_', macosko_barcodes, value = T) %>% gsub('.*_', '', .) %>% enframe() %>% filter(value %in% mr1$umi) %>% dim()
-# ## let's see if retina 7 is p1
-# ## it is!
-# mr7 <- row.names(seurat_late__standard@meta.data) %>% enframe() %>% filter(grepl('SRS866906', value)) %>% mutate(umi = gsub('_.*||\\.\\d*', '', value))
-# grep('r7_', macosko_barcodes, value = T) %>% gsub('.*_', '', .) %>% enframe() %>% filter(value %in% mr7$umi) %>% dim()
-# ## ok, so appears to p1 == r7
-# ## let's just check one in the middle to be sure, r4
-# ## yep
-# mr4 <- row.names(seurat_late__standard@meta.data) %>% enframe() %>% filter(grepl('SRS866909', value)) %>% mutate(umi = gsub('_.*||\\.\\d*', '', value))
-# grep('r4_', macosko_barcodes, value = T) %>% gsub('.*_', '', .) %>% enframe() %>% filter(value %in% mr4$umi) %>% dim()
