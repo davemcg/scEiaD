@@ -1,0 +1,497 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup}
+knitr::opts_knit$set(root.dir = '/data/swamyvs/scEiaD/')
+```
+
+
+```{r}
+Sys.setenv('RETICULATE_PYTHON'='/data/swamyvs/anaconda3/bin/python')
+library(tidyverse)
+library(Seurat)
+library(Matrix)
+load('/data/OGVFB_BG/new_quant_sciad/quant/Homo_sapiens/well/DNTX__counts_tx.Rdata')
+load('/data/OGVFB_BG/scEiaD_quant_vinay/quant/Homo_sapiens/well/DNTX__counts_tx.Rdata')
+dim(count)
+rownames(count) <- rownames(count) %>% str_remove_all('\\.$')
+dntx_gtf <- rtracklayer::readGFF('references/gtf/DNTX_anno.gtf.gz')# this is adult and fetal retina only
+load('/data/OGVFB_BG/scEiaD_2021_01_03/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaDprojected__dist-0.2__neighbors-500.umapFilter.predictions.Rdata')
+
+
+dntx_convtab <- read_tsv('/data/swamyvs/ocular_transcriptomes_pipeline/data/gtfs/all_tissues.convtab')
+dntx_convtab <- dntx_convtab %>%
+  mutate(refid = replace(refid, class_code != '=', transcript_id[class_code != '='])) %>%  filter(transcript_id %in% rownames(count))
+retina_tx <- dntx_convtab %>% select(refid, contains ('Retina_') ) %>%
+  filter(!(is.na(Retina_Adult.Tissue) & is.na(Retina_Fetal.Tissue)) ) %>% pull(refid)
+
+umap_well <-  umap %>% filter(Barcode %in% colnames(count))
+well_umapped <- count[dntx_convtab$transcript_id, colnames(count) %in% umap$Barcode]
+rownames(well_umapped) <- dntx_convtab$refid
+
+# load('/data/OGVFB_BG/scEiaD_2021_01_03/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaDprojected.seuratV3.Rdata')
+# scvi <- Embeddings(integrated_obj, reduction = 'scVI')[colnames(well_umapped),]
+#rm(integrated_obj)
+seu <-  CreateSeuratObject(well_umapped)
+#seu[['scvi']] <- CreateDimReducObject(scvi)
+add_cols <- c("UMAP_1","UMAP_2","batch","study_accession","cluster","subcluster","sample_accession","CellType_predict","CellType")
+for(col in add_cols){
+  x <- umap_well[[col]]
+  seu[[col]] <- x
+}
+seu  <- seu[, seu$nCount_RNA > 10000]
+cell_type_count <- table(seu$CellType_predict)
+keep_cell_types <- names(cell_type_count)[cell_type_count >=10 & (!names(cell_type_count)%in%c('Fibroblasts','Early RPCs') )]
+seu_filt <- seu[ ,seu$CellType_predict %in% keep_cell_types ]
+co <- min(table(seu_filt$CellType_predict)) *25 # a transcript must have 25 reads per cell in the smallest cell type
+keep_counts <- rowSums(seu_filt) > co
+seu_filt <- seu_filt[keep_counts, ]
+
+retina_tx <- retina_tx %>% str_replace_all('_','-')
+dim(seu_filt)
+refid2tx2gene <- dntx_convtab %>%
+  select(refid, transcript_id) %>%
+  inner_join( dntx_gtf %>% filter(type == 'transcript') %>% select(transcript_id, gene_name) %>% distinct ) %>%
+  mutate(refid=str_replace_all(refid, '_', '-') )
+save.image('testing/DNTX_analysis_prep.Rdata')
+#load('testing/DNTX_analysis_prep.Rdata')
+
+```
+
+
+```{r}
+library(matrixStats)
+
+load('/data/swamyvs/ocular_transcriptomes_paper/testing/bulk_counts_by_eye_tissues.Rdata')# this is median exp pre computed
+counts_by_eye_list <- lapply(colnames(counts_by_eyetissue)[-(1:2)], function(x) counts_by_eyetissue %>% select(transcript_id,gene_name, !!x) %>% filter(.[,3] > 0))
+
+
+calc_piu <- function(cmat,name){
+  name <- as.symbol(name)
+  cmat <- cmat %>% dplyr::rename(tx_count = !!name)
+  cmat_exp <- filter(cmat, tx_count >0)
+  gene_sums <- cmat_exp %>% group_by(gene_name) %>% summarise(gene_count = sum(tx_count))
+  inner_join(cmat_exp, gene_sums) %>% mutate(piu = tx_count / gene_count, origin= as.character(name))
+}
+eye_tissues <- colnames(counts_by_eyetissue)[-(1:2)]
+bulk_convtab <- read_tsv('/data/swamyvs/ocular_transcriptomes_pipeline/data/gtfs/all_tissues.convtab') %>%
+   mutate(refid = replace(refid, class_code != '=', transcript_id[class_code != '='])) %>% select(transcript_id, refid)
+raw_piu_by_bulk_tissue <- lapply(seq_along(eye_tissues), 
+       function(i) calc_piu(counts_by_eye_list[[i]], eye_tissues[i]) %>% inner_join(bulk_convtab) )
+names(raw_piu_by_bulk_tissue) <- eye_tissues
+
+all_retina_piu <- raw_piu_by_bulk_tissue[grepl('Retina', names(raw_piu_by_bulk_tissue))] 
+
+get_min_max_piu <- function(pdf, which){
+  print('Num piu == 0')
+  print(sum(pdf$piu == 0))
+  pdf <- pdf %>% filter(piu> 0)
+  tx_by_gene_count <- pdf %>% select(refid, gene_name) %>% group_by(gene_name) %>% dplyr::count()
+  n_tx <- nrow(pdf)
+  n_novel_tx <- sum(grepl('DNTX', pdf$refid))
+  n_gene <- nrow(tx_by_gene_count)
+  n_multi_iso_gene <- tx_by_gene_count %>% filter(n>1) %>% nrow
+  piu_multi_iso <- filter(pdf, gene_name %in% {tx_by_gene_count %>% filter(n>1) %>% pull(gene_name)})
+  max_piu <- piu_multi_iso %>% group_by(gene_name) %>% summarise(max_piu = max(piu), 
+                                                                 which_max_tx = refid[which.max(piu)])
+  if(which == 'max'){
+    return(piu_multi_iso %>% filter(refid %in% max_piu$which_max_tx))
+  } else{
+    return(piu_multi_iso %>% filter(!refid %in% max_piu$which_max_tx))
+  }
+
+}
+
+nonmax_bulk_retina_piu <- lapply(all_retina_piu, function(x) get_min_max_piu(x,which='nonmax' ) )%>% bind_rows %>% 
+  mutate(tx_type = ifelse(grepl('DNTX', refid), 'DNTX', 'REF'))
+max_bulk_retina_piu <- lapply(all_retina_piu, get_min_max_piu, which='max') %>% bind_rows %>% 
+  mutate(tx_type = ifelse(grepl('DNTX', refid), 'DNTX', 'REF'))
+all_retina_piu_df <- bind_rows(nonmax_bulk_retina_piu, max_bulk_retina_piu)
+bulk_piu_vp <- ggplot(bind_rows(nonmax_bulk_retina_piu, max_bulk_retina_piu)) + 
+  geom_violin(aes(x=tx_type, y=piu, fill= tx_type)) + 
+  geom_boxplot(aes(x=tx_type, y=piu, fill= tx_type), width=.05) +
+  theme_minimal()
+
+```
+
+
+```{r}
+# summarise_piu <- function(pdf){
+#   print('Num piu == 0')
+#   print(sum(pdf$piu == 0))
+#   pdf <- pdf %>% filter(piu> 0)
+#   tx_by_gene_count <- pdf %>% select(refid, gene_name) %>% group_by(gene_name) %>% dplyr::count()
+#   n_tx <- nrow(pdf)
+#   n_novel_tx <- sum(grepl('DNTX', pdf$refid))
+#   n_gene <- nrow(tx_by_gene_count)
+#   n_multi_iso_gene <- tx_by_gene_count %>% filter(n>1) %>% nrow
+#   piu_multi_iso <- filter(pdf, gene_name %in% {tx_by_gene_count %>% filter(n>1) %>% pull(gene_name)})
+#   n_tx_multi_piu <- nrow(piu_multi_iso)
+#   max_piu <- piu_multi_iso %>% group_by(gene_name) %>% summarise(max_piu = max(piu), 
+#                                                                  which_max_tx = refid[which.max(piu)])
+#   avg_max_piu <- mean(max_piu$max_piu)
+#   n_gene_dntx_max_piu <- sum(grepl('DNTX', max_piu$which_max_tx))
+#   origin <- pdf$origin[1]
+#   tibble(origin, n_tx, n_novel_tx, n_gene, n_multi_iso_gene, n_tx_multi_piu, avg_max_piu, n_gene_dntx_max_piu)
+# 
+# }
+# 
+# bulk_piu_summary <- lapply(raw_piu_by_bulk_tissue, summarise_piu) %>% bind_rows()
+# bulk_piu_summary
+```
+
+
+
+
+```{r}
+library(SingleCellExperiment)
+library(data.table)
+sce <- as.SingleCellExperiment(seu_filt)
+sce$CellType <- sce$CellType_predict
+umap_filt<- filter(umap, Barcode %in% colnames(sce))
+mt <- umap_filt %>% select(Barcode, batch, CellType_predict) %>% as.data.table
+t2g <- dntx_gtf %>% select(transcript_id, gene_name) %>% distinct %>% mutate(transcript_id = str_replace_all(transcript_id, '_', '-')) %>% as.data.table()
+sce_dt <- assay(sce, 'counts') %>% as.matrix %>% as.data.frame %>% rownames_to_column('transcript_id') %>% as.data.table
+sce_dt_long <- melt(sce_dt, id.vars = 'transcript_id', measure.vars = colnames(sce_dt)[-1], variable.name = 'Barcode', value.name = 'count')
+setkey(sce_dt_long, Barcode)
+setkey(mt, Barcode)
+m1 <- merge(mt,sce_dt_long, all=F)
+setkey(m1, transcript_id)
+setkey(t2g, transcript_id)
+sce_dt_long_full <- merge(t2g, m1, all=F)
+
+ct <- unique(sce$CellType_predict)
+
+
+keep_tx_per_cell <- lapply(ct, function(x){
+  dt <- sce_dt_long_full[CellType_predict == x]
+  dt[,is_exp:= count > 0]
+  counts_per_batch <- dt[,.(n_cells_exp_per_batch=sum(is_exp)), by=.(transcript_id, batch)]
+  nbatch=n_distinct(dt$batch)
+  if(nbatch >=3){
+      tx_detected_across_batches <- counts_per_batch[,.(nbatch_tx_detected = sum(n_cells_exp_per_batch >= 1)), by=transcript_id]
+  }else{
+    tx_detected_across_batches <- counts_per_batch[,.(nbatch_tx_detected = sum(n_cells_exp_per_batch >= 3)), by=transcript_id]
+  }
+  
+  keep_tx = tx_detected_across_batches[nbatch_tx_detected  >=min(nbatch, 3), transcript_id]
+  return(unique(keep_tx))
+   
+} )
+names(keep_tx_per_cell) <- ct
+lapply(keep_tx_per_cell, n_distinct )
+
+
+n_tx_prefilter <- lapply(ct, 
+                    function(x) {mat <- umap_filt %>% 
+                      filter(CellType_predict == x) %>% 
+                      pull(Barcode) %>% 
+                      {sce[ ,.]} %>% assay('counts')
+                    return( sum(rowSums(mat>0)>0 ))
+                    }
+                    
+) 
+names(n_tx_prefilter) <- ct
+sce_split <- lapply(ct, 
+                    function(x)umap_filt %>% 
+                      filter(CellType_predict == x) %>% 
+                      pull(Barcode) %>% 
+                      {sce[keep_tx_per_cell[[x]] ,.]}
+)
+lapply(sce_split, dim)
+names(sce_split) <- ct
+counts_by_celltype <- lapply(seq_along(sce_split), function(i){
+  origin <- names(sce_split)[i]
+  median_counts <- assay(sce_split[[i]], 'counts') %>% as.matrix
+  co <- max(ncol(median_counts)*1/3)
+  tibble(transcript_id = str_replace_all(rownames(median_counts), '-', '_'), tx_exp = rowSums(median_counts)) %>% 
+    filter(tx_exp > co) %>% inner_join(refid2tx2gene) %>% select(transcript_id,gene_name, !!origin:=tx_exp )
+  
+} )
+names(counts_by_celltype) <- names(sce_split)
+lapply(counts_by_celltype, function(x) n_distinct(x$transcript_id))
+celltypes <- names(counts_by_celltype)
+med_exp_sc_tx <- lapply(counts_by_celltype, function(x) x$transcript_id) %>% unlist %>% unique
+raw_piu_by_celltype <- lapply(seq_along(celltypes), function(i) calc_piu(counts_by_celltype[[i]], celltypes[i])%>% inner_join(refid2tx2gene) )
+names(raw_piu_by_celltype) <- celltypes
+max_piu_celltype <- lapply(raw_piu_by_celltype, get_min_max_piu, which='max')
+```
+
+
+
+
+```{r}
+# library(SingleCellExperiment)
+# sce <- as.SingleCellExperiment(seu_filt)
+# sce$CellType <- sce$CellType_predict
+# 
+# umap_filt<- filter(umap, Barcode %in% colnames(sce))
+# 
+# sce_split <- lapply(unique(sce$CellType), 
+#                     function(x)umap_filt %>% 
+#                       filter(CellType_predict == x) %>% 
+#                       pull(Barcode) %>% 
+#                       {sce[,.]}
+# )
+# lapply(sce_split, dim)
+# names(sce_split) <- unique(sce$CellType)
+# counts_by_celltype <- lapply(seq_along(sce_split), function(i){
+#   origin <- names(sce_split)[i]
+#   median_counts <- assay(sce_split[[i]], 'counts') %>% as.matrix
+#   co <- max(ncol(median_counts)*1/3)
+#   tibble(transcript_id = str_replace_all(rownames(median_counts), '-', '_'), tx_exp = rowSums(median_counts)) %>% 
+#     filter(tx_exp > co) %>% inner_join(refid2tx2gene) %>% select(transcript_id,gene_name, !!origin:=tx_exp )
+#   
+# } )
+# names(counts_by_celltype) <- names(sce_split)
+# lapply(counts_by_celltype, function(x) n_distinct(x$transcript_id))
+# celltypes <- names(counts_by_celltype)
+# med_exp_sc_tx <- lapply(counts_by_celltype, function(x) x$transcript_id) %>% unlist %>% unique
+# raw_piu_by_celltype <- lapply(seq_along(celltypes), function(i) calc_piu(counts_by_celltype[[i]], celltypes[i])%>% inner_join(refid2tx2gene) )
+# names(raw_piu_by_celltype) <- celltypes
+# max_piu_celltype <- lapply(raw_piu_by_celltype, get_min_max_piu, which='max')
+```
+
+Transcripts that are not nonmax piu
+
+```{r}
+nonmax_bulk_retina_piu %>% pull(tx_type) %>% table
+```
+
+genes detected in raw sc data
+
+```{r}
+refid2tx2gene %>% filter(transcript_id %in% str_replace_all(rownames(sce), '-', '_')) %>% pull(gene_name) %>% n_distinct 
+```
+
+
+
+total number of transcripts detected in raw sc data
+
+```{r}
+refid2tx2gene %>% filter(transcript_id %in% str_replace_all(rownames(sce), '-', '_')) %>% 
+  mutate(tx_type = ifelse(grepl('DNTX', refid), 'DNTX', 'REF' )) %>% pull(tx_type) %>% table
+```
+
+
+total number of genes detected in filtere sc data
+
+```{r}
+refid2tx2gene %>% filter(transcript_id %in% med_exp_sc_tx) %>% pull(gene_name) %>% n_distinct 
+```
+
+
+total number of tx in filted sc data (median count per celltpye  > 0)
+
+```{r}
+ 
+refid2tx2gene %>% filter(transcript_id %in% med_exp_sc_tx) %>% 
+  mutate(tx_type = ifelse(grepl('DNTX', refid), 'DNTX', 'REF' )) %>% pull(tx_type) %>% table
+
+```
+
+
+```{r}
+max_piu_celltype_tx  <- lapply(max_piu_celltype, function(x) x$transcript_id) %>% unlist %>% unique 
+refid2tx2gene %>% filter(transcript_id %in%max_piu_celltype_tx ) %>% 
+  mutate(tx_type = ifelse(grepl('DNTX', refid), 'DNTX', 'REF' )) %>% pull(tx_type) %>% table
+```
+
+```{r}
+max_piu_celltype_tx  <- lapply(max_piu_celltype, function(x) x$transcript_id) %>% unlist %>% unique 
+refid2tx2gene %>% filter(transcript_id %in%max_piu_celltype_tx, transcript_id %in% nonmax_bulk_retina_piu$transcript_id ) %>% 
+  mutate(tx_type = ifelse(grepl('DNTX', refid), 'DNTX', 'REF' )) %>% pull(tx_type) %>% table
+```
+
+
+
+
+
+```{r}
+library(scran)
+library(scater)
+sce_medexp <- computeSumFactors(sce, cluster=sce$CellType)
+sce_medexp <- logNormCounts(sce_medexp)
+sce_medexp <- sce_medexp[str_replace_all(med_exp_sc_tx, '_','-'), ]
+dim(sce_medexp)
+markers <- findMarkers(sce_medexp, groups = sce_medexp$CellType,block = sce_medexp$batch, direction='up')
+CellType_marker_sig_df <- lapply(seq_along(markers), function(x) markers[[x]] %>% as.data.frame %>% rownames_to_column('refid') %>% mutate(CellType = names(markers)[x])) %>% bind_rows %>% filter(FDR <.05) %>% 
+  left_join(refid2tx2gene) %>% 
+  select(refid,gene_name,  CellType, everything())
+
+
+```
+
+
+```{r}
+pt_cell_exp_tx <-  lapply(seq_along(sce_split), function(i){
+  x=sce_split[[i]]
+  tibble(transcript_id = str_replace_all(rownames(x),'-', '_') , 
+         celltype = names(sce_split)[i],
+          n_expressing = rowSums(assay(x, 'counts') >0 ), 
+          pt_expressing = n_expressing / ncol(x) *100)
+  
+}) %>% bind_rows()
+
+
+```
+
+
+```{r}
+max_piu_celltype_tx  <- lapply(max_piu_celltype, function(x) x$transcript_id) %>% unlist %>% unique 
+target_transcripts <-   refid2tx2gene %>% 
+  filter(transcript_id %in%max_piu_celltype_tx, 
+         transcript_id %in% nonmax_bulk_retina_piu$transcript_id,
+         grepl('DNTX', refid)) %>% pull(transcript_id)  %>% 
+  .[.%in%  CellType_marker_sig_df$transcript_id] 
+
+target_plotting_df <- raw_piu_by_celltype %>% bind_rows() %>% filter(transcript_id %in% target_transcripts) %>% 
+  inner_join(pt_cell_exp_tx %>% dplyr::rename(origin=celltype)) %>% mutate(type='single cell')
+  
+target_bulk_retina_piu <- all_retina_piu_df %>% 
+  filter(transcript_id %in% target_transcripts) %>% 
+  select(-tx_type) %>% mutate(n_expressing=100, pt_expressing=100, type = 'bulk') 
+             
+target_plotting_df <- target_plotting_df %>% bind_rows(target_bulk_retina_piu)  
+retnet <- scan('/data/swamyvs/ocular_transcriptomes_pipeline/ref/retnet_hgncIDs_2017-03-28.txt', character())
+
+n_ct_expr_df <-  target_plotting_df %>% filter(!origin %in% unique(target_bulk_retina_piu$origin)) %>% 
+  select(transcript_id, gene_name, origin) %>% mutate(det=T) %>% 
+  pivot_wider(names_from = origin, values_from=det,values_fill= F ) %>% 
+  mutate(n_ct_expr = rowSums(.[,-(1:2)])) %>% select(transcript_id, gene_name,n_ct_expr) %>% arrange(n_ct_expr) 
+
+
+t_tx <- target_plotting_df %>% 
+  inner_join(n_ct_expr_df) %>% 
+  filter( gene_name %in% retnet, gene_name != 'BBS4') %>% 
+  group_by(origin) %>% 
+  summarise(ttx= transcript_id[which.min(n_ct_expr)]) %>% 
+  pull(ttx)
+
+
+# filter(target_plotting_df, transcript_id == 'DNTX_00171542')
+# #t_tx <- sample(target_plotting_df$transcript_id, 10)
+# # t_tx <- filter(CellType_marker_sig_df, transcript_id %in% target_transcripts) %>% 
+# #   group_by(CellType) %>% summarise(ttx= transcript_id[which.max(Top)]) %>% pull(ttx)
+# set.seed(43)
+# 
+# t_tx <- filter(target_plotting_df, gene_name %in% retnet, !gene_name %in% rm_g) %>% group_by(celltype) %>% do(slice_sample(., n=1)) %>% pull(transcript_id)
+cell_order <- c("Retina_Fetal.Tissue","Retina_Adult.Tissue","Cones","Bipolar Cells","Rods","Muller Glia","Retinal Ganglion Cells","Early RPCs","RPCs","Neurogenic Cells","Horizontal Cells")
+pdf <- filter(target_plotting_df, transcript_id %in% t_tx) %>% 
+  mutate(p_txid = paste0(gene_name, '(', transcript_id, ')'), 
+         origin = factor(origin, levels = cell_order))
+table(pdf$origin)
+
+
+
+
+sc_piu_dp <-  ggplot(pdf) + 
+  geom_point(aes(x=p_txid, y= origin, size=pt_expressing, color=piu, shape=type)) +
+  geom_hline(yintercept = 2.5)+
+  xlab('transcript') +
+  scale_color_viridis_c() + 
+  scale_shape_manual(values = c('single cell' = 16, 'bulk'=18),guide="none" )+
+  #guides(shape=guide_legend()) +
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle=45, hjust = 1))
+
+
+```
+
+
+```{r}
+
+sc_umap <- ggplot(umap_filt) + 
+  geom_point(aes(x=UMAP_1, y=UMAP_2, color =CellType_predict)) + 
+  scale_color_manual(values = pal) + 
+  theme_classic()
+```
+
+
+```{r}
+library(jsonlite)
+all_DNTX_run_info <- paste0('/data/OGVFB_BG/scEiaD_quant_vinay/quant/', colnames(sce),'/well/DNTX/run_info.json')
+all_human_run_info <- paste0('/data/OGVFB_BG/scEiaD_quant_vinay/quant/', colnames(sce),'/well/hs-homo_sapiens/run_info.json')
+dntx_mapping_rate <- sapply(all_DNTX_run_info, function(x) read_json(x) %>% .[['p_pseudoaligned']])
+human_mapping_rate <- sapply(all_human_run_info, function(x) read_json(x) %>% .[['p_pseudoaligned']])
+mr_df <- tibble(sample = colnames(sce), 
+              gencode = human_mapping_rate, 
+              dntx = dntx_mapping_rate) %>% 
+ pivot_longer(-sample, names_to = 'build',values_to = 'mapping_rate')
+
+
+
+
+```
+
+
+
+```{r}
+
+save(pdf, umap_filt, bulk_piu_vp, all_retina_piu_df,mr_df, file = 'testing/DNTX_in_scEiaD_clean_data.Rdata')
+
+```
+
+
+```{r}
+p <- raw_piu_by_celltype %>% 
+  bind_rows %>% 
+  mutate(type=ifelse(grepl('DNTX', refid), 'DNTX', 'ref'))
+ 
+p <- lapply(raw_piu_by_celltype , function(x) select(x, transcript_id, gene_name) %>% distinct %>% group_by(gene_name) %>% dplyr::count() %>% filter(n>1) %>%  select(gene_name) %>% inner_join(x) ) %>% bind_rows %>% mutate(type=ifelse(grepl('DNTX', refid), 'DNTX', 'ref'))
+ggplot(p) + 
+  geom_violin(aes(x=type, y=piu, fill= type)) + 
+  geom_boxplot(aes(x=type, y=piu, fill= type), width=.05) +
+  theme_minimal()
+```
+
+```{r}
+lapply(raw_piu_by_celltype , function(x) select(x, transcript_id, gene_name) %>% distinct %>% group_by(gene_name) %>% dplyr::count() %>% select(gene_name) %>% inner_join(x)  %>% mutate(type=ifelse(grepl('DNTX', refid), 'DNTX', 'ref')) %>% pull(type) %>% table)
+
+
+k <- lapply(raw_piu_by_celltype , function(x) x %>% group_by(gene_name) %>%  
+         summarise(max_piu = max(piu),which_tx_max = refid[which.max(piu)]) %>% 
+          { sum(grepl('DNTX', .$which_tx_max))  } )
+names(k) <- names(raw_piu_by_celltype)
+k
+
+all_retina_piu$Retina_Fetal.Tissue %>% group_by(gene_name) %>% dplyr::count() %>% {sum(.$n==1) / nrow(.)}
+all_retina_piu$Retina_Adult.Tissue %>% group_by(gene_name) %>% dplyr::count() %>% {sum(.$n==1) / nrow(.)}
+
+all_ret
+
+
+lapply(raw_piu_by_celltype , function(x) x ) %>% bind_rows() %>%  distinct %>% filter(gene_name == 'CRB1') 
+
+filter() %>% View 
+dntx_gtf %>% filter(gene_name == 'CRB1') %>% filter(type %in% c('exon')) %>% group_by(transcript_id) %>% dplyr::count()
+```
+
+```{r}
+matrix(c(1,1,1,2,2,2,3,3,3),ncol=3) %*% diag(c(2,0,1))
+```
+
+
+TODO
+Recalculate PIU on a *sample* level basis for retinal and Adult 
+
+```{r}
+umap_drop <- umap %>% filter(TechType %in% c('DropSeq', '10xv2', '10xv3')) %>% filter(!is.na(CellType_predict))
+
+drop_met <- run_all_metrics(umap_drop %>% select(UMAP_1, UMAP_2), umap_drop, 'batch', 'cluster', 'CellType_predict', run_name = 'drop', sil_width_prop = .2 )
+
+well_met <- run_all_metrics(umap_filt %>% select(UMAP_1, UMAP_2), umap_filt, 'batch', 'cluster', 'CellType_predict', run_name = 'drop')
+
+```
+
+
+
+
+
+
+
+
+
+
