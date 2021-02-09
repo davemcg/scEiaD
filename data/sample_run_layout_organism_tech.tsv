@@ -89,26 +89,26 @@ EGAF00004257454	EGAF00004257454	PAIRED	Homo sapiens	10xv2	YES	EGAD00001006350	Or
 EGAF00004257455	EGAF00004257455	PAIRED	Homo sapiens	10xv2	YES	EGAD00001006350	Organoid	B5	266	Early	IMR-W38-B5-S1-I_lib1 Sample alias: Cell line (IMR90-4) - culture week (Week 30 or 38) - organoid batch number (Batch 4 or 5) - Sample number - Pool (P) or Individual (I) organoids _ technical replicate number	Organoid
 EGAF00004257457	EGAF00004257457	PAIRED	Homo sapiens	10xv2	YES	EGAD00001006350	Organoid	B5	266	Early	IMR-W38-B5-S2-I_lib1 Sample alias: Cell line (IMR90-4) - culture week (Week 30 or 38) - organoid batch number (Batch 4 or 5) - Sample number - Pool (P) or Individual (I) organoids _ technical replicate number	Organoid
 EGAF00004257456	EGAF00004257456	PAIRED	Homo sapiens	10xv2	YES	EGAD00001006350	Organoid	B5	266	Early	IMR-W38-B5-S3-I_lib1 Sample alias: Cell line (IMR90-4) - culture week (Week 30 or 38) - organoid batch number (Batch 4 or 5) - Sample number - Pool (P) or Individual (I) organoids _ technical replicate number	Organoid
-#SRS2728731	SRR6338874	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	RPE	Rep1	63	Early	NA	Tissue
-#SRS2728685	SRR6338828	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep1	49	Early	NA	Tissue
-#SRS2728720	SRR6338863	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	161	Early	NA	Tissue
-#SRS2728730	SRR6338873	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	RPE	Rep1	63	Early	NA	Tissue
-#SRS2728693	SRR6338836	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	56	Early	NA	Tissue
-#SRS2728694	SRR6338837	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	56	Early	NA	Tissue
-#SRS2728714	SRR6338857	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep1	161	Early	NA	Tissue
-#SRS2728715	SRR6338858	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	161	Early	NA	Tissue
-#SRS2728716	SRR6338859	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	161	Early	NA	Tissue
-#SRS2728718	SRR6338861	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep1	161	Early	NA	Tissue
-#SRS2728719	SRR6338862	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	161	Early	NA	Tissue
+SRS2728731	SRR6338874	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	RPE	Rep1	63	Early	NA	Tissue
+SRS2728685	SRR6338828	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep1	49	Early	NA	Tissue
+SRS2728720	SRR6338863	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	161	Early	NA	Tissue
+SRS2728730	SRR6338873	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	RPE	Rep1	63	Early	NA	Tissue
+SRS2728693	SRR6338836	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	56	Early	NA	Tissue
+SRS2728694	SRR6338837	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	56	Early	NA	Tissue
+SRS2728714	SRR6338857	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep1	161	Early	NA	Tissue
+SRS2728715	SRR6338858	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	161	Early	NA	Tissue
+SRS2728716	SRR6338859	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	161	Early	NA	Tissue
+SRS2728718	SRR6338861	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep1	161	Early	NA	Tissue
+SRS2728719	SRR6338862	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP125998	Retina	Rep2	161	Early	NA	Tissue
 #SRS2728695	SRR6338838	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep2	56	Late	NA	Tissue
 #SRS2728723	SRR6338866	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep1	35	Late	NA	Tissue
 #SRS2728724	SRR6338867	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep1	35	Late	NA	Tissue
 #SRS2728726	SRR6338869	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep1	49	Late	NA	Tissue
 #SRS2728741	SRR6338884	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep1	14	Late	NA	Tissue
-#SRS3971244	SRR8099199	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
-#SRS3971244	SRR8099201	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
-#SRS3971244	SRR8099198	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
-#SRS3971244	SRR8099200	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
+SRS3971244	SRR8099199	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
+SRS3971244	SRR8099201	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
+SRS3971244	SRR8099198	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
+SRS3971244	SRR8099200	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
 #SRS2728681	SRR6338824	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep1	35	Late	NA	Tissue
 #SRS2728692	SRR6338835	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep2	56	Late	NA	Tissue
 #SRS2728700	SRR6338843	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep2	63	Late	NA	Tissue
@@ -141,10 +141,10 @@ EGAF00004257456	EGAF00004257456	PAIRED	Homo sapiens	10xv2	YES	EGAD00001006350	Or
 #SRS2728708	SRR6338851	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep1	7	Early	NA	Tissue
 #SRS2728710	SRR6338853	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep2	7	Early	NA	Tissue
 #SRS2728739	SRR6338882	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep1	14	Late	NA	Tissue
-#SRS3971245	SRR8099202	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
-#SRS3971245	SRR8099205	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
-#SRS3971245	SRR8099203	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
-#SRS3971245	SRR8099204	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
+SRS3971245	SRR8099202	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
+SRS3971245	SRR8099205	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
+SRS3971245	SRR8099203	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
+SRS3971245	SRR8099204	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
 #SRS2728682	SRR6338825	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep1	42	Late	NA	Tissue
 #SRS2728697	SRR6338840	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep2	63	Late	NA	Tissue
 #SRS2728722	SRR6338865	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep2	14	Late	NA	Tissue
@@ -155,30 +155,30 @@ EGAF00004257456	EGAF00004257456	PAIRED	Homo sapiens	10xv2	YES	EGAD00001006350	Or
 #SRS2728711	SRR6338854	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep1	7	Early	NA	Tissue
 #SRS2728727	SRR6338870	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep1	49	Late	NA	Tissue
 #SRS2728742	SRR6338885	PAIRED	Homo sapiens	10xv2	YES	SRP125998	Retina	rep1	14	Late	NA	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S10_L001_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S10_L001_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S10_L001_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S10_L002_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S10_L002_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S10_L002_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S11_L001_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S11_L001_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S11_L001_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S11_L002_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S11_L002_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S11_L002_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S12_L001_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S12_L001_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S12_L001_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S12_L002_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S12_L002_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S12_L002_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S9_L001_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S9_L001_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S9_L001_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S9_L002_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S9_L002_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
-iPSC_RPE_scRNA_03	scRNA_03_S9_L002_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	Tissue
+iPSC_RPE_scRNA_03	scRNA_03_S10_L001_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S10_L001_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S10_L001_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S10_L002_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S10_L002_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S10_L002_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S11_L001_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S11_L001_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S11_L001_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S11_L002_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S11_L002_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S11_L002_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S12_L001_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S12_L001_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S12_L001_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S12_L002_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S12_L002_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S12_L002_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S9_L001_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S9_L001_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S9_L001_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S9_L002_HL7H3BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S9_L002_HLCLYBCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
+iPSC_RPE_scRNA_03	scRNA_03_S9_L002_HLFW7BCX2	PAIRED	Homo sapiens	10xv2	YES	OGVFB_Hufnagel_iPSC_RPE	RPE	None	1000	Late	Transwell_60days	iPSC
 SRS6424747	SRR11478921	PAIRED	Homo sapiens	10xv2	YES	SRP255195	Retina	H5	NA	Late	H5FoveaS4__Fovea	Tissue
 SRS6424746	SRR11478920	PAIRED	Homo sapiens	10xv2	YES	SRP255195	Retina	H5	NA	Late	H5FoveaS3__Fovea	Tissue
 SRS6424745	SRR11478919	PAIRED	Homo sapiens	10xv2	YES	SRP255195	Retina	H5	NA	Late	H5FoveaS2__Fovea	Tissue
@@ -597,22 +597,22 @@ SRS5434860	Adult_retina_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP2232
 SRS5434860	Adult_retina_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	31360	Late	Retina  adult;dissociated retina	Tissue
 SRS5434860	Adult_retina_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	31360	Late	Retina  adult;dissociated retina	Tissue
 SRS5434860	Adult_retina_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	31360	Late	Retina  adult;dissociated retina	Tissue
-SRS5434850	30_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid	Tissue
-SRS5434850	30_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid	Tissue
-SRS5434850	30_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid	Tissue
-SRS5434850	30_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid	Tissue
-SRS5434849	24_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid	Tissue
-SRS5434849	24_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid	Tissue
-SRS5434849	24_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid	Tissue
-SRS5434849	24_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid	Tissue
-SRS5434851	42_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid	Tissue
-SRS5434851	42_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid	Tissue
-SRS5434851	42_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid	Tissue
-SRS5434851	42_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid	Tissue
-SRS5434852	59_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid	Tissue
-SRS5434852	59_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid	Tissue
-SRS5434852	59_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid	Tissue
-SRS5434852	59_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid	Tissue
+SRS5434850	30_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid	Organoid
+SRS5434850	30_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid	Organoid
+SRS5434850	30_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid	Organoid
+SRS5434850	30_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	30 days in culture; dissociated retinal organoid	Organoid
+SRS5434849	24_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid	Organoid
+SRS5434849	24_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid	Organoid
+SRS5434849	24_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid	Organoid
+SRS5434849	24_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	24 days in culture; dissociated retinal organoid	Organoid
+SRS5434851	42_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid	Organoid
+SRS5434851	42_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid	Organoid
+SRS5434851	42_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid	Organoid
+SRS5434851	42_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	42 days in culture; dissociated retinal organoid	Organoid
+SRS5434852	59_Day_Organoid_bamtofastq_S1_L001	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid	Organoid
+SRS5434852	59_Day_Organoid_bamtofastq_S1_L002	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid	Organoid
+SRS5434852	59_Day_Organoid_bamtofastq_S1_L003	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid	Organoid
+SRS5434852	59_Day_Organoid_bamtofastq_S1_L004	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	59 days in culture; dissociated retinal organoid	Organoid
 SRS866907	SRR1853183	PAIRED	Mus musculus	DropSeq	YES	SRP050054	Retina	retina6	14	Late	NA	Tissue
 SRS1397477	SRR3375552	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP073242	Retina	NA	17	Late	NA	Tissue
 SRS1397471	SRR3375558	SINGLE	Mus musculus	SMARTSeq_v2	NO	SRP073242	Retina	NA	17	Late	NA	Tissue
@@ -1464,10 +1464,10 @@ SRS3770598	SRR7825755	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	60	
 SRS3770603	SRR7825763	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	60	Late	NA	Tissue
 SRS3770607	SRR7825765	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	200	Late	NA	Tissue
 SRS3770615	SRR7825773	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	200	Late	NA	Tissue
-SRS3971244	SRR8099199	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
-SRS3971244	SRR8099201	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
-SRS3971244	SRR8099198	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
-SRS3971244	SRR8099200	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
+#SRS3971244	SRR8099199	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
+#SRS3971244	SRR8099201	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
+#SRS3971244	SRR8099198	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
+#SRS3971244	SRR8099200	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run1	1000	Late	NA	Tissue
 SRS4069757	SRR8234325	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA	Tissue
 SRS4069763	SRR8234331	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA	Tissue
 SRS4069767	SRR8234335	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA	Tissue
@@ -4602,10 +4602,10 @@ SRS3770589	SRR7825746	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	60	
 SRS3770590	SRR7825749	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	200	Late	NA	Tissue
 SRS3770594	SRR7825751	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	90	Late	NA	Tissue
 SRS3770612	SRR7825769	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP161678	Retina	NA	200	Late	NA	Tissue
-SRS3971245	SRR8099202	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
-SRS3971245	SRR8099205	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
-SRS3971245	SRR8099203	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
-SRS3971245	SRR8099204	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
+#SRS3971245	SRR8099202	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
+#SRS3971245	SRR8099205	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
+#SRS3971245	SRR8099203	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
+#SRS3971245	SRR8099204	PAIRED	Mus musculus	10xv2	YES	SRP166660	Retina	run2	1000	Late	NA	Tissue
 SRS4069756	SRR8234324	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA	Tissue
 SRS4069768	SRR8234336	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA	Tissue
 SRS4069777	SRR8234345	PAIRED	Homo sapiens	SMARTSeq_v2	NO	SRP170038	Retina	NA	NA	Late	NA	Tissue
@@ -5721,13 +5721,13 @@ SRX7423413	SRR10748563	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	10
 SRX7423413	SRR10748564	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	1000000	12/09/2020	Retina	Tissue
 SRX7423413	SRR10748565	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	1000000	12/09/2020	Retina	Tissue
 SRX7423413	SRR10748566	PAIRED	Homo sapiens	10xv3	YES	SRP238409	Retina	Donor 4	1000000	12/09/2020	Retina	Tissue
-SRX7556710	SRR10887776	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Tissue
-SRX7556711	SRR10887777	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Tissue
-SRX7556712	SRR10887778	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Tissue
-SRX7556713	SRR10887779	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Tissue
-SRX7556720	SRR10887786	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Tissue
-SRX7556721	SRR10887787	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Tissue
-SRX7556722	SRR10887788	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Tissue
+SRX7556710	SRR10887776	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Organoid
+SRX7556711	SRR10887777	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Organoid
+SRX7556712	SRR10887778	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Organoid
+SRX7556713	SRR10887779	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Organoid
+SRX7556720	SRR10887786	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Organoid
+SRX7556721	SRR10887787	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Organoid
+SRX7556722	SRR10887788	PAIRED	Homo sapiens	DropSeq	YES	SRP241942	Retina	SRP241942	1000000	12/09/2020	stem cell derived retinal organoid	Organoid
 SRX8651871	SRR12130643	PAIRED	Mus musculus	10xv2	YES	SRP269634	Retina	nuclei suspension	1000000	12/09/2020	Retina	Tissue
 SRX8651871	SRR12130644	PAIRED	Mus musculus	10xv2	YES	SRP269634	Retina	nuclei suspension	1000000	12/09/2020	Retina	Tissue
 SRX8651871	SRR12130645	PAIRED	Mus musculus	10xv2	YES	SRP269634	Retina	nuclei suspension	1000000	12/09/2020	Retina	Tissue
@@ -5756,20 +5756,20 @@ SRX6621280	SRR9867770	PAIRED	Mus musculus	10xv2	YES	SRP216903	Retina	SRP216903	1
 SRX6621290	SRR9867800	PAIRED	Mus musculus	10xv2	YES	SRP216903	RPE	SRP216903	1000000	12/09/2020	RPE/choroid tissue;RPE/choroid tissue	Tissue
 SRX6621291	SRR9867801	PAIRED	Mus musculus	10xv2	YES	SRP216903	RPE	SRP216903	1000000	12/09/2020	RPE/choroid tissue;RPE/choroid tissue	Tissue
 SRX6621292	SRR9867802	PAIRED	Mus musculus	10xv2	YES	SRP216903	RPE	SRP216903	1000000	12/09/2020	RPE/choroid tissue;RPE/choroid tissue	Tissue
-SRX5975001	SRR9203789	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	adult dissociated WT retina	Tissue
-SRX5975003	SRR9203791	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	adult dissociated WT retina	Tissue
-SRX5975005	SRR9203793	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	adult dissociated WT retina	Tissue
-SRX5975007	SRR9203795	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	adult dissociated WT retina	Tissue
-SRX8241383	SRR11680518	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	P19 Mouse retina	Tissue
-SRX8241384	SRR11680519	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	P19 Mouse retina	Tissue
-SRX8241385	SRR11680520	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	P19 Mouse retina	Tissue
-SRX8241386	SRR11680521	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	P19 Mouse retina	Tissue
-SRX8241387	SRR11680522	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	P19 Mouse retina	Tissue
-SRX8241388	SRR11680523	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	P19 Mouse retina	Tissue
-SRX8241389	SRR11680524	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	P19 Mouse retina	Tissue
-SRX8241390	SRR11680525	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	P19 Mouse retina	Tissue
-SRX8241391	SRR11680526	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	P19 Mouse retina	Tissue
-SRX8241392	SRR11680527	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	P19 Mouse retina	Tissue
+#SRX5975001	SRR9203789	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854512;adult dissociated WT retina	Tissue
+#SRX5975003	SRR9203791	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854514;adult dissociated WT retina	Tissue
+#SRX5975005	SRR9203793	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854516;adult dissociated WT retina	Tissue
+#SRX5975007	SRR9203795	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854518;adult dissociated WT retina	Tissue
+SRX8241383	SRR11680518	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS1;P19 Mouse retina	Tissue
+SRX8241384	SRR11680519	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS2;P19 Mouse retina	Tissue
+SRX8241385	SRR11680520	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS3;P19 Mouse retina	Tissue
+SRX8241386	SRR11680521	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS4;P19 Mouse retina	Tissue
+SRX8241387	SRR11680522	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS5;P19 Mouse retina	Tissue
+SRX8241388	SRR11680523	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS6;P19 Mouse retina	Tissue
+SRX8241389	SRR11680524	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS7;P19 Mouse retina	Tissue
+SRX8241390	SRR11680525	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS8;P19 Mouse retina	Tissue
+SRX8241391	SRR11680526	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS9;P19 Mouse retina	Tissue
+SRX8241392	SRR11680527	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS10;P19 Mouse retina	Tissue
 #SRX9537750	SRR13091935	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1000000	12/09/2020	Retina_het	Tissue
 #SRX9537751	SRR13091936	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1000000	12/09/2020	Retina	Tissue
-SRX8149876	SRR11582194	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1000000	12/09/2020	Retina	Tissue
+#SRX8149876	SRR11582194	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1000000	12/09/2020	Retina	Tissue
