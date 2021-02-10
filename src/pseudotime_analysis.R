@@ -5,6 +5,7 @@ hm_maker <- function(pseudotime,
                      genes = NULL, 
                      output_smooth = FALSE, 
                      round_to = 0.5, 
+                     max_val = 100,
                      column_title = NULL,
                      min_pseudotime = NULL,
                      max_pseudotime = NULL){
@@ -37,7 +38,7 @@ hm_maker <- function(pseudotime,
   ct <- umap %>% right_join(bc %>% enframe(value = 'Barcode'), by = 'Barcode') %>% pull(CellType_predict)
   
   mat <- logcounts(sling$sling)[genes, bc]
-  
+  mat[mat > ma_valx] <- max_val
   long <- mat %>% t() %>% as_tibble(rownames = 'Barcode')  %>% 
     left_join(umap %>% right_join(bc_time, by = 'Barcode'), by = 'Barcode') %>% 
     select(PT, contains('ENSG'), CellType_predict, organism)
