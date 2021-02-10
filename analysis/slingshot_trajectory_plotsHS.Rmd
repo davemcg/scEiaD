@@ -9,19 +9,22 @@ library(ggraph)
 library(tidygraph)
 library(tidymodels)
 library(rsample)
+library(pool)
+library(RSQLite)
+scEiaD_2020_v01 <- dbPool(drv = SQLite(), dbname ="~/data/scEiaD/2021_02_05_MOARTABLES__anthology_limmaFALSE___5000-transform-counts-universe-batch-scVIprojectionSO-8-0.1-50-0.6.sqlite", idleTimeout = 3600000)
 #load('~/data/massive_integrated_eye_scRNA/sling_trajectory.Rdata')
 #load('/Volumes/data/projects/nei/mcgaughey/scEiaD_me/site_make/sling_mus.Rdata')
-load('~/data/massive_integrated_eye_scRNA/HS_traj_sling__clus0__subdivideFALSE.Rdata') #sling and diffPT in one
+load('~/data/scEiaD/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaDMA__HS_trajectory.Rdata') #sling and diffPT in one
 #load('~/data/massive_integrated_eye_scRNA/slingHS_2020_12_29.diff.Rdata')
 gene_id_converter <- suppressWarnings(read_tsv('~/git/scEiaD/data/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
-                              col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
-                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
-  select(-hs_gene_id_v))
+                                               col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
+                                                            'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
+                                        select(-hs_gene_id_v))
 tf <- suppressWarnings(readxl::read_xlsx('~/git/scEiaD/data/1-s2.0-S0092867418301065-mmc2.xlsx', skip = 1, sheet = 'Table S1. Related to Figure 1B'))
 source('../src/pseudotime_analysis.R')
 org <- umap_cut$organism %>% unique()
 umap <- umap %>% mutate(UMAP_1 = UMAP_1 * 1, UMAP_2 = UMAP_2 * -1)
-umap_cut <- umap_cut %>% mutate(UMAP_1 = UMAP_1 * -1, UMAP_2 = UMAP_2 * 1)
+umap_cut <- umap_cut %>% mutate(UMAP_1 = UMAP_1 * 1, UMAP_2 = UMAP_2 * -1)
 ```
 
 
@@ -30,9 +33,9 @@ umap_cut <- umap_cut %>% mutate(UMAP_1 = UMAP_1 * -1, UMAP_2 = UMAP_2 * 1)
 lin <- sling$lineage
 
 node_pos <- umap_cut %>%
-  group_by(seurat_cluster_CT) %>% 
+  group_by(CellType_predict) %>% 
   summarise(x=mean(UMAP_1), y = mean(UMAP_2)) %>% 
-  rename(name = seurat_cluster_CT)
+  rename(name = CellType_predict)
 xy = colnames(lin@adjacency) %>% 
   enframe(name = 'row', value = 'name') %>% 
   left_join(node_pos) %>% select(name, x,y) %>% 
@@ -108,7 +111,7 @@ for (i in seq(1:(embedded@lineages %>% length()))){
   embedded_i = slingCurves(embedded)[[i]]
   path[[i]] = data.frame(embedded_i$s[embedded_i$ord,]) 
   path[[i]][,1] <- path[[i]][,1] * 1
-  path[[i]][,2] <- path[[i]][,2] * -1
+  path[[i]][,2] <- path[[i]][,2] * 1
   path[[i]]$curve <- i
 }
 psTime <- slingshot::slingPseudotime(sling$sling )
@@ -121,8 +124,8 @@ psTime %>%
   mutate(curve = str_extract(Curve, '\\d+') %>% as.integer()) %>% 
   ggplot(aes(x=UMAP_1, y = UMAP_2, colour = Pseudotime)) + 
   facet_wrap(~curve) + 
-  geom_scattermore(data = umap %>% filter(organism == org), aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0.1, alpha = 0.4) + 
-  geom_scattermore(pointsize = 1, alpha = 0.4) + 
+  geom_scattermore(data = umap %>% filter(organism == org), aes(x=UMAP_1, y = UMAP_2), color = 'gray', pointsize = 0, alpha = 0.4) + 
+  geom_scattermore(pointsize = 0, alpha = 0.4) + 
   cowplot::theme_cowplot() + 
   scale_color_viridis_c() + 
   xlab('UMAP 1') + ylab('UMAP 2') +
@@ -134,7 +137,7 @@ psTime %>%
 
 # Bar plot
 ## All
-```{r, fig.width=7, fig.height=10}
+```{r, fig.width=4, fig.height=5}
 ct_proportion <- umap %>% group_by(CellType_predict) %>% summarise(CT_Count = n()) %>% mutate(CT_Proportion = CT_Count/sum(CT_Count) * 100)
 
 celltype_pseudotime <- psTime %>% 
@@ -227,7 +230,7 @@ psTime_data %>%
 <!-- ``` -->
 
 ```{r}
-select_curves <- seq(1,65,1)[-c(8,19,20,41,45, 47, 49, 52,56, 65)]
+select_curves <- seq(1,65,1)#[-c(8,19,20,41,45, 47, 49, 52,56, 65)]
 psTime %>% 
   as_tibble(rownames = 'Barcode') %>% 
   pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
@@ -242,7 +245,7 @@ psTime %>%
   scale_color_manual(values = c(pals::cols25(), pals::alphabet2()) %>% unname()) +
   xlab('UMAP 1') + ylab('UMAP 2') +
   geom_path(data = path %>% bind_rows() %>% filter(curve %in% select_curves), aes(x=UMAP_1, y = UMAP_2, color = as.factor(curve), group = curve), size = 1) 
-  #geom_path(data = path %>% bind_rows(), aes(x=UMAP_1, y = UMAP_2, color = as.factor(curve), group = curve), size = 1) 
+#geom_path(data = path %>% bind_rows(), aes(x=UMAP_1, y = UMAP_2, color = as.factor(curve), group = curve), size = 1) 
 ```
 
 <!-- # Find diverging points -->
@@ -291,7 +294,7 @@ psTime %>%
 <!-- ``` -->
 
 ```{r, fig.height=3, fig.width=3}
-for (i in paste0('slingPseudotime_', select_curves)){
+for (i in paste0('slingPseudotime_', seq(1,11,1))){
   draw(hm_maker(i, 15, onlyShowTF = TRUE, round_to = 0.1, column_title = i) )
 }
 ```
@@ -315,45 +318,140 @@ diffPT_tibble %>%
   arrange(-Count, -abs_logFC)
 ```
 
-# Heatmaps for S Cones vs ML Cones
+# Heatmaps for Cones vs Rods
 DCT is a S cone marker
 MYL4 is a ML cone marker
-```{r, fig.width=5, fig.height=3}
+```{r, fig.width=5, fig.height=9}
 genes <- diffPT_tibble %>% 
-  filter(Trajectory == 'slingPseudotime_4') %>% 
+  filter(Trajectory == 'slingPseudotime_2') %>% 
   filter(Gene %in% tf$ID) %>% 
-  filter(FDR < 0.01) %>% 
-  arrange(FDR) %>% head(100)
-lm <- lm_maker(make_tidy_time('slingPseudotime_4', genes$Gene))
-pval_cutoff <- 0.01  / nrow(lm$lm_covariate)
+  filter(FDR < 0.01)
+lm <- lm_maker(make_tidy_time('slingPseudotime_2', genes$Gene), test = 'study_covariate')
+
+#lm <- lm_maker(make_tidy_time('slingPseudotime_2', genes$Gene))
+pval_cutoff <- 0.01  / nrow(lm$lm)
 genesV <- genes %>% 
   filter(Gene %in% 
-           (lm$lm_covariate %>% 
+           (lm$lm %>% 
               unnest(g_results) %>% 
               group_by(Gene, group) %>% 
-              filter(group >= 7, `p.value` < pval_cutoff) %>% 
+              #filter(Gene %in% tf$ID) %>% 
+              filter(group >= 8, `p.value` < pval_cutoff) %>% 
               group_by(Gene) %>% 
-              summarise(Count = n()) %>% 
-              arrange(-Count) %>% 
-              head(30) %>% 
+              summarise(Count = n(), `p.value` = mean(`p.value`), `r.squared` = mean(`r.squared`)) %>% 
+              arrange(-`r.squared`) %>% 
+              head(120) %>% 
               pull(Gene))) %>% 
   pull(Gene)
 # ADD DCT (S cone marker) and MYL4(ML cone marker)
-genesV <- c(genesV, 'ENSG00000080166', 'ENSG00000198336')
+#genesV <- c(genesV, 'ENSG00000080166', 'ENSG00000198336')
 
-a <- hm_maker('slingPseudotime_4', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 4 (S Cones)')
+a <- hm_maker('slingPseudotime_1', round_to = 0.1, genes = genes %>% filter(Gene %in% tf$ID, FDR == 0) %>% pull(Gene), onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 1 (Cones)')
 #b <- hm_maker('slingPseudotime_34', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 34 (ML Cones)')
-b <- hm_maker('slingPseudotime_31', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 31 (ML Cones)')
+b <- hm_maker('slingPseudotime_2', round_to = 0.1, genes = genes %>% filter(Gene %in% tf$ID, FDR == 0) %>% pull(Gene), onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 2 (Rods)')
 # vertical
 # draw(a %v% b %v% c %v% d %v% e)
 draw(a + b ,  
      show_heatmap_legend = c(FALSE, FALSE, FALSE, TRUE))
 ```
 
+```{r, fig.width=5, fig.height=3}
+
+genesV <- genes %>% 
+  filter(Gene %in% 
+           (lm$lm_covariate %>% 
+              unnest(g_results) %>% 
+              group_by(Gene, group) %>% 
+              filter(Gene %in% tf$ID) %>% 
+              #filter(group >= 8, `p.value` < pval_cutoff, ) %>% 
+              group_by(Gene) %>% 
+              summarise(Count = n(), `p.value` = mean(`p.value`), `r.squared` = mean(`r.squared`)) %>% 
+              arrange(-`r.squared`) %>% 
+              head(30) %>% 
+              pull(Gene))) %>% 
+  pull(Gene)
+# ADD DCT (S cone marker) and MYL4(ML cone marker)
+#genesV <- c(genesV, 'ENSG00000080166', 'ENSG00000198336')
+
+a <- hm_maker('slingPseudotime_1', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 1 (Cones)')
+#b <- hm_maker('slingPseudotime_34', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 34 (ML Cones)')
+b <- hm_maker('slingPseudotime_2', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 2 (Rods)')
+# vertical
+# draw(a %v% b %v% c %v% d %v% e)
+draw(a + b ,  
+     show_heatmap_legend = c(FALSE, FALSE, FALSE, TRUE))
+```
+
+```{r, fig.width=5, fig.height=5}
+genesV <- lm$lm %>% 
+  unnest(g_results) %>% 
+  group_by(Gene, group) %>% 
+  #filter(Gene %in% tf$ID) %>% 
+  filter(group >= 6, group <= 9, `p.value` < (0.05/6500)) %>% group_by(Gene) %>% 
+  summarise(Count = n(), `p.value` = mean(`p.value`), `r.squared` = mean(`r.squared`)) %>% 
+  arrange(-`r.squared`) %>% filter(`r.squared` > 0.05) %>% 
+  left_join(gene_id_converter, by = c('Gene' = 'hs_gene_id')) %>% arrange(`p.value`) %>% 
+  left_join(tf, by = c('Gene' = 'ID')) %>% select(Gene:`TF assessment`) %>% 
+  pull(Gene) %>% unique()
+
+# ADD DCT (S cone marker) and MYL4(ML cone marker)
+#genesV <- c(genesV, 'ENSG00000080166', 'ENSG00000198336')
+
+a <- hm_maker('slingPseudotime_1', round_to = 0.1, genes = genesV, onlyShowTF = TRUE,  column_title = 'Curve 1 (Cones)')
+#b <- hm_maker('slingPseudotime_34', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 34 (ML Cones)')
+b <- hm_maker('slingPseudotime_2', round_to = 0.1, genes = genesV, onlyShowTF = TRUE,  column_title = 'Curve 2 (Rods)')
+# vertical
+# draw(a %v% b %v% c %v% d %v% e)
+draw(a + b ,  
+     show_heatmap_legend = c(FALSE, FALSE, FALSE, TRUE))
+```
+# RPE
+```{r, fig.width=5, fig.height=7}
+genesRPE <- diffPT_tibble %>% 
+  filter(Trajectory == 'slingPseudotime_9') %>% 
+  filter(Gene %in% tf$ID) %>% 
+  filter(FDR < 0.01)
+lmRPE <- lm_maker(make_tidy_time('slingPseudotime_9', genesRPE$Gene), test = 'study_covariate')
+
+#lm <- lm_maker(make_tidy_time('slingPseudotime_2', genes$Gene))
+pval_cutoff <- 0.01  / nrow(lmRPE$lm)
+# filter by pval
+genesVrpe_pval <- lmRPE$lm %>% 
+  unnest(g_results) %>% 
+  group_by(Gene, group) %>% 
+  #filter(Gene %in% tf$ID) %>% 
+  filter(`p.value` < pval_cutoff) %>% 
+  group_by(Gene) %>% 
+  summarise(Count = n(), `p.value` = mean(`p.value`), `r.squared` = mean(`r.squared`)) %>% 
+  left_join(gene_id_converter, by = c('Gene' = 'hs_gene_id')) %>% arrange(`p.value`) %>% 
+  left_join(tf, by = c('Gene' = 'ID')) %>% select(Gene:`TF assessment`) %>% 
+  pull(Gene) %>% unique()
+# now filter by slope of PT (pseudotime)
+genesVrpe_PT <- lmRPE$lm %>% 
+  unnest(t_results) %>% 
+  filter(term == 'PT', estimate > (0.5), Gene %in% genesVrpe_pval) %>%  
+  group_by(Gene) %>% 
+   summarise(Count = n(), `estimate` = mean(estimate), `p.value` = mean(`p.value`)) %>% 
+  left_join(gene_id_converter, by = c('Gene' = 'hs_gene_id')) %>% 
+  left_join(tf, by = c('Gene' = 'ID')) %>% select(Gene:`TF assessment`) %>% 
+  pull(Gene) %>% unique()
+# ADD DCT (S cone marker) and MYL4(ML cone marker)
+#genesV <- c(genesV, 'ENSG00000080166', 'ENSG00000198336')
+
+a <- hm_maker('slingPseudotime_9', round_to = 0.1, genes = genesVrpe_PT, onlyShowTF = TRUE,  column_title = 'Curve 9 (RPE)')
+#b <- hm_maker('slingPseudotime_34', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 34 (ML Cones)')
+b <- hm_maker('slingPseudotime_2', round_to = 0.1, genes = genesVrpe_PT, onlyShowTF = TRUE,  column_title = 'Curve 2 (Rods)')
+# vertical
+# draw(a %v% b %v% c %v% d %v% e)
+draw(a + b ,  
+     show_heatmap_legend = c(FALSE, FALSE, FALSE, TRUE))
+```
+
+
 # LM with individual gene
 ```{r, fig.width = 3}
-gene <- 'NEUROD4'
-lmX <- lm_maker(make_tidy_time('slingPseudotime_4', c('ENSG00000123307','ENSG00000074800')))
+gene <- 'YBX3'
+lmX <- lm_maker(make_tidy_time('slingPseudotime_1', c('ENSG00000060138','ENSG00000074800')))
 lmX$lm_individual %>% rename(hs_gene_id = Gene) %>% 
   left_join(gene_id_converter %>% select(hs_gene_id, Gene = hs_gene_name)) %>% 
   filter(Gene %in% gene) %>% 
@@ -377,8 +475,8 @@ lmX$lm_individual %>% rename(hs_gene_id = Gene) %>%
   ylab('logCounts') + xlab('Pseudotime') + 
   theme(panel.spacing = unit(0.1, "lines")) + ggtitle(gene)
 
-gene <- 'NEUROD4'
-lmX <- lm_maker(make_tidy_time('slingPseudotime_31', c('ENSG00000123307','ENSG00000074800')))
+gene <- 'YBX3'
+lmX <- lm_maker(make_tidy_time('slingPseudotime_2', c('ENSG00000060138','ENSG00000074800')))
 lmX$lm_individual %>% rename(hs_gene_id = Gene) %>% 
   left_join(gene_id_converter %>% select(hs_gene_id, Gene = hs_gene_name)) %>% 
   filter(Gene %in% gene) %>% 
