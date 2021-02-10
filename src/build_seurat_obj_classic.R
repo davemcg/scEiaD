@@ -1,10 +1,10 @@
 # build seurat obj with the "classic" findvariablegenes -> normalize -> scaledata processing
 # output use for integration with various algorithms
 # scanorama, CCT, harmony, liger
-args <- c('testing/test.yaml', '/data/swamyvs/scEiaD/config.yaml')
+#args <- c('testing/test.yaml', '/data/swamyvs/scEiaD/config.yaml')
 args <- commandArgs(trailingOnly = TRUE)
 #Sys.setenv(SCIAD_CONFIG = '/data/swamyvs/scEiaD/config.yaml')
-
+save(args, file= 'testing/bso.args')
 library(jsonlite)
 library(yaml)
 library(Matrix)
@@ -34,7 +34,15 @@ set = rule$wildcards$partition # early, late, full, downsampled
 covariate = rule$wildcards$covariate # study_accession, batch, etc.
 transform = rule$wildcards$transform # SCT or standard seurat # mouse, mouse and macaque, mouse and macaque and human
 n_features =as.numeric(rule$wildcards$n_features )
-cell_info <- data.table::fread(rule$input$cell_info) # cell_info.tsv
+#cell_info <- data.table::fread(rule$input$cell_info) # cell_info.tsv
+load_rdata <- function(x){
+  load(x)
+  env <- ls.str()
+  var <- env[!grepl('^x$', env)]
+  stopifnot(length(var) == 1)
+  return(get(var))
+}
+cell_info <- load_rdata(rule$input$labelled_cell_info)
 cell_info$batch <- gsub(' ', '', cell_info$batch)
 # set batch covariate for well data to NA, as any splits risks making the set too small
 print('cell info import')
@@ -45,13 +53,7 @@ cell_info <- cell_info %>%
 
 mito_geneids = scan(rule$input$mitogene_list, character(), sep= '\n') %>% 
   str_remove_all('\\.\\d+\\.$')
-load_rdata <- function(x){
-  load(x)
-  env <- ls.str()
-  var <- env[!grepl('^x$', env)]
-  stopifnot(length(var) == 1)
-  return(get(var))
-}
+
 
 m <- load_rdata(rule$input$all_species_quant_file)
 
@@ -154,7 +156,28 @@ if (set == 'early'){
   m_file <- str_replace_all(rule$input$all_species_quant_file, 'all_species_', glue('{species}/'))
   spec_m = load_rdata(m_file)
   seurat__standard =  make_seurat_obj(spec_m,cell_info, split.by = covariate, keep_well = FALSE, mito_geneids=mito_geneids)
-} 
+} else if(all(grepl('\\:', set))){
+  
+  ct_map <- c('Amacrine'='Amacrine Cells', 'Bipolar' = 'Bipolar Cells', 'Cone' = 'Cones', 
+              'RGC' = "Retinal Ganglion Cells", 'Rod' = 'Rods'  )
+  spc_map <- c('hs'='Homo sapiens', 'mm' = "Mus musculus")
+  ct <- str_split(set, ':') %>% unlist %>% .[1]
+  spc <- str_split(set, ':') %>% unlist %>% .[2]
+  t_celltype <- ct_map[ct]
+  t_species <- spc_map[spc]
+  cell_info_t_celltype_t_spc <- filter(cell_info, CellType == t_celltype, organism == t_species, UMI == 'YES')
+  
+  if (t_species == 'Mus_musculus'){
+    mito_geneids=scan('references/mito_genes/mm-mus_musculus_mitogenes.txt', character(), sep = '\n') %>% 
+      str_remove_all('\\.\\d+\\.$')
+    
+  }
+  t_species <-str_replace(t_species, ' ', '_')
+  m_file <- str_replace_all(rule$input$all_species_quant_file, 'all_species_', glue('{t_species}/'))
+  spec_m = load_rdata(m_file)
+  spec_m <- spec_m[,cell_info_t_celltype_t_spc$value ]
+  seurat__standard =  make_seurat_obj(spec_m,cell_info_t_celltype_t_spc, split.by = covariate, keep_well = FALSE, mito_geneids=mito_geneids)
+}
 
 
 

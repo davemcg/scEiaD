@@ -106,9 +106,11 @@ if config['subset_clustering'] == 'False':
 	# partitions_to_run = ['universe', 'TabulaDroplet', 'onlyWELL']
 	# scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
 	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
-	#partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
-	partitions_to_run = ['universe', 'TabulaDroplet']
-	scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
+	# partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
+	# partitions_to_run = ['universe', 'TabulaDroplet']
+	# scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
+	partitions_to_run = ["Rod:mm" , "Cone:mm" , "Bipolar:mm" , "Amacrine:mm" , "Horizontal:mm" , "RGC:mm" , "Rod:hs" , "Cone:hs" , "Bipolar:hs" , "Amacrine:hs" , "Horizontal:hs" , "RGC:hs"]
+	scIB_partitions_to_run = partitions_to_run
 else:
 	partitions_to_run = ['celltype_subset']
 	scIB_partitions_to_run = ['celltype_subset']
@@ -116,8 +118,7 @@ else:
 
 rule all:
 	input:
-		'pipeline_data/results/merged_stats.Rdata',
-		"seurat_obj/raw/n_features-1000__transform-counts__partition-raw__covariate-batch__preFilter.seuratV3.Rdata"
+		'pipeline_data/results/merged_stats.Rdata'
 	
 # get annotation for each species 
 rule download_annotation:
