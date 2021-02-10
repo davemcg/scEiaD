@@ -11,13 +11,13 @@ library(tidymodels)
 library(rsample)
 #load('~/data/massive_integrated_eye_scRNA/sling_trajectory.Rdata')
 #load('/Volumes/data/projects/nei/mcgaughey/scEiaD_me/site_make/sling_mus.Rdata')
-load('~/data/massive_integrated_eye_scRNA/HS_traj_sling__clus0__subdivideFALSE.Rdata') #sling and diffPT in one
+load('~/data/scEiaD//HS_traj_sling__clus8__subdivideFALSE.Rdata') #sling and diffPT in one
 #load('~/data/massive_integrated_eye_scRNA/slingHS_2020_12_29.diff.Rdata')
-gene_id_converter <- suppressWarnings(read_tsv('~/git/scEiaD/data/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
+gene_id_converter <- suppressWarnings(read_tsv('~/git/massive_integrated_eye_scRNA//data/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
                               col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
                                            'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
   select(-hs_gene_id_v))
-tf <- suppressWarnings(readxl::read_xlsx('~/git/scEiaD/data/1-s2.0-S0092867418301065-mmc2.xlsx', skip = 1, sheet = 'Table S1. Related to Figure 1B'))
+tf <- suppressWarnings(readxl::read_xlsx('~/git/massive_integrated_eye_scRNA//data/1-s2.0-S0092867418301065-mmc2.xlsx', skip = 1, sheet = 'Table S1. Related to Figure 1B'))
 source('../src/pseudotime_analysis.R')
 org <- umap_cut$organism %>% unique()
 umap <- umap %>% mutate(UMAP_1 = UMAP_1 * 1, UMAP_2 = UMAP_2 * -1)
@@ -30,9 +30,9 @@ umap_cut <- umap_cut %>% mutate(UMAP_1 = UMAP_1 * -1, UMAP_2 = UMAP_2 * 1)
 lin <- sling$lineage
 
 node_pos <- umap_cut %>%
-  group_by(seurat_cluster_CT) %>% 
-  summarise(x=mean(UMAP_1), y = mean(UMAP_2)) %>% 
-  rename(name = seurat_cluster_CT)
+  group_by(CellType_predict) %>% 
+  summarise(x=mean(UMAP_1), y = mean(UMAP_2) * -1) %>% 
+  rename(name = CellType_predict)
 xy = colnames(lin@adjacency) %>% 
   enframe(name = 'row', value = 'name') %>% 
   left_join(node_pos) %>% select(name, x,y) %>% 
@@ -54,7 +54,7 @@ umap %>%
   filter(is.na(TabulaMurisCellType_predict), organism == org) %>% 
   mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unknown', TRUE ~ CellType_predict)) %>% 
   ggplot(aes(x=UMAP_1, y=UMAP_2, color = CellType_predict)) + 
-  geom_scattermore(pointsize =  0, pixels = c(1000,1000), alpha = 0.6) + 
+  geom_scattermore(pointsize =  1, pixels = c(1000,1000), alpha = 0.6) + 
   scale_color_manual(values = c(pals::cols25()[1:23],pals::alphabet()) %>% unname()) + 
   cowplot::theme_cowplot() +
   guides(color = guide_legend(override.aes = list(size = 7, alpha = 1) ) ) 
@@ -64,7 +64,7 @@ umap %>%
   mutate(cluster = as.factor(cluster)) %>% 
   #mutate(CellType_predict = case_when(is.na(CellType_predict) ~ 'Unknown', TRUE ~ CellType_predict)) %>% 
   ggplot(aes(x=UMAP_1, y=UMAP_2, color = cluster)) + 
-  geom_scattermore(pointsize =  0, pixels = c(1000,1000), alpha = 0.6) + 
+  geom_scattermore(pointsize =  1, pixels = c(1000,1000), alpha = 0.6) + 
   scale_color_manual(values = c(pals::cols25()[1:23],pals::alphabet(), pals::kelly()) %>% unname()) + 
   cowplot::theme_cowplot() +
   guides(color = guide_legend(override.aes = list(size = 7, alpha = 1) ) ) 
@@ -159,7 +159,7 @@ psTime_data <- psTime %>%
   pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
   filter(!is.na(Pseudotime)) %>% 
   left_join(umap) %>% 
-  #mutate(CellType = gsub('\\d+: ','', seurat_cluster_CT)) %>% 
+  #mutate(CellType = gsub('\\d+: ','', CellType_predict)) %>% 
   mutate(Curve = str_extract(Curve, '\\d+') %>% 
            as.numeric()) %>% filter(!is.na(Pseudotime), 
                                     CellType_predict != 'Endothelial') %>% 
@@ -205,7 +205,7 @@ psTime_data %>%
 <!--   pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>%  -->
 <!--   filter(!is.na(Pseudotime)) %>%  -->
 <!--   left_join(umap) %>%  -->
-<!--   #mutate(CellType = gsub('\\d+: ','', seurat_cluster_CT)) %>%  -->
+<!--   #mutate(CellType = gsub('\\d+: ','', CellType_predict)) %>%  -->
 <!--   mutate(Curve = str_extract(Curve, '\\d+') %>%  -->
 <!--            as.numeric()) %>% filter(!is.na(Pseudotime),  -->
 <!--                                     CellType_predict != 'Endothelial') %>%  -->
@@ -227,7 +227,7 @@ psTime_data %>%
 <!-- ``` -->
 
 ```{r}
-select_curves <- seq(1,65,1)[-c(8,19,20,41,45, 47, 49, 52,56, 65)]
+select_curves <- seq(1,41,1)#[-c(8,19,20,41,45, 47, 49, 52,56, 65)]
 psTime %>% 
   as_tibble(rownames = 'Barcode') %>% 
   pivot_longer(contains('curve'), names_to = 'Curve', values_to = 'Pseudotime') %>% 
@@ -290,9 +290,9 @@ psTime %>%
 
 <!-- ``` -->
 
-```{r, fig.height=3, fig.width=3}
+```{r, fig.height=2, fig.width=4}
 for (i in paste0('slingPseudotime_', select_curves)){
-  draw(hm_maker(i, 15, onlyShowTF = TRUE, round_to = 0.1, column_title = i) )
+  try({draw(hm_maker(i, 15, onlyShowTF = TRUE, round_to = 0.1, column_title = i,  max_val = 5) )})
 }
 ```
 
@@ -320,30 +320,37 @@ DCT is a S cone marker
 MYL4 is a ML cone marker
 ```{r, fig.width=5, fig.height=3}
 genes <- diffPT_tibble %>% 
-  filter(Trajectory == 'slingPseudotime_4') %>% 
+  filter(Trajectory == 'slingPseudotime_6') %>% 
   filter(Gene %in% tf$ID) %>% 
-  filter(FDR < 0.01) %>% 
-  arrange(FDR) %>% head(100)
-lm <- lm_maker(make_tidy_time('slingPseudotime_4', genes$Gene))
-pval_cutoff <- 0.01  / nrow(lm$lm_covariate)
+  filter(FDR == 0)
+lm <- lm_maker(make_tidy_time('slingPseudotime_6', genes$Gene))
+pval_cutoff <- 0.01  / nrow(lm$lm)
 genesV <- genes %>% 
   filter(Gene %in% 
-           (lm$lm_covariate %>% 
+           (lm$lm %>% 
               unnest(g_results) %>% 
               group_by(Gene, group) %>% 
-              filter(group >= 7, `p.value` < pval_cutoff) %>% 
+              filter(group >= 5, `p.value` < pval_cutoff) %>% 
               group_by(Gene) %>% 
               summarise(Count = n()) %>% 
               arrange(-Count) %>% 
-              head(30) %>% 
+              head(20) %>% 
               pull(Gene))) %>% 
   pull(Gene)
 # ADD DCT (S cone marker) and MYL4(ML cone marker)
-genesV <- c(genesV, 'ENSG00000080166', 'ENSG00000198336')
+genesW <- genes %>% 
+  filter(Gene %in%
+           (lm$lm %>% 
+              unnest(t_results) %>% 
+              filter(term == 'PT', estimate > 0, group >= 5) %>% 
+              arrange(`p.value`) %>% 
+              head(30) %>% 
+              pull(Gene))) %>% 
+  pull(Gene)
 
-a <- hm_maker('slingPseudotime_4', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 4 (S Cones)')
+a <- hm_maker('slingPseudotime_6', round_to = 0.1, genes = genesW, onlyShowTF = TRUE, max_val = 3, max_pseudotime = 11, column_title = 'Curve 6 (Cones)')
 #b <- hm_maker('slingPseudotime_34', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 34 (ML Cones)')
-b <- hm_maker('slingPseudotime_31', round_to = 0.1, genes = genesV, onlyShowTF = TRUE, max_pseudotime = 15, column_title = 'Curve 31 (ML Cones)')
+b <- hm_maker('slingPseudotime_1', round_to = 0.1, genes = genesW, onlyShowTF = TRUE, max_val = 3, max_pseudotime = 11, column_title = 'Curve 1 (Rods)')
 # vertical
 # draw(a %v% b %v% c %v% d %v% e)
 draw(a + b ,  
@@ -353,7 +360,7 @@ draw(a + b ,
 # LM with individual gene
 ```{r, fig.width = 3}
 gene <- 'NEUROD4'
-lmX <- lm_maker(make_tidy_time('slingPseudotime_4', c('ENSG00000123307','ENSG00000074800')))
+lmX <- lm_maker(make_tidy_time('slingPseudotime_6', c('ENSG00000123307','ENSG00000074800')))
 lmX$lm_individual %>% rename(hs_gene_id = Gene) %>% 
   left_join(gene_id_converter %>% select(hs_gene_id, Gene = hs_gene_name)) %>% 
   filter(Gene %in% gene) %>% 

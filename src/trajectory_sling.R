@@ -9,7 +9,17 @@ args = commandArgs(trailingOnly=TRUE)
 load(args[1]) # load('cluster/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features2000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__knn0.6.cluster.Rdata') 
 load(args[2]) # load('umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features2000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.001__nneighbors500.umapFilter.predictions.Rdata')
 load(args[3]) # load('seurat_obj/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_spec_genes-0__n_features2000__counts__TabulaDroplet__batch__scVI__dims8__preFilter.seuratV3.Rdata')
+
+load('~/data/scEiaD/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaD__knn-0.6.cluster.Rdata') 
+load('~/data/scEiaD/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaD__dist-0.1__neighbors-50.umapFilter.predictions.Rdata')
+load('~/data/scEiaD/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaDMA__dist-0.1__neighbors-50.umap.Rdata')
+
+
 method = args[4]
+
+
+
+
 org = gsub('_', ' ', args[5])
 out <- args[6]
 subdivide_CT_by_clusters <- args[7]
@@ -21,11 +31,6 @@ seurat <- integrated_obj[, umap$Barcode]
 print("ARGS")
 print(args)
 print("")
-
-if ('CellType_predict' %in% colnames(umap)){
-	umap$CT <- umap$CellType_predict
-} else {umap$CT <- umap$CellType}
-
 
 cut_down_objs <- function(umap, org = 'Homo sapiens'){
   umapRetina = umap %>% filter(organism == org,
@@ -139,14 +144,16 @@ if (method == 'CCA'){
 
 rm(integrated_obj)
 
-obj_cut <- cut_down_objs(umap, org = 'Homo sapiens')
-# now's the time to pick a start cluster
-#quick_label_cluster(obj_cut$umap) %>% data.frame()
+obj_cut <- cut_down_objs(umap, org = org)
+
+# rewrite precurs to terminal so they don't get used in other cell type diff
+# RGC
+obj_cut$umap <- obj_cut$umap %>% mutate(CellType_predict = case_when(cluster == 11 ~ 'Retinal Ganglion Cells', TRUE ~ CellType_predict))
 
 if (length(args) == 8) {
 	print('Start  cluster given as user input')
 	start_clus <- args[8]
-	sling <- run_sling(obj_cut$seurat, obj_cut$umap$seurat_cluster_CT, reduction, ncell = nrow(obj_cut$umap), start = start_clus)
+	sling <- run_sling(obj_cut$seurat, obj_cut$umap$CellType_predict, reduction, ncell = nrow(obj_cut$umap), start = 'RPCs')
 } else {
 	sling <- run_sling(obj_cut$seurat, obj_cut$umap$seurat_cluster_CT, reduction, ncell = nrow(obj_cut$umap))
 }
