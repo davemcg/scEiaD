@@ -1,10 +1,12 @@
 import scvelo as scv
 import scanpy as sc
 import pandas as pd
-def run_velocity(adata,embedding_key, dkey, vrank_gb):
+def run_velocity(adata,embedding_key, dkey, vrank_gb, n_top_genes=5000):
+    if n_top_genes == -1:
+        n_top_genes=adata.shape[1] -1
     #adata.write_h5ad('testing/tabulaDroplet_scvel0.h5ad')
     adata.layers['spliced'] = adata.X.copy()
-    scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=1000)
+    scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=n_top_genes)
     ekey=f'X_{embedding_key}'
     try:
         scv.pp.moments(adata, use_rep=ekey, n_neighbors=30)
