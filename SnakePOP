@@ -98,6 +98,7 @@ covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe']
 dims = [4,6,8,10,20,25,30,50,75,100,200]
+epochs = [5,10,25,50,100]
 knn = [0.2,0,4,0.6, 5, 7, 10, 15]
 model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 report: "report.rst"
@@ -119,25 +120,6 @@ rule all:
 		'pipeline_data/results/merged_stats.Rdata',
 		"seurat_obj/raw/n_features-1000__transform-counts__partition-raw__covariate-batch__preFilter.seuratV3.Rdata"
 	
-# get annotation for each species 
-rule download_annotation:
-	output:
-		mouse_anno='references/gtf/mm-mus_musculus_anno.gtf.gz',
-		#macaque_faca_anno='references/gtf/macaca_fascicularis_anno.gtf.gz',
-		macaque_mul_anno= 'references/gtf/mf-macaca_mulatta_anno.gtf.gz',
-		human_anno='references/gtf/hs-homo_sapiens_anno.gtf.gz'
-	shell:
-		'''
-		mkdir -p references
-		wget -O {output.mouse_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/gencode.vM25.annotation.gtf.gz
-		wget -O {output.mouse_genome} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/GRCm38.primary_assembly.genome.fa.gz
-
-		wget -O {output.macaque_mul_anno} ftp://ftp.ensembl.org/pub/release-99/gtf/macaca_mulatta/Macaca_mulatta.Mmul_10.99.gtf.gz
-		wget -O {output.human_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_35/gencode.v35.annotation.gtf.gz
-		'''
-		#wget -O {output.macaque_faca_anno} ftp://ftp.ensembl.org/pub/release-98/gtf/macaca_fascicularis/Macaca_fascicularis.Macaca_fascicularis_5.0.98.gtf.gz
-
-
 rule label_known_cells_with_type:
 	input:
 		'pipeline_data/cell_info/all_cell_info.tsv',
@@ -197,7 +179,7 @@ rule make_seurat_objs:
 		"""
 
 intg_obj_pfx ='seurat_obj/integrated/'
-intg_obj_param = seu_obj_param + [ 'method', 'dims']
+intg_obj_param = seu_obj_param + ['method', 'dims', 'epochs']
 intg_obj_sfx = 'preFilter.seuratV3.Rdata'
 
 
@@ -232,7 +214,8 @@ rule integrate_00:
 				  {wildcards.covariate} \
 				  {wildcards.dims} \
 				  {input.obj} \
-				  {output}"
+				  {output} \
+				  {wildcards.epochs}"
 		
 		echo $cmd
 		eval $cmd
@@ -321,8 +304,7 @@ rule extract_cluster:
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/extract_cluster.R \
-			{input} {output}
+		Rscript {git_dir}/src/extract_cluster.R {input} {output}
 		"""
 
 
@@ -408,8 +390,8 @@ perf_met_pfx ='pipeline_data/perf_metrics/'
 perf_met_param = extr_umap_param
 perf_met_sfx = 'perf.Rdata'
 parse_integration_config(file = config['integration_json'], 
-output_string =make_wc_string(perf_met_pfx, perf_met_param, perf_met_sfx),
-which_partitions = partitions_to_run )
+	output_string =make_wc_string(perf_met_pfx, perf_met_param, perf_met_sfx),
+	which_partitions = partitions_to_run )
 
 rule perf_metrics:
 	input:
