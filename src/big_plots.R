@@ -27,10 +27,11 @@ if (!"cluster" %in% colnames(umap)){
   umap$cluster <- umap$clusters
 } 
 
+umapO <- umap
 # filter
 umap <- umap %>% 
   #rename(Stage = integration_group) %>% 
-  mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', !!as.symbol(celltype_col))) %>% 
+  #mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', !!as.symbol(celltype_col))) %>% 
   filter(!is.na(CellType), 
          !is.na(study_accession), 
          !CellType %in% c('Doublet', 'Doublets'),
@@ -138,6 +139,17 @@ plot6 <- umap %>%
   facet_wrap(~CellType + organism) +
   xlab(paste(red, '1')) + ylab(paste(red, '2'))
 
-png(args[3], width = 1800, height = 7500, res = 150)
-plot_grid(plot1, plot4, plot5, plot6, ncol = 1, rel_heights = c(0.5,0.5,1, 1))
+# plot 7
+# show both labelled and unlabelled cells, color by study_accession
+# purpose: to id studies with "odd" patterning for removal
+# e.g. they don't overlap other data
+plot7 <- umapO  %>% 
+				filter(is.na(TabulaMurisCellType)) %>% 
+				mutate(CellType = case_when(is.na(CellType) ~ 'Unknown', TRUE ~ CellType)) %>% 
+				mutate(Known = case_when(CellType == 'Unknown' ~ 'Unknown', TRUE ~ 'Known')) %>% 
+				ggplot(aes(x=UMAP_1,y=UMAP_2, color = study_accession)) + 
+				scattermore::geom_scattermore(pointsize = 0, alpha = 0.8) + 
+				scale_color_manual(values = c(pals::alphabet(), pals::alphabet2()) %>% unname()) + cowplot::theme_cowplot() + facet_wrap(~Known) 
+png(args[3], width = 1800, height = 9500, res = 150)
+plot_grid(plot1, plot4, plot5, plot6, plot7,  ncol = 1, rel_heights = c(0.5,0.5,1, 1,0.5))
 dev.off()
