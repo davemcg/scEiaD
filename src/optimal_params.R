@@ -55,11 +55,13 @@ for (x in partitions_run){
     dims = str_extract(i, 'dims-\\d+') %>% gsub('dims-', '', .) %>% as.numeric()
     method = str_extract(i, 'method-[a-zA-Z]+') %>% gsub('method-','',.)
     knn = str_extract(i, 'knn-\\d+\\.\\d+|knn-\\d+') %>% gsub('knn-', '', .) %>% as.numeric()
+    epochs = str_extract(i, 'epochs-\\d+') %>% gsub('epochs-','',.) %>% as.numeric()
     table_score$clusterN = max(as.numeric(scores$cluster_count$Cluster))
 	table_score$clusterMedian = median(as.numeric(scores$cluster_count$Count))
 	table_score$dims = dims
     table_score$nf = nf
     table_score$knn <- knn
+    table_score$epochs <- epochs
     table_score$method <- method	
     table_score$normalization <- norm
     table_score$subset <- x
@@ -80,6 +82,7 @@ for (i in files){
   dims = str_extract(i, 'dims-\\d+') %>% gsub('dims-', '', .) %>% as.numeric()
   method = str_extract(i, 'method-[a-zA-Z]+') %>% gsub('method-','',.)
   knn = str_extract(i, 'knn-\\d+\\.\\d+|knn-\\d+') %>% gsub('knn-', '', .) %>% as.numeric() 
+  epochs = str_extract(i, 'epochs-\\d+') %>% gsub('epochs-','',.) %>% as.numeric()
   set = str_split(i %>% unlist, '__') %>% 
     unlist %>% 
     .[grepl('partition', .)] %>% 
@@ -91,6 +94,7 @@ for (i in files){
   table_score$knn <- knn
   table_score$method <- method
   table_score$normalization <- norm
+  table_score$epochs <- epochs
   table_score$set <- set
   colnames(table_score)[1:2] <- c('Score', 'Value')
   data[[i]] <- table_score
