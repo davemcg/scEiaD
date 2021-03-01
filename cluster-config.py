@@ -65,7 +65,7 @@ elif rule in custom_config_rules:
             params['partition']='largemem'
             params['time'] = '12:00:00'
         else:
-            params['mem'] = '175G'
+            params['mem'] = '325G'
             params['partition']='norm'
             params['time'] = '6:00:00'
     if rule == 'integrate_00':

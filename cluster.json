@@ -29,7 +29,7 @@
 	},
 	"create_sparse_matrix" : 
 	{
-		"time" : "00:40:00",
+		"time" : "01:30:00",
 		"mem" : "64G"
 	},
 	"kallisto_index":
@@ -283,14 +283,14 @@
 	"calculate_umap" :
 	{
 		"mem" : "200G",
-		"time" : "8:00:00",
+		"time" : "12:00:00",
 		"partition" : "norm",
 		"extra" : " --gres=lscratch:5"
 	},	
 	"calculate_cluster" :
 	{
 		"mem" : "200G",
-		"time" : "8:00:00",
+		"time" : "12:00:00",
 		"partition" : "norm",
 		"extra" : " --gres=lscratch:5"
 	},
@@ -303,7 +303,7 @@
 	},
 	"make_PLAE_objs" :
 	{
-		"mem" : "100G"
+		"mem" : "160G"
 	},
 	"mito_stats" :
 	{
