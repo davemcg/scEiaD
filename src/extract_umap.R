@@ -41,6 +41,8 @@ integrated_obj <- CellCycleScoring(integrated_obj, s.features = s.genes, g2m.fea
 meta <- integrated_obj@meta.data
 # load umap seurat obj.
 load(rule$input$umap_seu_obj)
+# remove dup barcode cols
+bc_cols <- grep
 integrated_obj@meta.data$`S.Score` <- meta$`S.Score`
 integrated_obj@meta.data$`G2M.Score` <- meta$`G2M.Score`
 integrated_obj@meta.data$`Phase` <- meta$`Phase`
@@ -91,7 +93,7 @@ if (rule$wildcards$method == 'TSNE'){
 orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
 umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'Barcode') %>% 
   left_join(., orig_meta) %>% 
-  left_join(., cell_info_labels %>% select(-Barcode) %>% select(-contains(c('study_accession', 'Age', 'batch'))) %>% rename(Barcode = value),
+  left_join(., cell_info_labels %>% select(-contains(c('study_accession', 'Age', 'batch'))) %>% rename(Barcode = value),
             by = 'Barcode') 
 #  left_join(., predictions %>% 
 #              as_tibble(rownames = 'Barcode') %>% 
