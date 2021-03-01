@@ -44,7 +44,7 @@ latent = args[4] %>% as.numeric()
 load(args[5])
 
 
-run_integration <- function(seurat_obj, method, covariate = 'study_accession', transform = 'standard', latent = 50, file = args[5]){
+run_integration <- function(seurat_obj, method, covariate = 'study_accession', transform = 'standard', latent = 50, file = args[5], n_epochs = 5){
   # covariate MUST MATCH what was used in build_seurat_obj.R
   # otherwise weird-ness may happen
   # the scaling happens at this level
@@ -350,7 +350,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 	if (sum(colSums(matrix)==0) > 0){
 		matrix[,colSums(matrix) == 0] <- one0
 	}
-	seurat_obj@meta.data$SA = row.names(seurat__standard@meta.data) %>%  str_extract(., '(EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')	
+	seurat_obj@meta.data$SA = row.names(seurat__standard@meta.data) %>%  str_extract(., '(SRX|EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')	
 	create(filename= out, 
            overwrite = TRUE,
            data = matrix, 
@@ -363,7 +363,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     # as we are connected into the file on create
     loom <- connect(out, mode = 'r')
     loom$close_all() 
-    n_epochs = 5 # use 1e6/# cells of epochs
+    #n_epochs = 5 # use 1e6/# cells of epochs
     lr = 0.001 
     #use_batches = 'True'
     use_cuda = 'True'
@@ -401,8 +401,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_latent,
                          n_layers,
 						 'FALSE',
-						 args[7],
-						 args[8])
+						 args[8],
+						 args[9])
 	}
     # run scVI     
 	print(scVI_command) 
@@ -560,7 +560,9 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
   obj
 }
 
-if (transform != 'SCT' & method != 'none'){
+if (transform != 'SCT' & grepl('scVI', method)){
+  integrated_obj <- run_integration(seurat__standard, method, covariate, transform, latent = latent, n_epochs = as.integer(args[7]))
+} else if (transform != 'SCT' & method != 'none'){
   integrated_obj <- run_integration(seurat__standard, method, covariate, transform, latent = latent)
 } else if (transform == 'SCT' & method == 'CCA') {
   integrated_obj <- run_integration(seurat__SCT, 'CCA', covariate, transform = 'SCT', latent = latent)
