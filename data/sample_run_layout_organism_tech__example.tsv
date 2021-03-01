@@ -1,0 +1,6 @@
+sample_accession    run_accession   library_layout  organism    Platform    UMI study_accession Tissue  Covariate   Age integration_group   TissueNote
+SRS866907   SRR1853183  PAIRED  Mus musculus    DropSeq YES SRP050054   Retina  retina6 14  Late    NA
+SRS1397477  SRR3375552  SINGLE  Mus musculus    SMARTSeq_v2 NO  SRP073242   Retina  NA  17  Late    NA
+SRS3698230  SRR7733541  PAIRED  Macaca fascicularis 10xv2   YES SRP158528   Retina  Macaque3    1000    Late    NA
+SRS2166278  SRR5508616  SINGLE  Homo sapiens    SMARTerSeq_v3   NO  SRP106476   Retina  NA  90  Late    NA
+SRS4715842  SRR9004418  PAIRED  Homo sapiens    10xv3   YES SRP194595   Retina  Donor 3 1000    Late    NA
