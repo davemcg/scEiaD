@@ -12,7 +12,7 @@ load(args[2])
 load(args[3])
 #load('/data/mcgaugheyd/datashare/scEiaD/2020_08_13/counts_unfiltered.Rdata')
 
-mt <- data.table::fread('../mito_counts.tsv')
+mt <- data.table::fread('pipeline_data/clean_quant/mito_counts.tsv')
 mt <- mt %>% unique() %>% group_by(srs, barcode) %>% summarise(`percent.mt` = max(`percent.mt`))
 mt <- mt %>% dplyr::rename(value = barcode) %>% mutate(value = gsub(':','_', value))
 
