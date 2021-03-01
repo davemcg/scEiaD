@@ -75,8 +75,8 @@ rgc_crush <- rgc_crush[-1,]
 rgc_crush <- rgc_crush %>% 
 				separate(NAME, c('sample', 'UMI'), sep = '_') %>%
 				mutate(UMI = gsub('-\\d+','',UMI))
-#rgc_crush$CellType <- 'Retinal Ganglion Cells'
-rgc_crush$CellType <- NA
+rgc_crush$CellType <- 'Retinal Ganglion Cells'
+#rgc_crush$CellType <- NA
 ## load cell info
 cell_info <- data.table::fread(config$cell_info) %>% select(-TissueNote)
 cell_info <- cell_info %>% mutate(UMI = gsub('_\\w+', '', value)) %>%
@@ -441,7 +441,6 @@ meta_SRP218652 <- cell_info %>% filter(study_accession == 'SRP218652') %>%
                               grepl('enriched', TissueNote) & final_cluster_label %in% c('4') ~ 'Endothelial',
                               grepl('enriched', TissueNote) & final_cluster_label == '5' ~ 'Pericytes',
                               grepl('enriched', TissueNote) & final_cluster_label == '6' ~ 'Fibroblasts',
-                              grepl('enriched', TissueNote) & final_cluster_label == '7' ~ 'RPE',
                               grepl('enriched', TissueNote) & final_cluster_label == '8' ~ 'B-Cell',
                               grepl('enriched', TissueNote) & final_cluster_label == '9' ~ 'T-Cell',
 							  grepl('enriched', TissueNote) & final_cluster_label == '10' ~ 'Macrophage',
@@ -514,6 +513,7 @@ cell_info <- data.table::fread(config$cell_info)
 meta_SRP <- bind_rows(meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, 
 						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195, meta_EGAD00001006350, meta_SRP218652, meta_SRP259930, 
 						meta_SRP200499) %>%
+			select(value:batch, CellType, SubCellType, TabulaMurisCellType, Paper) %>% 
 	mutate(CellType = gsub('Melanotype', 'Melanocytes', CellType),
 			CellType = gsub('B-cell', 'B-Cell', CellType),
 			CellType = gsub('Macrophages', 'Macrophage', CellType),
