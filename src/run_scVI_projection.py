@@ -10,6 +10,7 @@ import scvi
 
 sc.settings.n_jobs = 8
 random.seed(234)
+scvi.settings.seed = 234
 
 args = sys.argv
 print(len(args))
@@ -56,8 +57,8 @@ vae_ref = scvi.model.SCVI(
     adata_ref,
     **arches_params
 )
-vae_ref.train(n_epochs = n_epochs)
-
+#vae_ref.train(n_epochs = n_epochs, n_epochs_kl_warmup = None)
+vae_ref.train(n_epochs = n_epochs, n_epochs_kl_warmup = n_epochs)
 vae_ref
 
 
@@ -73,7 +74,7 @@ vae_q = scvi.model.SCVI.load_query_data(
     vae_ref,
 )
 
-vae_q.train(n_epochs=5, weight_decay=0.0)
+vae_q.train(n_epochs=n_epochs, weight_decay=0.0)
 adata_query.obsm["X_scVI"] = vae_q.get_latent_representation()
 
 adata_full = adata_query.concatenate(adata_ref, batch_key = 'bkey')
