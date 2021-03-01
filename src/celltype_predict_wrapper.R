@@ -1,33 +1,47 @@
-library(tidyverse)
-library(glue)
 library(reticulate)
 args <- commandArgs(trailingOnly = TRUE)
-
-load(args[1]) # seurat obj post integration
-load(args[2]) # umap metadata
-label_id_col = args[5]# label_id_col is the name of a column that will be created and used interally within the python script,
-label_name_col = args[6]# label_name_col must a be a column in embedding/umap file - CellType, cluster etc 
-model_outfile <- args[7]
-
-
+library(glue)
 conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
 git_dir = Sys.getenv('SCIAD_GIT_DIR')
 working_dir = Sys.getenv('SCIAD_WORKING_DIR')
+use_python(glue('{conda_dir}/envs/integrate_scRNA/bin/python'), required = TRUE)
+source_python( glue('{git_dir}/src/cell_type_predictor.py'))
+library(tidyverse)
+
+
+load(args[1]) # seurat obj post integration
+load(args[2]) # umap metadata
+label__id__col = args[5]# label_id_col is the name of a column that will be created and used interally within the python script,
+label__name__col = args[6]# label_name_col must a be a column in embedding/umap file - CellType, cluster etc 
+model_outfile <- args[7]
+
+
+print(args)
 
 out <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap, by = 'Barcode')
 out_tm <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap, by = 'Barcode') %>% filter(study_accession == 'SRP131661')
 out_tm$CellType <- out_tm$TabulaMurisCellType
 remove_low <- out_tm %>% group_by(CellType) %>% dplyr::count() %>% filter(n < 40) %>% pull(CellType)
 out_tm <- out_tm %>% filter(!CellType %in% remove_low)
-# fantom5 tf
-#f5 <- read_tsv('~/git/massive_integrated_eye_scRNA/data/fantom5_tf.tsv')
-#HVTF <- f5$Symbol[(f5$Symbol %in% integrated_obj@assays$RNA@var.features)]
-#counts <- integrated_obj@assays$RNA@counts[HVTF,]
-#cpm <- RelativeCounts(counts, scale.factor= 1e6) %>% as.matrix() %>% t()
 
-#out <- cbind(out, cpm)
+# cluster outlier
+# removes cell tyoe calls that are very rare in a cluster
+cluster_outlier <- function(out){
+	groupings <- out %>% 
+					filter(!is.na(CellType)) %>%  
+					group_by(cluster, CellType) %>% 
+					summarise(Count = n()) %>% 
+					mutate(Perc = Count / sum(Count)) %>% 
+					filter(Perc > 0.025)
+	out %>% 
+			left_join(groupings %>% 
+			select(cluster, CellTypeKEEP = CellType)) %>% 
+			filter(CellType == CellTypeKEEP) %>% 
+			select(-CellTypeKEEP)
+}
 
 # remove celltype outliers
+# we will removve 5% furthest from euclidean center
 rm_outlier <- function(out, TM = FALSE){
 	bc_retain <- list()
 	for (i in out$CellType %>% unique){
@@ -37,7 +51,9 @@ rm_outlier <- function(out, TM = FALSE){
 		scVI_mean <- colMeans(temp)
 		euc_dist <- function(x1, x2) sqrt(sum((x1 - x2) ^ 2))
 		D <- apply(as.matrix(temp), 1, function(x) euc_dist(scVI_mean, x))
-		cutoff = sd(D) * 3 
+		cutoff = quantile(D, probs = seq(0,1,0.01))[96]
+		#print(glue("Retaining {D[D < cutoff] %>% names() %>% length()}" )) 
+		#print(glue("Removing {D[D > cutoff] %>% names() %>% length()}" ))
 		bc_retain[[i]] <- D[D < cutoff] %>% names()
 	}
 	out %>% filter(Barcode %in% (bc_retain %>% unlist()))
@@ -47,11 +63,12 @@ rm_outlier <- function(out, TM = FALSE){
 
 full_out <- out
 full_tm <- out_tm
-out <- rm_outlier(out)
+out <- cluster_outlier(out) %>% rm_outlier(.)
+#out <- rm_outlier(out)
 out_tm <- rm_outlier(out_tm)
 
 run_xgboost_py <- function(embeddings, full_embeddings, model_outfile, tm = FALSE, probThresh = 0.8, 
-                           label_id_col=label_id_col, label_name_col=label_name_col){
+                           label_id_col=label__id__col, label_name_col=label__name__col){
   
 	if (!tm) {
 		features <- c(grep('scVI', colnames(embeddings), value = TRUE),
@@ -64,11 +81,10 @@ run_xgboost_py <- function(embeddings, full_embeddings, model_outfile, tm = FALS
 	#write(features, write_features_file)
 	
 	# train on pre-labelled cells
-	pickle <- paste0(model_outfile, '_.pickle' )
-  use_python(glue('{conda_dir}/envs/integrate_scRNA/bin/python'))
-  source_python( glue('{git_dir}/src/cell_type_predictor.py'))
+	pickle <- paste0(model_outfile, '.pickle' )
   train_test_predictions <-  scEiaD_classifier_train(inputMatrix=embeddings, labelIdCol=label_id_col, labelNameCol=label_name_col,  trainedModelFile=pickle,
-        featureCols=features, predProbThresh=probThresh, generateProb=TRUE)
+        featureCols=features, predProbThresh=probThresh, generateProb=TRUE,
+         bad_cell_types = list("RPE/Margin/Periocular Mesenchyme/Lens Epithelial Cells", "Droplet", "Droplets", 'Doublet', 'Doublets', 'Smooth Muscle Cell', 'Choriocapillaris','Artery'))
   
 	# apply model to predict labels for all cells
 	
@@ -83,7 +99,7 @@ run_xgboost_py <- function(embeddings, full_embeddings, model_outfile, tm = FALS
 
 # full data set
 
-model_out <- run_xgboost_py(out, full_out, 'fullTemp', tm = FALSE, probThresh = 0.5)
+model_out <- run_xgboost_py(out, full_out, model_outfile, tm = FALSE, probThresh = 0.5)
 predictions <- model_out$predictions
 umapX <- left_join(umap, predictions %>% select(Barcode, CellType_predict = CellType), by = 'Barcode')
 ## remove tabula muris
