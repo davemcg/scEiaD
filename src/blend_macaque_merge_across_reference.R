@@ -119,6 +119,7 @@ mus_mm__keep_genes = rownames(mus_mm_matrix_hg)
 rm(mus_mm_matrix_hg)
 ## save a human only quantfile
 homo_hs_matrix_cg = homo_hs_matrix[rowSums(homo_hs_matrix) > 0, ]
+row.names(homo_hs_matrix_cg) <- gsub('\\.\\d+', '', row.names(homo_hs_matrix_cg))
 save(homo_hs_matrix_cg, file ='pipeline_data/clean_quant/Homo_sapiens/full_sparse_matrix.Rdata' )
 homo_hs__keep_genes = rownames(homo_hs_matrix_cg)
 rm(homo_hs_matrix_cg)
@@ -135,7 +136,8 @@ all_shared_gene_ids_hs_mm <- gene_id_converter %>%
 mus_mm_matrix_cg <- mus_mm_matrix[all_shared_gene_ids_hs_mm$mm_gene_id, ]
 
 mus_mm_matrix_cg <- aggregate.Matrix(mus_mm_matrix_cg, all_shared_gene_ids_hs_mm$hs_gene_id, fun='sum')
-
+# fix row names for homo gene names (remove .\\d+ endings)
+row.names(homo_hs_matrix) <- gsub('\\.\\d+', '', row.names(homo_hs_matrix))
 homo_hs_matrix_cg <- homo_hs_matrix[rownames(mus_mm_matrix_cg), ]
 maca_all_matrix_cg = all_cells_macaque_hs_ids[rownames(mus_mm_matrix_cg),  ]# BUGFIX: - was not removing nonshared genes from macaque
 rm(mus_mm_matrix, homo_hs_matrix)# free up more mem 
