@@ -25,7 +25,7 @@ organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens', 'all']
 combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe']
 dims = [4,6,8,10,20,25,30,50,75,100,200]
 knn = [0.2,0,4,0.6, 5, 7, 10, 15]
-neighbors = [500]
+neighbors = [500, 50]
 model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 wildcard_constraints:
 	method = '|'.join(method),
@@ -54,8 +54,8 @@ rule all:
 		'site/scEiaD_all_seurat_v3.Rdata'
 	
 # take winner params from SnakePOP
-# and rebuild model with training data
-# and save the scVIprojectionSO anndata object
+# and rebuild latent dims
+# SO means save the scVI model and  created anndata object
 rule rebuild_scVI_data:
 	input:
 		existing = 'seurat_obj/raw/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__preFilter.seuratV3.Rdata',
@@ -63,6 +63,8 @@ rule rebuild_scVI_data:
 		seurat = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.seuratV3.Rdata',
 		model = directory('scVIprojectionSO_scEiaD_model/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}'),
 		h5ad = 'site/scVIprojectionSO_anndata/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}.h5ad'
+	params:
+		epochs = config['epochs']
 	shell:
 		"""
 		module load R/3.6
@@ -75,39 +77,42 @@ rule rebuild_scVI_data:
 				 {wildcards.covariate} \
 				 {wildcards.dims} \
 				 {input} \
-				 {output}"
+				 {output.seurat} \
+				 {params.epochs} \
+				 {output.model} \
+				 {output.h5ad} "
 
 		echo $cmd
 		eval $cmd
 		"""
 
-rule project_scVI_onto_all_data:
-	input:
-		existing = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.seuratV3.Rdata',
-		model = 'scVIprojectionSO_scEiaD_model/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}'
-	output:
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected.seuratV3.Rdata'		
-	shell:
-		"""
-		module load R/3.6
-		export SCIAD_CONDA_DIR={conda_dir}
-		export SCIAD_GIT_DIR={git_dir}
-		export SCIAD_CONFIG={config_abspath}
-		export SCIAD_WORKING_DIR={working_dir}
-		Rscript {git_dir}/src/project_scVI_onto_all_data.R.R {input} None {output} integrated_obj 
-		"""
+#rule project_scVI_onto_all_data:
+#	input:
+#		existing = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.seuratV3.Rdata',
+#		model = 'scVIprojectionSO_scEiaD_model/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}'
+#	output:
+#		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected.seuratV3.Rdata'		
+#	shell:
+#		"""
+#		module load R/3.6
+#		export SCIAD_CONDA_DIR={conda_dir}
+#		export SCIAD_GIT_DIR={git_dir}
+#		export SCIAD_CONFIG={config_abspath}
+#		export SCIAD_WORKING_DIR={working_dir}
+#		Rscript {git_dir}/src/project_scVI_onto_all_data.R {input} None {output} integrated_obj 
+#		"""
 
 
 
 rule calculate_umap:
 	input:
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected.seuratV3.Rdata'
+		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.seuratV3.Rdata'
 	output:
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umap.Rdata'
+		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umap.Rdata'
 	threads: 4
 	shell:
 		"""
-		module load R/3.6.3
+		module load R/3.6
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
 		Rscript {git_dir}/src/calculate_umap_and_cluster.R \
@@ -116,9 +121,9 @@ rule calculate_umap:
 
 rule calculate_cluster:
 	input:
-		obj = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected.seuratV3.Rdata'
+		obj = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.seuratV3.Rdata'
 	output:
-		temp('seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__knn-{knn}.cluster.seuratV3.Rdata')
+		temp('seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__knn-{knn}.cluster.seuratV3.Rdata')
 	shell:
 		"""
 		module load R/3.6.3
@@ -138,13 +143,13 @@ def set2mapper(set):
 
 rule extract_umap:
 	input:
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected.seuratV3.Rdata',
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umap.Rdata',
-		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__knn-' + config['knn'] + '.cluster.Rdata',
+		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.seuratV3.Rdata',
+		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umap.Rdata',
+		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__knn-' + config['knn'] + '.cluster.Rdata',
 		'pipeline_data/cell_info/cell_info_labelled.Rdata'
-		#'predictions/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected_cell_info_predictions.Rdata'
+		#'predictions/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD_cell_info_predictions.Rdata'
 	output:
-		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umap.Rdata'
+		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umap.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -154,10 +159,10 @@ rule extract_umap:
 
 rule extract_cluster:
 	input:
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__knn-{knn}.cluster.seuratV3.Rdata'
+		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__knn-{knn}.cluster.seuratV3.Rdata'
 	output:
-		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__knn-{knn}.cluster.Rdata',
-		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__knn-{knn}.graph.Rdata'
+		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__knn-{knn}.cluster.Rdata',
+		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__knn-{knn}.graph.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -168,11 +173,14 @@ rule extract_cluster:
 
 rule celltype_predict_VS_xgboost:
 	input:
-		('seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected.seuratV3.Rdata'),
-		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umapFilter.Rdata'
+		('seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.seuratV3.Rdata'),
+		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umapFilter.Rdata'
 	output:
-		'predictions/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.Rdata',
-		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umapFilter.predictions.Rdata'		
+		pred = 'predictions/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.Rdata',
+		umap = 'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umapFilter.predictions.Rdata',
+		model = 'xgboost_model/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.pickle'
+	params:
+		model = 'xgboost_model/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}'
 	shell:
 		"""
 		module load R/3.6
@@ -180,12 +188,12 @@ rule celltype_predict_VS_xgboost:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		export SCIAD_WORKING_DIR={working_dir}
-		Rscript  {git_dir}/src/celltype_predict_wrapper.R {input} {output}
+		Rscript {git_dir}/src/celltype_predict_wrapper.R {input} {output.pred} {output.umap} CellTypeID CellType {params.model}
 		"""
 
 rule doublet_ID:
 	input:
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected.seuratV3.Rdata'
+		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.seuratV3.Rdata'
 	output:
 		'doublet_calls/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}.doublets.Rdata'
 	shell:
@@ -199,9 +207,9 @@ rule doublet_ID:
 
 rule calculate_phate:
 	input:
-		obj = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected.seuratV3.Rdata'
+		obj = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.seuratV3.Rdata'
 	output:
-		'phate/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected.phate.Rdata'
+		'phate/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.phate.Rdata'
 	threads: 16
 	shell:
 		"""
@@ -215,9 +223,9 @@ rule calculate_phate:
 #slingshot trajectory
 rule sling:
 	input:
-		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__knn-{knn}.cluster.Rdata',
-		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umapFilter.predictions.Rdata',
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected.seuratV3.Rdata'
+		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__knn-{knn}.cluster.Rdata',
+		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umapFilter.predictions.Rdata',
+		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.seuratV3.Rdata'
 	output:
 		'trajectory_slingshot/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__dist-{dist}__neighbors-{neighbors}__knn-{knn}__traj{organism}.Rdata'
 	shell:
@@ -228,10 +236,10 @@ rule sling:
 
 rule doublet_filtering:
 	input:
-		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umap.Rdata',
+		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umap.Rdata',
 		'doublet_calls/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}.doublets.Rdata'
 	output:
-		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umapFilter.Rdata'
+		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umapFilter.Rdata'
 	shell:
 		"""
 		module load R/3.6
@@ -244,11 +252,11 @@ rule doublet_filtering:
 		
 rule add_missing_genes:
 	input:
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umap.Rdata'
+		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umap.Rdata'
 	output:
 		missing_quant = 'pipeline_data/clean_quant/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}_dist-{dist}__neighbors-{neighbors}_missing_quant.Rdata',
 		full_map = 'pipeline_data/clean_quant/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__dist-{dist}__neighbors-{neighbors}_missing_quant_full_map.Rdata',
-		seurat = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojectedMA__dist-{dist}__neighbors-{neighbors}.umap.Rdata'
+		seurat = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDMA__dist-{dist}__neighbors-{neighbors}.umap.Rdata'
 	shell:
 		"""
 		module load R/4.0.3
@@ -262,11 +270,11 @@ rule add_missing_genes:
 
 rule make_sqlite:
 	input:
-		seurat = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojectedMA__dist-{dist}__neighbors-{neighbors}.umap.Rdata',
-		meta = 'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umapFilter.predictions.Rdata',
-		cluster = 'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__knn-{knn}.cluster.Rdata',
+		seurat = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDMA__dist-{dist}__neighbors-{neighbors}.umap.Rdata',
+		meta = 'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umapFilter.predictions.Rdata',
+		cluster = 'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__knn-{knn}.cluster.Rdata',
 		#well_data =  'well_data_seurat_obj_labelled.Rdata',
-		phate = 'phate/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected.phate.Rdata'
+		phate = 'phate/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD.phate.Rdata'
 	params:
 		'site/anthology_limma{correction}___{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{dist}-{neighbors}-{knn}.sqlite'
 	output:
@@ -289,7 +297,7 @@ rule make_sqlite:
 
 rule haystack:
 	input:
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojectedMA__dist-{dist}__neighbors-{neighbors}.umap.Rdata'	
+		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDMA__dist-{dist}__neighbors-{neighbors}.umap.Rdata'	
 	output:
 		'haystack/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__dist-{dist}__neighbors-{neighbors}.haystack.Rdata'
 	shell:
@@ -307,12 +315,12 @@ rule haystack:
 
 rule pseudoBulk_DGE_buildObj:
 	input:
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojectedMA__dist-{dist}__neighbors-{neighbors}.umap.Rdata',
-		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umapFilter.predictions.Rdata',
-		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__knn-{knn}.cluster.Rdata'	
+		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDMA__dist-{dist}__neighbors-{neighbors}.umap.Rdata',
+		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umapFilter.predictions.Rdata',
+		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__knn-{knn}.cluster.Rdata'	
 		#'well_data_seurat_obj_labelled.Rdata'
 	output:
-		'pseudoBulk_DGE/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojectedMA__dist-{dist}__neighbors-{neighbors}__knn-{knn}__{pseudoTest}__edgeR_obj.Rdata'
+		'pseudoBulk_DGE/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDMA__dist-{dist}__neighbors-{neighbors}__knn-{knn}__{pseudoTest}__edgeR_obj.Rdata'
 	threads: 24 
 	shell:
 		"""
@@ -324,9 +332,9 @@ rule pseudoBulk_DGE_buildObj:
 		"""
 rule diff_test_wilcox:
 	input:
-		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojectedMA__dist-{dist}__neighbors-{neighbors}.umap.Rdata',
-		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__knn-{knn}.cluster.Rdata',
-		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}.umapFilter.predictions.Rdata',
+		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDMA__dist-{dist}__neighbors-{neighbors}.umap.Rdata',
+		'cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__knn-{knn}.cluster.Rdata',
+		'umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}.umapFilter.predictions.Rdata',
 	output:
 		'diff_testing/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__knn-{knn}__neighbors-{neighbors}__dist-{dist}__{group}.sceWilcox.Rdata',
 		'diff_testing/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__knn-{knn}__neighbors-{neighbors}__dist-{dist}__{group}.sceWilcox_summary.Rdata'
@@ -339,9 +347,9 @@ rule diff_test_wilcox:
 
 rule pseudoBulk_DGE_difftest:
 	input:
-		'pseudoBulk_DGE/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojectedMA__dist-{dist}__neighbors-{neighbors}__knn-{knn}__{pseudoTest}__edgeR_obj.Rdata'
+		'pseudoBulk_DGE/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDMA__dist-{dist}__neighbors-{neighbors}__knn-{knn}__{pseudoTest}__edgeR_obj.Rdata'
 	output:
-		'pseudoBulk_DGE/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojectedMA__dist-{dist}__neighbors-{neighbors}__knn-{knn}__{pseudoTest}__{piece}.Rdata'
+		'pseudoBulk_DGE/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDMA__dist-{dist}__neighbors-{neighbors}__knn-{knn}__{pseudoTest}__{piece}.Rdata'
 	shell:
 		"""
 		export SCIAD_CONDA_DIR={conda_dir}
@@ -353,9 +361,9 @@ rule pseudoBulk_DGE_difftest:
 	
 rule merge_pseudoBulk_against:
 	input:
-		pseudoBulk = expand('pseudoBulk_DGE/n_features-{{n_features}}__transform-{{transform}}__partition-{{partition}}__covariate-{{covariate}}__method-{{method}}__dims-{{dims}}__preFilter.scEiaDprojectedMA__dist-{{dist}}__neighbors-{{neighbors}}__knn-{{knn}}__{pseudoTest}__{piece}.Rdata', pseudoTest = ['A1','A3','B1','B3','C1','C3'], piece = range(1,26)),
+		pseudoBulk = expand('pseudoBulk_DGE/n_features-{{n_features}}__transform-{{transform}}__partition-{{partition}}__covariate-{{covariate}}__method-{{method}}__dims-{{dims}}__preFilter.scEiaDMA__dist-{{dist}}__neighbors-{{neighbors}}__knn-{{knn}}__{pseudoTest}__{piece}.Rdata', pseudoTest = ['A1','A3','B1','B3','C1','C3'], piece = range(1,26)),
 	output:
-		'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojectedMA__dist-{dist}__neighbors-{neighbors}__knn-{knn}__ABC.Rdata'
+		'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDMA__dist-{dist}__neighbors-{neighbors}__knn-{knn}__ABC.Rdata'
 	shell:
 		"""
 		export SCIAD_CONDA_DIR={conda_dir}
@@ -367,9 +375,9 @@ rule merge_pseudoBulk_against:
 
 rule merge_pseudoBulk_pairwise:
 	input:
-		pseudoBulk = expand('pseudoBulk_DGE/n_features-{{n_features}}__transform-{{transform}}__partition-{{partition}}__covariate-{{covariate}}__method-{{method}}__dims-{{dims}}__preFilter.scEiaDprojectedMA__dist-{{dist}}__neighbors-{{neighbors}}__knn-{{knn}}__{pseudoTest}__{piece}.Rdata', pseudoTest = ['A2','B2','C2'], piece = range(1,501))
+		pseudoBulk = expand('pseudoBulk_DGE/n_features-{{n_features}}__transform-{{transform}}__partition-{{partition}}__covariate-{{covariate}}__method-{{method}}__dims-{{dims}}__preFilter.scEiaDMA__dist-{{dist}}__neighbors-{{neighbors}}__knn-{{knn}}__{pseudoTest}__{piece}.Rdata', pseudoTest = ['A2','B2','C2'], piece = range(1,501))
 	output:
-		'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojectedMA__dist-{dist}__neighbors-{neighbors}__knn-{knn}__pairwise.Rdata'
+		'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDMA__dist-{dist}__neighbors-{neighbors}__knn-{knn}__pairwise.Rdata'
 	shell:
 		"""
 		export SCIAD_CONDA_DIR={conda_dir}
@@ -388,10 +396,10 @@ rule sqlite_add_tables:
 		#diff_glm = expand('diff_testing/{{combination}}__{{n_features}}__{transform-{transform}}__partition-{{partition}}__covariate-{{covariate}}__method-{{method}}__{{dims}}__dist-{{dist}}__{{neighbors}}.{model}.diff.coef_table.Rdata', \
 		#			model = ['A','C', 'E']),
 		#diff_glm_subcluster = 'diff_testing/{combination}__{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__{dims}__{dist}__knn-{knn}__{neighbors}.G.SC.diff.coef_table.Rdata',
-		#marker_monocle = expand('diff_test/{{combination}}__n_spec_genes-{n_spec_genes}__n_features{{n_features}}__{transform-{transform}}__partition-{{partition}}__covariate-{{covariate}}__method-{{method}}__dims-{{dims}}__preFilter.scEiaDprojected__dist{{dist}}__nneighbors{{neighbors}}__{group}.monocleTopMarker.Rdata', \
+		#marker_monocle = expand('diff_test/{{combination}}__n_spec_genes-{n_spec_genes}__n_features{{n_features}}__{transform-{transform}}__partition-{{partition}}__covariate-{{covariate}}__method-{{method}}__dims-{{dims}}__preFilter.scEiaD__dist{{dist}}__nneighbors{{neighbors}}__{group}.monocleTopMarker.Rdata', \
 		#			group = ['seuratCluster','CellType_predict']),
-		#against = 'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}__knn-{knn}__ABC.Rdata',
-		#pairwise = 'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaDprojected__dist-{dist}__neighbors-{neighbors}__knn-{knn}__pairwise.Rdata',
+		#against = 'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}__knn-{knn}__ABC.Rdata',
+		#pairwise = 'pseudoBulk_DGE/merge/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__preFilter.scEiaD__dist-{dist}__neighbors-{neighbors}__knn-{knn}__pairwise.Rdata',
 		doublet = 'doublet_calls/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}.doublets.Rdata',
 		haystack = 'haystack/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__dist-{dist}__neighbors-{neighbors}.haystack.Rdata',
 		diff_wilcox = expand('diff_testing/n_features-{{n_features}}__transform-{{transform}}__partition-{{partition}}__covariate-{{covariate}}__method-{{method}}__dims-{{dims}}__knn-{{knn}}__neighbors-{{neighbors}}__dist-{{dist}}__{group}.sceWilcox.Rdata', \
@@ -423,14 +431,14 @@ rule make_PLAE_objs:
 	input:
 		sqlite = 'site/MOARTABLES__anthology_limmaFALSE___' + config['n_features'] + '-counts-universe-batch-scVIprojectionSO-' + config['dims'] + '-' + config['dist'] + '-' + config['neighbors'] + '-' + config['knn'] + '.sqlite',
 		raw_obj = "seurat_obj/raw/n_features-1000__transform-counts__partition-raw__covariate-batch__preFilter.seuratV3.Rdata",
-		umapFilterPred = 'umap/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '.umapFilter.predictions.Rdata',
-		umapFilter = 'umap/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '.umapFilter.Rdata',
-		seurat_umap = 'seurat_obj/integrated/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '.umap.Rdata',
-		cluster = 'cluster/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__knn-' + config['knn'] + '.cluster.Rdata', 
-		seurat = 'seurat_obj/integrated/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected.seuratV3.Rdata',
-		#a1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__A1__edgeR_obj.Rdata',
-		#b1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__B1__edgeR_obj.Rdata',
-		#c1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDprojected__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__C1__edgeR_obj.Rdata',
+		umapFilterPred = 'umap/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaD__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '.umapFilter.predictions.Rdata',
+		umapFilter = 'umap/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaD__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '.umapFilter.Rdata',
+		seurat_umap = 'seurat_obj/integrated/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaDMA__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '.umap.Rdata',
+		cluster = 'cluster/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaD__knn-' + config['knn'] + '.cluster.Rdata', 
+		seurat = 'seurat_obj/integrated/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaD.seuratV3.Rdata',
+		#a1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaD__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__A1__edgeR_obj.Rdata',
+		#b1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaD__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__B1__edgeR_obj.Rdata',
+		#c1_obj = 'pseudoBulk_DGE/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-' + config['dims'] + '__preFilter.scEiaD__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '__C1__edgeR_obj.Rdata',
 	output:
 		'site/scEiaD_all_seurat_v3.Rdata',
 		#'site/scEiaD_well_seurat_v3.Rdata',
