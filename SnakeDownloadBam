@@ -1,0 +1,39 @@
+# Snakefile which:
+# 	Downloads bams, putting each in folder by run_accession
+# example run with 20 parallel downloads:
+# 	 snakemake -j 20 -s ~/git/scEiaD/SnakeDownloadBam --configfile config.yaml
+def import_download_info(file, bam_dict = {}):
+	with open(file) as file:
+		for line in file:
+			if line.split('\t')[0] == 'sample_accession':
+				continue
+			info = line.strip('\n').split('\t')
+			srr = info[4]
+			if srr not in bam_dict:
+				bam_dict[srr] = {'url' : info[3], 'bam' : info[2]}
+			else:
+				print("Duplicate! " + line)
+				stop()
+	return(bam_dict)
+
+bam_dict = import_download_info(config['sra_bam_meta'])
+
+# built output file names
+output_files = []
+for i in bam_dict:
+	output_files.append(i + '/' + bam_dict[i]['bam'])
+
+rule all:
+	input:
+		output_files
+
+rule download_bam:
+	output:
+		'{run_accession}/{bam_file}'
+	params:
+		 lambda wildcards: bam_dict[wildcards.run_accession]['url']
+	shell:
+		"""
+		mkdir -p {wildcards.run_accession}
+		wget -O {output} {params} 
+		"""
