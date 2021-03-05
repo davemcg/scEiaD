@@ -65,9 +65,9 @@ elif rule in custom_config_rules:
             params['partition']='largemem'
             params['time'] = '12:00:00'
         else:
-            params['mem'] = '325G'
-            params['partition']='norm'
-            params['time'] = '6:00:00'
+            params['mem'] = '225G'
+            params['partition']='quick'
+            params['time'] = '4:00:00'
     if rule == 'integrate_00':
         if re.search('scVI', job_properties['wildcards']['method']):
             params['partition']='gpu'

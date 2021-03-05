@@ -12,10 +12,15 @@
 	{
 		"mem": "64G"
 	},
+	"plot_integration":
+	{
+		"time" : "00:30:00",
+		"partition" : "quick"
+	},
 	"bus" : 
 	{
-		"mem" : "180G",
-		"time" : "24:00:00"
+		"mem" : "120G",
+		"time" : "6:00:00"
 	},
 	"bustools_sort" : 
 	{
@@ -79,9 +84,9 @@
 	"combine_well_and_umi" :
 	{
 		"mem" : "240G",
-		"partition" : "norm",
+		"partition" : "quick",
 		"time" : "4:00:00",
-		"extra" : " --gres=lscratch:100"
+		"extra" : " --gres=lscratch:50"
 	},
 	"merge_across_references" :
 	{
@@ -125,7 +130,8 @@
 	"extract_umap" :
 	{
 		"mem" : "140G",
-		"time" : "00:30:00"
+		"time" : "00:30:00",
+		"partition" : "quick"
 	},
 	"extract_tsne" :
 	{
@@ -227,7 +233,7 @@
 	{
 		"mem" : "120G",
 		"time" : "1:00:00",
-		"partition" : "norm"
+		"partition" : "quick"
 	},
 	"quick_trajectory" :
 	{
