@@ -50,7 +50,7 @@ elif mode == 'extract':
 	# is in its own folder. This should be true no matter how the bam
 	# was acquired
 	# the input file should simply list the folder names that will be processed
-	# one run_accesion/file per line
+	# one run_accesion/folder per line
 	# there is ONE BAM in ONE FOLDER
 	# otherwise bad things will happen
 	with open(config['run_accessions']) as f:
