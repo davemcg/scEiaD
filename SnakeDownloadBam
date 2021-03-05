@@ -68,10 +68,9 @@ elif mode == 'extract':
 			r = fastq_dir + '/{run_accession}_2.fastq.gz'
 		shell:
 			"""
-			module load samtools # bgzip
 			./bamtofastq-1.3.2 {wildcards.run_accession}/*bam --reads-per-fastq=999999999999999999 {wildcards.run_accession}
-			zcat {wildcards.run_accession}/*R1_001.fastq.gz | bgzip -f > {output.f}
-			zcat {wildcards.run_accession}/*R2_001.fastq.gz | bgzip -f > {output.r}
+			zcat {wildcards.run_accession}/*R1_001.fastq.gz | gzip > {output.f}
+			zcat {wildcards.run_accession}/*R2_001.fastq.gz | gzip > {output.r}
 			"""
 
 else:
