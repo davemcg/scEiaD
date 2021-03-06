@@ -46,6 +46,7 @@ SRS3044236	SRP131661	10X_P4_0.bam	https://sra-pub-src-1.s3.amazonaws.com/SRR6835
 SRS5878923	SRP238587	ORG_60b_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759475/ORG_60b_possorted_genome_bam.bam.1	SRR10759475
 SRS5878924	SRP238587	ORG_90_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759476/ORG_90_possorted_genome_bam.bam.1	SRR10759476
 SRS5878927	SRP238587	ORG_205_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759479/ORG_205_possorted_genome_bam.bam.1	SRR10759479
+SRS5878933	SRP238587	FET_82P_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759485/FET_82P_possorted_genome_bam.bam.1	SRR10759485
 SRS5878934	SRP238587	FET_105_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759486/FET_105_possorted_genome_bam.bam.1	SRR10759486
 SRS5878938	SRP238587	RS_76_33_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759490/RS_76_33_possorted_genome_bam.bam.1	SRR10759490
 SRS5878922	SRP238587	ORG_60a_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759474/ORG_60a_possorted_genome_bam.bam.1	SRR10759474
@@ -53,13 +54,17 @@ SRS5878925	SRP238587	ORG_104_possorted_genome_bam.bam	https://sra-pub-src-2.s3.a
 SRS5878940	SRP238587	RS_122_14_unsorted_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759492/RS_122_14_unsorted_possorted_genome_bam.bam.1	SRR10759492
 SRS5878939	SRP238587	RS_91_18_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759491/RS_91_18_possorted_genome_bam.bam.1	SRR10759491
 SRS5878921	SRP238587	ORG45_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759473/ORG45_possorted_genome_bam.bam.1	SRR10759473
+SRS5878928	SRP238587	FET_59_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759480/FET_59_possorted_genome_bam.bam.1	SRR10759480
+SRS5878936	SRP238587	FET_125P_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759488/FET_125P_possorted_genome_bam.bam.1	SRR10759488
 SRS5878926	SRP238587	ORG_110_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759478/ORG_110_possorted_genome_bam.bam.1	SRR10759478
 SRS5878930	SRP238587	FET_80C_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759483/FET_80C_possorted_genome_bam.bam.1	SRR10759483
 SRS5878937	SRP238587	RS78_35possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759489/RS78_35possorted_genome_bam.bam.1	SRR10759489
 SRS5878929	SRP238587	FET_80P_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759481/FET_80P_possorted_genome_bam.bam.1	SRR10759481
 SRS5878942	SRP238587	RS134_26NC_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759494/RS134_26NC_possorted_genome_bam.bam.1	SRR10759494
 SRS5878931	SRP238587	FET_80P2_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759482/FET_80P2_possorted_genome_bam.bam.1	SRR10759482
+SRS5878935	SRP238587	FET_125C_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759487/FET_125C_possorted_genome_bam.bam.1	SRR10759487
 SRS5878941	SRP238587	RS134_26FV_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759493/RS134_26FV_possorted_genome_bam.bam.1	SRR10759493
+SRS5878932	SRP238587	FET_82C_possorted_genome_bam.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR10759484/FET_82C_possorted_genome_bam.bam.1	SRR10759484
 SRS5030712	SRP212151	aRGC6.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR9604262/aRGC6.bam.1	SRR9604262
 SRS5030713	SRP212151	aRGC7.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR9604263/aRGC7.bam.1	SRR9604263
 SRS5030711	SRP212151	aRGC5.bam	https://sra-pub-src-2.s3.amazonaws.com/SRR9604261/aRGC5.bam.1	SRR9604261
