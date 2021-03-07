@@ -144,6 +144,10 @@ SRS5434850	SRP223254	30_Day_Organoid.bam	https://sra-download.ncbi.nlm.nih.gov/t
 SRS5434849	SRP223254	24_Day_Organoid.bam	https://sra-download.ncbi.nlm.nih.gov/traces/sra29/SRZ/010182/SRR10182332/24_Day_Organoid.bam	SRR10182332
 SRS5434851	SRP223254	42_Day_Organoid.bam	https://sra-download.ncbi.nlm.nih.gov/traces/sra13/SRZ/010182/SRR10182334/42_Day_Organoid.bam	SRR10182334
 SRS5434852	SRP223254	59_Day_Organoid.bam	https://sra-download.ncbi.nlm.nih.gov/traces/sra33/SRZ/010182/SRR10182335/59_Day_Organoid.bam	SRR10182335
+SRX5975001	SRP200499	JH21_WT_retina_scRNAseq_R1_possorted_genome_bam.bam	https://sra-pub-src-1.s3.amazonaws.com/SRR9203789/JH21_WT_retina_scRNAseq_R1_possorted_genome_bam.bam.1	SRR9203789
+SRX5975003	SRP200499	JH31_WT_retina_scRNAseq_R2_possorted_genome_bam.bam	https://sra-pub-src-1.s3.amazonaws.com/SRR9203791/JH31_WT_retina_scRNAseq_R2_possorted_genome_bam.bam.1	SRR9203791
+SRX5975005	SRP200499	JH51_WT_retina_scRNAseq_R3_possorted_genome_bam.bam	https://sra-pub-src-1.s3.amazonaws.com/SRR9203793/JH51_WT_retina_scRNAseq_R3_possorted_genome_bam.bam.1	SRR9203793
+SRX5975007	SRP200499	JH53_WT_retina_scRNAseq_R4_possorted_genome_bam.bam	https://sra-pub-src-1.s3.amazonaws.com/SRR9203795/JH53_WT_retina_scRNAseq_R4_possorted_genome_bam.bam.1	SRR9203795
 SRX8241383	SRP259930	MouseACS1.bam	https://sra-download.ncbi.nlm.nih.gov/traces/sra39/SRZ/011680/SRR11680518/MouseACS1.bam	SRR11680518
 SRX8241384	SRP259930	MouseACS2.bam	https://sra-download.ncbi.nlm.nih.gov/traces/sra60/SRZ/011680/SRR11680519/MouseACS2.bam	SRR11680519
 SRX8241385	SRP259930	MouseACS3.bam	https://sra-download.ncbi.nlm.nih.gov/traces/sra65/SRZ/011680/SRR11680520/MouseACS3.bam	SRR11680520
@@ -154,3 +158,5 @@ SRX8241389	SRP259930	MouseACS7.bam	https://sra-download.ncbi.nlm.nih.gov/traces/
 SRX8241390	SRP259930	MouseACS8.bam	https://sra-download.ncbi.nlm.nih.gov/traces/sra16/SRZ/011680/SRR11680525/MouseACS8.bam	SRR11680525
 SRX8241391	SRP259930	MouseACS9.bam	https://sra-download.ncbi.nlm.nih.gov/traces/sra13/SRZ/011680/SRR11680526/MouseACS9.bam	SRR11680526
 SRX8241392	SRP259930	MouseACS10.bam	https://sra-download.ncbi.nlm.nih.gov/traces/sra59/SRZ/011680/SRR11680527/MouseACS10.bam	SRR11680527
+SRX9537750	SRP257758	Atoh7_zsGreen_E14.5.possorted_genome_bam.bam	https://sra-download.ncbi.nlm.nih.gov/traces/sra13/SRZ/013091/SRR13091935/Atoh7_zsGreen_E14.5.possorted_genome_bam.bam	SRR13091935
+SRX9537751	SRP257758	Atoh7_zsGreen_Lacz_E14.5.possorted_genome_bam.bam	https://sra-download.ncbi.nlm.nih.gov/traces/sra23/SRZ/013091/SRR13091936/Atoh7_zsGreen_Lacz_E14.5.possorted_genome_bam.bam	SRR13091936
