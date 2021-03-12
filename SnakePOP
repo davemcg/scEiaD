@@ -222,12 +222,12 @@ rule integrate_00:
 	threads: 2 	
 	shell:
 		"""
-
+		
 		module load R/3.6
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
-		cmd="Rscript {git_dir}/src/{params.mm} \
+		cmd="Rscript {git_dir}/src/merge_methods_scvi_ONLY.R \
 				  {wildcards.method} \
 				  {wildcards.transform} \
 				  {wildcards.covariate} \

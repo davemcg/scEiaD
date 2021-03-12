@@ -1,10 +1,10 @@
 # build seurat obj with the "classic" findvariablegenes -> normalize -> scaledata processing
 # output use for integration with various algorithms
 # scanorama, CCT, harmony, liger
-#args <- c('testing/test.yaml', '/data/swamyvs/scEiaD/config.yaml')
+#args <- c('/data/swamyvs/scEiad_subcelltype/rson_tmp/ri0ij1xy.json', '/data/swamyvs/scEiad_subcelltype/config.yaml')
 args <- commandArgs(trailingOnly = TRUE)
 #Sys.setenv(SCIAD_CONFIG = '/data/swamyvs/scEiaD/config.yaml')
-save(args, file= 'testing/bso.args')
+
 library(jsonlite)
 library(yaml)
 library(Matrix)
@@ -159,7 +159,7 @@ if (set == 'early'){
 } else if(all(grepl('\\:', set))){
   
   ct_map <- c('Amacrine'='Amacrine Cells', 'Bipolar' = 'Bipolar Cells', 'Cone' = 'Cones', 
-              'RGC' = "Retinal Ganglion Cells", 'Rod' = 'Rods'  )
+              'RGC' = "Retinal Ganglion Cells", 'Rod' = 'Rods', 'Horizontal' = 'Horizontal Cells'  )
   spc_map <- c('hs'='Homo sapiens', 'mm' = "Mus musculus")
   ct <- str_split(set, ':') %>% unlist %>% .[1]
   spc <- str_split(set, ':') %>% unlist %>% .[2]

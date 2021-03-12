@@ -1,3 +1,5 @@
+args <- commandArgs(trailingOnly = TRUE)
+save(args, file = 'testing/cluster.args.Rdata')
 library(tidyverse)
 library(Seurat)
 library(future)
@@ -23,6 +25,9 @@ if (args[6] == 'TRUE'){
 if (args[7] == 'TRUE'){
     umap = TRUE
 } else {umap = FALSE}
+
+
+
 
 # integrated seurat obj
 load(args[8])
@@ -84,27 +89,8 @@ create_umap_and_cluster <- function(integrated_obj,
 		  integrated_obj@misc[[paste0("Graph_knn", k)]] <- graph
 
 		  # do subclustering on each cluster
-		  meta <- cbind(integrated_obj@meta.data %>% row.names(), cluster) %>% data.frame()
-	 	 colnames(meta) <- c('Barcode','cluster')
-    	  k <- 20
-	    	subcluster <- list()
-	  	 for (i in unique(meta$cluster)){
-  	   		 bc <- meta %>% 
-					as_tibble() %>% 
-			        filter(cluster == i) %>% 
-				    pull(Barcode) %>% 
-					as.character()
-       		 graph <- buildSNNGraph(Embeddings(integrated_obj, reduction = reduction)[bc,],
-       	                  transposed = TRUE, k = k, d = max_dims, type = 'jaccard')
-       		 c_bc <- igraph::cluster_louvain(graph)$membership
-        	sub <- cbind(bc, c_bc) %>% data.frame()
-        	colnames(sub) <- c('Barcode','subcluster')
-       		 subcluster[[i]] <- sub
-      }
-	  subcluster <- subcluster %>% bind_rows(.id = 'supercluster')  %>%
-						mutate(supersubcluster = paste0(supercluster, '.', subcluster))
-	  subcluster <- left_join(integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode'), subcluster, by = 'Barcode')
-	  integrated_obj@meta.data[,paste0('subcluster_knn', k)] <- subcluster$supersubcluster
+		  
+	  integrated_obj@meta.data[,paste0('subcluster_knn', k)] <- "MSG"
 	}
 	} else {
 		# run parc
@@ -118,10 +104,7 @@ create_umap_and_cluster <- function(integrated_obj,
 		integrated_obj@meta.data[,paste0('cluster_knn', knn)] <- met_clu$X0
 		integrated_obj@misc[[paste0("Graph_knn", knn)]] <- NA
 		parc_k = knn + 2
-		system(paste( glue('{conda_dir}/envs/parc/bin/python {git_dir}/src/run_parc.py'), out_embeddings_file, parc_k, in_embeddings_file))
-		clusters = read.csv(in_embeddings_file)
-		met_clu <- left_join(met, clusters, by = 'Barcode')
-		integrated_obj@meta.data[,paste0('subcluster_knn', parc_k)] <- met_clu$X0
+		integrated_obj@meta.data[,paste0('subcluster_knn', parc_k)] <- "MSG"
 		system(paste0('rm ', out_embeddings_file))
 		system(paste0('rm ', in_embeddings_file))
 	}

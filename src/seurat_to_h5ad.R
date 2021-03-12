@@ -2,6 +2,7 @@ args <- commandArgs(trailingOnly = TRUE)
 conda_dir =  Sys.getenv('SCIAD_CONDA_DIR')
 library(glue)
 Sys.setenv(RETICULATE_PYTHON = glue("{conda_dir}/envs/sceasy/bin/python") )
+save.image('testing/h5ad.args')
 library(sceasy)
 library(reticulate)
 #loompy <- reticulate::import('loompy')
@@ -18,7 +19,7 @@ load(args[4]) #cell_info_labels
 # left_join known cell labels
 orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
 nmeta <- orig_meta %>% 
-  left_join(., cell_info_labels %>% select(-Barcode) %>% select(-contains(c('study_accession', 'Age', 'batch'))) %>% rename(Barcode = value),
+  left_join(., cell_info_labels  %>% select(-contains(c('study_accession', 'Age', 'batch'))) %>% rename(Barcode = value),
 			by = 'Barcode') %>%
 #  left_join(., predictions %>%
 #              as_tibble(rownames = 'Barcode') %>%

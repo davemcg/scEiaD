@@ -1,5 +1,5 @@
 # extract UMAP coords labelled with meta data
-args= c('/data/swamyvs/scEiaD/rson_tmp/_7dbjtmv.json', 'UMAP')
+args= c('/data/swamyvs/scEiad_subcelltype/rson_tmp/4ew7n7p6.json', 'UMAP')
 args <- commandArgs(trailingOnly = TRUE)
 library(Seurat)
 library(tidyverse)
@@ -32,18 +32,18 @@ subcluster <- meta %>% pull(3)
 # load int seurat obj, calc cell cycle
 load(rule$input$intg_seu_obj)
 # convert Seurat cell cycle HGNC to ENSGENE
-s.genes <- cc.genes$s.genes %>% enframe(value = 'gene_name') %>% left_join(gene_map) %>% pull(gene_id) 
-g2m.genes <- cc.genes$g2m.genes %>% enframe(value = 'gene_name') %>% left_join(gene_map) %>% pull(gene_id)
-if (DefaultAssay(integrated_obj) == 'integrated'){
-  DefaultAssay(integrated_obj) <- 'RNA'
-}
-integrated_obj <- CellCycleScoring(integrated_obj, s.features = s.genes, g2m.features = g2m.genes)
+s.genes <- cc.genes$s.genes %>% enframe(value = 'gene_name') %>% left_join(gene_map) %>% pull(gene_id) %>% na.omit
+g2m.genes <- cc.genes$g2m.genes %>% enframe(value = 'gene_name') %>% left_join(gene_map) %>% pull(gene_id)%>% na.omit
+# if (DefaultAssay(integrated_obj) == 'integrated'){
+#   DefaultAssay(integrated_obj) <- 'RNA'
+# }
+# integrated_obj <- CellCycleScoring(integrated_obj, s.features = s.genes, g2m.features = g2m.genes)
 meta <- integrated_obj@meta.data
 # load umap seurat obj.
 load(rule$input$umap_seu_obj)
-integrated_obj@meta.data$`S.Score` <- meta$`S.Score`
-integrated_obj@meta.data$`G2M.Score` <- meta$`G2M.Score`
-integrated_obj@meta.data$`Phase` <- meta$`Phase`
+# integrated_obj@meta.data$`S.Score` <- meta$`S.Score`
+# integrated_obj@meta.data$`G2M.Score` <- meta$`G2M.Score`
+# integrated_obj@meta.data$`Phase` <- meta$`Phase`
 integrated_obj@meta.data$cluster <- cluster
 integrated_obj@meta.data$subcluster <- subcluster
 # load labelled cell data
@@ -91,7 +91,9 @@ if (rule$wildcards$method == 'TSNE'){
 orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
 umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'Barcode') %>% 
   left_join(., orig_meta) %>% 
-  left_join(., cell_info_labels %>% select(-Barcode) %>% select(-contains(c('study_accession', 'Age', 'batch'))) %>% rename(Barcode = value),
+  left_join(., cell_info_labels %>% 
+              #select(-Barcode) %>% 
+              select(-contains(c('study_accession', 'Age', 'batch'))) %>% rename(Barcode = value),
             by = 'Barcode') 
 #  left_join(., predictions %>% 
 #              as_tibble(rownames = 'Barcode') %>% 

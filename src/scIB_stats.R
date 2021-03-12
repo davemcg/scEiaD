@@ -5,7 +5,7 @@ git_dir = Sys.getenv('SCIAD_GIT_DIR')
 library(tidyverse)
 library(glue)
 args <- commandArgs(trailingOnly = TRUE)
-
+save.image('testing/scib.ARGS')
 Sys.setenv(RETICULATE_PYTHON = glue('{conda_dir}/envs/scIB/bin/python') )
 library(reticulate)
 
