@@ -1,0 +1,466 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup}
+knitr::opts_knit$set(root.dir = '/data/swamyvs/scEiad_subcelltype/')
+
+```
+
+
+
+
+
+```{r}
+library(tidyverse)
+library(Matrix)
+library(Seurat)
+# sanes_count_matrix <- data.table::fread('references/sanes_amacrine_count_matrix.csv.gz') sanes_count_matrix
+# rownames(sanes_count_matrix) <- sanes_count_matrix$V1
+# sanes_count_matrix <- sanes_count_matrix[,-1]
+# sanes_count_matrix <-Matrix(as.matrix(sanes_count_matrix, sparse = T) )
+# save(sanes_count_matrix, file = 'references/sanes_amacrine_sparse_matrix.Rdata')
+# sanes_meta_data <- read_tsv('references/sanes_amacrine_metadata.tsv', col_names = c('sample_accession', 'BioSample', 'mouse', 'path'))
+# sanes_metadata_full <- tibble(Barcode = colnames(sanes_count_matrix)) %>% mutate(mouse = str_extract(Barcode, 'MouseACS\\d+'),
+#                                                                                  mouse = as.factor(mouse)) %>% 
+#   inner_join(sanes_meta_data) %>% as.data.frame
+# rownames(sanes_metadata_full) <- sanes_metadata_full$Barcode
+# 
+# seu <- CreateSeuratObject(sanes_count_matrix, meta.data = sanes_metadata_full )
+# seu <- NormalizeData(seu)
+# seu <- FindVariableFeatures(seu, selection.method = "vst", nfeatures = 5000)
+# seu <- ScaleData(seu, vars.to.regress = 'mouse')
+#save(seu, file = 'testing/sanes_amacrine_seu_pp.Rdata')
+load('testing/sanes_amacrine_seu_pp.Rdata')
+seu <- RunPCA(seu, npcs = 50,features = VariableFeatures(object = seu))
+#seu <- JackStraw(seu, num.replicate = 100) # similar to the tracy-widom thingy
+# save(seu,file = 'testing/sanes_amacrine_seu_pp-js.Rdata' )
+# seu <- ScoreJackStraw(seu, dims = 1:15)
+# JackStrawPlot(seu, dims = 1:15)
+## ^ this didn't work, so just gonna use the elbow plot 
+ElbowPlot(seu, ndims = 50)
+# fux it just keep 20pcs
+keep_pcs = 1:40
+
+seu <- FindNeighbors(seu,k.param = 30, dims = keep_pcs)
+seu <- FindClusters(seu, algorithm = 2, resolution = 1.4)
+n_distinct(seu$seurat_clusters)
+subcluster_labels <- read_csv('references/sanes_amacrine_subcluster_labels.csv', skip = 1)
+subcluster <- subcluster_labels$group
+n_distinct(subcluster_labels$group)
+names(subcluster) <- subcluster_labels$TYPE
+seu$sanes_subcluster <- subcluster
+
+seu <- RunUMAP(seu, dims = keep_pcs)
+seu$seurat_clusters <- paste0('c',seu$seurat_clusters)
+seu <- SetIdent(seu, value = 'seurat_clusters')
+
+DimPlot(seu, reduction = 'umap', group.by = 'sanes_subcluster')
+
+jaccard <- function(l, r){
+  length(intersect(l, r)) / length(union(l, r))
+}
+
+
+sanes_clusters <- seu@meta.data %>% group_by(sanes_subcluster) %>% group_split()
+seurat_clusters <- seu@meta.data %>% group_by(seurat_clusters) %>% group_split()
+res <- list()
+i <- 1
+for(seu_clu in seurat_clusters ){
+  c_jacs <- sapply(sanes_clusters, function(x) {
+    jaccard(x$Barcode, seu_clu$Barcode)
+  })
+  res[[i]] <- tibble(seurat_clusters = seu_clu$seurat_clusters[1], 
+         max_jac = max(c_jacs),
+         which_sanes_clu_max = sanes_clusters[[which.max(c_jacs)]]$sanes_subcluster[1]
+         )
+  i <- i+1
+  
+}
+
+res <- res %>% bind_rows()
+
+
+cc <- seu@meta.data %>% as.data.frame %>%group_by(seurat_clusters) %>% dplyr::count()
+cluster_frac <- seu@meta.data %>% as.data.frame %>% group_by(seurat_clusters, sanes_subcluster) %>% 
+  summarise( sanes_sc_count = n()) %>% inner_join(cc) %>% mutate(frac = sanes_sc_count/n) %>% 
+  group_by(seurat_clusters) %>% summarise(max_frac = max(frac),
+                                          max_frac_clu = sanes_subcluster[which.max(frac)]) %>% arrange(desc(max_frac)) 
+
+cluster_similarity <- res %>% inner_join(cluster_frac)
+
+
+
+
+```
+
+funcs for making tree plot
+
+```{r}
+
+BCT_trim <- function (object, assay = NULL, features = NULL, dims = NULL, 
+  graph = NULL, slot = "data", reorder = FALSE, reorder.numeric = FALSE, 
+  verbose = TRUE) 
+{
+  
+  assay <- DefaultAssay(object = object)
+  if (!is.null(x = graph)) {
+    idents <- levels(x = object)
+    nclusters <- length(x = idents)
+    data.dist <- matrix(data = numeric(length = 1L), nrow = nclusters, 
+      ncol = nclusters, dimnames = list(idents, idents))
+    graph <- object[[graph]]
+    cxi <- CellsByIdentities(object = object)
+    cpairs <- na.omit(object = unique(x = t(x = apply(X = expand.grid(1:nclusters, 
+      1:nclusters)[, c(2, 1)], MARGIN = 1, FUN = function(x) {
+      if (length(x = x) == length(x = unique(x = x))) {
+        return(sort(x = x))
+      }
+      return(c(NA, NA))
+    }))))
+    if (verbose) {
+      pb <- txtProgressBar(style = 3, file = stderr())
+    }
+    for (i in 1:nrow(x = cpairs)) {
+      i1 <- cpairs[i, ][1]
+      i2 <- cpairs[i, ][2]
+      graph.sub <- graph[cxi[[idents[i1]]], cxi[[idents[i2]]]]
+      d <- mean(x = graph.sub)
+      if (is.na(x = d)) {
+        d <- 0
+      }
+      data.dist[i1, i2] <- d
+      if (verbose) {
+        setTxtProgressBar(pb = pb, value = i/nrow(x = cpairs))
+      }
+    }
+    if (verbose) {
+      close(con = pb)
+    }
+    diag(x = data.dist) <- 1
+    data.dist <- dist(x = data.dist)
+  }else if (!is.null(x = dims)) {
+    my.lapply <- ifelse(test = verbose, yes = pblapply, 
+      no = lapply)
+    embeddings <- Embeddings(object = object, reduction = "pca")[, 
+      dims]
+    data.dims <- my.lapply(X = levels(x = object), FUN = function(x) {
+      cells <- WhichCells(object = object, idents = x)
+      if (length(x = cells) == 1) {
+        cells <- c(cells, cells)
+      }
+      temp <- colMeans(x = embeddings[cells, ])
+    })
+    data.dims <- do.call(what = "cbind", args = data.dims)
+    colnames(x = data.dims) <- levels(x = object)
+    data.dist <- dist(x = t(x = data.dims))
+  }
+  else {
+    features <- features %||% VariableFeatures(object = object)
+    features <- intersect(x = features, y = rownames(x = object))
+    data.avg <- AverageExpression(object = object, assays = assay, 
+      features = features, slot = slot, verbose = verbose)[[1]]
+  
+    data.dist <- dist(x = t(x = data.avg[features, ]))
+    return(data.dist)
+  }
+  data.tree <- ape::as.phylo(x = hclust(d = data.dist))
+  Tool(object = object) <- data.tree
+  if (reorder) {
+    if (verbose) {
+      message("Reordering identity classes and rebuilding tree")
+    }
+    old.ident.order <- levels(x = object)
+    data.tree <- Tool(object = object, slot = "BuildClusterTree")
+    all.desc <- GetDescendants(tree = data.tree, node = (data.tree$Nnode + 
+      2))
+    all.desc <- old.ident.order[all.desc[all.desc <= (data.tree$Nnode + 
+      1)]]
+    Idents(object = object) <- factor(x = Idents(object = object), 
+      levels = all.desc, ordered = TRUE)
+    if (reorder.numeric) {
+      new.levels <- sort(x = unique(x = as.integer(x = Idents(object = object))))
+      Idents(object = object) <- factor(x = as.integer(x = Idents(object = object)), 
+        levels = new.levels)
+      object[["tree.ident"]] <- as.integer(x = Idents(object = object))
+    }
+    object <- BuildClusterTree(object = object, assay = assay, 
+      features = features, dims = dims, graph = graph, 
+      slot = slot, reorder = FALSE, verbose = verbose)
+  }
+  return(object)
+}
+
+# 
+# k <- BCT_trim(integrated_obj)
+# 
+# highclust <-  hclust(d = k)
+# 
+# gdata::keep(hc, k, sure = T)
+
+
+
+custom_cut <- function(hc,height, group_list){
+  cut <-  cutree(hc, h = height)
+  if(length(group_list) > 0){
+    for(i in seq_along(group_list)){
+      grp <- group_list[[i]]
+      grp_name <- names(group_list)[i]
+      value <- cut[grp][1]
+      names(value) <- grp_name
+      cut <- c(cut[!names(cut)%in%grp],value) %>% sort
+    }
+  }
+  return(cut)
+}
+
+generate_tree_groupings <- function(hc, min_delta = NULL){
+  res <- list()
+  j <- 1
+  if( is.null(min_delta)){
+    min_delta <- min(sapply(2:length(hc$height), function(i)hc$height[i] - hc$height[(i-1)]) )
+  }
+  c_height <- min(hc$height)
+  Not_empty <- TRUE
+  while(TRUE){
+    c_cut <- custom_cut(hc,c_height , res)
+    if(length(c_cut) == 1) break
+    dup_grp <- c_cut[duplicated(c_cut)]
+    for(g in dup_grp){
+        new_grp <- names(which(c_cut == g))
+        if(length(new_grp)!=2) {
+          print(new_grp)
+          warning("group being merged is not of length 2. Choice of min_delta may be too high")
+        }
+        res[[paste0('m', j)]] <- new_grp
+        j <- j+1
+    }
+    c_height <- c_height + min_delta
+  }
+  return(res)
+}
+
+
+```
+
+```{r}
+seu_dist <- BCT_trim(seu)
+hc <- hclust(seu_dist)
+groupings <- generate_tree_groupings(hc, min_delta = 1.525068e-01)
+
+```
+
+
+```{r}
+library(scran)
+library(scater)
+library(SingleCellExperiment)
+sanes_marker_genes <- scan('references/sanes_cluster_markers.txt', character(), sep='\n')
+sanes_marker_genes[!sanes_marker_genes%in% rownames(seu)]
+sce <- as.SingleCellExperiment(seu)
+assay(sce, 'logcounts') <- NULL
+sce <- computeSumFactors(sce, cluster = sce$seurat_clusters)
+sce <- logNormCounts(sce)
+genevar <- modelGeneVar(sce)
+hvg <- getTopHVGs(genevar,n=5000)
+sum( sanes_marker_genes %in% hvg)
+
+sce_hv <- sce[hvg, ]
+
+
+```
+```{r}
+plot(hc)
+```
+
+Try and reproduce mast results 
+
+```{r}
+library(MAST)
+sca <- SceToSingleCellAssay(sce_hv)
+seuc_fac <- as.factor(colData(sca)$seurat_clusters)
+colData(sca)$seurat_cluster_fac <- seuc_fac
+
+zlmCond <- zlm(~seurat_cluster_fac+0, sca)
+save(zlmCond,sca,  file = 'testing/MAST_de_obj.Rdata')
+levels(seurat_cluster_fac)
+```
+^ this is running(slow af), but lets figure out how we wanna do it ourselves 
+
+```{r}
+plot(hc)
+```
+
+
+
+scater - findMarker::all (most stringent)
+
+```{r}
+marker2sanes_cluster <- tibble(gene_name = sanes_marker_genes, sanes_subcluster = paste0('AC_', 1:63))
+valid_groups <- sapply(groupings, function(x) all(grepl('c', x) ))
+terminal_clusters <- groupings[valid_groups] %>% unlist
+terminal_cluster_mapping <- cluster_similarity %>% filter(max_jac > .8) %>% 
+
+markers.all <- findMarkers(sce_hv, pval.type = 'all', groups = sce_hv$seurat_clusters)
+names(markers.all)
+marker_eval <- lapply(terminal_cluster_mapping$seurat_clusters, function(x){ 
+  sanes_clu <-filter(terminal_cluster_mapping, seurat_clusters == x) %>% pull(which_sanes_clu_max)
+  keep_gene <- filter(marker2sanes_cluster, sanes_subcluster == sanes_clu) %>% pull(gene_name)
+  markers.all[[x]] %>% as.data.frame %>%  rownames_to_column('gene_name') %>% filter(gene_name == keep_gene) %>% select(all_of(colnames(.)[1:4]))
+}
+  ) %>% bind_rows() %>% mutate(seurat_clusters =terminal_cluster_mapping$seurat_clusters ) %>% 
+  select(seurat_clusters, everything()) %>% inner_join(terminal_cluster_mapping, .)
+
+View(markers.all$c11 %>% as.data.frame)
+```
+
+
+
+```{r}
+
+```
+
+
+
+
+
+
+"Top down hiearchical testing"
+```{r}
+
+unwrap_groupings <- function(lab, groups){
+  c_grp <- groups[[lab]]
+  mtch <- grepl('m',c_grp )
+  if (any(mtch)){
+    k <- c()
+    for (meta_c in c_grp[mtch]){
+       k <- c(k, unwrap_groupings(meta_c, groupings) )
+    }
+    k <- c(k,c_grp[!mtch])
+  } else{
+    return(c_grp)
+  }
+}
+
+k <- unwrap_groupings('m10', groupings)
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+lapply(, function(grp){
+  grp <- true_groups$m33
+  sce_grp <- sce_hv[,sce_hv$seurat_clusters %in% grp]
+  markers_grp <- findMarkers(sce_grp, pval.type = 'all', groups = sce_grp$seurat_clusters)
+  print(lapply(markers_grp, function(x) x %>% as.data.frame %>% filter(FDR < .001, summary.logFC > 0 ) %>% 
+           arrange(desc(summary.logFC)) %>% rownames %>% {.[.=='Car3']} )
+  )
+  
+})
+
+less
+
+"Car3"%in% sanes_marker_genes
+"Car3"%in%rownames(sce_hv)
+VlnPlot(seu,features = 'Car3', group.by = 'sanes_subcluster
+idents = c('c21', 'c57'))
+```
+
+- I am  very roughly able to replicate the sanes diff-exp results with their data - or at least enough to show that the tools I'm using give close enough results 
+
+Next things to do 
+- implement louvain alg in parc file - need to evaluate like for like comparisons, but also want to use the same experimentation stratgy thats used for parc/leiden
+- process the stability and purity experiments from parc.
+
+
+
+
+
+
+```{r}
+seu_sanes_data <- seu
+load('testing/sanes_seu_sceiad_data.Rdata')
+
+sanes_sample_mapping <-  read_tsv('references/sanes_amacrine_metadata.tsv', col_names = c('sample_accession', 'BioSample', 'mouse', 'path'))
+
+seu_sanes <- FindNeighbors(seu_sanes,reduction = 'scVI',dims =1:8 )
+seu_sanes <- FindClusters(seu_sanes, algorithm = 2, resolution = 1.4)
+seu_scied_data <- seu_sanes
+
+
+cell_name_mapper <- tibble(scied_bc = colnames(seu_scied_data), 
+                           bc_string = str_split(scied_bc, '_') %>%sapply(function(x) x[1]),
+                           sample_accession =str_split(scied_bc, '_') %>%sapply(function(x) x[2])) %>% 
+  inner_join(sanes_sample_mapping) %>% 
+  mutate(sanes_bc = paste0(mouse,'_', bc_string, '-1' )) %>% 
+  filter(sanes_bc %in% colnames(seu_sanes_data), 
+         scied_bc %in% colnames(seu_scied_data)) %>% 
+  inner_join(subcluster_labels %>% rename(sanes_bc = TYPE))
+
+
+seu_scied_data <- seu_scied_data[,cell_name_mapper$scied_bc]
+seu_scied_data <- RenameCells(seu_scied_data, new.names =  cell_name_mapper$sanes_bc ) 
+subcluster <- cell_name_mapper$group
+names(subcluster) <- cell_name_mapper$sanes_bc
+seu_scied_data$sanes_subcluster <- subcluster
+seu_meta_data <- seu_scied_data@meta.data %>% as.data.frame
+
+cluster_props <- seu_meta_data %>% group_by(seurat_clusters) %>% group_split() %>% lapply(function(x) {table(x$sanes_subcluster) / nrow(x)} %>% sort(decreasing = T) )
+
+max_cluster_prop <-  seu_meta_data %>% group_by(seurat_clusters) %>% summarise(max_prop ={table(sanes_subcluster) / n()} %>% sort(decreasing = T) %>% .[1])
+
+summary(max_cluster_prop$max_prop)
+
+```
+
+```{r}
+sanes_data_calcd_subcluster <- seu_sanes_data$seurat_clusters
+names(sanes_data_calcd_subcluster) <- colnames(seu_sanes_data)
+sanes_data_calcd_subcluster <- sanes_data_calcd_subcluster[colnames(seu_scied_data)]
+seu_scied_data$sanes_data_calcd_subcluster <- sanes_data_calcd_subcluster
+
+seu_meta_data <- seu_scied_data@meta.data %>% as.data.frame
+cluster_props <- seu_meta_data %>% group_by(seurat_clusters) %>% group_split() %>% lapply(function(x) {table(x$sanes_data_calcd_subcluster) / nrow(x)} %>% sort(decreasing = T) )
+
+max_cluster_prop <-  seu_meta_data %>% group_by(seurat_clusters) %>% summarise(max_prop ={table(sanes_data_calcd_subcluster) / n()} %>% sort(decreasing = T) %>% .[1])
+
+summary(max_cluster_prop$max_prop)
+
+scied_var_feat <-  VariableFeatures(seu_scied_data)
+sanes_var_feat <- VariableFeatures(seu_sanes_data)
+intersect(scied_var_feat,sanes_var_feat) %>% n_distinct
+
+```
+
+
+```{r}
+mouse_gtf <- rtracklayer::readGFF('references/gtf/mm-mus_musculus_anno.gtf.gz')
+gene_id2gene_name <- mouse_gtf %>% filter(type == 'gene') %>% select(gene_id, gene_name) %>% distinct %>% 
+  mutate(gene_id = str_remove_all(gene_id, '\\.\\d+$'))
+
+scied_var_feat <-  VariableFeatures(seu_scied_data)
+sanes_var_feat <-  VariableFeatures(seu_sanes_data) %>% {filter(gene_id2gene_name, gene_name %in% .)} %>% pull(gene_id)
+intersect(scied_var_feat,sanes_var_feat) %>% n_distinct
+```
+
+
+```{r}
+load('pipeline_data/cell_info/cell_info_labelled.Rdata')
+
+
+cell_info_labels %>% filter(study_accession == 'SRP259930')  %>% pull(CellType) %>% table 
+```
+
+
+
+

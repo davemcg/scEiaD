@@ -360,7 +360,7 @@ class PARC:
         time_end_PARC = time.time()
         # print('Q= %.1f' % (partition.quality()))
         PARC_labels_leiden = np.asarray(partition.membership)
-        PARC_labels_leiden = np.reshape(PARC_labels_leiden, (n_elements, 1))
+        PARC_labels_leiden = np.reshape(PARC_labels_leiden, ( n_elements, 1))
 
         too_big = False
 
@@ -417,7 +417,7 @@ class PARC:
         small_pop_exist = False
 
         for cluster in set(PARC_labels_leiden):
-            population = len(np.where(PARC_labels_leiden == cluster)[0])
+            population = len(np.where(PARC_labels_leiden == cluster)[0]) # get c
 
             if population < small_pop:  # 10
                 small_pop_exist = True
@@ -426,7 +426,6 @@ class PARC:
                 small_cluster_list.append(cluster)
 
         for small_cluster in small_pop_list:
-
             for single_cell in small_cluster:
                 old_neighbors = neighbor_array[single_cell]
                 group_of_old_neighbors = PARC_labels_leiden[old_neighbors]

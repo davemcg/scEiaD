@@ -1,0 +1,474 @@
+---
+title: "SS type"
+output: html_notebook
+---
+
+
+```{r setup}
+
+knitr::opts_knit$set(root.dir = '/data/swamyvs/scEiad_subcelltype/')
+
+
+```
+
+```{r}
+library(tidyverse)
+
+load_rdata <- function(x){
+    load(x)
+    env <- ls.str()
+    var <- env[!grepl('^x$', env)]
+    stopifnot(length(var) == 1)
+    return(get(var))
+}
+
+umap_files <-  list.files('pipeline_data/umap', pattern = 'umap.Rdata', full.names = T) %>% .[grep(':', .)]
+runname <- str_split(umap_files, '-') %>% sapply(function(x)  x[4] %>% str_remove_all( '__covariate') )
+all_umaps <-  lapply(seq_along(umap_files), function(i) load_rdata(umap_files[i])  %>% mutate(CT = runname[i]) ) %>% bind_rows
+```
+
+```{r}
+study_per_ct <- all_umaps %>% group_by(CT) %>% summarise(n_studies_CT = n_distinct(study_accession))
+
+cell_counts_per_study <- all_umaps %>% group_by(CT, study_accession) %>% count
+
+ct_cluster_info <- all_umaps %>% group_by(CT, cluster) %>% 
+  summarise(size = n(), n_study_cluster = n_distinct(study_accession)) %>% inner_join(study_per_ct)
+#require at 2 studies per cluster
+
+
+all_umaps_filtered <- ct_cluster_info %>% filter(n_study_cluster >=2, 
+                                                 size >=50)%>% select(CT, cluster) %>% 
+  inner_join(all_umaps)
+
+```
+
+
+
+```{r}
+ggplot(all_umaps_filtered %>% filter(organism == 'Homo sapiens')) + 
+  geom_point(aes(x=UMAP_1, y=UMAP_2, color = as.character(cluster)), size = .1) +
+  facet_wrap(~CT) +
+  theme_bw()
+
+
+```
+
+```{r}
+ggplot(all_umaps_filtered %>% filter(CT == 'Amacrine:mm')) + 
+  geom_point(aes(x=UMAP_1, y=UMAP_2, color = as.character(cluster)), size = .1) +
+  theme_bw()
+
+
+```
+
+
+
+```{r}
+library(Seurat)
+future::plan(strategy = "multicore", workers = 4)
+load('seurat_obj/integrated/n_features-5000__transform-counts__partition-Amacrine:mm__covariate-batch__method-scVI__dims-8__preFilter.seuratV3.Rdata')
+integrated_obj <- RunUMAP(integrated_obj, 
+                            dims = 1:8, 
+                            min.dist = .75,
+                            n.components = 2, 
+                            n.neighbors = 15,
+                            reduction.key = 'scVIUMAP',
+                          reduction = 'scVI'
+                          )
+new_umap <- integrated_obj@reductions$umap@cell.embeddings %>% as.data.frame
+colnames(new_umap) <- c('NUMAP1', 'NUMAP2')
+new_umap$Barcode <- colnames(integrated_obj)
+
+big_pal <- c(pals::alphabet(), pals::alphabet2())
+names(big_pal) <- NULL
+scl <-  ggplot(all_umaps_filtered %>% inner_join(new_umap)) + 
+  geom_point(aes(x=NUMAP1, y=NUMAP2, color = as.character(cluster)),size = .1, alpha=.5) +
+  scale_color_discrete(type = big_pal)+
+  guides(color=guide_legend(override.aes = list(alpha=1, size=3)))+
+  ggtitle('scEiaD_clusters')+
+  theme_bw()
+  
+```
+
+
+```{r}
+
+sanes_mouse_labels <- read_csv('references/sanes_amacrine_subcluster_labels.csv',skip = 1 ) %>%
+  mutate(Barcode_raw = str_extract_all(TYPE, '_\\w+-') %>% str_remove_all('_|-')) %>% 
+  rename(sanes_cstr = group)
+dup_sanes_bc <- sanes_mouse_labels$Barcode_raw[duplicated(sanes_mouse_labels$Barcode_raw)]
+sanes_mouse_labels <- sanes_mouse_labels %>% filter(!Barcode_raw %in% dup_sanes_bc)
+umap_Amm_sanes <- filter(all_umaps_filtered, CT == 'Amacrine:mm', study_accession == 'SRP259930') %>% 
+  mutate(Barcode_raw = str_split(Barcode, '_') %>% sapply(function(x) x[1])) %>% filter(Barcode_raw %in% sanes_mouse_labels$Barcode_raw)
+dup_scied_bc <- umap_Amm_sanes$Barcode_raw[duplicated(umap_Amm_sanes$Barcode_raw)]
+umap_Amm_sanes <- umap_Amm_sanes %>% filter(!Barcode_raw%in% dup_sanes_bc) %>% inner_join(sanes_mouse_labels)
+
+sanes_bc_lab <- umap_Amm_sanes %>%  ungroup %>% select(Barcode, labels = sanes_cstr)
+write_csv(sanes_bc_lab, 'testing/sanes_bc_lab.csv')
+```
+
+
+
+
+
+
+```{r}
+umap_Amm_sanes %>% group_by(cluster) %>% summarise(n_cells = n(), 
+                                                   n_sanes_cluster = n_distinct(sanes_cstr))
+
+snscl <-  ggplot(umap_Amm_sanes %>% inner_join(new_umap)) + 
+  geom_point(aes(x=NUMAP1, y=NUMAP2, color = as.character(sanes_cstr)),size = .1, alpha=.5) +
+  scale_color_discrete(type = big_pal)+
+  guides(color=guide_legend(override.aes = list(alpha=1, size=3)))+
+  ggtitle('sanes_clstr') + 
+  theme_bw()
+
+```
+
+```{r}
+library(patchwork)
+
+p <-  scl / snscl
+
+
+ggsave('testing/sanes_vs_sceiad_v2.png', plot = p, height = 12, width = 10)
+```
+
+```{r}
+umaps_am_mm <- all_umaps %>% filter(Barcode %in% colnames(integrated_obj)) %>% as.data.frame
+cs <- umaps_am_mm$cluster
+names(cs) <- umaps_am_mm$Barcode
+cs <- paste0("clu_", sort(cs))
+
+integrated_obj$cluster <- cs
+integrated_obj <- SetIdent(integrated_obj, value = 'cluster')
+PlotClusterTree(BuildClusterTree(integrated_obj ))
+```
+
+
+
+```{r}
+library(ggalluvial)
+library(scPOP)
+
+keep_scied_cluster <-  umap_Amm_sanes %>% inner_join(new_umap) %>% group_by(cluster) %>% count %>%  filter(n > 100) %>% pull(cluster)
+
+keep_sanes_cluster <- umap_Amm_sanes %>% inner_join(new_umap) %>% group_by(sanes_cstr) %>% count %>%  filter(n > 100) %>% pull(sanes_cstr)
+
+sanes_cluster_per_scied_cluster <- umap_Amm_sanes %>% inner_join(new_umap) %>%
+  group_by(cluster, sanes_cstr) %>% count %>% filter(sanes_cstr%in% keep_sanes_cluster, 
+                                                     cluster %in% keep_scied_cluster)
+
+
+av <- ggplot(sanes_cluster_per_scied_cluster,
+       aes(y = n, axis1 = cluster, axis2 = sanes_cstr)) +
+  geom_alluvium(width = 1/12, fill = 'red') +
+  geom_stratum(width = 1/12, fill = "black", color = "grey") +
+  geom_label(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_fill_brewer(type = "qual", palette = "Set1") +
+  theme_minimal()
+
+ggsave('testing/cluster_alluvial2.png', plot = av, height = 18, width = 8)
+
+
+umap_scied_sanes <-  umap_Amm_sanes %>% inner_join(new_umap)
+
+umap_all_am_mm <- inner_join(all_umaps_filtered, new_umap)
+
+umap_all_am_mm %>% group_by(cluster) %>% summarise(n_batches =n_distinct(batch)) %>% View 
+
+ari(umap_scied_sanes$cluster, umap_scied_sanes$sanes_cstr)
+nmi(umap_scied_sanes$cluster, umap_scied_sanes$sanes_cstr)
+```
+
+
+
+```{r}
+library(Seurat)
+
+BCT_trim <- function (object, assay = NULL, features = NULL, dims = NULL, 
+  graph = NULL, slot = "data", reorder = FALSE, reorder.numeric = FALSE, 
+  verbose = TRUE) 
+{
+  
+  assay <- DefaultAssay(object = object)
+  if (!is.null(x = graph)) {
+    idents <- levels(x = object)
+    nclusters <- length(x = idents)
+    data.dist <- matrix(data = numeric(length = 1L), nrow = nclusters, 
+      ncol = nclusters, dimnames = list(idents, idents))
+    graph <- object[[graph]]
+    cxi <- CellsByIdentities(object = object)
+    cpairs <- na.omit(object = unique(x = t(x = apply(X = expand.grid(1:nclusters, 
+      1:nclusters)[, c(2, 1)], MARGIN = 1, FUN = function(x) {
+      if (length(x = x) == length(x = unique(x = x))) {
+        return(sort(x = x))
+      }
+      return(c(NA, NA))
+    }))))
+    if (verbose) {
+      pb <- txtProgressBar(style = 3, file = stderr())
+    }
+    for (i in 1:nrow(x = cpairs)) {
+      i1 <- cpairs[i, ][1]
+      i2 <- cpairs[i, ][2]
+      graph.sub <- graph[cxi[[idents[i1]]], cxi[[idents[i2]]]]
+      d <- mean(x = graph.sub)
+      if (is.na(x = d)) {
+        d <- 0
+      }
+      data.dist[i1, i2] <- d
+      if (verbose) {
+        setTxtProgressBar(pb = pb, value = i/nrow(x = cpairs))
+      }
+    }
+    if (verbose) {
+      close(con = pb)
+    }
+    diag(x = data.dist) <- 1
+    data.dist <- dist(x = data.dist)
+  }else if (!is.null(x = dims)) {
+    my.lapply <- ifelse(test = verbose, yes = pblapply, 
+      no = lapply)
+    embeddings <- Embeddings(object = object, reduction = "pca")[, 
+      dims]
+    data.dims <- my.lapply(X = levels(x = object), FUN = function(x) {
+      cells <- WhichCells(object = object, idents = x)
+      if (length(x = cells) == 1) {
+        cells <- c(cells, cells)
+      }
+      temp <- colMeans(x = embeddings[cells, ])
+    })
+    data.dims <- do.call(what = "cbind", args = data.dims)
+    colnames(x = data.dims) <- levels(x = object)
+    data.dist <- dist(x = t(x = data.dims))
+  }
+  else {
+    features <- features %||% VariableFeatures(object = object)
+    features <- intersect(x = features, y = rownames(x = object))
+    data.avg <- AverageExpression(object = object, assays = assay, 
+      features = features, slot = slot, verbose = verbose)[[1]]
+  
+    data.dist <- dist(x = t(x = data.avg[features, ]))
+    return(data.dist)
+  }
+  data.tree <- ape::as.phylo(x = hclust(d = data.dist))
+  Tool(object = object) <- data.tree
+  if (reorder) {
+    if (verbose) {
+      message("Reordering identity classes and rebuilding tree")
+    }
+    old.ident.order <- levels(x = object)
+    data.tree <- Tool(object = object, slot = "BuildClusterTree")
+    all.desc <- GetDescendants(tree = data.tree, node = (data.tree$Nnode + 
+      2))
+    all.desc <- old.ident.order[all.desc[all.desc <= (data.tree$Nnode + 
+      1)]]
+    Idents(object = object) <- factor(x = Idents(object = object), 
+      levels = all.desc, ordered = TRUE)
+    if (reorder.numeric) {
+      new.levels <- sort(x = unique(x = as.integer(x = Idents(object = object))))
+      Idents(object = object) <- factor(x = as.integer(x = Idents(object = object)), 
+        levels = new.levels)
+      object[["tree.ident"]] <- as.integer(x = Idents(object = object))
+    }
+    object <- BuildClusterTree(object = object, assay = assay, 
+      features = features, dims = dims, graph = graph, 
+      slot = slot, reorder = FALSE, verbose = verbose)
+  }
+  return(object)
+}
+
+# 
+# k <- BCT_trim(integrated_obj)
+# 
+# highclust <-  hclust(d = k)
+# 
+# gdata::keep(hc, k, sure = T)
+
+
+
+custom_cut <- function(hc,height, group_list){
+  cut <-  cutree(hc, h = height)
+  if(length(group_list) > 0){
+    for(i in seq_along(group_list)){
+      grp <- group_list[[i]]
+      grp_name <- names(group_list)[i]
+      value <- cut[grp][1]
+      names(value) <- grp_name
+      cut <- c(cut[!names(cut)%in%grp],value) %>% sort
+    }
+  }
+  return(cut)
+}
+
+generate_tree_groupings <- function(hc){
+  res <- list()
+  j <- 1
+  min_delta <- hc$height[2] - hc$height[1]
+  c_height <- min(hc$height)
+  Not_empty <- TRUE
+  while(TRUE){
+    c_cut <- custom_cut(hc,c_height , res)
+    if(length(c_cut) == 1) break
+    print(length(c_cut))
+    dup_grp <- c_cut[duplicated(c_cut)]
+    for(g in dup_grp){
+        new_grp <- names(which(c_cut == g))
+        if(length(new_grp)!=2) warning("group being merged is not of length 2")
+        res[[paste0('m', j)]] <- new_grp
+        j <- j+1
+    }
+    c_height <- c_height + min_delta
+  }
+  return(res)
+}
+
+
+```
+
+- this will give us the clusters to test on, similarly to how the sanes group did it. Next steps
+- Set up the Stability and Purity calculations for PARC experiments
+- for each experiment, calculate ARI and NMI against sanes labels 
+- devise a metric for how well studies are incorporated into data (ARI/NMI against batch?)
+
+
+
+
+```{r}
+library(tidyverse)
+library(Seurat)
+
+load('testing/sanes_amacrine_seu_pp.Rdata')
+seu <- RunPCA(seu, npcs = 50,features = VariableFeatures(object = seu))
+ElbowPlot(seu, ndims = 50)
+keep_pcs = 1:37
+seu <- FindNeighbors(seu, dims = keep_pcs)
+seu <- FindClusters(seu, algorithm = 2, resolution = 1.2, )
+n_distinct(seu$seurat_clusters)
+subcluster_labels <- read_csv('references/sanes_amacrine_subcluster_labels.csv', skip = 1)
+subcluster <- subcluster_labels$group
+names(subcluster) <- subcluster_labels$TYPE
+seu$sanes_subcluster <- subcluster
+seu$seurat_clusters <- paste0('clu_', seu$seurat_clusters)
+
+
+dist <- BCT_trim(seu)
+hc <- hclust(dist)
+groupings <- generate_tree_groupings(hc)
+
+```
+
+
+
+
+
+
+```{r}
+ggplot(umap_Amm_sanes %>% inner_join(new_umap)) + 
+  geom_point(aes(x=NUMAP1, y=NUMAP2, color = as.character(cluster)),size = .1, alpha=.5) +
+  scale_color_discrete(type = big_pal)+
+  guides(color=guide_legend(override.aes = list(alpha=1, size=3)))+
+  theme_bw()
+```
+
+
+```{r}
+mouse_gtf <- rtracklayer::readGFF('references/gtf/mm-mus_musculus_anno.gtf.gz')
+all_mouse_genes <- mouse_gtf %>% pull(gene_name) %>% unique %>% tolower
+marker_genes <- scan('references/sanes_cluster_markers.txt', character(), sep = '\n') %>% tolower
+marker_genes[!marker_genes%in%all_mouse_genes]
+
+seu_sanes <- integrated_obj[,umap_Amm_sanes$Barcode]
+gid2gn_df <- mouse_gtf %>% filter(type == 'gene') %>% select(gene_id, gene_name) %>% 
+  mutate(gene_id = str_remove_all(gene_id, '\\.\\d+$'), gene_name = tolower(gene_name)) %>% as.data.frame
+
+# gid2gn_map <-  gid2gn_df$gene_name
+# names(gid2gn_map) <- gid2gn_df$gene_id
+gn2gid_map <-  gid2gn_df$gene_id
+names(gn2gid_map) <- gid2gn_df$gene_name
+gid2gn_map <- gid2gn_df$gene_name
+names(gid2gn_map) <- gid2gn_df$gene_id
+sum(gn2gid_map[marker_genes]%in% rownames(seu_sanes))
+tgid <- gn2gid_map[marker_genes]
+tgid <- tgid[tgid%in% rownames(seu_sanes)]
+
+gene_exp_df <-  seu_sanes@assays$RNA@counts[tgid, ] %>% as.matrix %>% t() %>% as.data.frame %>% {log2(. +1)}
+colnames(gene_exp_df) <- names(gn2gid_map)[ gn2gid_map%in% colnames(gene_exp_df)]
+umap_Amm_sanes_gexp <- gene_exp_df %>% rownames_to_column('Barcode') %>% inner_join(umap_Amm_sanes)
+
+umap <- ggplot(umap_Amm_sanes %>% inner_join(new_umap)) + 
+  geom_point(aes(x=NUMAP1, y=NUMAP2, color = as.character(cluster)),size = .1, alpha=.5) +
+  scale_color_discrete(type = big_pal)+
+  guides(color=guide_legend(override.aes = list(alpha=1, size=3)))+
+  theme_bw()
+
+gexp <- ggplot(umap_Amm_sanes_gexp %>% inner_join(new_umap)) + 
+  geom_point(aes(x=NUMAP1, y=NUMAP2, color = nfib),size = .1, alpha=.5) +
+  scale_color_viridis_c()+
+  guides(color=guide_legend(override.aes = list(alpha=1, size=3)))+
+  theme_bw()
+
+gexp
+
+sum(umap_Amm_sanes_gexp$ptn > 0)
+save(seu_sanes, file = 'testing/sanes_seu_sceiad_data.Rdata')
+```
+
+
+
+
+```{r}
+library(SingleCellExperiment)
+library(scran)
+library(scater)
+sce <- as.SingleCellExperiment(integrated_obj)[,umap_Amm_sanes$Barcode]
+rownames(sce) <- str_replace_all(rownames(sce), '-','_')
+umap_Amm_sanes <- as.data.frame(umap_Amm_sanes)
+for( i in colnames(umap_Amm_sanes)){
+  x <- umap_Amm_sanes[[i]]
+  names(x) <- umap_Amm_sanes$Barcode
+  sce[[i]] <- x
+}
+
+
+sce <-computeSumFactors(sce, cluster=sce$cluster)
+sce <- logNormCounts(sce)
+genevar <- modelGeneVar(sce)
+hvg <- getTopHVGs(genevar,n=5000)
+sce_highvar <- sce[hvg,]
+
+gid2gn <- mouse_gtf %>% filter(type == 'gene') %>% select(gene_id, gene_name) %>% 
+  mutate(gene_id = str_remove_all(gene_id, '\\.\\d+$'))
+gid2gn_map <-  gid2gn$gene_name
+names(gid2gn_map) <- gid2gn$gene_id
+hvg_gn <- gid2gn_map[hvg]
+rownames(sce_highvar) <- hvg_gn
+markers.all <- findMarkers(sce_highvar, groups = sce_highvar$cluster, pval.type = 'all')
+
+markersig2df <- function(markers.all){
+marker.all_sig_df <- lapply(seq_along(markers.all), 
+                                 function(x)markers.all[[x]] %>% 
+                                   as.data.frame %>% 
+                                   rownames_to_column('refid') %>% 
+                                   mutate(CellType = names(markers.all)[x])) %>% 
+  bind_rows %>%
+  filter(FDR <.05)
+return(marker.all_sig_df)  
+}
+
+marker.any <- findMarkers(sce_highvar, groups = sce_highvar$cluster, pval.type = 'any')
+
+
+marker.any_sig_df <- markersig2df(marker.any)
+# sanes_markers <- Ptn Crybb3 Gjd Prom1 Cbfa2t3 Nefh Trhde Cntn6 Slc35d3 Gm10631 Gulo Vmn2r122 Sct Gng7 Cpne4 Nxph2 Sema38 Elavi2 Cbin Resgrp1 Cbln4 Rasgml Neurod6 Tpbg Ababp igfbP5 Stxbp6 Ramp3 Robo3 Tpm2 2010007H06Rik Kctd12 cm Eldl1b Mer2c Gch1 Pou311 Etv1 Tbx2 Gpr88 Otor Notm Sk3885 Ada)lb Sh3bpb Ldb2 Ghrh Gm526 Ngf tmom163 Matt, &nt Tmo172 Apofe igibp2 Thfs18 Epha3 Pappa2 Cap2 
+n_distinct(marker.any_sig_df$refid)
+
+sum( tolower(marker.any_sig_df$refid) =='igfbp2')
+```
+
+
+
+
+
