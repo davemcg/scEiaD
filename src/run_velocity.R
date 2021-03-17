@@ -28,8 +28,14 @@ git_dir = args[2]
 seurat_obj_file = args[3]
 umap_file = args[4]
 unspliced_matrix_file = args[5]
-spec = args[6] # make sure this is quotes, ie "Homo sapiens"
 outfile = args[7]
+recover_dynamics = args[8]=="TRUE"
+if (args[6] == 1){
+  spec = "Homo sapiens"
+} else if (args[6] == 2){
+  spec = "Mus musculus"
+}
+message(spec)
 
 message('Loading Data...\n')
 umap = load_rdata(umap_file)
@@ -74,7 +80,7 @@ adata <- SCE2AnnData(sce)
 source_python( glue('{git_dir}/src/scvelo_wrapper.py'))
 
 message('Running scvelo...\n')
-velo_adata = run_velocity(adata=adata,embedding_key = 'scVI', dkey='scviUMAP', vrank_gb='CellType_predict',n_top_genes = -1) #  set n_top_genes to -1 for all genes 
+velo_adata = run_velocity(adata=adata,embedding_key = 'scVI', dkey='scviUMAP', vrank_gb='CellType_predict',n_top_genes = -1, recover_dynamics=recover_dynamics) #  set n_top_genes to -1 for all genes 
 
 message('Converting to SCE...\n')
 velo_sce= AnnData2SCE(velo_adata)
