@@ -18,20 +18,6 @@ def df2DictSets(df):
     return outdict
 
 
-exp_files = glob.glob("parc_exp/*.csv.gz")
-
-
-exp_meta_df = pd.DataFrame([ re.split("_|-", x)[2:7: 2] for x in exp_files], columns = ['experiment', 'dist', 'knn']).assign(path = exp_files)
-exp_dfs = [pd.read_csv(i).assign(labels = lambda x: 'clu_' + x.labels.astype(str)) for i in exp_files]
-
-sanes_lab_df = pd.read_csv('testing/sanes_bc_lab.csv')
-
-
-# %%
-exp_cluster_sets = [dict(df2DictSets(df) ) for df in exp_dfs]
-sanes_cluster_sets = df2DictSets(sanes_lab_df)
-# %%
-
 def purity_k(ref_barcodes, ref_name, query_dict):
     max_overlap = 0
     max_overlap_cluster = "NA"
@@ -41,34 +27,49 @@ def purity_k(ref_barcodes, ref_name, query_dict):
             max_overlap =len(overlap )
             max_overlap_cluster = query_cluster
     if max_overlap_cluster == "NA":
-        print(f"No overlap for {ref_name} in current query")
-        return 0
+        #print(f"No overlap for {ref_name} in current query")
+        ## this should be none, because its unfair to penalize a reference cluster thats  been compleretly dropped out. 
+        return np.nan
     else:
         purity = max_overlap / len(query_dict[max_overlap_cluster])
         return purity
 
 
+def sum_omit_nan(l):
+    l=l[~np.isnan(l)]
+    return((sum(l)/len(l), len(l) ))
 
 def run_purity_calc(tup):
-    try:
-        ref_dict=tup[0]
-        query_dict_list=tup[1]
-        all_ref_cluster_purities = []
-        for ref_cluster in ref_dict.keys():
-            ref_cluster_purities = [None] * len(query_dict_list)
-            i=0
-            for query_dict in query_dict_list:
-                ref_cluster_purities[i] = purity_k(ref_dict[ref_cluster], ref_cluster, query_dict)
-                i+=1
-            all_ref_cluster_purities.append(ref_cluster_purities)
-        avg_cluster_purities = pd.DataFrame(
-            all_ref_cluster_purities).sum(axis=1) / len(query_dict_list)
-        return pd.DataFrame.from_dict({"cluster": list(ref_dict.keys()), "purity": avg_cluster_purities})
-    except:
-        print("FAIL")
-        return None
+    #try:
+    ref_dict=tup[0]
+    query_dict_list=tup[1]
+    all_ref_cluster_purities = []
+    for ref_cluster in ref_dict.keys():
+        ref_cluster_purities = [None] * len(query_dict_list)
+        i=0
+        for query_dict in query_dict_list:
+            ref_cluster_purities[i] = purity_k(ref_dict[ref_cluster], ref_cluster, query_dict)
+            i+=1
+        all_ref_cluster_purities.append(np.asarray(ref_cluster_purities))
+    return pd.DataFrame([sum_omit_nan(x) for x in all_ref_cluster_purities ], 
+                        columns=["purity", 'n_exp_evaluated']).assign(cluster= list(ref_dict.keys()))
 
-    
+    # except:
+    #     print("FAIL")
+    #     return None
+
+
+# %%
+
+exp_files = glob.glob("parc_exp/*.csv.gz")
+exp_meta_df = pd.DataFrame([re.split("_|-", x)[2:7: 2] for x in exp_files],
+                           columns=['experiment', 'dist', 'knn']).assign(path=exp_files)
+exp_dfs = [pd.read_csv(i).assign(
+    labels=lambda x: 'clu_' + x.labels.astype(str)) for i in exp_files]
+
+sanes_lab_df = pd.read_csv('testing/sanes_bc_lab.csv')
+exp_cluster_sets = [dict(df2DictSets(df)) for df in exp_dfs]
+sanes_cluster_sets = df2DictSets(sanes_lab_df)
 
 # %%
 exp_purity_gen = (
@@ -77,19 +78,10 @@ exp_purity_gen = (
     for i in range(len(exp_cluster_sets))
 )
 
-NCORES=48
+NCORES=4
 pool = Pool(NCORES)
 res = pool.map(run_purity_calc, exp_purity_gen)
 res= [i for i in res]
-with open("testing/exp_purity_df_list_full_try2.pck", 'wb+') as ofl:
+with open("testing/exp_purity_df_list_full_try3.pck", 'wb+') as ofl:
     pickle.dump(res, ofl)
 
-
-
-# %%
-res[1]
-# %%
-
-# %%
-res
-# %%
