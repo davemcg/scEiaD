@@ -9,9 +9,6 @@ knitr::opts_knit$set(root.dir = '/data/swamyvs/scEiad_subcelltype/')
 ```
 
 
-
-
-
 ```{r}
 library(tidyverse)
 library(Matrix)
@@ -278,15 +275,23 @@ Try and reproduce mast results
 
 ```{r}
 library(MAST)
-sca <- SceToSingleCellAssay(sce_hv)
-seuc_fac <- as.factor(colData(sca)$seurat_clusters)
-colData(sca)$seurat_cluster_fac <- seuc_fac
+# sca <- SceToSingleCellAssay(sce_hv)
+# seuc_fac <- as.factor(colData(sca)$seurat_clusters)
+# colData(sca)$seurat_cluster_fac <- seuc_fac
+# 
+# zlmCond <- zlm(~seurat_cluster_fac, sca)
+# save(zlmCond,sca,  file = 'testing/MAST_de_obj.Rdata')
+# levels(seurat_cluster_fac)
+load('testing/MAST_de_obj.Rdata')
 
-zlmCond <- zlm(~seurat_cluster_fac+0, sca)
-save(zlmCond,sca,  file = 'testing/MAST_de_obj.Rdata')
-levels(seurat_cluster_fac)
+
+summaryCond <- summary(zlmCond)
+
+
+?`summary,ZlmFit-method`
+View(print.summaryZlmFit)
 ```
-^ this is running(slow af), but lets figure out how we wanna do it ourselves 
+
 
 ```{r}
 plot(hc)
@@ -300,7 +305,7 @@ scater - findMarker::all (most stringent)
 marker2sanes_cluster <- tibble(gene_name = sanes_marker_genes, sanes_subcluster = paste0('AC_', 1:63))
 valid_groups <- sapply(groupings, function(x) all(grepl('c', x) ))
 terminal_clusters <- groupings[valid_groups] %>% unlist
-terminal_cluster_mapping <- cluster_similarity %>% filter(max_jac > .8) %>% 
+terminal_cluster_mapping <- cluster_similarity %>% filter(max_jac > .7) 
 
 markers.all <- findMarkers(sce_hv, pval.type = 'all', groups = sce_hv$seurat_clusters)
 names(markers.all)
@@ -314,6 +319,8 @@ marker_eval <- lapply(terminal_cluster_mapping$seurat_clusters, function(x){
 
 View(markers.all$c11 %>% as.data.frame)
 ```
+
+- this gives us a reasonable amount of info to work with 
 
 
 

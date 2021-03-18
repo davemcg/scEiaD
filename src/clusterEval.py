@@ -24,7 +24,7 @@ leiden
 louvain
 merging
 """
-class clusterEval:
+class Cluster:
     def __init__(self, data, knn, nthreads):
         self.knn = knn
         self.data = data
