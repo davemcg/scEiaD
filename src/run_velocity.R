@@ -1,7 +1,7 @@
 # conda_env <- '/data/swamyvs/anaconda3/bin/python'
 # git_dir <- '/data/swamyvs/scEiad_quant/'
-# seurat_obj_file <- '/data/OGVFB_BG/scEiaD/2021_02_05/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaDMA__dist-0.1__neighbors-50.umap.Rdata'
-# umap_file = '/data/OGVFB_BG/scEiaD/2021_02_05/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaD__dist-0.1__neighbors-50.umapFilter.predictions.Rdata'
+# seurat_obj_file <- '/data/OGVFB_BG/scEiaD/2021_03_18/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaD.seuratV3.Rdata'
+# umap_file = '/data/OGVFB_BG/scEiaD/2021_03_18/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaD__dist-0.1__neighbors-50.umapFilter.predictions.Rdata'
 # unspliced_matrix_file <- "/data/OGVFB_BG/scEiaD/2021_02_05/all_species_full_sparse_unspliced_matrix.Rdata"
 # spec = "Homo sapiens"
 # outfile = paste0('testing/scEiaD_2021_02_10_scvelo_full_sce_nvargenes-ALL', spec ,'_.Rdata')
@@ -42,6 +42,15 @@ umap = load_rdata(umap_file)
 umap_spec <- filter(umap, !is.na(CellType_predict),organism == spec)
 labels <- umap_spec %>% select(barcode=Barcode, CellType_predict)
 int_seu <- load_rdata(seurat_obj_file)
+if(!any('scviUMAP'%in% Reductions(int_seu))){
+  umat <- umap[,c('UMAP_1', 'UMAP_2')] %>% as.matrix
+  colnames(umat) <- c('UMAP_1', 'UMAP_2')
+  rownames(umat) <- umap$Barcode
+  common_cells <- intersect(rownames(umat), colnames(int_seu))
+  int_seu <- int_seu[,common_cells]
+  int_seu[['scviUMAP']] <- CreateDimReducObject(umat[common_cells,], key = 'scviUMAP')
+}
+
 unspliced_counts <- load_rdata(unspliced_matrix_file)
 
 
