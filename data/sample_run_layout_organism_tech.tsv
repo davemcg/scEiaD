@@ -1,4 +1,4 @@
-sample_accession	run_accession	library_layout	organism	Platform	UMI	study_accession	Tissue	Covariate	Age	integration_group	TissueNote	Source	bam10x
+sample_accession	run_accession	library_layout	organism	Platform	UMI	study_accession	Tissue	Covariate	Age	integration_group	TissueNote	Source	bam10x	Comment
 EGAF00004257586	EGAF00004257586	PAIRED	Homo sapiens	10xv2	YES	EGAD00001006350	Retina	D1_Re	NA	Late	HS_D1_Re_F_Rt_S1_lib1 Sample alias: Homo Sapiens (HS)_Donor number_Retina (Re) or Choroid (Ch)_Fovea (F) or Periphery (P)_Right (Rt) or left (Lf) eye_Sample number_technical replicate number	Tissue	NA
 EGAF00004257560	EGAF00004257560	PAIRED	Homo sapiens	10xv2	YES	EGAD00001006350	Choroid	D3_Ch	NA	Late	HS_D3_Ch_F_Lf_S1_lib1 Sample alias: Homo Sapiens (HS)_Donor number_Retina (Re) or Choroid (Ch)_Fovea (F) or Periphery (P)_Right (Rt) or left (Lf) eye_Sample number_technical replicate number	Tissue	NA
 EGAF00004257585	EGAF00004257585	PAIRED	Homo sapiens	10xv2	YES	EGAD00001006350	Retina	D1_Re	NA	Late	HS_D1_Re_F_Rt_S1_lib2 Sample alias: Homo Sapiens (HS)_Donor number_Retina (Re) or Choroid (Ch)_Fovea (F) or Periphery (P)_Right (Rt) or left (Lf) eye_Sample number_technical replicate number	Tissue	NA
@@ -471,7 +471,7 @@ SRS6517610	SRR11587835	PAIRED	Homo sapiens	10xv3	YES	SRP257883	RPE-Choroid	donor
 SRS5878923	SRR10759475	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	60	Early	Organoid	Organoid	ORG_60b_possorted_genome_bam.bam
 SRS5878924	SRR10759476	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	90	Early	Organoid	Organoid	ORG_90_possorted_genome_bam.bam
 SRS5878927	SRR10759479	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	205	Early	Organoid	Organoid	ORG_205_possorted_genome_bam.bam
-#SRS5878933	SRR10759485	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	82	Early	Fetal	Tissue	NA
+#SRS5878933	SRR10759485	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	82	Early	Fetal	Tissue	NA broken_bam_r2_is_like_10bp_long
 SRS5878934	SRR10759486	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	105	Early	Fetal	Tissue	FET_105_possorted_genome_bam.bam
 SRS5878938	SRR10759490	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	76	Early	Cell Culture	Cell Culture	RS_76_33_possorted_genome_bam.bam
 SRS5878922	SRR10759474	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	60	Early	Organoid	Organoid	ORG_60a_possorted_genome_bam.bam
@@ -479,17 +479,17 @@ SRS5878925	SRR10759477	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	104	Ear
 SRS5878940	SRR10759492	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	122	Early	Cell Culture	Cell Culture	RS_122_14_unsorted_possorted_genome_bam.bam
 SRS5878939	SRR10759491	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	91	Early	Cell Culture	Cell Culture	RS_91_18_possorted_genome_bam.bam
 SRS5878921	SRR10759473	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	45	Early	Organoid	Organoid	ORG45_possorted_genome_bam.bam
-#SRS5878928	SRR10759480	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	59	Early	Fetal	Tissue	NA
-#SRS5878936	SRR10759488	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	125	Early	Fetal	Tissue	NA
+#SRS5878928	SRR10759480	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	59	Early	Fetal	Tissue	NA	broken_bam_r2_is_like_10bp_long
+#SRS5878936	SRR10759488	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	125	Early	Fetal	Tissue	NA	broken_bam_r2_is_like_10bp_long
 SRS5878926	SRR10759478	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	110	Early	Organoid	Organoid	ORG_110_possorted_genome_bam.bam
 SRS5878930	SRR10759483	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	80	Early	Fetal	Tissue	FET_80C_possorted_genome_bam.bam
 SRS5878937	SRR10759489	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	78	Early	Cell Culture	Cell Culture	RS78_35possorted_genome_bam.bam
 SRS5878929	SRR10759481	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	80	Early	Fetal	Tissue	FET_80P_possorted_genome_bam.bam
 SRS5878942	SRR10759494	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	134	Early	Cell Culture	Cell Culture	RS134_26NC_possorted_genome_bam.bam
 SRS5878931	SRR10759482	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	80	Early	Fetal	Tissue	FET_80P2_possorted_genome_bam.bam
-#SRS5878935	SRR10759487	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	125	Early	Fetal	Tissue	NA
+#SRS5878935	SRR10759487	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	125	Early	Fetal	Tissue	NA	broken_bam_r2_is_like_10bp_long
 SRS5878941	SRR10759493	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	134	Early	Cell Culture	Cell Culture	RS134_26FV_possorted_genome_bam.bam
-#SRS5878932	SRR10759484	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	82	Early	Fetal	Tissue	NA
+#SRS5878932	SRR10759484	PAIRED	Homo sapiens	10xv2	YES	SRP238587	Retina	NA	82	Early	Fetal	Tissue	NA broken_bam_r2_is_like_10bp_long
 SRS5030712	SRR9604262	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch2	NA	Late	NA	Tissue	aRGC6.bam
 SRS5030713	SRR9604263	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch3	NA	Late	NA	Tissue	aRGC7.bam
 SRS5030711	SRR9604261	PAIRED	Mus musculus	10xv2	YES	SRP212151	Retina	Batch2	NA	Late	NA	Tissue	aRGC5.bam
@@ -706,9 +706,9 @@ SRS3106683	SRR6916831	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	
 SRS3106685	SRR6916833	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106702	SRR6916850	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106703	SRR6916851	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
-SRS3669094	SRR7692552	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea2.bam
-SRS3669097	SRR7692554	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea4.bam
-SRS3669103	SRR7692559	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque3	1000	Late	NA	Tissue	M3Fovea1.bam
+#SRS3669094	SRR7692552	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea2.bam
+#SRS3669097	SRR7692554	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea4.bam
+#SRS3669103	SRR7692559	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque3	1000	Late	NA	Tissue	M3Fovea1.bam
 SRS3674978	SRR7699771	PAIRED	Mus musculus	10xv2	YES	SRP158081	Retina	Rep1	-7	Early	NA	Tissue	E12.bam
 SRS3675012	SRR7699808	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
 SRS3675016	SRR7699812	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
@@ -1744,7 +1744,7 @@ SRS3106686	SRR6916834	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	
 SRS3106691	SRR6916839	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106694	SRR6916842	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106697	SRR6916845	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
-SRS3669088	SRR7692545	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea3.bam
+#SRS3669088	SRR7692545	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea3.bam
 SRS3674987	SRR7699783	PAIRED	Mus musculus	10xv2	YES	SRP158081	Retina	Rep1	14	Late	NA	Tissue	P14.bam
 SRS3675026	SRR7699822	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
 SRS3675030	SRR7699827	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
@@ -2223,10 +2223,10 @@ SRS3106693	SRR6916841	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	
 SRS3106695	SRR6916843	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106705	SRR6916853	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106708	SRR6916856	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
-SRS3669092	SRR7692548	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea6.bam
-SRS3669095	SRR7692551	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea1.bam
-SRS3669099	SRR7692556	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea6.bam
-SRS3669104	SRR7692560	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque3	1000	Late	NA	Tissue	M3Fovea2.bam
+#SRS3669092	SRR7692548	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea6.bam
+#SRS3669095	SRR7692551	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea1.bam
+#SRS3669099	SRR7692556	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea6.bam
+#SRS3669104	SRR7692560	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque3	1000	Late	NA	Tissue	M3Fovea2.bam
 SRS3674980	SRR7699778	PAIRED	Mus musculus	10xv2	YES	SRP158081	Retina	Rep2	2	Early	NA	Tissue	P2_rep2.bam
 SRS3674992	SRR7699788	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
 SRS3674995	SRR7699790	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
@@ -2335,8 +2335,8 @@ SRS3675844	SRR7700642	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	2
 SRS3698225	SRR7733536	PAIRED	Macaca fascicularis	10xv2	YES	SRP158528	Retina	Macaque1	1000	Late	NA	Tissue	MacaqueCD90S2.bam
 SRS3698232	SRR7733542	PAIRED	Macaca fascicularis	10xv2	YES	SRP158528	Retina	Macaque3	1000	Late	NA	Tissue	MacaqueCD90S8.bam
 SRS3698262	SRR7733545	PAIRED	Macaca fascicularis	10xv2	YES	SRP158528	Retina	Macaque1	1000	Late	NA	Tissue	MacaqueCD90PNA_S1.bam
-SRS3698216	SRR7733526	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque4	1000	Late	NA	Tissue	M4Fovea1.bam
-SRS3698217	SRR7733527	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque4	1000	Late	NA	Tissue	M4Fovea2.bam
+#SRS3698216	SRR7733526	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque4	1000	Late	NA	Tissue	M4Fovea1.bam
+#SRS3698217	SRR7733527	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque4	1000	Late	NA	Tissue	M4Fovea2.bam
 SRS3731634	SRR7775492	SINGLE	Homo sapiens	SCRBSeq	NO	SRP159286	Retina	NA	240	Late	NA	Organoid	NA
 SRS3731642	SRR7775500	SINGLE	Homo sapiens	SCRBSeq	NO	SRP159286	Retina	NA	240	Late	NA	Organoid	NA
 SRS3731643	SRR7775501	SINGLE	Homo sapiens	SCRBSeq	NO	SRP159286	Retina	NA	240	Late	NA	Organoid	NA
@@ -2759,8 +2759,8 @@ SRS3106672	SRR6916820	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	
 SRS3106687	SRR6916835	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106713	SRR6916861	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106720	SRR6916868	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
-SRS3669087	SRR7692544	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea2.bam
-SRS3669093	SRR7692550	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea8.bam
+#SRS3669087	SRR7692544	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea2.bam
+#SRS3669093	SRR7692550	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea8.bam
 SRS3674975	SRR7699772	PAIRED	Mus musculus	10xv2	YES	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	E14_rep1.bam
 SRS3674979	SRR7699777	PAIRED	Mus musculus	10xv2	YES	SRP158081	Retina	Rep1	0	Early	NA	Tissue	P0.bam
 SRS3674983	SRR7699780	PAIRED	Mus musculus	10xv2	YES	SRP158081	Retina	Rep1	5	Early	NA	Tissue	P5.bam
@@ -3282,9 +3282,9 @@ SRS3106716	SRR6916864	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	
 SRS3106717	SRR6916865	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106721	SRR6916869	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106722	SRR6916870	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
-SRS3669091	SRR7692547	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea5.bam
-SRS3669096	SRR7692553	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea3.bam
-SRS3669100	SRR7692557	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea7.bam
+#SRS3669091	SRR7692547	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea5.bam
+#SRS3669096	SRR7692553	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea3.bam
+#SRS3669100	SRR7692557	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea7.bam
 SRS3674984	SRR7699781	PAIRED	Mus musculus	10xv2	YES	SRP158081	Retina	Rep1	8	Early	NA	Tissue	P8_rep1.bam
 SRS3674986	SRR7699784	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
 SRS3674991	SRR7699787	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
@@ -3797,7 +3797,7 @@ SRS3106688	SRR6916836	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	
 SRS3106704	SRR6916852	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106709	SRR6916857	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106719	SRR6916867	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
-SRS3669086	SRR7692543	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea1.bam
+#SRS3669086	SRR7692543	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea1.bam
 SRS3674988	SRR7699776	PAIRED	Mus musculus	10xv2	YES	SRP158081	Retina	Rep3	-1	Early	NA	Tissue	E18_rep3.bam
 SRS3675006	SRR7699803	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
 SRS3675010	SRR7699806	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
@@ -4321,7 +4321,7 @@ SRS3106648	SRR6916796	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	
 SRS3106675	SRR6916823	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106696	SRR6916844	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106706	SRR6916855	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
-SRS3669107	SRR7692561	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque3	1000	Late	NA	Tissue	M3Fovea3.bam
+#SRS3669107	SRR7692561	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque3	1000	Late	NA	Tissue	M3Fovea3.bam
 SRS3674977	SRR7699775	PAIRED	Mus musculus	10xv2	YES	SRP158081	Retina	Rep2	-1	Early	NA	Tissue	E18_rep2.bam
 SRS3675019	SRR7699815	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
 SRS3675024	SRR7699821	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
@@ -4830,7 +4830,7 @@ SRS3106699	SRR6916847	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	
 SRS3106700	SRR6916849	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106707	SRR6916854	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106718	SRR6916866	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
-SRS3669090	SRR7692549	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea7.bam
+#SRS3669090	SRR7692549	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea7.bam
 SRS3674976	SRR7699773	PAIRED	Mus musculus	10xv2	YES	SRP158081	Retina	Rep2	-5	Early	NA	Tissue	E14_rep2.bam
 SRS3674981	SRR7699779	PAIRED	Mus musculus	10xv2	YES	SRP158081	Retina	Rep3	2	Early	NA	Tissue	P2_rep3.bam
 SRS3674990	SRR7699786	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
@@ -5301,9 +5301,9 @@ SRS3106659	SRR6916807	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	
 SRS3106664	SRR6916812	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106701	SRR6916848	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
 SRS3106712	SRR6916860	PAIRED	Homo sapiens	SMARTSeq_v4	NO	SRP136739	Retina	NA	90	Late	NA	Organoid	NA
-SRS3669089	SRR7692546	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea4.bam
-SRS3669098	SRR7692555	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea5.bam
-SRS3669101	SRR7692558	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea8.bam
+#SRS3669089	SRR7692546	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque1	1000	Late	NA	Tissue	M1Fovea4.bam
+#SRS3669098	SRR7692555	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea5.bam
+#SRS3669101	SRR7692558	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque2	1000	Late	NA	Tissue	M2Fovea8.bam
 SRS3675001	SRR7699796	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
 SRS3675005	SRR7699802	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
 SRS3675018	SRR7699814	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	-5	Early	NA	Tissue	NA
@@ -5391,7 +5391,7 @@ SRS3675774	SRR7700569	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	2
 SRS3675834	SRR7700634	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	2	Early	NA	Tissue	NA
 SRS3675847	SRR7700645	PAIRED	Mus musculus	SMARTSeq_v2	NO	SRP158081	Retina	Rep1	2	Early	NA	Tissue	NA
 SRS3698233	SRR7733544	PAIRED	Macaca fascicularis	10xv2	YES	SRP158528	Retina	Macaque2	1000	Late	NA	Tissue	MacaquePeripheryMixedS1.bam
-SRS3698215	SRR7733528	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque4	1000	Late	NA	Tissue	M4Fovea3.bam
+#SRS3698215	SRR7733528	PAIRED	Macaca fascicularis	10xv2	YES	SRP157927	Retina	Macaque4	1000	Late	NA	Tissue	M4Fovea3.bam
 SRS3731649	SRR7775507	SINGLE	Homo sapiens	SCRBSeq	NO	SRP159286	Retina	NA	240	Late	NA	Organoid	NA
 SRS3731653	SRR7775510	SINGLE	Homo sapiens	SCRBSeq	NO	SRP159286	Retina	NA	240	Late	NA	Organoid	NA
 SRS3731687	SRR7775543	SINGLE	Homo sapiens	SCRBSeq	NO	SRP159286	Retina	NA	240	Late	NA	Organoid	NA
@@ -5708,10 +5708,10 @@ SRX6621280	SRR9867770	PAIRED	Mus musculus	10xv2	YES	SRP216903	Retina	SRP216903	1
 SRX6621290	SRR9867800	PAIRED	Mus musculus	10xv2	YES	SRP216903	RPE	SRP216903	1000000	12/09/2020	RPE/choroid tissue;RPE/choroid tissue	Tissue	NA
 SRX6621291	SRR9867801	PAIRED	Mus musculus	10xv2	YES	SRP216903	RPE	SRP216903	1000000	12/09/2020	RPE/choroid tissue;RPE/choroid tissue	Tissue	NA
 SRX6621292	SRR9867802	PAIRED	Mus musculus	10xv2	YES	SRP216903	RPE	SRP216903	1000000	12/09/2020	RPE/choroid tissue;RPE/choroid tissue	Tissue	NA
-#SRX5975001	SRR9203789	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854512;adult dissociated WT retina	Tissue	NA
-#SRX5975003	SRR9203791	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854514;adult dissociated WT retina	Tissue	NA
-#SRX5975005	SRR9203793	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854516;adult dissociated WT retina	Tissue	NA
-#SRX5975007	SRR9203795	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854518;adult dissociated WT retina	Tissue	NA
+SRX5975001	SRR9203789	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854512;adult dissociated WT retina	Tissue	NA
+SRX5975003	SRR9203791	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854514;adult dissociated WT retina	Tissue	NA
+SRX5975005	SRR9203793	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854516;adult dissociated WT retina	Tissue	NA
+SRX5975007	SRR9203795	PAIRED	Mus musculus	10xv2	YES	SRP200499	Retina	SRP200499	1000000	12/09/2020	GSM3854518;adult dissociated WT retina	Tissue	NA
 SRX8241383	SRR11680518	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS1;P19 Mouse retina	Tissue	MouseACS1.bam
 SRX8241384	SRR11680519	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS2;P19 Mouse retina	Tissue	MouseACS2.bam
 SRX8241385	SRR11680520	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS3;P19 Mouse retina	Tissue	MouseACS3.bam
@@ -5722,9 +5722,9 @@ SRX8241389	SRR11680524	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	
 SRX8241390	SRR11680525	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS8;P19 Mouse retina	Tissue	MouseACS8.bam
 SRX8241391	SRR11680526	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS9;P19 Mouse retina	Tissue	MouseACS9.bam
 SRX8241392	SRR11680527	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1000000	12/09/2020	MouseACS10;P19 Mouse retina	Tissue	MouseACS10.bam
-#SRX9537750	SRR13091935	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1000000	12/09/2020	Retina_het	Tissue	NA
-#SRX9537751	SRR13091936	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1000000	12/09/2020	Retina	Tissue	NA
-#SRX8149876	SRR11582194	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1000000	12/09/2020	Retina	Tissue	NA
+SRX9537750	SRR13091935	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1000000	12/09/2020	Retina_het	Tissue	NA
+SRX9537751	SRR13091936	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1000000	12/09/2020	Retina	Tissue	NA
+SRX8149876	SRR11582194	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1000000	12/09/2020	Retina	Tissue	NA
 SRS5434853	SRR10182336	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	Retina  gestation;dissociated retina	Tissue	Hgw9_retina.bam
 SRS5434853	SRR10182336	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	Retina  gestation;dissociated retina	Tissue	Hgw9_retina.bam
 SRS5434853	SRR10182336	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	Retina  gestation;dissociated retina	Tissue	Hgw9_retina.bam
