@@ -84,7 +84,7 @@ class SklDataObj:
         print('\n')
         num_celltype = self.label2id.shape[0]
         ids = [str(i) for i in range(num_celltype)]
-        class_df = pd.DataFrame([ cr[i] for i in ids  ])
+        class_df = pd.DataFrame([cr[i] for i in ids if i in cr])
         class_df[label_id_col] = pd.Series(ids).astype('int64')
         class_df = class_df.merge(self.label2id, on = label_id_col)
         self.class_rep_df = class_df.sort_values(by= 'f1-score')
@@ -210,5 +210,19 @@ def scEiaD_classifier_predict(inputMatrix, labelIdCol, labelNameCol,  trainedMod
     full_pred_df.loc[max_prob_below_threshold, label_name_col]='None'
     return full_pred_df
 
+
+def cr(Y_test, Y_test_predicted):
+    cr = classification_report(
+        Y_test, Y_test_predicted)
+    print(cr)
+    i="accuracy"
+    print(f'Total Accuracy: {round(cr[i], 4)}')
+    for i in ['macro avg', 'weighted avg']:
+        ol=f'{i}:\t'
+        for j in ['precision', 'recall', 'f1-score', 'support']:
+            ol+= f'{j}: {round(cr[i][j], 4)}\t'
+        print(ol)
+        del cr[i]
+    print('\n')
 
     
