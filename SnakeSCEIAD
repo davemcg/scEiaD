@@ -443,8 +443,7 @@ rule make_PLAE_objs:
 		'site/scEiaD_all_seurat_v3.Rdata',
 		#'site/scEiaD_well_seurat_v3.Rdata',
 		'site/counts_unfiltered.Rdata',
-		'site/counts.Rdata',
-		'site/cpm.Rdata'
+		'site/counts.Rdata'
 	shell:
 		"""
 		export SCIAD_CONDA_DIR={conda_dir}

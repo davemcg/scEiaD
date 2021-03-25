@@ -54,11 +54,9 @@ raw_counts <- seurat__standard
 save(raw_counts, file = 'site/counts_unfiltered.Rdata')
 
 # extract counts and cpm
-cpm <- RelativeCounts(integrated_obj@assays$RNA@counts, scale.factor= 1e6)
-
-
+#cpm <- RelativeCounts(integrated_obj@assays$RNA@counts, scale.factor= 1e6)
 counts = integrated_obj@assays$RNA@counts
-save(cpm, file = 'site/cpm.Rdata')
+#save(cpm, file = 'site/cpm.Rdata')
 save(counts, file = 'site/counts.Rdata')
 
 # extract meta filter
