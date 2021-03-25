@@ -30,7 +30,7 @@ mt_tossed <- mt_tossed %>% left_join(., meta_study, by = 'sample_accession') %>%
 
 
 
-meta <- bind_rows(meta, mt_tossed)
+meta <- bind_rows(meta, mt_tossed) %>% filter(!Source %in% c('Cell Culture', 'Organoid'))
 # remove excluded samples/studies
 exclude <- scan(glue('{git_dir}/data/exclusion.txt'), what = 'character')
 cell_info <- data.table::fread('pipeline_data/cell_info/all_cell_info.tsv')
@@ -40,7 +40,7 @@ meta <- meta %>% filter(!value %in% remove_samples)
 QC <- meta %>% mutate(QC = 
 				case_when(value %in% umap$Barcode ~ 'Passed QC',
 							nFeature_RNA <= 200 ~ 'Too Few Unique Tx',
-							(nFeature_RNA >= 3000) & (Platform %in%
+							(nFeature_RNA >= 9000) & (Platform %in%
                         c('10xv2','10xv3','DropSeq')) ~ 'Too Many Unique Tx', 
 							percent.mt > 10 ~ 'High % MT',
 							value %in% umapDoubs$Barcode ~ 'In Silico Doublet',
