@@ -23,5 +23,7 @@
   - [Cell Level Metadata](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2021_03_17/metadata_filter.tsv.gz)
   - [Counts (Rdata sparse matrix)](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2021_03_17/counts.Rdata)
   
+# How do I add my own data to scEiaD?
+It is possible! Even better, you don't have to ask me! Or tell me! 
 
-
+[Interactive colab notebook](https://colab.research.google.com/github/davemcg/scEiaD/blob/master/colab/Query_scEiaD_with_scVI.ipynb)
