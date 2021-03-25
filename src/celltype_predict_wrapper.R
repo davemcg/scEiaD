@@ -1,4 +1,5 @@
 library(reticulate)
+library(matrixStats)
 args <- commandArgs(trailingOnly = TRUE)
 library(glue)
 conda_dir = Sys.getenv('SCIAD_CONDA_DIR')
@@ -18,8 +19,8 @@ model_outfile <- args[7]
 
 print(args)
 
-out <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap, by = 'Barcode')
-out_tm <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap, by = 'Barcode') %>% filter(study_accession == 'SRP131661')
+out <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap %>% mutate(CellType = gsub("Cone Bipolar Cells", "Bipolar Cells", CellType)), by = 'Barcode')
+out_tm <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap %>% mutate(CellType = gsub("Cone Bipolar Cells", "Bipolar Cells", CellType)), by = 'Barcode') %>% filter(study_accession == 'SRP131661')
 out_tm$CellType <- out_tm$TabulaMurisCellType
 remove_low <- out_tm %>% group_by(CellType) %>% dplyr::count() %>% filter(n < 40) %>% pull(CellType)
 out_tm <- out_tm %>% filter(!CellType %in% remove_low)
@@ -92,8 +93,8 @@ run_xgboost_py <- function(embeddings, full_embeddings, model_outfile, tm = FALS
 	                                                       featureCols=features,  predProbThresh=probThresh)
 	out <- list()
 	out[['predictions']] <- full_embedding_predictions
-	out[['test_data']] <- train_test_predictions$test_probs_df
-	out[['training_data']] <- train_test_predictions$train_probs_df
+	out[['test_data']] <- train_test_predictions$test_probs_df %>% py_to_r()
+	out[['training_data']] <- train_test_predictions$train_probs_df %>% py_to_r()
 	out
 }
 
@@ -106,7 +107,7 @@ umapX <- left_join(umap, predictions %>% select(Barcode, CellType_predict = Cell
 umapX <- umapX %>% filter(study_accession != 'SRP131661')
 
 # just tabula muris to fill in missing "TabulaMurisCellType"
-modelTM_out <- run_xgboost_py(out_tm, full_tm, 'tmTemp', tm = TRUE, probThresh = 0.5)
+modelTM_out <- run_xgboost_py(out_tm, full_tm, paste0(model_outfile, 'TEMP'), tm = TRUE, probThresh = 0.5)
 predictions_tm <- modelTM_out$predictions
 umapX2 <- left_join(umap %>% filter(study_accession == 'SRP131661'), predictions_tm %>% select(Barcode, TabulaMurisCellType_predict = CellType), by = 'Barcode')
 
@@ -119,5 +120,23 @@ if (nrow(umapX3) != nrow(umap)){
 
 umap <- umapX3 
 umap$CellType_predict <- gsub('None', NA, umap$CellType_predict)
-save(predictions, predictions_tm, model_out, modelTM_out, file = args[3])
+
+# quick accuracy
+cell_type2id <- predictions %>% select(CellTypeID, CellType) %>% distinct %>% filter(CellType!='None')
+target_cell_types <-unique(cell_type2id$CellType)
+bc_col <- grep('Barcode', colnames(predictions))
+test_predictions <- predictions %>%
+  mutate(max_pred_prob = rowMaxs(.[,-(bc_col:ncol(predictions))] %>% as.matrix )) %>%
+  select(-CellTypeID) %>%
+  rename(PredCellType = CellType) %>%
+  inner_join(umap %>% 
+		mutate(CellType = gsub("Cone Bipolar Cells", "Bipolar Cells", CellType)) %>%
+		select(Barcode, TrueCellType = CellType)) %>%
+  filter(!is.na(TrueCellType)) %>%
+  mutate(pred_correct  = ifelse(PredCellType == TrueCellType, 'Correct', 'incorrect')) %>% 
+  filter(PredCellType != 'None')
+
+accuracy <- test_predictions %>% ungroup() %>% group_by(TrueCellType) %>% summarise(score = sum(pred_correct == 'Correct') / n()) %>% select(TrueCellType, score)
+
+save(predictions, predictions_tm, model_out, modelTM_out, accuracy, file = args[3])
 save(umap, file = args[4])
