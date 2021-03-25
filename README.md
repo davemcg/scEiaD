@@ -20,7 +20,7 @@
 # Data
   - [Seurat (v3)](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2021_03_17/scEiaD_all_seurat_v3.Rdata)
   - [anndata (h5ad)](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2021_03_17/scEiaD_all_anndata.h5ad)
-  - [Metadata](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2021_03_17/metadata_filter.tsv.gz)
+  - [Cell Level Metadata](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2021_03_17/metadata_filter.tsv.gz)
   - [Counts (Rdata sparse matrix)](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2021_03_17/counts.Rdata)
   
 
