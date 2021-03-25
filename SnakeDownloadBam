@@ -56,21 +56,23 @@ elif mode == 'extract':
 	with open(config['run_accessions']) as f:
 		run_accessions = f.read().splitlines()
 	fastq_dir = 'extracted_fq'
-	print(run_accessions)
 	rule all:
 		input:
 			[fastq_dir + '/' + x + '_1.fastq.gz' for x in run_accessions],
 			[fastq_dir + '/' + x + '_2.fastq.gz' for x in run_accessions]
 	
 	rule extract_fq:
+		threads: 4
 		output:
 			f = fastq_dir + '/{run_accession}_1.fastq.gz',
 			r = fastq_dir + '/{run_accession}_2.fastq.gz'
 		shell:
 			"""
-			./bamtofastq-1.3.2 {wildcards.run_accession}/*bam --reads-per-fastq=999999999999999999 {wildcards.run_accession}
-			zcat {wildcards.run_accession}/*R1_001.fastq.gz | gzip > {output.f}
-			zcat {wildcards.run_accession}/*R2_001.fastq.gz | gzip > {output.r}
+			mkdir -p TEMP
+			./bamtofastq-1.3.2 {wildcards.run_accession}/*bam --reads-per-fastq=999999999999999999 TEMP/{wildcards.run_accession}
+			zcat TEMP/{wildcards.run_accession}/*/*R1_001.fastq.gz | gzip > {output.f}
+			zcat TEMP/{wildcards.run_accession}/*/*R2_001.fastq.gz | gzip > {output.r}
+			rm -r TEMP/{wildcards.run_accession}
 			"""
 
 else:
