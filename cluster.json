@@ -8,6 +8,10 @@
 		"output"  : "00log/{rule}_{wildcards}.out",
 		"error" : "00log/{rule}_{wildcards}.err" 
 	},
+	"extract_fq" :
+	{
+		"time" : "08:00:00"
+	},
 	"get_velocity_files" :
 	{
 		"mem": "64G"
@@ -19,7 +23,7 @@
 	},
 	"bus" : 
 	{
-		"mem" : "120G",
+		"mem" : "200G",
 		"time" : "6:00:00"
 	},
 	"bustools_sort" : 
@@ -106,12 +110,16 @@
 		"time" : "72:00:00",
 		"extra" : " --gres=gpu:v100x:1,lscratch:5"
 	},
+	"merge_stats" :
+	{
+		"partition" : "quick"
+	},
 	"celltype_predict_VS_xgboost" :
 	{
-		"mem" : "50G",
+		"mem" : "35G",
 		"partition" : "gpu",
-		"time" : "2:00:00",
-		"extra" : " --gres=gpu:p100:1,lscratch:5"
+		"time" : "1:00:00",
+		"extra" : " --gres=gpu:p100:1,lscratch:1"
 	},
 	"calculate_tsne" : 
 	{
@@ -231,8 +239,8 @@
 	},
 	"scIB_stats" :
 	{
-		"mem" : "120G",
-		"time" : "1:00:00",
+		"mem" : "160G",
+		"time" : "1:30:00",
 		"partition" : "quick"
 	},
 	"quick_trajectory" :
@@ -305,7 +313,7 @@
 		"mem" : "120G",
 		"partition" : "gpu",
 		"time" : "3:00:00",
-		"extra" : " --gres=gpu:k80:1,lscratch:5"
+		"extra" : " --gres=gpu:v100x:1,lscratch:5"
 	},
 	"make_PLAE_objs" :
 	{
