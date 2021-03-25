@@ -104,12 +104,12 @@ model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.
 report: "report.rst"
 
 if config['subset_clustering'] == 'False':
-	# partitions_to_run = ['universe', 'TabulaDroplet', 'onlyWELL']
-	# scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
+	 partitions_to_run = ['universe', 'TabulaDroplet']
+	 scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
 	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
 	#partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
-	partitions_to_run = ['universe', 'TabulaDroplet']
-	scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
+	#partitions_to_run = ['universe']
+	#scIB_partitions_to_run =  ['universe' ] 
 else:
 	partitions_to_run = ['celltype_subset']
 	scIB_partitions_to_run = ['celltype_subset']
@@ -117,6 +117,7 @@ else:
 
 rule all:
 	input:
+		'pipeline_data/results/merged_xgboost.Rdata',
 		'pipeline_data/results/merged_stats.Rdata',
 		"seurat_obj/raw/n_features-1000__transform-counts__partition-raw__covariate-batch__preFilter.seuratV3.Rdata"
 	
@@ -356,6 +357,29 @@ rule extract_tsne:
 		"""
 
 
+pred_celltype_pfx ='pipeline_data/xgboost_predictions/'
+pred_celltype_param =  umap_obj_param + ['knn']
+pred_celltype_sfx = 'xgboostPredictions.Rdata'
+umap_celltype_sfx = 'umapPredictions.Rdata'
+rule celltype_predict_VS_xgboost:
+	input:
+		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx),
+		make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx)
+	output:
+		make_wc_string(pred_celltype_pfx, pred_celltype_param, pred_celltype_sfx)
+	params:
+		umap_obj = make_wc_string(pred_celltype_pfx, pred_celltype_param, umap_celltype_sfx),
+		model = make_wc_string(pred_celltype_pfx, pred_celltype_param, 'model')
+	shell:
+		"""
+		module load R/3.6
+		export SCIAD_CONDA_DIR={conda_dir}
+		export SCIAD_GIT_DIR={git_dir}
+		export SCIAD_CONFIG={config_abspath}
+		export SCIAD_WORKING_DIR={working_dir}
+		Rscript {git_dir}/src/celltype_predict_wrapper.R {input} {output} {params.umap_obj} CellTypeID CellType {params.model}
+		"""
+
 plot_intr_umap_pfx ='pipeline_data/plots/'
 plot_intr_umap_param = extr_umap_param
 plot_intr_umap_sfx = 'umap.big_plot.png'
@@ -441,6 +465,21 @@ rule scIB_stats:
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
 		Rscript {git_dir}/src/scIB_stats.R {wildcards.method} {input} {wildcards.dims} {output}
+		"""
+
+rule merge_xgboost:
+	input:
+		parse_integration_config(file = config['integration_json'],
+									output_string = make_wc_string(pred_celltype_pfx, pred_celltype_param, pred_celltype_sfx),
+									which_partitions = scIB_partitions_to_run )
+	output:
+		'pipeline_data/results/merged_xgboost.Rdata'
+	params: 
+		rson = lambda wildcards, input, output: export_rule_info(input = dict(input), output=dict(output))
+	shell:
+		"""
+		module load R/4.0.3
+		Rscript {git_dir}/src/merge_xgboost.R {input}
 		"""
 
 # for input 

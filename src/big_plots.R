@@ -31,7 +31,7 @@ umapO <- umap
 # filter
 umap <- umap %>% 
   #rename(Stage = integration_group) %>% 
-  #mutate(CellType = gsub('Rod Bipolar Cells', 'Bipolar Cells', !!as.symbol(celltype_col))) %>% 
+  mutate(CellType = gsub('Cone Bipolar Cells', 'Bipolar Cells', !!as.symbol(celltype_col))) %>% 
   filter(!is.na(CellType), 
          !is.na(study_accession), 
          !CellType %in% c('Doublet', 'Doublets'),
