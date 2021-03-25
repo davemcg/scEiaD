@@ -1,12 +1,12 @@
 import sys
 import os
-import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 import pandas as pd
 import random
 import scanpy as sc
+from scipy import sparse
 import scvi
+import torch
 
 sc.settings.n_jobs = 8
 random.seed(234)
@@ -15,13 +15,6 @@ scvi.settings.seed = 234
 args = sys.argv
 print(len(args))
 print(args)
-adata = sc.read_loom(args[1])
-adata.layers["counts"] = adata.X.copy()
-
-scvi.data.setup_anndata(adata, layer="counts", batch_key="batch")
-# gtemp save
-#adata.write_h5ad('scvi.h5ad')
-
 n_epochs = int(args[2])
 lr = float(args[3])
 if args[4] == 'True':
@@ -32,6 +25,16 @@ else:
 n_hidden = int(args[5])
 n_latent = int(args[6])
 n_layers = int(args[7])
+
+
+adata = sc.read_loom(args[1])
+adata.layers["counts"] = adata.X.copy()
+adata.layers["counts"] = sparse.csr_matrix(adata.layers["counts"])
+
+scvi.data.setup_anndata(adata, layer="counts", batch_key="batch")
+# gtemp save
+#adata.write_h5ad('scvi.h5ad')
+
 
 
 samples = pd.read_csv('/home/mcgaugheyd/git/scEiaD/data/human_ref_samples.txt', header = None)
@@ -50,7 +53,6 @@ arches_params = dict(
     dropout_rate=0.2,
     n_layers=2,
 	n_latent = n_latent,
-	use_cuda = useCuda
 )
 
 vae_ref = scvi.model.SCVI(
@@ -58,7 +60,7 @@ vae_ref = scvi.model.SCVI(
     **arches_params
 )
 #vae_ref.train(n_epochs = n_epochs, n_epochs_kl_warmup = None)
-vae_ref.train(n_epochs = n_epochs, n_epochs_kl_warmup = n_epochs)
+vae_ref.train(max_epochs = n_epochs, use_gpu=useCuda)
 vae_ref
 
 
@@ -74,7 +76,7 @@ vae_q = scvi.model.SCVI.load_query_data(
     vae_ref,
 )
 
-vae_q.train(n_epochs=n_epochs, weight_decay=0.0)
+vae_q.train(max_epochs=n_epochs, use_gpu=useCuda, plan_kwargs=dict(weight_decay=0.0))
 adata_query.obsm["X_scVI"] = vae_q.get_latent_representation()
 
 adata_full = adata_query.concatenate(adata_ref, batch_key = 'bkey')
