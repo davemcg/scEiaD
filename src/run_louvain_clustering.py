@@ -14,7 +14,7 @@ def louvain_clustering(reduction, res, k, i):
     clu_obj = cluster.Cluster(data=reduction, knn=k,  nthreads=1)
     clu_obj.buildNeighborGraph(nn_space='l2', ef_construction=150,
                             local_pruning=False, global_pruning=False, jac_std_global='median')
-    clu_obj.run_perturbation()
+    #clu_obj.run_perturbation()
     labels = clu_obj.run_louvain(
         vertex_partition_method=louvain.RBConfigurationVertexPartition,
         resolution=res,
@@ -30,9 +30,9 @@ def louvain_clustering(reduction, res, k, i):
 
 def run_exp(reduction_file, dist):
     reduction = pd.read_csv(reduction_file, index_col=0)
-    knn_uniform = np.random.randint(15, 100, size=100)
+    knn_uniform = list(range(15,101))
     Parallel(n_jobs=-1)(
-        delayed(louvain_clustering)(reduction.sample(frac=.85), dist, k, i)
+        delayed(louvain_clustering)(reduction, dist, k, i)
         for i, k in enumerate(knn_uniform))
 
 

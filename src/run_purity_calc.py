@@ -34,6 +34,6 @@ NCORES=48
 pool = Pool(NCORES)
 res = pool.map(purity.run_purity_calc, exp_purity_gen)
 res= [i for i in res]
-with open("testing/exp_purity_df_list_full_try3.pck", 'wb+') as ofl:
+with open("testing/exp_purity_df_list_full_try4_noperturb.pck", 'wb+') as ofl:
     pickle.dump(res, ofl)
 # %%

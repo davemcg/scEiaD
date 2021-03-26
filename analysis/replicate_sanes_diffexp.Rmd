@@ -275,13 +275,13 @@ Try and reproduce mast results
 
 ```{r}
 library(MAST)
-# sca <- SceToSingleCellAssay(sce_hv)
-# seuc_fac <- as.factor(colData(sca)$seurat_clusters)
-# colData(sca)$seurat_cluster_fac <- seuc_fac
-# 
-# zlmCond <- zlm(~seurat_cluster_fac, sca)
-# save(zlmCond,sca,  file = 'testing/MAST_de_obj.Rdata')
-# levels(seurat_cluster_fac)
+sca <- SceToSingleCellAssay(sce_hv)
+seuc_fac <- as.factor(colData(sca)$seurat_clusters)
+colData(sca)$seurat_cluster_fac <- seuc_fac
+
+zlmCond <- zlm(~seurat_cluster_fac, sca, parallel = T)
+save(zlmCond,sca,  file = 'testing/MAST_de_obj.Rdata')
+levels(seurat_cluster_fac)
 load('testing/MAST_de_obj.Rdata')
 
 

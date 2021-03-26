@@ -9,7 +9,7 @@ from clustereval import stability
 from multiprocessing import Pool
 os.chdir('/data/swamyvs/scEiad_subcelltype')
 #%%
-NCORES = 48
+NCORES = 64
 
 exp_files = glob.glob("clustering_out/*/*.csv.gz", recursive=True)
 
@@ -41,7 +41,7 @@ exp_stability_dfs = [i for i in exp_stability_dfs]
 
 
 # %%
-with open("testing/exp_stab_df_list_full_test.pck", 'wb+') as ofl:
+with open("testing/exp_stab_df_list_full_try4_noperturb.pck", 'wb+') as ofl:
     pickle.dump(exp_stability_dfs, ofl)
 
 print(exp_stability_dfs)
