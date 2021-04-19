@@ -3,6 +3,8 @@ library(Seurat)
 library(tidyverse)
 library(tricycle)
 
+# tricycle installed with remotes::install_github('hansenlab/tricycle@1ce333ff097661) 
+# to avoid the R4.1 requirement
 # wget https://hpc.nih.gov/~mcgaugheyd/scEiaD/2021_03_17/gene_name_ids.tsv.gz
 # wget https://hpc.nih.gov/~mcgaugheyd/scEiaD/2021_03_17/scEiaD_all_seurat_v3.Rdata
 # the above is 20GB!!!
