@@ -1,4 +1,4 @@
-# requires --gres=gpu:v100x:1, and module load CUDA/10.1 && module load cuDNN/7.6.5/CUDA-10.1 
+# for biowulf2 suggest: --gres=gpu:v100x:1, and module load CUDA/10.1 && module load cuDNN/7.6.5/CUDA-10.1 
 
 import pandas as pd 
 import numpy as np
@@ -164,8 +164,9 @@ def scEiaD_classifier_train(inputMatrix, labelIdCol, labelNameCol,  trainedModel
         print(f'\n\n\n\nRe-testing with minimum class probability  > {str(predProbThresh)}')
         data_obj.test(label_id_col=label_id_col,test_threshold = predProbThresh)
     trained_model = data_obj.model
-    with open(trainedModelFile, 'wb+') as modelfile:
-        pickle.dump((trained_model, feature_cols, cell_type2id, xgboost.__version__ ),modelfile )
+    trained_model.save_model(trainedModelFile + '.json')
+    with open(trainedModelFile + '.pickle', 'wb+') as modelfile:
+        pickle.dump((feature_cols, cell_type2id, xgboost.__version__ ),modelfile )
     if generateProb:
         ## generate probabilities for training and test data 
         test_probs = data_obj.model.predict_proba(data_obj.X_test)
@@ -173,7 +174,7 @@ def scEiaD_classifier_train(inputMatrix, labelIdCol, labelNameCol,  trainedModel
                                label_id_col=label_id_col, label_name_col=label_name_col,true_class= data_obj.Y_test)
         
         #### generate training data probabilities with k fold CV 
-        predictor =  xgboost.XGBClassifier(tree_method = 'gpu_hist', gpu_id = 0)
+        predictor =  xgboost.XGBClassifier(tree_method = 'auto')
         training_probs = cross_val_predict(predictor, data_obj.X_train, data_obj.Y_train, method = 'predict_proba')
         training_probs_df = prob2df(training_probs, data_obj.train_bc,
                                     cell_type2id, label_id_col=label_id_col, label_name_col=label_name_col,true_class= data_obj.Y_train)
@@ -186,10 +187,11 @@ def scEiaD_classifier_predict(inputMatrix, labelIdCol, labelNameCol,  trainedMod
     label_id_col = labelIdCol
     label_name_col = labelNameCol
     print('\nLoading Data...\n')
+    trained_model = xgboost.XGBClassifier(tree_method = 'auto')
+    trained_model.load_model(trainedModelFile + '.json')
     with open(trainedModelFile, 'rb') as modelfile:
         model_info= pickle.load(modelfile )
-        trained_model = model_info[0]
-        cell_type2id = model_info[2]
+        cell_type2id = model_info[1]
         cell_type2id = cell_type2id.sort_values(label_id_col)
         all_data = inputMatrix.pipe(encode_age)
     barcodes = all_data.loc[:,'Barcode']
