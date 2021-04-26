@@ -189,7 +189,7 @@ def scEiaD_classifier_predict(inputMatrix, labelIdCol, labelNameCol,  trainedMod
     print('\nLoading Data...\n')
     trained_model = xgboost.XGBClassifier(tree_method = 'auto')
     trained_model.load_model(trainedModelFile + '.json')
-    with open(trainedModelFile, 'rb') as modelfile:
+    with open(trainedModelFile + '.pickle', 'rb') as modelfile:
         model_info= pickle.load(modelfile )
         cell_type2id = model_info[1]
         cell_type2id = cell_type2id.sort_values(label_id_col)
