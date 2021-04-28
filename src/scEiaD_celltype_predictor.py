@@ -1,4 +1,5 @@
 ### python time
+import anndata
 import sys
 import os
 import numpy as np
@@ -29,6 +30,16 @@ scVI_model_dir_path = 'scVIprojectionSO_scEiaD_model/n_features-5000__transform-
 # Read in HVG genes used in scVI model
 var_names = pd.read_csv(scVI_model_dir_path + '/var_names.csv', header = None)
 # cut down query adata object to use just the var_names used in the scVI model training
+
+### If you are using data from mouse, uncomment this out and run it
+# n_missing_genes = sum(~var_names[0].isin(adata_query.var_names))
+# dummy_adata = anndata.AnnData(X=sparse.csr_matrix((adata_query.shape[0], n_missing_genes))
+#                               )
+# dummy_adata.obs_names = adata_query.obs_names
+# dummy_adata.var_names = var_names[0][~var_names[0].isin(adata_query.var_names)]
+# adata_fixed = anndata.concat([adata_query, dummy_adata], axis=1)
+# adata_query_HVG = adata_fixed[:, var_names[0]]
+
 adata_query_HVG = adata_query[:, var_names[0]]
 
 adata_query_HVG.obs['batch'] = 'New Data'
