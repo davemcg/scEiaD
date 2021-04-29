@@ -39,11 +39,11 @@ wget https://hpc.nih.gov/~mcgaugheyd/scEiaD/colab/vM25.tr2gX.tsv
 # run kb count
 ```
 ## (tweak the tech as needed - you may not be using 10xv2)
-## kb count --overwrite --h5ad -i gencode.v35.transcripts.idx -g v35.tr2gX.tsv -x 10xv2 -o output_dir --filter bustools -t 12 \
+## kb count --overwrite --h5ad -i gencode.v35.transcripts.idx -g v35.tr2gX.tsv -x DropSeq -o output_dir --filter bustools -t 12 \
 ## sample_R1.fastq.gz sample_R2.fastq.gz
 # toy example with human retinal organoids
-wget -O sample_1.fastq.gz https://hpc.nih.gov/~mcgaugheyd/scEiaD/colab/SRR10887776_1.head.fastq.gz
-wget -O sample_2.fastq.gz https://hpc.nih.gov/~mcgaugheyd/scEiaD/colab/SRR10887776_2.head.fastq.gz
+wget -O sample_1.fastq.gz https://hpc.nih.gov/~mcgaugheyd/scEiaD/colab/SRR11799731_1.head.fastq.gz
+wget -O sample_2.fastq.gz https://hpc.nih.gov/~mcgaugheyd/scEiaD/colab/SRR11799731_2.head.fastq.gz
 
 kb count --overwrite --h5ad -i gencode.v35.transcripts.idx -g v35.tr2gX.tsv -x DropSeq -o output_dir --filter bustools -t 4 sample_1.fastq.gz sample_2.fastq.gz
 ```
@@ -57,7 +57,8 @@ kb count --overwrite --h5ad -i gencode.v35.transcripts.idx -g v35.tr2gX.tsv -x D
 ## The scVI people recommend around 50. We have found that far fewer (5!) also works quite well
 ## 4. cutoff for cell type calling failure. if the highest prob is <USER SPECIFIED THRESHOLD (e.g. 0.5 is 50%) 
 ## then the cell type will be called "None"
-python scEiaD_celltype_predictor.py output_dir/counts_filtered/adata.h5ad celltypes.csv 50 0.5
+## 5. "mouse" gets special handling to deal with gene name issues (as scEiaD uses human ensembl gene IDs)
+python scEiaD_celltype_predictor.py output_dir/counts_filtered/adata.h5ad celltypes.csv 50 0.5 mouse
 # get number of columns and then get quick stats
 awk -F"," '{print NF}' celltypes.csv | uniq
 # the answer is 32
