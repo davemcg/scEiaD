@@ -51,14 +51,38 @@ new_meta <- raw_meta %>%
          Source,
          bam10x,
          Comment) %>% 
-  filter(!grepl("_BCR;|_TCR;", TissueNote)) %>% 
-  mutate(Organ = case_when(study_accession == 'SRP292721' ~ str_extract(TissueNote, '\\w+_cDNA') %>% gsub('_cDNA','',.),
-                           study_accession == 'SRP310237' ~ 'Brain Choroid Plexus',
+  filter(!grepl("_BCR;|_TCR;", TissueNote),
+         run_accession != 'SRR10729793') %>% 
+  mutate(Organ = case_when(study_accession == 'SRP292721' ~ str_extract(TissueNote, ':.*[\\w+]+_cDNA') %>% gsub(': |_cDNA.*','',.),
+                           study_accession == 'SRP310237' ~ 'Brain',
                            TRUE ~ "Eye"),
-         Covariate = case_when(study_accession == 'SRP212788' ~ str_extract(TissueNote, '[\\w\\d]+_') %>% gsub('_R\\d+_','',.)),
+         Covariate = case_when(study_accession == 'SRP212788' ~ str_extract(TissueNote, '[\\w\\d]+_') %>% gsub('_R\\d+_','',.),
+                               study_accession == 'SRP254408' ~ sample_accession,
+                               study_accession == 'SRP255871' ~ str_extract(TissueNote, 'Pt\\d'),
+                               study_accession == 'SRP286543' ~ sample_accession,
+                               study_accession == 'SRP251245' ~ sample_accession,
+                               study_accession == 'SRP310237' ~ paste0(str_extract(bam10x, '^sn|^sc'),
+                                                                       '_',
+                                                                       str_extract(TissueNote, 'Aged|Adut|Embryo'),
+                                                                       '_',
+                                                                       str_extract(TissueNote, 'rep\\d+'))),
          Platform = case_when(study_accession == 'SRP212788' ~ 'SCRBSeq',
                               study_accession == 'SRP292721' ~ '10xv2',
-                              study_accession == 'SRP254408' ~ '10xv2'),
+                              study_accession == 'SRP254408' ~ '10xv2',
+                              study_accession == 'SRP255871' ~ '10xv2',
+                              study_accession == 'SRP238072' ~ '10xv2',
+                              study_accession == 'SRP286543' ~ '10xv2',
+                              study_accession == 'SRP310237' ~ '10xv2',
+                              study_accession == 'SRP251245' ~ '10xv3'),
+         Tissue = case_when(study_accession == 'SRP251245' ~ 'Outflow Tract',
+                            study_accession == 'SRP254408' ~ 'Outflow Tract',
+                            study_accession == 'SRP238072' ~ 'Retina',
+                            study_accession == 'SRP310237' ~ 'Brain Choroid Plexus',
+                            study_accession == 'SRP238072' ~ 'Retina',
+                            study_accession == 'SRP286543' ~ 'Retina',
+                            study_accession == 'SRP212788' ~ 'Retina',
+                            study_accession == 'SRP292721' ~ Organ,
+                            study_accession == 'SRP212788' ~ 'Retina'),
          UMI = case_when(study_accession == 'SRP212788' ~ 'No',
                          TRUE ~ 'Yes')
          )
@@ -66,6 +90,10 @@ new_meta <- raw_meta %>%
 
 write_tsv(new_meta, '~/git/scEiaD/data/sample_run_layout_organism_tech_2021_newData.tsv')
 
-new_meta %>% 
-  filter(sample_accession != )
-  mutate(Platform = case_when(study_accession == 'SRP238072') ~ )
+bam_meta <- raw_meta %>% 
+  select(`RUN_SET.RUN.IDENTIFIERS.PRIMARY_ID`, bam_url) %>% 
+  filter(!is.na(bam_url)) %>% 
+  mutate(command = paste0('wget ', bam_url, '; ', 'mv ', str_extract(bam_url, '/\\w+.bam.*') %>% 
+                            gsub('/','',.), ' ', `RUN_SET.RUN.IDENTIFIERS.PRIMARY_ID`, '.bam'))
+
+write_tsv(bam_meta, '~/git/scEiaD/data/bam_meta_2021_newData.tsv')
