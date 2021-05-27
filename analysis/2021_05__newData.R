@@ -66,6 +66,14 @@ new_meta <- raw_meta %>%
                                                                        str_extract(TissueNote, 'Aged|Adut|Embryo'),
                                                                        '_',
                                                                        str_extract(TissueNote, 'rep\\d+'))),
+         mutate(Covariate = case_when(study_accession == 'SRP212788' & Covariate == 'M' ~ 'P2',
+                                      study_accession == 'SRP212788' & Covariate == 'Mac' ~ 'P3',
+                                      study_accession == 'SRP212788' & Covariate == 'Mac1cell' ~ 'P1',
+                                      study_accession == 'SRP212788' & Covariate == 'Macu_Nuc' ~ 'P1',
+                                      study_accession == 'SRP212788' & Covariate == 'Macular' ~ 'P2',
+                                      study_accession == 'SRP212788' & Covariate == 'Per' ~ 'P3',
+                                      study_accession == 'SRP212788' & Covariate == 'Periph_Nuc' ~ 'P1' ,
+                                      study_accession == 'SRP212788' & Covariate == 'sample' ~ 'P3')) %>% 
          Platform = case_when(study_accession == 'SRP212788' ~ 'SCRBSeq',
                               study_accession == 'SRP292721' ~ '10xv2',
                               study_accession == 'SRP254408' ~ '10xv2',
@@ -84,7 +92,9 @@ new_meta <- raw_meta %>%
                             study_accession == 'SRP292721' ~ Organ,
                             study_accession == 'SRP212788' ~ 'Retina'),
          UMI = case_when(study_accession == 'SRP212788' ~ 'No',
-                         TRUE ~ 'Yes')
+                         TRUE ~ 'Yes'),
+         Age = case_when(study_accession == 'SRP292721' ~ 'Adult',
+                         )
          )
 
 
