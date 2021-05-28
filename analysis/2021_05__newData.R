@@ -11,14 +11,14 @@ srp286543 <- read_tsv('data/SRP286543_meta.tsv.gz')
 srp310237 <- read_tsv('data/SRP310237_meta.tsv.gz')
 
 raw_meta <- bind_rows(srp292721,
-                        srp212788,
-                        srp254408,
-                        srp255874,
-                        srp255871,
-                        srp251245,
-                        srp238072,
-                        srp286543,
-                        srp310237)
+                      srp212788,
+                      srp254408,
+                      srp255874,
+                      srp255871,
+                      srp251245,
+                      srp238072,
+                      srp286543,
+                      srp310237)
 orig_meta <- read_tsv('~/git/scEiaD/data/sample_run_layout_organism_tech.tsv')
 
 #  [1] "sample_accession"  "run_accession"     "library_layout"    "organism"         
@@ -50,7 +50,8 @@ new_meta <- raw_meta %>%
          TissueNote,
          Source,
          bam10x,
-         Comment) %>% 
+         Comment,
+         biosample = `SAMPLE.IDENTIFIERS.EXTERNAL_ID`) %>% 
   filter(!grepl("_BCR;|_TCR;", TissueNote),
          run_accession != 'SRR10729793') %>% 
   mutate(Organ = case_when(study_accession == 'SRP292721' ~ str_extract(TissueNote, ':.*[\\w+]+_cDNA') %>% gsub(': |_cDNA.*','',.),
@@ -66,14 +67,14 @@ new_meta <- raw_meta %>%
                                                                        str_extract(TissueNote, 'Aged|Adut|Embryo'),
                                                                        '_',
                                                                        str_extract(TissueNote, 'rep\\d+'))),
-         mutate(Covariate = case_when(study_accession == 'SRP212788' & Covariate == 'M' ~ 'P2',
-                                      study_accession == 'SRP212788' & Covariate == 'Mac' ~ 'P3',
-                                      study_accession == 'SRP212788' & Covariate == 'Mac1cell' ~ 'P1',
-                                      study_accession == 'SRP212788' & Covariate == 'Macu_Nuc' ~ 'P1',
-                                      study_accession == 'SRP212788' & Covariate == 'Macular' ~ 'P2',
-                                      study_accession == 'SRP212788' & Covariate == 'Per' ~ 'P3',
-                                      study_accession == 'SRP212788' & Covariate == 'Periph_Nuc' ~ 'P1' ,
-                                      study_accession == 'SRP212788' & Covariate == 'sample' ~ 'P3')) %>% 
+         Covariate = case_when(study_accession == 'SRP212788' & Covariate == 'M' ~ 'P2',
+                               study_accession == 'SRP212788' & Covariate == 'Mac' ~ 'P3',
+                               study_accession == 'SRP212788' & Covariate == 'Mac1cell' ~ 'P1',
+                               study_accession == 'SRP212788' & Covariate == 'Macu_Nuc' ~ 'P1',
+                               study_accession == 'SRP212788' & Covariate == 'Macular' ~ 'P2',
+                               study_accession == 'SRP212788' & Covariate == 'Per' ~ 'P3',
+                               study_accession == 'SRP212788' & Covariate == 'Periph_Nuc' ~ 'P1' ,
+                               study_accession == 'SRP212788' & Covariate == 'sample' ~ 'P3'),
          Platform = case_when(study_accession == 'SRP212788' ~ 'SCRBSeq',
                               study_accession == 'SRP292721' ~ '10xv2',
                               study_accession == 'SRP254408' ~ '10xv2',
@@ -93,9 +94,9 @@ new_meta <- raw_meta %>%
                             study_accession == 'SRP212788' ~ 'Retina'),
          UMI = case_when(study_accession == 'SRP212788' ~ 'No',
                          TRUE ~ 'Yes'),
-         Age = case_when(study_accession == 'SRP292721' ~ 'Adult',
-                         )
+         Age = case_when(study_accession == 'SRP292721' ~ 'Adult'
          )
+  )
 
 
 write_tsv(new_meta, '~/git/scEiaD/data/sample_run_layout_organism_tech_2021_newData.tsv')
