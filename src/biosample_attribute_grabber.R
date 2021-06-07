@@ -35,15 +35,26 @@ attribute_df_maker <- function(id){
 }
 
 attribute_l <- list()
-for (i in unique(new_meta$biosample)){
+for (i in unique(bind_rows(new_meta %>% filter(!biosample %in% 
+                                               attribute_df$id), 
+                           orig_meta %>% mutate(Age = as.character(Age)) %>%  
+                           filter(!biosample %in% attribute_df$id)) %>% pull(biosample))){
   print(i)
   attribute_l[[i]] <- try({attribute_df_maker(i)})
   Sys.sleep(2)
 }
 
+
+
 # remove failed data pulls
-failed <- for (i in 1:length(attribute_l)){if (class(attribute_l[[i]]) == 'try-error'){print(i)}}
+failed <- c()
+for (i in 1:length(attribute_l)){
+  if (class(attribute_l[[i]]) == 'try-error'){
+    failed <- c(failed, i)
+}}
+
 attribute_c <- attribute_l
 attribute_c[failed] <- NULL
-attribute_df <- attribute_c %>% bind_rows()
-save(attribute_df, file = '2021_05_28_attribute_df.Rdata')
+attribute_df <- attribute_c %>% bind_rows() %>% as_tibble()
+save(attribute_df, file = 'data/2021_06_05_attribute_df.Rdata')
+

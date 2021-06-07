@@ -19,7 +19,7 @@ raw_meta <- bind_rows(srp292721,
                       srp238072,
                       srp286543,
                       srp310237)
-orig_meta <- read_tsv('~/git/scEiaD/data/sample_run_layout_organism_tech.tsv')
+orig_meta <- read_tsv('~/git/scEiaD/data/sample_run_layout_organism_tech_biosample_organ_2021_06_05.tsv')
 
 #  [1] "sample_accession"  "run_accession"     "library_layout"    "organism"         
 # [5] "Platform"          "UMI"               "study_accession"   "Tissue"           
@@ -74,7 +74,13 @@ new_meta <- raw_meta %>%
                                study_accession == 'SRP212788' & Covariate == 'Macular' ~ 'P2',
                                study_accession == 'SRP212788' & Covariate == 'Per' ~ 'P3',
                                study_accession == 'SRP212788' & Covariate == 'Periph_Nuc' ~ 'P1' ,
-                               study_accession == 'SRP212788' & Covariate == 'sample' ~ 'P3'),
+                               study_accession == 'SRP212788' & Covariate == 'sample' ~ 'P3',
+                               study_accession == 'SRP254408' ~ biosample,
+                               study_accession == 'SRP255871' ~ str_extract(TissueNote, 'Pt\\d+'),
+                               study_accession == 'SRP286543' ~ biosample,
+                               study_accession == 'SRP310237' ~ str_extract(TissueNote, '[AgedAdultEmbryo].*rep\\d+;') %>% 
+                                 gsub('\\d+[VL]|LV','',.) %>% 
+                                 gsub('\\s+','_',.)),
          Platform = case_when(study_accession == 'SRP212788' ~ 'SCRBSeq',
                               study_accession == 'SRP292721' ~ '10xv2',
                               study_accession == 'SRP254408' ~ '10xv2',
@@ -112,13 +118,50 @@ new_meta <- raw_meta %>%
                          biosample == 'SAMN14567348' ~ as.character(365 * 74),
                          biosample == 'SAMN14567337' ~ as.character(365 * 10),
                          biosample == 'SAMN14567338' ~ as.character(365 * 10),
-                         
-                         
-         )
+                         study_accession == 'SRP251245' ~ as.character(11*7),
+                         biosample == 'SAMN13620233' ~ as.character(-(21 - 7)),
+                         study_accession == 'SRP286543' ~ as.character(-(21 - (str_extract(TissueNote, 'E\\d+') %>% 
+                                                                                 gsub('E','',.) %>% as.integer()))),
+                         study_accession == 'SRP310237' & grepl('Aged', Covariate) ~ as.character(20*30),
+                         study_accession == 'SRP310237' & grepl('Adut', Covariate) ~ as.character(4*30),
+                         study_accession == 'SRP310237' & grepl('Embryo', Covariate) ~ "-2.5")
   )
 
 
+
 write_tsv(new_meta, '~/git/scEiaD/data/sample_run_layout_organism_tech_2021_newData.tsv')
+# merge old and new
+full_meta <- bind_rows(new_meta, orig_meta %>% mutate(Age = as.character(Age)))
+# add sex to all
+female_runs <- full_meta %>% 
+  left_join(attribute_df, by = c('biosample' = 'id')) %>% 
+  filter_all(any_vars(str_detect(., '(?i)femal'))) %>% pull(run_accession) %>% unique()
+male_runs <- full_meta %>% 
+  left_join(attribute_df, by = c('biosample' = 'id')) %>% 
+  filter_all(any_vars(str_detect(., '(?i)male'))) %>% pull(run_accession) %>% unique()
+male_runs <- male_runs[!(male_runs %in% female_runs)]
+# add region (fovea/peripheral)
+fovea_runs <- full_meta %>% 
+  left_join(attribute_df, by = c('biosample' = 'id')) %>% 
+  filter_all(any_vars(str_detect(., '(?i)fovea|macul'))) %>% pull(run_accession) %>% unique()
+peripheral_runs <- full_meta %>% 
+  left_join(attribute_df, by = c('biosample' = 'id')) %>% 
+  filter_all(any_vars(str_detect(., '(?i)periph'))) %>% pull(run_accession) %>% unique()
+# add strain to all
+strain_tib <- attribute_df %>% filter(attribute %in% c('strain','strain background','strain/background')) %>% select(value, id) %>% unique()
+colnames(strain_tib) <- c('strain', 'biosample')
+# now update full_meta
+full_meta2 <- full_meta %>% mutate(sex = case_when(run_accession %in% male_runs ~ 'Male',
+                                     run_accession %in% female_runs ~ 'Female'),
+                     retina_region = case_when(run_accession %in% fovea_runs ~ 'Macula',
+                                               run_accession %in% peripheral_runs ~ 'Peripheral')) %>% 
+  left_join(strain_tib) %>% 
+  # fix accidental choroid not labeled as eye
+  mutate(Organ = case_when(Organ == 'Choroid' ~ 'Eye',
+                           TRUE ~ Organ))
+write_tsv(full_meta2, file = '~/git/scEiaD/data/sample_run_layout_organism_tech_biosample_organ_2021_06_07.tsv' )
+write_tsv(new_meta, file = '~/git/scEiaD/data/sample_run_layout_organism_tech_2021_newData.tsv')
+
 
 bam_meta <- raw_meta %>% 
   select(`RUN_SET.RUN.IDENTIFIERS.PRIMARY_ID`, bam_url) %>% 
