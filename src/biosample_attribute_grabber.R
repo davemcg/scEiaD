@@ -25,12 +25,14 @@ attribute_df_maker <- function(id){
   eutil_grab <- efetch(uid = id, db = 'biosample', retmode = 'xml') 
   # extract attributes, convert to list
   xml_list_obj <- eutil_grab[["//Attributes"]] %>% XML::xmlToList()
+  biosample_title <-  (eutil_grab[["//Description"]]%>% XML::xmlToList())$Title
   # scan through list obj and find all attribures
   attribute_df <-  attribute_finder(xml_list_obj) %>% as.character() %>% data.frame()
   colnames(attribute_df)[1] <- 'attribute'
   # grab the attributes and stick into DF
   attribute_df <- attribute_df %>% rowwise() %>% mutate(value = value_grabber(attribute, xml_list_obj))
   attribute_df$id = id
+  attribute_df <- bind_rows(attribute_df, c(attribute = 'biosample_title', value = biosample_title, 'id' = id))
   return(attribute_df)
 }
 
@@ -41,7 +43,7 @@ for (i in unique(bind_rows(new_meta %>% filter(!biosample %in%
                            filter(!biosample %in% attribute_df$id)) %>% pull(biosample))){
   print(i)
   attribute_l[[i]] <- try({attribute_df_maker(i)})
-  Sys.sleep(2)
+  Sys.sleep(1)
 }
 
 
@@ -56,5 +58,5 @@ for (i in 1:length(attribute_l)){
 attribute_c <- attribute_l
 attribute_c[failed] <- NULL
 attribute_df <- attribute_c %>% bind_rows() %>% as_tibble()
-save(attribute_df, file = 'data/2021_06_05_attribute_df.Rdata')
+save(attribute_df, attribute_l, file = 'data/2021_06_07_attribute_df.Rdata')
 

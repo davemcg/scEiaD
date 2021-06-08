@@ -81,7 +81,10 @@ new_meta <- raw_meta %>%
                                study_accession == 'SRP310237' ~ str_extract(TissueNote, '[AgedAdultEmbryo].*rep\\d+;') %>% 
                                  gsub('\\d+[VL]|LV','',.) %>% 
                                  gsub('\\s+','_',.)),
-         Platform = case_when(study_accession == 'SRP212788' ~ 'SCRBSeq',
+         Platform = case_when(run_accession == 'SRR13933621' ~ '10xv1',
+                              run_accession == 'SRR13933618' ~ '10xv1',
+                              run_accession == 'SRR13933615' ~ '10xv1',
+                              study_accession == 'SRP212788' ~ 'SCRBSeq',
                               study_accession == 'SRP292721' ~ '10xv2',
                               study_accession == 'SRP254408' ~ '10xv2',
                               study_accession == 'SRP255871' ~ '10xv2',
@@ -150,6 +153,7 @@ peripheral_runs <- full_meta %>%
 # add strain to all
 strain_tib <- attribute_df %>% filter(attribute %in% c('strain','strain background','strain/background')) %>% select(value, id) %>% unique()
 colnames(strain_tib) <- c('strain', 'biosample')
+
 # now update full_meta
 full_meta2 <- full_meta %>% mutate(sex = case_when(run_accession %in% male_runs ~ 'Male',
                                      run_accession %in% female_runs ~ 'Female'),
@@ -158,8 +162,22 @@ full_meta2 <- full_meta %>% mutate(sex = case_when(run_accession %in% male_runs 
   left_join(strain_tib) %>% 
   # fix accidental choroid not labeled as eye
   mutate(Organ = case_when(Organ == 'Choroid' ~ 'Eye',
-                           TRUE ~ Organ))
-write_tsv(full_meta2, file = '~/git/scEiaD/data/sample_run_layout_organism_tech_biosample_organ_2021_06_07.tsv' )
+                           TRUE ~ Organ)) %>% 
+  # add biosample_name
+  left_join(attribute_df %>% 
+              filter(attribute == 'biosample_title') %>% 
+              select(biosample_title = value, biosample = id))
+
+# manually add bharti eric 2d 3d rpe
+bharti <- tibble::tribble(
+  ~sample_accession,              ~run_accession, ~library_layout,      ~organism, ~Platform,  ~UMI,           ~study_accession,       ~Tissue, ~Covariate, ~Age, ~integration_group, ~TissueNote, ~Source, ~bam10x, ~Comment, ~biosample, ~Organ,
+  "2D_ENDO_01",        "CT_3878_S1_S1_L004",        "PAIRED", "Homo sapiens",   "10xv2", "Yes", "Bharti_Nguyen_iRPE_2D_3D", "Endothelial",         NA,   NA,                 NA,        "2D",  "iPSC",      NA,       NA,         NA,  "Eye",
+  "2D_iRPE_01",        "CT_3878_S2_S2_L005",        "PAIRED", "Homo sapiens",   "10xv2", "Yes", "Bharti_Nguyen_iRPE_2D_3D",         "RPE",         NA,   NA,                 NA,        "2D",  "iPSC",      NA,       NA,         NA,  "Eye",
+  "3D_ENDO_01",        "CT_3878_S3_S3_L006",        "PAIRED", "Homo sapiens",   "10xv2", "Yes", "Bharti_Nguyen_iRPE_2D_3D", "Endothelial",         NA,   NA,                 NA,        "3D",  "iPSC",      NA,       NA,         NA,  "Eye",
+  "3D_iRPE_01", "iRPE_iCell_Tissue_S1_L001",        "PAIRED", "Homo sapiens",   "10xv2", "Yes", "Bharti_Nguyen_iRPE_2D_3D",         "RPE",         NA,   NA,                 NA,        "3D",  "iPSC",      NA,       NA,         NA,  "Eye"
+)
+full_meta3 <- bind_rows(full_meta2, bharti)
+write_tsv(full_meta3, file = '~/git/scEiaD/data/sample_run_layout_organism_tech_biosample_organ_2021_06_07.tsv' )
 write_tsv(new_meta, file = '~/git/scEiaD/data/sample_run_layout_organism_tech_2021_newData.tsv')
 
 
