@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 args = commandArgs(trailingOnly=TRUE)
-save(args, file = 'testing/nu_reumi_args.Rdata')
+# save(args, file = 'testing/nu_reumi_args.Rdata')
 
 #base_dir = args[5]
 #SRS = args[1]

@@ -71,7 +71,7 @@ def SRP_2_SRS(quant_path, SRP, reference, sfx, srs_dict):
 
 def well_and_droplet_input(organism, reference, quant_path, SRP_droplet_dict, otd, sfx):
 	target_srps = [ srp for srp in  SRP_droplet_dict.keys() if SRP_droplet_dict[srp]['organism'] == organism ] 
-	if organism == 'Macaca_fascicularis':
+	if organism in droplet_only_org:
 		out = [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
 	else:
 		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]	
@@ -192,6 +192,8 @@ for SRS in SRS_dict.keys():
 
 
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens', 'Gallus_gallus']
+# macaque and chicken don't have well data
+droplet_only_org = config['droplet_only_org'] # ['Macaca_fascicularis', 'Gallus_gallus']
 # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 report: "report.rst"
 

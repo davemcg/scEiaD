@@ -64,7 +64,7 @@
 	"merge_nonUMI_quant_by_organism" : 
 	{
 		"time" : "03:00:00",
-		"mem" : "120G",
+		"mem" : "300G",
 		"extra" : " --gres=lscratch:20"
 	},
 	"seurat_scTransform" :
