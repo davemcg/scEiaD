@@ -17,16 +17,24 @@ load_rdata <- function(x){
   all_data= get(var)# the mistake was here, I orignally fixing rownames in here, but deleted it by accident
   return(all_data)
 }
+
 maca_mf_matrix <- load_rdata('pipeline_data/clean_quant/Macaca_fascicularis/mf-macaca_mulatta_full_sparse_matrix.Rdata')
 maca_hs_matrix <- load_rdata('pipeline_data/clean_quant/Macaca_fascicularis/hs-homo_sapiens_full_sparse_matrix.Rdata')
 
-gene_id_converter <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque.tsv'), skip = 1,
-                              col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
-                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>% 
-  select(-hs_gene_id_v)
+# gene_id_converter <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque.tsv'), skip = 1,
+#                               col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
+#                                            'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>% 
+#   select(-hs_gene_id_v)
 
 #### This first part is to blend the macaque and human counts 
-
+gene_id_converter <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque_chick_ZF.tsv.gz'), skip = 1,
+                              col_names= c('hs_gene_id','hs_gene_id_v',
+                                           'gg_gene_id', 'gg_gene_name',
+                                           'mf_gene_id', 'mf_gene_name',
+                                           'mm_gene_id', 'mm_gene_name',
+                                           'zf_gene_id', 'zf_gene_name',
+                                           'hs_gene_name')) %>%
+  select(-hs_gene_id_v)
 
 ## first calculate the total counts across each build
 maca_mf_rowSums <- tibble(mf_gene_id = rownames(maca_mf_matrix),  mf_total = rowSums(maca_mf_matrix))
@@ -125,24 +133,56 @@ homo_hs__keep_genes = rownames(homo_hs_matrix_cg)
 rm(homo_hs_matrix_cg)
 
 ### now make the merged quantfile
-all_shared_gene_ids_hs_mm <- gene_id_converter %>% 
-  filter(hs_gene_id %in% rownames(all_cells_macaque_hs_ids), 
+all_shared_gene_ids <- gene_id_converter %>% 
+  filter(hs_gene_id %in% rownames(all_cells_macaque_hs_ids),
+         hs_gene_id %in% rownames(homo_hs_matrix),
+         mm_gene_id %in% rownames(mus_mm_matrix),
          !is.na(mm_gene_id))%>%
   filter(!duplicated(mm_gene_id), # remove mouse genes that map to the same gene ID
-         mm_gene_id %in% rownames(mus_mm_matrix)) %>% 
-  select(hs_gene_id, mm_gene_id) %>% distinct
+         mm_gene_id %in% rownames(mus_mm_matrix)) #%>% 
+  
+
+all_shared_gene_ids_hs_mm <- all_shared_gene_ids %>% select(hs_gene_id, mm_gene_id) %>% distinct
 
 ## merge everything together 
 mus_mm_matrix_cg <- mus_mm_matrix[all_shared_gene_ids_hs_mm$mm_gene_id, ]
 
 mus_mm_matrix_cg <- aggregate.Matrix(mus_mm_matrix_cg, all_shared_gene_ids_hs_mm$hs_gene_id, fun='sum')
 # fix row names for homo gene names (remove .\\d+ endings)
-row.names(homo_hs_matrix) <- gsub('\\.\\d+', '', row.names(homo_hs_matrix))
+row.names(homo_hs_matrix) <- str_replace_all(row.names(homo_hs_matrix),'\\.\\d+', '')
 homo_hs_matrix_cg <- homo_hs_matrix[rownames(mus_mm_matrix_cg), ]
 maca_all_matrix_cg = all_cells_macaque_hs_ids[rownames(mus_mm_matrix_cg),  ]# BUGFIX: - was not removing nonshared genes from macaque
 rm(mus_mm_matrix, homo_hs_matrix)# free up more mem 
-all_cells_all_species_matrix <-  RowMergeSparseMatrices(homo_hs_matrix_cg, mus_mm_matrix_cg) %>%  
-  RowMergeSparseMatrices(maca_all_matrix_cg)
+
+## add extra species
+extra_species_metadata <- tibble(species = 'Gallus gallus', 
+                                 file = 'pipeline_data/clean_quant/Gallus_gallus/gg-gallus_gallus_full_sparse_matrix.Rdata', 
+                                 prefix = 'gg_')
+
+process_extra_species <- function(species, file, prefix, converter_table){
+   species_counts <- load_rdata(file) 
+   spec_col <- paste0(prefix, 'gene_id')
+   converter_cols <- c('hs_gene_id', spec_col )
+   converter_table <- converter_table %>% 
+     filter(!is.na(.[,spec_col]),
+            .[[spec_col]] %in% rownames(species_counts)
+            )
+   species_counts_filtered <- species_counts[converter_table[[spec_col]],]
+   rownames(species_counts_filtered) <- converter_table$hs_gene_id
+   return(species_counts_filtered)
+}
+extra_species <- lapply(split(extra_species_metadata, 1:nrow(extra_species_metadata)), 
+       function(x) process_extra_species(x$species, 
+                                         x$file, 
+                                         x$prefix, 
+                                         all_shared_gene_ids)
+       )
+
+all_species_matrices <- c(list(homo_hs_matrix_cg,mus_mm_matrix_cg, maca_all_matrix_cg ), 
+                          extra_species)
+
+all_cells_all_species_matrix <-  reduce(all_species_matrices, RowMergeSparseMatrices)
+
 
 metadata <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv'))
 
