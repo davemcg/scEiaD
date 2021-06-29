@@ -94,14 +94,19 @@
 	},
 	"merge_across_references" :
 	{
-		"mem" : "240G",
+		"mem" : "300G",
 		"partition" : "norm",
-		"time" : "4:00:00",
+		"time" : "12:00:00",
 		"extra" : " --gres=lscratch:100"
 	},
 	"calculate_phate" :
 	{
 		"mem" : "100G"
+	},
+	"make_rawh5ad_objs":
+	{
+		"mem" : "200G",
+		"time" : "4:00:00"
 	},
 	"integrate_01" :
 	{
@@ -116,9 +121,9 @@
 	},
 	"celltype_predict_VS_xgboost" :
 	{
-		"mem" : "35G",
+		"mem" : "50G",
 		"partition" : "gpu",
-		"time" : "1:00:00",
+		"time" : "2:00:00",
 		"extra" : " --gres=gpu:p100:1,lscratch:1"
 	},
 	"calculate_tsne" : 
@@ -239,7 +244,7 @@
 	},
 	"scIB_stats" :
 	{
-		"mem" : "160G",
+		"mem" : "260G",
 		"time" : "1:30:00",
 		"partition" : "quick"
 	},
