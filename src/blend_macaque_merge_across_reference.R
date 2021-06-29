@@ -1,4 +1,4 @@
-args <- c(getwd(), getwd(), 'references/samplename_patterns.txt')
+#args <- c(getwd(), getwd(), 'references/samplename_patterns.txt')
 args = commandArgs(trailingOnly=TRUE)
 working_dir = args[1]
 git_dir = args[2]
@@ -8,7 +8,7 @@ library(Matrix.utils)
 library(Seurat)
 library(glue)
 setwd(working_dir)
-patterns <- scan(args[3], what = character(), sep='\n') %>% paste0(collapse = '|')
+patterns <- scan(args[4], what = character(), sep='\n') %>% paste0(collapse = '|')
 load_rdata <- function(x){
   load(x)
   env <- ls.str()
@@ -155,18 +155,22 @@ maca_all_matrix_cg = all_cells_macaque_hs_ids[rownames(mus_mm_matrix_cg),  ]# BU
 rm(mus_mm_matrix, homo_hs_matrix)# free up more mem 
 
 ## add extra species
+print('extra species time')
 extra_species_metadata <- tibble(species = 'Gallus gallus', 
                                  file = 'pipeline_data/clean_quant/Gallus_gallus/gg-gallus_gallus_full_sparse_matrix.Rdata', 
                                  prefix = 'gg_')
 
 process_extra_species <- function(species, file, prefix, converter_table){
+   print('load data')
    species_counts <- load_rdata(file) 
    spec_col <- paste0(prefix, 'gene_id')
    converter_cols <- c('hs_gene_id', spec_col )
+   print('converter table')
    converter_table <- converter_table %>% 
      filter(!is.na(.[,spec_col]),
             .[[spec_col]] %in% rownames(species_counts)
             )
+   print('filter')
    species_counts_filtered <- species_counts[converter_table[[spec_col]],]
    rownames(species_counts_filtered) <- converter_table$hs_gene_id
    return(species_counts_filtered)
@@ -184,8 +188,8 @@ all_species_matrices <- c(list(homo_hs_matrix_cg,mus_mm_matrix_cg, maca_all_matr
 all_cells_all_species_matrix <-  reduce(all_species_matrices, RowMergeSparseMatrices)
 
 
-metadata <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv'))
-
+#metadata <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech_biosample_organ_2021_06_07.tsv'))
+metadata <- read_tsv(args[3])
 all_cell_info <- colnames(all_cells_all_species_matrix) %>% enframe() %>% 
   mutate(sample_accession = str_extract(value, glue('({patterns})\\d+') )) %>% 
   left_join(metadata %>% select(-run_accession) %>% unique()) %>% 
@@ -213,6 +217,12 @@ intron_homo_hs_matrix <-load_rdata('pipeline_data/clean_quant/Homo_sapiens/hs-ho
 
 save(intron_homo_hs_matrix, file ='pipeline_data/clean_quant/Homo_sapiens/full_sparse_unspliced_matrix.Rdata')
 
+
+## chick intron quant
+intron_chick_gg_matrix <-load_rdata('pipeline_data/clean_quant/Gallus_gallus/gg-gallus_gallus_full_sparse_unspliced_matrix.Rdata')
+
+save(intron_chick_gg_matrix, file ='pipeline_data/clean_quant/Gallus_gallus/full_sparse_unspliced_matrix.Rdata')
+
 ### merge all intron quant 
 mm_intron_keep = rownames(intron_mus_mm_matrix) %in% all_shared_gene_ids_hs_mm$mm_gene_id
 all_shared_gene_ids_hs_mm_intron  =  {tibble(mm_gene_id = rownames(intron_mus_mm_matrix))} %>% 
@@ -223,6 +233,22 @@ intron_homo_hs_matrix <- intron_homo_hs_matrix[rownames(intron_homo_hs_matrix)%i
 all_intron_macaque_data = all_intron_macaque_data[rownames(intron_mus_mm_matrix), ]
 all_intron_data = RowMergeSparseMatrices(intron_homo_hs_matrix, intron_mus_mm_matrix) %>%  
   RowMergeSparseMatrices(all_intron_macaque_data)
+#### add new round data
+extra_species_unspliced_metadata <- tibble(species = 'Gallus gallus',
+                                 file = 'pipeline_data/clean_quant/Gallus_gallus/gg-gallus_gallus_full_sparse_unspliced_matrix.Rdata',
+                                 prefix = 'gg_')
+extra_species_unspliced <- lapply(split(extra_species_unspliced_metadata, 1:nrow(extra_species_unspliced_metadata)),
+       function(x) process_extra_species(x$species,
+                                         x$file,
+                                         x$prefix,
+                                         all_shared_gene_ids)
+       )
+
+all_intron_data_list <- c(list(all_intron_data),
+                          extra_species)
+
+all_intron_data <-  reduce(all_intron_data_list, RowMergeSparseMatrices)
+
 save(all_intron_data, file ='pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata')
 
 stats_files <- list.files('pipeline_data/clean_quant', pattern = 'stats.tsv', recursive= T, full.names=T) %>% 
