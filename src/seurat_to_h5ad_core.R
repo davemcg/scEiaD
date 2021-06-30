@@ -13,6 +13,7 @@ library(dplyr)
 set.seed(326490)
 load(args[1])
 out <- get(args[2])
+out@meta.data$Age <- NULL
 if (args[4] == 'make_mini_split_data'){
 	ref_samples <- scan(glue('{git_dir}data/human_ref_samples.txt'), what = 'character')
 	ref_bc_mini <- scEiaD_droplet@meta.data %>% as_tibble(rownames = 'Barcode2') %>% filter(sample_accession %in% ref_samples) %>% group_by(batch) %>% sample_n(2000, replace = TRUE) %>% unique() %>% pull(Barcode2)

@@ -91,6 +91,7 @@ fastq_path = config['fastq_path']
 fi_tsne_dir = config['fi_tsne_dir']
 quant_path = config['quant_path']
 config_abspath=config['config_abspath']
+pattern_file=config['samplename_patterns']
 
 method = ['scArches', 'bbknn','insct','magic', 'scVI','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
 transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
@@ -104,8 +105,8 @@ model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.
 report: "report.rst"
 
 if config['subset_clustering'] == 'False':
-	 partitions_to_run = ['universe', 'TabulaDroplet']
-	 scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
+	 partitions_to_run = ['universe']
+	 scIB_partitions_to_run =  ['universe'] 
 	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
 	#partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
 	#partitions_to_run = ['universe']
@@ -178,6 +179,23 @@ rule make_seurat_objs:
 		export SCIAD_CONFIG={config_abspath}
 		Rscript {git_dir}/src/build_seurat_obj_classic.R {params.rson} {config_abspath}
 		"""
+h5ad_rawobj_pfx = 'h5ad/raw/'
+h5ad_rawobj_param = ['n_features','transform','partition', 'covariate']
+h5ad_rawobj_sfx = 'preFilter.anndata.h5ad'
+
+rule make_rawh5ad_objs:
+	input:
+		seurat = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx)
+	output:
+		h5ad = make_wc_string(h5ad_rawobj_pfx, h5ad_rawobj_param, h5ad_rawobj_sfx)
+	shell:
+		"""
+		module load R/3.6
+		export SCIAD_CONDA_DIR={conda_dir}
+        export SCIAD_GIT_DIR={git_dir}
+        export SCIAD_CONFIG={config_abspath}
+		Rscript {git_dir}/src/seurat_to_h5ad_core.R {input} seurat__standard {output} NO
+		"""
 
 intg_obj_pfx ='seurat_obj/integrated/'
 intg_obj_param = seu_obj_param + ['method', 'dims', 'epochs']
@@ -192,10 +210,13 @@ def which_method(p):
 	else:
 		return 'merge_methods.R'
 
+ref_samples = config['ref_samples']
 rule integrate_00:
 	input:
 		cell_label_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
-		obj = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx)
+		obj = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx),
+		h5ad = make_wc_string(h5ad_rawobj_pfx, h5ad_rawobj_param, h5ad_rawobj_sfx),
+		pattern = pattern_file
 	output:
 		#temp('seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
 		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx)
@@ -216,7 +237,9 @@ rule integrate_00:
 				  {wildcards.dims} \
 				  {input.obj} \
 				  {output} \
-				  {wildcards.epochs}"
+				  {wildcards.epochs} \
+				  {input.pattern} \
+				  {ref_samples}"
 		
 		echo $cmd
 		eval $cmd

@@ -42,8 +42,18 @@ covariate = args[3]
 latent = args[4] %>% as.numeric()
 #args[5] <- gsub('counts', 'standard', args[5])
 load(args[5])
+# https://github.com/mojaveazure/loomR/issues/40#issuecomment-649141851
+for(j in 1:ncol(seurat__standard@meta.data)){
+	if(is.factor(seurat__standard@meta.data[,j]) == T){
+	seurat__standard@meta.data[,j] = as.character(seurat__standard@meta.data[,j]) # Force the variable type to be character
+	seurat__standard@meta.data[,j][is.na(seurat__standard@meta.data[,j])] <- "N.A"
+}
+if(is.character(seurat__standard@meta.data[,j]) == T){
+	seurat__standard@meta.data[,j][is.na(seurat__standard@meta.data[,j])] <- "N.A"
+ }
+}
 
-
+ref_samples = args[9]
 run_integration <- function(seurat_obj, method, covariate = 'study_accession', transform = 'standard', latent = 50, file = args[5], n_epochs = 5){
   # covariate MUST MATCH what was used in build_seurat_obj.R
   # otherwise weird-ness may happen
@@ -350,7 +360,9 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 	if (sum(colSums(matrix)==0) > 0){
 		matrix[,colSums(matrix) == 0] <- one0
 	}
-	seurat_obj@meta.data$SA = row.names(seurat__standard@meta.data) %>%  str_extract(., '(SRX|EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')	
+	seurat__standard@meta.data$Age <- NULL
+	patterns <- scan(args[8], what = 'character') %>% paste(., collapse = '|')
+	seurat_obj@meta.data$SA = row.names(seurat__standard@meta.data) %>%  str_extract(., paste0('(', patterns, ')\\d+'))
 	create(filename= out, 
            overwrite = TRUE,
            data = matrix, 
@@ -389,7 +401,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_hidden,
                          n_latent,
                          n_layers,
-						 'FALSE')
+						 'FALSE',
+						ref_samples)
 	}
 	if (method == 'scVIprojectionSO') {
     	scVI_command = paste(glue('{conda_dir}/envs/scvitools090/bin/./python {git_dir}/src/run_scVI_projection.py'),
@@ -401,6 +414,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_latent,
                          n_layers,
 						 'FALSE',
+					     ref_samples,
 						 args[8],
 						 args[9])
 	}
