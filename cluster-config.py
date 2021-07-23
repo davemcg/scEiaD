@@ -44,7 +44,7 @@ elif rule in custom_config_rules:
             params['time'] = '12:00:00'
         else:
             params['partition']='norm'
-            params['mem'] = '200G'
+            params['mem'] = '250G'
     if rule == 'calculate_umap':
         if job_properties['wildcards']['partition'] == 'onlyWELL':
             params['partition']='quick'
@@ -87,8 +87,8 @@ elif rule in custom_config_rules:
         elif job_properties['wildcards']['method'] == 'CCA':
             params['partition']='largemem'
             params['time']='96:00:00'
-            params['mem']='600G'
-            params['time']='96:00:00'
+            params['mem']='750G'
+            params['time']='120:00:00'
             params['extra'] = '--gres=lscratch:5'
         elif job_properties['wildcards']['method'] == 'CCA' and job_properties['wildcards']['partition'] == 'onlyWELL':
             params['partition']='norm'
@@ -106,10 +106,10 @@ elif rule in custom_config_rules:
             params['extra'] = '--gres=lscratch:5'
         else:
             print(job_properties['wildcards']['method'])
-            params['partition']='gpu'
-            params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
-            params['time'] = '8:00:00'
-            params['mem'] = '200G'
+            params['partition']='norm'
+            params['extra'] = ''
+            params['time'] = '24:00:00'
+            params['mem'] = '300G'
     if rule == "make_seurat_objs" and job_properties['wildcards']['transform'] == 'scran':
         params['mem'] = '1000G'
 
