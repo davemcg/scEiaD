@@ -4,7 +4,7 @@
   ![](data/fig1_overview.png)
   
  # Numbers
- - 34 datasets
+ - 33 datasets
  - 3 species (human, mouse, macaque)
  - 1.2e6 cells go in, 7.7e5 come out
  - 30 different cell types

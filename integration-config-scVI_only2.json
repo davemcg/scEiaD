@@ -1,0 +1,19 @@
+{
+    "global_default" :{
+        "covariate" : ["batch"],
+        "combination" : ["Mus_musculus_Macaca_fascicularis_Homo_sapiens"]
+    },
+    "universe":{
+        "default": {
+            "transform" : ["counts"],
+            "method" : ["scVI", "scVIprojection"],
+            "add_intron" : ["N"],
+            "n_features" : [1000, 2000, 5000, 10000],            
+            "dims" : [4,6,8,10,20,30,50],
+            "knn": [10, 20, 30],
+            "dist" : [0.1],
+            "epochs" : [5],
+            "neighbors" : [50]
+        }
+    }
+}

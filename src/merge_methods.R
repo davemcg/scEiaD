@@ -88,7 +88,6 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 	obj <- seurat_obj 
  } 
  else if (method == 'CCA'){
-	refs = c('SRP158081_10xv2_Rep1', 'SRP166660_10xv2_run2', 'SRP158528_10xv2_Macaque2')
     obj <- seurat_obj
     if (transform == 'SCT'){
       # remove sets with fewre than 1000 cells
@@ -98,26 +97,39 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                                bind_rows(.id = 'ID') %>% 
                                filter(value < 100) %>% 
                                pull(ID)] <- NULL
-	  # keep getting cholmod errors, so trying to use the Clark Blackshaw mouse and the Sanes macaque as ref
-      ref_index <- which(names(seurat_obj$seurat_list) %in% refs)
-	  anchors <- FindIntegrationAnchors(object.list = seurat_obj$seurat_list, dims = 1:20, normalization.method = 'SCT',
+	  anchors <- FindIntegrationAnchors(object.list = seurat_obj$seurat_list, dims = 1:latent, normalization.method = 'SCT',
                                         anchor.features = seurat_obj$study_data_features) 
- 										#reference = ref_index)
       obj <- IntegrateData(anchorset = anchors, verbose = TRUE, normalization.method = 'SCT')
     } else {
+	  # downsample to 250k to make runtime not insane for gigascience resubmission
+	  # at 4+ days right now I can't handle this shit anymore
+	  
+	  #obj <- seurat_obj[,sample(1:ncol(seurat_obj), size = 250000, replace = FALSE)]
       seurat_list <- SplitObject(obj, split.by = covariate)
       seurat_list[seurat_list %>% 
                     map(ncol) %>% 
                     map(enframe) %>%
                     bind_rows(.id = 'ID') %>% 
-                    filter(value < 100) %>% 
+                    filter(value < 1000) %>% 
                     pull(ID)] <- NULL
-      ref_index <- which(names(seurat_list) %in% refs)
-      anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:20, 
-                                        anchor.features = obj[[obj@active.assay]]@var.features,
-						                reference = ref_index )
-      obj <- IntegrateData(anchorset = anchors, verbose = TRUE)
+      
+
+      # RPCA
+	  seurat_list <- lapply(X = seurat_list, FUN = function(x) {
+         x <- ScaleData(x, features = obj[[obj@active.assay]]@var.features, verbose = FALSE)
+         x <- RunPCA(x, features = obj[[obj@active.assay]]@var.features, verbose = FALSE)
+      })
+	  # integrate against the human data as it keeps exploding otherwise
+	  # nightmare algorithm
+      load('pipeline_data/cell_info/cell_info_labelled.Rdata')
+	  refs <- cell_info_labels %>% select(organism, study_accession) %>% unique() %>% filter(organism == 'Homo sapiens', !grepl('OGV', study_accession)) %>% pull(study_accession)
+      sref <- grep( paste(refs, collapse = "|"), names(seurat_list))
+	  anchors <- FindIntegrationAnchors(object.list = seurat_list, dims = 1:latent, reduction = 'rpca', k.filter = NA, reference = sref,
+                                        anchor.features = obj[[obj@active.assay]]@var.features)
+						                #reduction = 'rpca')
+      obj <- IntegrateData(anchorset = anchors, verbose = TRUE, dims = 1:latent)
     }
+    DefaultAssay(obj) <- "integrated"
     obj <- ScaleData(obj)
     obj <- RunPCA(obj, npcs = 100)
   } else if (method == 'fastMNN'){
@@ -307,7 +319,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     n_latent = latent
     n_HVG = length(vfeatures) 
     
-    scArches_command = paste('/data/mcgaugheyd/conda/envs/scArches/bin/python /home/mcgaugheyd/git/massive_integrated_eye_scRNA/src/run_scArches.py',
+    scArches_command = paste('/data/mcgaugheyd/conda/envs/scArches/bin/python /home/mcgaugheyd/git/scEiaD/src/run_scArches.py',
                          out,
                          n_epochs,
                          lr,

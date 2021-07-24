@@ -68,6 +68,12 @@ pool <- dbPool(drv = SQLite(), dbname = db, idleTimeout = 3600000)
 meta_filter <- pool %>% tbl('metadata_filter') %>% collect()
 write_tsv(meta_filter, path = 'site/metadata_filter.tsv.gz')
 
+# get gene ids
+gene_ids <- pool %>% tbl('genes') %>% collect() %>% 
+				separate(Gene, sep = ' \\(', into = c('Name','ID')) %>% 
+				mutate(ID = gsub('\\)','', ID))
+write_tsv(gene_ids, file = 'site/gene_name_ids.tsv.gz')
+
 # extract cell info
 load('pipeline_data/cell_info/cell_info_labelled.Rdata')
 write_tsv(cell_info_labels, path = 'site/cell_labels.tsv.gz')

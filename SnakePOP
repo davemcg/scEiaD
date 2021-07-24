@@ -99,13 +99,13 @@ organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe']
 dims = [4,6,8,10,20,25,30,50,75,100,200]
 epochs = [5,10,25,50,100]
-knn = [0.2,0,4,0.6, 5, 7, 10, 15]
+knn = [0.2,0,4,0.6, 5, 7, 10, 15, 20]
 model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 report: "report.rst"
 
 if config['subset_clustering'] == 'False':
-	 partitions_to_run = ['universe', 'TabulaDroplet']
-	 scIB_partitions_to_run =  ['universe', 'TabulaDroplet'] 
+	 partitions_to_run = ['universe' ]
+	 scIB_partitions_to_run =  ['universe'] 
 	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
 	#partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
 	#partitions_to_run = ['universe']
@@ -117,7 +117,7 @@ else:
 
 rule all:
 	input:
-		'pipeline_data/results/merged_xgboost.Rdata',
+		#'pipeline_data/results/merged_xgboost.Rdata',
 		'pipeline_data/results/merged_stats.Rdata',
 		"seurat_obj/raw/n_features-1000__transform-counts__partition-raw__covariate-batch__preFilter.seuratV3.Rdata"
 	

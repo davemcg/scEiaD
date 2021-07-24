@@ -150,6 +150,6 @@ plot7 <- umapO  %>%
 				ggplot(aes(x=UMAP_1,y=UMAP_2, color = study_accession)) + 
 				scattermore::geom_scattermore(pointsize = 0, alpha = 0.8) + 
 				scale_color_manual(values = c(pals::alphabet(), pals::alphabet2()) %>% unname()) + cowplot::theme_cowplot() + facet_wrap(~Known) 
-png(args[3], width = 1800, height = 9500, res = 150)
+png(args[3], width = 2400, height = 9500, res = 150)
 plot_grid(plot1, plot4, plot5, plot6, plot7,  ncol = 1, rel_heights = c(0.5,0.5,1, 1,0.5))
 dev.off()
