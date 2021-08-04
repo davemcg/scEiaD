@@ -121,9 +121,9 @@
 	},
 	"celltype_predict_VS_xgboost" :
 	{
-		"mem" : "50G",
+		"mem" : "75G",
 		"partition" : "gpu",
-		"time" : "2:00:00",
+		"time" : "4:00:00",
 		"extra" : " --gres=gpu:p100:1,lscratch:1"
 	},
 	"calculate_tsne" : 
