@@ -98,9 +98,9 @@ transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe']
-dims = [4,6,8,10,20,25,30,50,75,100,200]
+dims = [4,6,8,10,15, 20,25,30,50,75,100,200]
 epochs = [5,10,25,50,100]
-knn = [0.2,0,4,0.6, 5, 7, 10, 15]
+knn = [0.2,0,4,0.6, 5, 7, 10, 15, 20, 30]
 model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 report: "report.rst"
 
