@@ -142,7 +142,7 @@ remove_empty_droplets <- function(x, srs, mito_genelist){
   ## quality control: remove high mito cells, and remove high count(doublet) cells 
   
   cells_above_min_umi <-  seu$nFeature_RNA > 200
-  cells_below_max_umi <- seu$nFeature_RNA < 3000 
+  #cells_below_max_umi <- seu$nFeature_RNA < 3000 
   
   seu[["percent.mt"]] <- PercentageFeatureSet(seu, features = mito_genelist)
   pct_mt_df = tibble(srs=srs,barcode = colnames(seu), `percent.mt` = seu$percent.mt)
