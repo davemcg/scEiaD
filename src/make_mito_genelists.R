@@ -9,8 +9,8 @@ mouse_outfile <- args[5]
 maca_outfile <- args[6]
 human_outfile <- args[7]
 chick_outfile <- args[8]
-human_mito_genes <- human_gtf %>% filter(type == 'gene', grepl('^MT-', gene_name)) %>% pull(gene_id) %>% paste0('.')
-mouse_mito_genes <- mouse_gtf %>% filter(type == 'gene', grepl('^mt-', gene_name)) %>% pull(gene_id) %>% paste0('.')
+human_mito_genes <- human_gtf %>% filter(type == 'gene', grepl('^MT-', gene_name), gene_type == 'protein_coding') %>% pull(gene_id) %>% paste0('.')
+mouse_mito_genes <- mouse_gtf %>% filter(type == 'gene', grepl('^mt-', gene_name), gene_type == 'protein_coding') %>% pull(gene_id) %>% paste0('.')
 maca_mito_genes <- maca_gtf %>% filter(type == 'transcript', seqid == 'MT', !is.na(transcript_name)) %>% pull(gene_id) %>% unique
 chick_mito_genes <- chick_gtf %>% filter(type == 'gene', seqid == 'MT', gene_biotype == 'protein_coding') %>% pull(gene_id) %>% unique()
 #weirdly, the human and mouse names get '.' added, but maca does not fo
