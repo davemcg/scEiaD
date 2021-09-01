@@ -20,7 +20,7 @@ umap <- umap %>% left_join(phate_2D$embedding %>% as_tibble(rownames = 'Barcode'
 umap <- umap %>% left_join(., study_meta, by = c('study_accession'))
 
 # make metadata
-metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, PHATE1, PHATE2, nCount_RNA, nFeature_RNA, Phase, percent_mt = `percent.mt`, S_Score = `S.Score`, G2M_Score = `G2M.Score`, batch, sample_accession, study_accession, Age, library_layout, organism, Platform, UMI, Covariate, CellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, SubCellType, GSE, Summary, Citation, PMID, Design) %>% 
+metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, PHATE1, PHATE2, nCount_RNA, nFeature_RNA, Phase, percent_mt = `percent.mt`, S_Score = `S.Score`, G2M_Score = `G2M.Score`, batch, sample_accession, study_accession, Age, library_layout, retina_region, strain, sex, Organ, Tissue, organism, Platform, UMI, Covariate, CellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, SubCellType, GSE, Summary, Citation, PMID, Design) %>% 
 		mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType)) %>%
 			left_join(., meta, by = 'Barcode')
 
@@ -57,9 +57,17 @@ chunk_num = 20
 
 print(dim(counts))	
 # replace with new gene names including HGNC
-gene_id_converter <- read_tsv('references/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
-                              col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
-                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
+#gene_id_converter <- read_tsv('references/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
+#                              col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
+#                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
+#  select(-hs_gene_id_v)
+gene_id_converter <- read_tsv(glue::glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque_chick_ZF.tsv.gz'), skip = 1,
+                              col_names= c('hs_gene_id','hs_gene_id_v',
+                                           'gg_gene_id', 'gg_gene_name',
+                                           'mf_gene_id', 'mf_gene_name',
+                                           'mm_gene_id', 'mm_gene_name',
+                                           'zf_gene_id', 'zf_gene_name',
+                                           'hs_gene_name')) %>%
   select(-hs_gene_id_v)
 
 gene_id_converter2 <- bind_rows(gene_id_converter %>% filter(!is.na(hs_gene_id)), gene_id_converter %>% filter(!is.na(mm_gene_id)) %>% mutate(hs_gene_id = mm_gene_id, hs_gene_name = mm_gene_name))
@@ -146,9 +154,9 @@ dbWriteTable(pool, "genes", genes, overwrite = TRUE)
 long <- lazy_dt(long)
 meta_filter <- lazy_dt(meta_filter)
 
-long <- left_join(long, meta_filter %>% select(Barcode, batch, study_accession, library_layout, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, Phase, GSE, Citation, PMID, cluster), by = 'Barcode') 
+long <- left_join(long, meta_filter %>% select(Barcode, batch, study_accession, library_layout, retina_region, strain, sex, Organ, Tissue, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, Phase, GSE, Citation, PMID, cluster), by = 'Barcode') 
 
-grouped_stats <- long %>% group_by(Gene, batch, study_accession, library_layout, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, Phase, GSE, Citation, PMID, cluster) %>%
+grouped_stats <- long %>% group_by(Gene, batch, study_accession, library_layout, retina_region, strain, sex, Organ, Tissue, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, Phase, GSE, Citation, PMID, cluster) %>%
 						summarise(cell_ct = n(), cell_exp_ct = sum(counts > 0), counts = mean(counts)) 
 # turn back into tibble
 # previous left_join and group_by were lazily evaluated
@@ -157,7 +165,7 @@ grouped_stats <- as_tibble(grouped_stats)
 dbWriteTable(pool, 'grouped_stats', grouped_stats, overwrite = TRUE)
 db_create_index(pool, table = 'grouped_stats', columns = c('Gene'))
 
-#meta_only_grouped_stats <- long %>% group_by(batch, study_accession, library_layout, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, GSE, Summary, Citation, PMID, cluster) %>%
+#meta_only_grouped_stats <- long %>% group_by(batch, study_accession, library_layout, retina_region, strain, sex, Organ, Tissue, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, GSE, Summary, Citation, PMID, cluster) %>%
 #                        summarise(cell_ct = n())
 #dbWriteTable(pool, 'meta_only_grouped_stats', grouped_stats, overwrite = TRUE)
 
