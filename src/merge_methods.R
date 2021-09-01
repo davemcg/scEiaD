@@ -366,7 +366,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 	create(filename= out, 
            overwrite = TRUE,
            data = matrix, 
-           cell.attrs = list(batch = seurat_obj@meta.data[,covariate],
+           cell.attrs = list(percent.mt = seurat_obj@meta.data[,'percent.mt'],
+							 batch = seurat_obj@meta.data[,covariate],
 						     sample_accession = seurat_obj@meta.data[,'SA'],
                              batch_indices = seurat_obj@meta.data[,covariate] %>% 
                                as.factor() %>% 
@@ -415,8 +416,8 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_layers,
 						 'FALSE',
 					     ref_samples,
-						 args[8],
-						 args[9])
+						 args[10],
+						 args[11])
 	}
     # run scVI     
 	print(scVI_command) 
