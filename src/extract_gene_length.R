@@ -2,9 +2,17 @@ library(tidyverse)
 
 #args = commandArgs(trailingOnly=TRUE)
 
-gene_id_converter <- read_tsv('references/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
-                              col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
-                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
+#gene_id_converter <- read_tsv('references/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
+#                              col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
+#                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
+#  select(-hs_gene_id_v)
+gene_id_converter <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque_chick_ZF.tsv.gz'), skip = 1,
+                              col_names= c('hs_gene_id','hs_gene_id_v',
+                                           'gg_gene_id', 'gg_gene_name',
+                                           'mf_gene_id', 'mf_gene_name',
+                                           'mm_gene_id', 'mm_gene_name',
+                                           'zf_gene_id', 'zf_gene_name',
+                                           'hs_gene_name')) %>%
   select(-hs_gene_id_v)
 
 gene_length <- function(ref){
