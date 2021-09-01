@@ -4,7 +4,7 @@
 		"partition" : "norm",
 		"time" : "04:00:00",
 		"mem" : "8g",
-		"extra" : "",
+		"extra" : " --gres=lscratch:2",
 		"output"  : "00log/{rule}_{wildcards}.out",
 		"error" : "00log/{rule}_{wildcards}.err" 
 	},
@@ -38,8 +38,8 @@
 	},
 	"create_sparse_matrix" : 
 	{
-		"time" : "01:30:00",
-		"mem" : "64G"
+		"time" : "08:30:00",
+		"mem" : "128G"
 	},
 	"kallisto_index":
 	{
@@ -224,8 +224,8 @@
 	},
 	"diff_test_wilcox" :
 	{
-		"mem" : "750G",
-		"time" : "12:00:00",
+		"mem" : "1000G",
+		"time" : "30:00:00",
 		"partition" : "largemem",
 		"extra" : " --gres=lscratch:20"
 	},
@@ -274,7 +274,7 @@
 	"sqlite_add_tables" :
 	{
 		"mem" : "100G",
-		"time" : "4:00:00",
+		"time" : "36:00:00",
 		"partition" : "norm",
 		"extra" : " --gres=lscratch:50"
 	},
@@ -295,7 +295,7 @@
 	"haystack" :
 	{
 		"mem" : "200G",
-		"time" : "36:00:00",
+		"time" : "40:00:00",
 		"partition" : "norm",
 		"extra" : " --gres=lscratch:5"
 	},
@@ -322,11 +322,14 @@
 	},
 	"make_PLAE_objs" :
 	{
-		"mem" : "160G"
+		"mem" : "240G",
+		"partition" : "norm",
+		"time" : "12:00:00"
 	},
 	"mito_stats" :
 	{
-		"mem" : "100G"
+		"mem" : "140G",
+		"extra" : " --gres=lscratch:20"
 	},
 	"add_missing_genes" :
 	{
