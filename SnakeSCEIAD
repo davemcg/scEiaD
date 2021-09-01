@@ -56,6 +56,8 @@ rule all:
 # take winner params from SnakePOP
 # and rebuild latent dims
 # SO means save the scVI model and  created anndata object
+ref_samples = config['ref_samples']
+pattern_file=config['samplename_patterns']
 rule rebuild_scVI_data:
 	input:
 		existing = 'seurat_obj/raw/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__preFilter.seuratV3.Rdata',
@@ -79,6 +81,8 @@ rule rebuild_scVI_data:
 				 {input} \
 				 {output.seurat} \
 				 {params.epochs} \
+				 {pattern_file} \
+				 {ref_samples} \
 				 {output.model} \
 				 {output.h5ad} "
 
