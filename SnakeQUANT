@@ -210,10 +210,10 @@ else:
 
 rule all:
 	input:
-		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
-		'pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata',
+		'pipeline_data/clean_quant_' + config['ambient'] + '/all_species_full_sparse_matrix.Rdata',
+		#'pipeline_data/clean_quant_' + config['ambient'] + '/all_species_full_sparse_unspliced_matrix.Rdata',
 		'pipeline_data/cell_info/all_cell_info.tsv',
-		'pipeline_data/clean_quant/mito_counts.tsv'
+		'pipeline_data/clean_quant_' + config['ambient'] + '/mito_counts.tsv'
 	
 # get annotation for each species 
 rule make_sample_name_prefixs:
@@ -365,7 +365,7 @@ rule make_dropseq_whitelists:
 	input: 
 		DROPSEQ_samples_from_reference(quant_path, SRS_dict)
 	output:
-		'references/whitelist/DropSeq/barcodes.txt'
+		'references/whitelist/DropSeq/barco/des.txt'
 	shell:
 		'''
 		mkdir -p dropseq_temp
@@ -408,9 +408,7 @@ rule bustools_whitelist_correct_count:
 		'''
 	
 	
-
-## need to fix this script	
-
+# decontX (could) be run here, depending on what the yaml says
 rule create_sparse_matrix:
 	input:
 		spliced = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, 'spliced.mtx', SRS_dict),
@@ -423,15 +421,13 @@ rule create_sparse_matrix:
 		spliced_matrix = 'pipeline_data/clean_quant/{srp}/{reference}/matrix.Rdata',
 		unspliced_matrix = 'pipeline_data/clean_quant/{srp}/{reference}/unspliced_matrix.Rdata'
 	params:
+		ambient = config['ambient'],
 		matrix_outdir = lambda wildcards: f'pipeline_data/clean_quant/{wildcards.srp}/{wildcards.reference}/',
-		bus_outdirs = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, '', SRS_dict)
-	#group: "bus"	
+		bus_outdirs = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, '', SRS_dict),
 	shell:
 		"""
 		module load R/4.0.3 #need 1.10 of droplet utils 
-		
-        Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {input.mito_genelist} {pattern_file} {params.bus_outdirs}
-
+        Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {input.mito_genelist} {pattern_file} {params.ambient} {git_dir} {params.bus_outdirs} 
 		"""		
 # spit out both intron and exon counts 
 
@@ -509,4 +505,19 @@ rule merge_across_references:
 		"""
 		module load R/3.6
 		Rscript {git_dir}/src/blend_macaque_merge_across_reference.R {working_dir} {git_dir} {input.srr_metadata} {pattern_file}
-		"""	
+		"""
+
+localrules: mv_clean_quant
+rule mv_clean_quant:
+	input:
+		'pipeline_data/clean_quant/mito_counts.tsv',
+		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
+	output:
+		'pipeline_data/clean_quant_' + config['ambient'] + '/mito_counts.tsv',
+		'pipeline_data/clean_quant_' + config['ambient'] + '/all_species_full_sparse_matrix.Rdata'
+	params:
+		ambient = config['ambient']
+	shell:
+		"""
+		mv pipeline_data/clean_quant/ pipeline_data/clean_quant_{params.ambient} 
+		"""
