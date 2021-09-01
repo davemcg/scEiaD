@@ -10,7 +10,7 @@ working_dir=config$working_dir# this is where cell_info lives
 setwd(working_dir)
 
 load(glue('{git_dir}/data/sra_metadata_extended.Rdata'))
-meta <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv')) %>% select(-TissueNote)
+meta <- read_tsv(config$srr_sample_file) %>% select(-TissueNote)
 # load labelled data from clark et all
 # NO WRONG NOW https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1
 clark_labels <- data.table::fread(glue('{git_dir}/data/GSE118614_barcodes.tsv.gz'))
@@ -359,7 +359,7 @@ meta_TM <- cell_info %>% left_join(., tm, by = 'value' )
 ## Yan ... Sanes retina rod/cone 
 cell_info <- data.table::fread(config$cell_info) %>%
     filter(study_accession == 'SRP255195')
-sample_meta <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv')) %>% filter(study_accession == 'SRP255195')
+sample_meta <- read_tsv(config$srr_sample_file) %>% filter(study_accession == 'SRP255195')
 yan_pr <- read_csv(glue('{git_dir}/data/yan_sanes_PR____Human_retina_combined_all_meta.csv'))
 yan_pr <- yan_pr %>% 
   mutate(CellType = case_when(Cluster == 'Astrocytes' ~ 'Astrocytes',
@@ -458,7 +458,7 @@ meta_SRP218652 <- cell_info %>% filter(study_accession == 'SRP218652') %>%
 # SRP259930 Sanes mouse amacrine 63+ cluster paper
 cell_info <- data.table::fread(config$cell_info) %>%
     filter(study_accession == 'SRP259930')
-metaTN  <- read_tsv(glue('{git_dir}/data/sample_run_layout_organism_tech.tsv'))
+metaTN  <- read_tsv(config$srr_sample_file)
 sanes_mmAC <- read_csv(glue('{git_dir}/data/MouseAC_metafile.csv'), skip=1) %>% mutate(Mouse = str_extract(TYPE, 'MouseACS\\d+'), Barcode = str_extract(TYPE, '_.*') %>% gsub('_|-\\d+','',.))
 meta_SRP259930 <- cell_info %>% 
 						mutate(Barcode = gsub("_.*","", value)) %>% 
@@ -507,37 +507,165 @@ meta_SRP200499 <- cell_info %>%
 						mutate(Paper = 'Heng et al. 2019')
 
 
+
+
+# SRP251245 sanes mouse outflow tract
+# SRP255871 sanes human outflow tract
+# SRP255874 sanes macaque outflow tract
+cell_info <- data.table::fread(config$cell_info) %>%
+    filter(study_accession %in%  c('SRP251245', 'SRP255871', 'SRP255874')) %>%
+	mutate(sample = case_when(biosample_title == 'MouseTMS2' ~ 'MouseTMS2',
+								biosample_title == 'Mulatta2TMR' ~ 'MM1RTM',
+								grepl('Pt\\d', biosample_title) ~ str_extract(biosample_title, 'H\\w+'),
+								biosample_title == 'Mulatta1TML' ~ 'MM1LTM',
+								biosample_title == 'MouseTMS1' ~ 'MouseTMS1'))
+
+outflow <- read_csv(glue("{git_dir}/data/SRP251245_all_five_species_metafile.csv")) %>% filter(NAME != 'TYPE') %>%
+				separate(NAME, c('sample','BC'), sep = '_') %>% 
+  				mutate(BC = gsub('-\\d+','',BC))  
+	
+outflow_meta <- cell_info %>% 
+					mutate(BC = gsub("_.*","", value)) %>%
+					left_join(outflow %>% select(sample, BC, Cluster), by = c('sample','BC')) %>%
+					mutate(Cluster = gsub('^\\d+_','',Cluster),
+							SubCellType = Cluster) %>% 
+					mutate(CellType = case_when(grepl('B Cell|BCell', Cluster, ignore.case = TRUE) ~ 'B-Cell',
+													grepl('Beam', Cluster, ignore.case=TRUE) ~ 'Beam',
+													grepl('Muscle',Cluster, ignore.case=TRUE) ~ 'Ciliary Muscle',
+													grepl('Cornea', Cluster, ignore.case =TRUE) ~ 'Cornea',
+													Cluster %in% c('Endothelium', 'JCT','Macrophage',
+																	'Melanocyte', 'Pericyte', 'Uveal')  ~ Cluster,
+													grepl('JCT', Cluster) ~ 'JCT',
+													grepl('Mast', Cluster) ~ 'Mast',
+													grepl('schwann', Cluster, ignore.case = TRUE) ~ 'Schwann',
+													grepl('NK/T|NKT', Cluster) ~ 'T-Cell',
+													grepl('epithe', Cluster) ~ 'Epithelium',
+													Cluster == 'SChlemm\'s Canal' ~ 'Schlemm\'s Canal',
+													grepl('Endo', Cluster) ~ 'Endothelium')) %>%
+					select(-sample, -BC, -Cluster) %>%
+					mutate(Paper = 'van Zyl et al. 2020')	
+												
+#  SRP286543 sanes chick atlas
+cell_info <- data.table::fread(config$cell_info) %>%
+    filter(study_accession %in%  c('SRP286543'))
+chick_atlas <- read_csv(glue('{git_dir}/data/yamagata_sanes_Chick_retina_atlas_meta.csv.gz')) %>% filter(NAME != 'TYPE') %>% 
+  separate(NAME, c('Chick','BC'), sep = '_') %>% 
+  mutate(BC = gsub('-\\d+','',BC),
+         sample_accession = case_when(Chick == 'Chicken1A' ~  'SRS7483320',
+							Chick == 'Chicken1B' ~  'SRS7483321',
+							Chick == 'Chicken1C' ~  'SRS7483322',
+							Chick == 'Chicken1D' ~  'SRS7483323',
+							Chick == 'ChickendRGC1' ~  'SRS7483324',
+							Chick == 'ChickendRGC2' ~  'SRS7483325',
+							Chick == 'ChickenvRGC1' ~  'SRS7483326',
+							Chick == 'ChickenvRGC2' ~  'SRS7483327')) 
+chick_meta <- chick_atlas %>% select(Chick, BC, Cluster, sample_accession) %>% 
+  right_join(cell_info %>% mutate(BC = gsub("_.*","", value)), by = c('BC','sample_accession')) %>% 
+  mutate(CellType = case_when(grepl('AC', Cluster) ~ 'Amacrine Cells',
+                              grepl('BP', Cluster) ~ 'Bipolar Cells',
+                              grepl('HC', Cluster) ~ 'Horizontal Cells',
+                              grepl('OG', Cluster) ~ 'Oligodendrocytes',
+                              grepl('MG', Cluster) ~ 'Muller Glia',
+                              grepl('Cones', Cluster) ~ 'Cones',
+                              grepl('Rods', Cluster) ~ 'Rods',
+                              grepl('RGC', Cluster) ~ 'Retinal Ganglion Cells'),
+		SubCellType = Cluster) %>%
+  select(-Chick, -BC, -Cluster) %>%
+  mutate(Paper = 'Yamagata et al. 2021')
+
+# SRP292721 human pan atlas
+cell_info <- data.table::fread(config$cell_info) %>%
+    filter(study_accession %in%  c('SRP292721'))
+pan_human <- read_tsv(glue('{git_dir}/data/SRP292721_Annotation_AHCA_alltissues_meta.data_84363_cell.txt.gz')) %>%  
+	separate(X1, c('Organ', 'cDNA', 'BC'), sep = '_') %>%
+	mutate(BC = gsub('-\\d+','',BC)) %>%
+    mutate(CellType = case_when(Cell_type_in_merged_data == 'Absorptive Cell' ~ 'Absorptive Cell',
+								grepl('B Cell', Cell_type_in_merged_data, ignore.case = TRUE) ~ 'B-Cell',
+							 	grepl('Basal Cell', Cell_type_in_merged_data) ~ 'Basal Cell',
+								Cell_type_in_merged_data == 'Cholangiocyte' ~ 'Cholangiocyte',
+								grepl('Endothelial', Cell_type_in_merged_data) ~ 'Endothelial',
+								grepl('Enterocyte', Cell_type_in_merged_data) ~ 'Enterocyte',
+								grepl('Fibroblast', Cell_type_in_merged_data) ~ 'Fibroblasts',
+								grepl('Erythrocyte', Cell_type_in_merged_data) ~ 'Erthyrocyte',
+								grepl('Keratinocyte', Cell_type_in_merged_data) ~ 'Keratinocyte',
+								grepl('Macrophage', Cell_type_in_merged_data) ~ 'Macrophage',
+								grepl('Melanocyte', Cell_type_in_merged_data) ~ 'Melanocytes',
+								grepl('Epithelial', Cell_type_in_merged_data) ~ 'Epithelial',
+								grepl('Plasma', Cell_type_in_merged_data) ~ 'Plasma Cell',
+								grepl('NK/T|T Cell', Cell_type_in_merged_data) ~ 'T-Cell',
+								grepl('Monocyte', Cell_type_in_merged_data) ~ 'Monocyte',
+								grepl('Satellite', Cell_type_in_merged_data) ~ 'Satellite Cell',
+								grepl('Secretory', Cell_type_in_merged_data) ~ 'Secretory Cell',
+								grepl('Smooth Muscle Cell', Cell_type_in_merged_data) ~ 'Smooth Muscle Cell',
+								grepl('Tuft Cell', Cell_type_in_merged_data) ~ 'Tuft Cell'))
+
+pan_human_meta <- cell_info %>%
+					mutate(BC = gsub("_.*","", value)) %>%
+					left_join(pan_human %>% select(Organ, BC, CellType, SubCellType = Cell_type_in_merged_data), by = c('BC','Organ')) %>%
+					mutate(Paper = 'He et al. 2020')
+					
+# SRP310237 mouse brain choroid plexus
+cell_info <- data.table::fread(config$cell_info) %>%
+    filter(study_accession %in%  c('SRP310237'))
+brainCPnuc <- read_tsv(glue('{git_dir}/data/SRP310237__single_nucleus_metadata.txt.gz')) %>% filter(NAME != 'TYPE') %>%
+					separate(NAME, c('sample','BC','index'), sep = '\\.') %>%
+					mutate(sample_accession = case_when(sample == 'Adult_TCP_1203' ~ 'SRS8433494',
+														sample == 'Aged_DCP_1008' ~ 'SRS8433501',
+														sample == 'Embryo_HCP_1209' ~ 'SRS8433491',
+														sample == 'Aged_HCP_1203' ~ 'SRS8433504',
+														sample == 'Adult_HCP_1008' ~ 'SRS8433497',
+														sample == 'Embryo_DCP_1008' ~ 'SRS8433493',
+														sample == 'Aged_TCP_1203' ~ 'SRS8433499',
+														sample == 'Adult_TCP_1008' ~ 'SRS8433492',
+														sample == 'Adult_DCP_1203' ~ 'SRS8433496',
+														sample == 'Aged_DCP_1203' ~ 'SRS8433502',
+														sample == 'Aged_TCP_1008' ~ 'SRS8433498',
+														sample == 'Aged_HCP_1008' ~ 'SRS8433505',
+														sample == 'Aged_TCP_1209' ~ 'SRS8433500')) %>%
+					select(sample_accession, BC, cell_type__ontology_label, cell_type_subset__ontology_label) %>% 
+					mutate(CellType = case_when(grepl('Endo', cell_type__ontology_label, ignore.case = TRUE) ~ 'Endothelial',
+												grepl('Epith', cell_type__ontology_label, ignore.case = TRUE) ~ 'Epithelial',
+												grepl('neuron', cell_type_subset__ontology_label, ignore.case = TRUE) ~ 'Neuron',
+												grepl('Fibroblast', cell_type_subset__ontology_label, ignore.case = TRUE) ~ 'Fibroblasts',
+												grepl('Lymphocyte', cell_type_subset__ontology_label, ignore.case = TRUE) ~ 'Lymphocyte',
+												grepl('^Mac', cell_type_subset__ontology_label, ignore.case = TRUE) ~ 'Macrophage',
+												grepl('Meningeal', cell_type_subset__ontology_label, ignore.case = TRUE) ~ 'Meningeal',
+												grepl('Neutrophil', cell_type_subset__ontology_label, ignore.case = TRUE) ~ 'Neutrophil',
+												grepl('Pericytes', cell_type_subset__ontology_label, ignore.case = TRUE) ~ 'Pericytes',
+												grepl('SMC', cell_type_subset__ontology_label, ignore.case = TRUE) ~ 'SMC'),
+							SubCellType = case_when(!grepl('mesenchymal', cell_type__ontology_label) ~ cell_type__ontology_label,
+													TRUE ~ cell_type_subset__ontology_label)) 
+
+	
+meta_SRP310237 <- cell_info %>% 
+					mutate(BC = gsub("_.*","", value)) %>%
+					left_join(brainCPnuc %>% select(sample_accession, BC, CellType, SubCellType), by = c('BC','sample_accession')) %>%
+					mutate(Paper = 'Dani et al. 2021')			
 # MERGE
 cell_info <- data.table::fread(config$cell_info)
 
 meta_SRP <- bind_rows(meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, 
 						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195, meta_EGAD00001006350, meta_SRP218652, meta_SRP259930, 
-						meta_SRP200499) %>%
+						meta_SRP200499, outflow_meta, chick_meta, pan_human_meta, meta_SRP310237) %>%
 			select(value:batch, CellType, SubCellType, TabulaMurisCellType, Paper) %>% 
-	mutate(CellType = gsub('Melanotype', 'Melanocytes', CellType),
-			CellType = gsub('B-cell', 'B-Cell', CellType),
-			CellType = gsub('Macrophages', 'Macrophage', CellType),
-			CellType = gsub('Pericyte$', 'Pericytes', CellType),
-			CellType = gsub('T/NK-cell', 'T-Cell', CellType),
-			CellType = gsub('Vascular Endothelium', 'Endothelial', CellType))
+	mutate(CellType = gsub('AC/HC_Precur', 'AC/HC_Precursor', CellType),
+			CellType = gsub('Natural Killer', 'T/NK-Cell', CellType), 
+			CellType = gsub('Artery', 'Blood Vessel', CellType),
+			CellType = gsub('Vein', 'Blood Vessel', CellType),
+			CellType = gsub('Erthyrocyte', 'Red Blood Cell', CellType),
+			CellType = gsub('Cone Bipolar Cells', 'Bipolar Cells', CellType),
+			CellType = gsub('B-cell', 'B Cell', CellType),
+			CellType = gsub('B Cell', 'B Cell', CellType),
+			CellType = gsub('T-Cell', 'T/NK-Cell', CellType),
+			CellType = gsub('ium$', 'ial', CellType),
+			CellType = gsub('Vascular ', '', CellType),
+			CellType = gsub('s$','', CellType),
+			CellType = gsub('Choriocapillari','Choriocapillaris', CellType))
 cell_info_labels <- bind_rows(meta_SRP, 
                               cell_info %>% select(value:batch) %>% 
-                                filter(!value %in% meta_SRP$value) %>% 
+                                filter(!value %in% meta_SRP$value,
+										!is.na(study_accession)) %>% 
                                 mutate(Paper = NA, TissueNote = NA))
-
-
-
-
-
-# this is crude, but SRP16660 has selected Muller Glia via FACS of R26R mouse line
-# SRP186407 uses Cx3cr1+ FACS to select Microglia
-#cell_info_labels <- cell_info_labels %>% 
-#  mutate(CellType = case_when(study_accession == 'SRP166660' ~ "Muller Glia",
-#                              study_accession == 'SRP186407' ~ "Microglia",
-#                              TRUE ~ CellType),
-#         Paper = case_when(study_accession == 'SRP166660' ~ "Rueda et al. 2019",
-#                           study_accession == 'SRP186407' ~ "O'Koren et al. 2019",
-#                           TRUE ~ Paper))
 
 
 # label internal iPSC RPE data
@@ -553,12 +681,14 @@ cell_info_labels <- cell_info_labels %>%
 
 if ( sum(is.na(cell_info_labels$study_accession)) > 0 ) {
 	print('Join error, check data frame!')
+	save(file = 'cell_info_labels_error.Rdata')
 	stop()
 }
-cell_info <- data.table::fread('pipeline_data/cell_info/all_cell_info.tsv') %>% select(-TissueNote)
+cell_info <- data.table::fread('pipeline_data/cell_info/all_cell_info.tsv') %>% select(-TissueNote) %>% filter(!is.na(study_accession))
 if (((cell_info_labels$value %>% duplicated) %>% sum() == 0) & 
 	(nrow(cell_info) == nrow(cell_info_labels))) {
 	save(cell_info_labels, file = 'pipeline_data/cell_info/cell_info_labelled.Rdata')
+	print('SUCCESS')
 } else {
 	save(meta_SRP218652x, meta_SRP218652y, cell_info_labels, cell_info, file = 'pipeline_data/cell_info/cell_info_labelled_fail.Rdata')
 	print("Doubled or missing cells! Check data frame!")
