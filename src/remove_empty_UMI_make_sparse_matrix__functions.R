@@ -110,13 +110,13 @@ common <- bc_spliced_pass %>% intersect(prefilter_common)
 
   ## quality control: remove high mito cells, and remove high count(doublet) cells
 
-  cells_above_min_umi <-  seu$nFeature_RNA > 300
+  cells_above_min_umi <-  seu$nFeature_RNA > 200
   cells_above_min_umi2 <-  seu$nFeature_RNA > 600
   cells_below_max_umi <- seu$nFeature_RNA < 100000
 
   seu[["percent.mt"]] <- PercentageFeatureSet(seu, features = mito_genelist)
   pct_mt_df = tibble(srs=srs,barcode = colnames(seu), `percent.mt` = seu$percent.mt, nFeature_RNA = seu$nFeature_RNA)
-  cells_below_max_mito_pt <-  seu$percent.mt < mito_cutoff 
+  cells_below_max_mito_pt <-  seu$percent.mt < 10 
   keep_cells <- cells_below_max_mito_pt & cells_above_min_umi & cells_below_max_umi
   df <- df %>% mutate(ncells_pre_qc = ncol(spliced),
                       ncells_failed_min_umi = sum(!cells_above_min_umi),
