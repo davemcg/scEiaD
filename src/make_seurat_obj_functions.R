@@ -10,15 +10,17 @@ make_seurat_obj <- function(m,
                             mito_geneids,
 							lengthCor = FALSE, 
 							dont_use_well_for_FVF = FALSE,
-							only_use_human_for_FVF = FALSE
+							only_use_human_for_FVF = FALSE,
+							droplet_platform = c('DropSeq', '10xv2', '10xv3')
                             ){
-  well_m <- m[,cell_info %>% filter(value %in% colnames(m), !Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
-  droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% c('DropSeq', '10xv2', '10xv3')) %>% pull(value)]
+  well_m <- m[,cell_info %>% filter(value %in% colnames(m), !Platform %in% droplet_platform) %>% pull(value)]
+  droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% droplet_platform) %>% pull(value)]
   if (keep_well){
      seurat_well <- CreateSeuratObject(well_m)
   }
   if (keep_droplet){
      seurat_droplet <- CreateSeuratObject(droplet_m)
+	 #seurat_droplet <-  subset(seurat_droplet, subset = nFeature_RNA > 300)
 	 droplet_hs <- m[,cell_info %>% filter(value %in% colnames(m), organism %in% c('Homo sapiens')) %>% pull(value)]
 	 hs_seurat_droplet <- CreateSeuratObject(droplet_hs)
   }
@@ -28,25 +30,25 @@ make_seurat_obj <- function(m,
   # for well, drop the 3000 gene top end filter as there shouldn't be any droplets
   if (keep_well & !lengthCor){
     print('No Length Correction')
-    seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
+    seurat_well <- subset(seurat_well, subset = nFeature_RNA > 300)
   } else if (keep_well && lengthCor) {
       seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
       #qumi_counts <- quminorm(seurat_well@assays$RNA@counts)
       source(glue('{git_dir}/src/extract_gene_length.R'))
     	geneL_mm <- gene_length( 'references/gtf/mm-mus_musculus_anno.gtf.gz')
     	geneL_hs <-  gene_length('references/gtf/hs-homo_sapiens_anno.gtf.gz')
-    	well_hs <- cell_info %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Homo sapiens') %>% pull(value)
-      well_mm <- cell_info %>% filter(Platform %in% c('C1', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v2', 'SMARTSeq_v4'), organism == 'Mus musculus') %>% pull(value)
+    	well_hs <- cell_info %>% filter(organism == 'Homo sapiens') %>% pull(value)
+        well_mm <- cell_info %>% filter(organism == 'Mus musculus') %>% pull(value)
     	mat <- seurat_well@assays$RNA@counts
     	hs_mat <- mat[, well_hs[well_hs %in% colnames(mat)]]
     	mm_mat <-  mat[, well_mm[well_mm %in% colnames(mat)]]
     	hs_mat_cor <- hs_mat / geneL_hs[row.names(hs_mat)] * median(geneL_hs)
     	mm_mat_cor <- mm_mat / geneL_mm[row.names(mm_mat)] * median(geneL_mm)
-    	hs_mm <- cbind(hs_mat_cor, mm_mat_cor)
-    	mat_cor <- hs_mm[, colnames(hs_mm) %in% colnames(mat)]
+		hs_mm <- cbind(hs_mat_cor, mm_mat_cor)
+    	mat_cor <- hs_mm[, colnames(hs_mm) %in% colnames(mat)] %>% round()
 
   	  seurat_well <- CreateSeuratObject(mat_cor)
-      seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
+      #seurat_well <- subset(seurat_well, subset = nFeature_RNA > 300)
       print('Length Correction for Well DONE!')
   }
   # cells to keep
