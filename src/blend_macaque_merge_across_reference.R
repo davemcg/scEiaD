@@ -137,7 +137,7 @@ rm(homo_hs_matrix_cg)
 
 ### now make the merged quantfile
 all_shared_gene_ids <- gene_id_converter %>% 
-  filter(hs_gene_id %in% rownames(all_cells_macaque_hs_ids),
+  filter(#hs_gene_id %in% rownames(all_cells_macaque_hs_ids),
          hs_gene_id %in% rownames(homo_hs_matrix),
          mm_gene_id %in% rownames(mus_mm_matrix),
          !is.na(mm_gene_id))%>%
@@ -154,10 +154,12 @@ mus_mm_matrix_cg <- aggregate.Matrix(mus_mm_matrix_cg, all_shared_gene_ids_hs_mm
 # fix row names for homo gene names (remove .\\d+ endings)
 row.names(homo_hs_matrix) <- str_replace_all(row.names(homo_hs_matrix),'\\.\\d+', '')
 homo_hs_matrix_cg <- homo_hs_matrix[rownames(mus_mm_matrix_cg), ]
-maca_all_matrix_cg = all_cells_macaque_hs_ids[rownames(mus_mm_matrix_cg),  ]# BUGFIX: - was not removing nonshared genes from macaque
-# alt approach which ensures that "missing" genes in the macaque matrix don't trip this step up
+# NEW approach which ensures that "missing" genes in the macaque matrix don't trip this step up
 # (because you are only using hte mouse and human data to find intersecting names)
-# maca_all_matrix_cg = all_cells_macaque_hs_ids[rownames(mus_mm_matrix_cg)[rownames(mus_mm_matrix_cg) %in% row.names(all_cells_macaque_hs_ids)],  ]
+# hoping this doesn't explode and hurt me, but i don't like reducing genes by 1000 or so just BC they aren't in the macaque data
+# which has a shit reference AND way fewer cells (and no developing ones) compared to human/mouse
+#maca_all_matrix_cg = all_cells_macaque_hs_ids[rownames(mus_mm_matrix_cg),  ]# BUGFIX: - was not removing nonshared genes from macaque
+maca_all_matrix_cg = all_cells_macaque_hs_ids[rownames(mus_mm_matrix_cg)[rownames(mus_mm_matrix_cg) %in% row.names(all_cells_macaque_hs_ids)],  ]
 
 rm(mus_mm_matrix, homo_hs_matrix)# free up more mem 
 
@@ -239,7 +241,9 @@ all_shared_gene_ids_hs_mm_intron  =  {tibble(mm_gene_id = rownames(intron_mus_mm
 intron_mus_mm_matrix <- aggregate.Matrix(intron_mus_mm_matrix[mm_intron_keep, ],  
                                          all_shared_gene_ids_hs_mm_intron$hs_gene_id, fun='sum')
 intron_homo_hs_matrix <- intron_homo_hs_matrix[rownames(intron_homo_hs_matrix)%in% rownames(intron_mus_mm_matrix), ]
-all_intron_macaque_data = all_intron_macaque_data[rownames(intron_mus_mm_matrix), ]
+#all_intron_macaque_data = all_intron_macaque_data[rownames(intron_mus_mm_matrix), ]
+all_intron_macaque_data = all_intron_macaque_data[rownames(intron_mus_mm_matrix)[rownames(intron_mus_mm_matrix) %in% row.names(all_cells_macaque_hs_ids)], ]
+# all_cells_macaque_hs_ids[rownames(mus_mm_matrix_cg)[rownames(mus_mm_matrix_cg) %in% row.names(all_cells_macaque_hs_ids)],  ]
 all_intron_data = RowMergeSparseMatrices(intron_homo_hs_matrix, intron_mus_mm_matrix) %>%  
   RowMergeSparseMatrices(all_intron_macaque_data)
 #### add new round data
