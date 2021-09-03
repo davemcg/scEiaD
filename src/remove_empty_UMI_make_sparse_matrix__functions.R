@@ -116,7 +116,7 @@ common <- bc_spliced_pass %>% intersect(prefilter_common)
 
   seu[["percent.mt"]] <- PercentageFeatureSet(seu, features = mito_genelist)
   pct_mt_df = tibble(srs=srs,barcode = colnames(seu), `percent.mt` = seu$percent.mt, nFeature_RNA = seu$nFeature_RNA)
-  cells_below_max_mito_pt <-  seu$percent.mt < 10 
+  cells_below_max_mito_pt <-  seu$percent.mt < 20 
   keep_cells <- cells_below_max_mito_pt & cells_above_min_umi & cells_below_max_umi
   df <- df %>% mutate(ncells_pre_qc = ncol(spliced),
                       ncells_failed_min_umi = sum(!cells_above_min_umi),

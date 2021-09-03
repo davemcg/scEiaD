@@ -11,18 +11,19 @@ make_seurat_obj <- function(m,
 							lengthCor = FALSE, 
 							dont_use_well_for_FVF = FALSE,
 							only_use_human_for_FVF = FALSE,
-							droplet_platform = c('DropSeq', '10xv2', '10xv3')
+							droplet_platform = c('DropSeq', '10xv2', '10xv3'),
+							well_platform = c('SMARTSeq_v2', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v4')
                             ){
-  well_m <- m[,cell_info %>% filter(value %in% colnames(m), !Platform %in% droplet_platform) %>% pull(value)]
+  well_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% well_platform) %>% pull(value)]
   droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% droplet_platform) %>% pull(value)]
   if (keep_well){
      seurat_well <- CreateSeuratObject(well_m)
   }
   if (keep_droplet){
      seurat_droplet <- CreateSeuratObject(droplet_m)
-	 #seurat_droplet <-  subset(seurat_droplet, subset = nFeature_RNA > 300)
-	 droplet_hs <- m[,cell_info %>% filter(value %in% colnames(m), organism %in% c('Homo sapiens')) %>% pull(value)]
-	 hs_seurat_droplet <- CreateSeuratObject(droplet_hs)
+	 seurat_droplet <-  subset(seurat_droplet, subset = nFeature_RNA > 300)
+	 #droplet_hs <- m[,cell_info %>% filter(value %in% colnames(m), organism %in% c('Homo sapiens')) %>% pull(value)]
+	 #hs_seurat_droplet <- CreateSeuratObject(droplet_hs)
   }
 
   # FILTER STEP!!!!
@@ -32,8 +33,6 @@ make_seurat_obj <- function(m,
     print('No Length Correction')
     seurat_well <- subset(seurat_well, subset = nFeature_RNA > 300)
   } else if (keep_well && lengthCor) {
-      seurat_well <- subset(seurat_well, subset = nFeature_RNA > 200)
-      #qumi_counts <- quminorm(seurat_well@assays$RNA@counts)
       source(glue('{git_dir}/src/extract_gene_length.R'))
     	geneL_mm <- gene_length( 'references/gtf/mm-mus_musculus_anno.gtf.gz')
     	geneL_hs <-  gene_length('references/gtf/hs-homo_sapiens_anno.gtf.gz')
@@ -48,7 +47,7 @@ make_seurat_obj <- function(m,
     	mat_cor <- hs_mm[, colnames(hs_mm) %in% colnames(mat)] %>% round()
 
   	  seurat_well <- CreateSeuratObject(mat_cor)
-      #seurat_well <- subset(seurat_well, subset = nFeature_RNA > 300)
+      seurat_well <- subset(seurat_well, subset = nFeature_RNA > 300)
       print('Length Correction for Well DONE!')
   }
   # cells to keep
@@ -96,7 +95,13 @@ make_seurat_obj <- function(m,
     good_cells <- filter(seurat_m@meta.data, !batch %in% bad_batches ) %>% rownames
     seurat_m <- seurat_m[,good_cells]
   }
-  
+ 	
+  # MT filtering
+  # 10xv3 has approx 2x the mito counts of 10xv2, so giving that platform a diff cutoff
+  # https://kb.10xgenomics.com/hc/en-us/articles/360026501692-Do-we-see-a-difference-in-expression-profile-of-3-Single-Cell-v3-chemistry-as-compared-to-v2-chemistry
+  mt_cells_keep <- (seurat_m@meta.data$percent.mt < 10 & seurat_m@meta.data$TechType != '10xv3') | (seurat_m@meta.data$percent.mt < 20 & seurat_m@meta.data$TechType == '10xv3')
+  seurat_m <- seurat_m[, mt_cells_keep]
+ 
   # scale data and regress
   seurat_m <- NormalizeData(seurat_m)
   # find var features
@@ -107,7 +112,9 @@ make_seurat_obj <- function(m,
   }
 
   if (only_use_human_for_FVF == TRUE) {
-    hs_seurat_droplet  <- FindVariableFeatures(hs_seurat_droplet, nfeatures = nfeatures, selection.method = 'vst')
+    droplet_hs <- m[,cell_info %>% filter(value %in% colnames(seurat_m), organism %in% c('Homo sapiens')) %>% pull(value)]
+    hs_seurat_droplet <- CreateSeuratObject(droplet_hs)
+	hs_seurat_droplet  <- FindVariableFeatures(hs_seurat_droplet, nfeatures = nfeatures, selection.method = 'vst')
     VariableFeatures(seurat_m) <- VariableFeatures(hs_seurat_droplet)
   }  
   
