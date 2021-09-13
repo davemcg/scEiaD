@@ -1,5 +1,10 @@
 library(tidyverse)
 library(dtplyr)
+
+# HCOP data downloaded 
+# from http://ftp.ebi.ac.uk/pub/databases/genenames/hcop/
+# on 2021-09-13
+
 human_mouse <- read_tsv('~/git/scEiaD/data/human_mouse_hcop_fifteen_column.txt.gz')
 hmm <- human_mouse %>% select(human_name, human_ensembl_gene, human_symbol, mouse_ensembl_gene, mouse_symbol) %>% distinct()
 
