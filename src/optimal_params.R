@@ -25,7 +25,7 @@ for (x in partitions_run){
   print(x)
   # load all clustering params -----
   files <- list.files('pipeline_data/perf_metrics',
-                      pattern = paste0(x, '.*Rdata'),
+                      pattern = paste0(x, '_.*Rdata'),
                       full.names = TRUE)
   for (i in files){
     print(i)
