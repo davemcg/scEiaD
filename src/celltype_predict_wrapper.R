@@ -15,7 +15,7 @@ load(args[2]) # umap metadata
 label__id__col = args[5]# label_id_col is the name of a column that will be created and used interally within the python script,
 label__name__col = args[6]# label_name_col must a be a column in embedding/umap file - CellType, cluster etc 
 model_outfile <- args[7]
-
+partition = str_extract(args[1], "partition-\\w+_")
 
 print(args)
 
@@ -111,28 +111,35 @@ run_xgboost_py <- function(embeddings, full_embeddings, model_outfile, tm = FALS
 }
 
 # full data set
-
+if (!grepl('universe',  partition)){
+	out <-  out %>% mutate(CellType = case_when(!is.na(TabulaMurisCellType) ~ TabulaMurisCellType, TRUE ~ CellType))
+	full_out <- full_out %>%  mutate(CellType = case_when(!is.na(TabulaMurisCellType) ~ TabulaMurisCellType, TRUE ~ CellType))
+}
 model_out <- run_xgboost_py(out, full_out, model_outfile, tm = FALSE, probThresh = 0.5)
 predictions <- model_out$predictions
 predictions$CellType_predict_max_prob <- model_out$predictions %>% select_if(is.numeric) %>% select(-CellTypeID) %>% mutate(CellType_predict_prob = do.call(pmax, select_if(., is.numeric))) %>% pull(CellType_predict_prob)
 umapX <- left_join(umap, predictions %>% select(Barcode, CellType_predict = CellType, CellType_predict_max_prob), by = 'Barcode')
-## remove tabula muris
-umapX <- umapX %>% filter(study_accession != 'SRP131661')
+umapORIG <- umap
+umap <-umapX
+if (grepl('universe',  partition)){
+	print('Tabula Muris prediction run!')
+	## remove tabula muris
+	umapX <- umapX %>% filter(study_accession != 'SRP131661')
+	# just tabula muris to fill in missing "TabulaMurisCellType"
+	modelTM_out <- run_xgboost_py(out_tm, full_tm, paste0(model_outfile, 'TabulaMuris'), tm = TRUE, probThresh = 0.5)
+	predictions_tm <- modelTM_out$predictions
+	predictions_tm$CellType_predict_max_prob <- modelTM_out$predictions %>% select_if(is.numeric) %>% select(-CellTypeID) %>% mutate(CellType_predict_prob = do.call(pmax, select_if(., is.numeric))) %>% pull(CellType_predict_prob)
+	umapX2 <- left_join(umapORIG %>% filter(study_accession == 'SRP131661'), predictions_tm %>% select(Barcode, TabulaMurisCellType_predict = CellType, TabulaMurisCellType_predict_max_prob = CellType_predict_max_prob), by = 'Barcode')
 
-# just tabula muris to fill in missing "TabulaMurisCellType"
-modelTM_out <- run_xgboost_py(out_tm, full_tm, paste0(model_outfile, 'TEMP'), tm = TRUE, probThresh = 0.5)
-predictions_tm <- modelTM_out$predictions
-predictions_tm$CellType_predict_max_prob <- modelTM_out$predictions %>% select_if(is.numeric) %>% select(-CellTypeID) %>% mutate(CellType_predict_prob = do.call(pmax, select_if(., is.numeric))) %>% pull(CellType_predict_prob)
-umapX2 <- left_join(umap %>% filter(study_accession == 'SRP131661'), predictions_tm %>% select(Barcode, TabulaMurisCellType_predict = CellType, TabulaMurisCellType_predict_max_prob = CellType_predict_max_prob), by = 'Barcode')
+	# glue together
+	umapX3 <- bind_rows(umapX, umapX2)
+	if (nrow(umapX3) != nrow(umapORIG)){
+		print('Cells lost!!!')
+		stop()
+	}
 
-# glue together
-umapX3 <- bind_rows(umapX, umapX2)
-if (nrow(umapX3) != nrow(umap)){
-	print('Cells lost!!!')
-	stop()
+	umap <- umapX3 
 }
-
-umap <- umapX3 
 umap$CellType_predict <- gsub('None', NA, umap$CellType_predict)
 
 # quick accuracy
@@ -152,5 +159,9 @@ test_predictions <- predictions %>%
 
 accuracy <- test_predictions %>% ungroup() %>% group_by(TrueCellType) %>% summarise(score = sum(pred_correct == 'Correct') / n()) %>% select(TrueCellType, score)
 
-save(predictions, predictions_tm, model_out, modelTM_out, accuracy, file = args[3])
+if  ("universe" %in% partition){
+	save(predictions, predictions_tm, model_out, modelTM_out, accuracy, file = args[3])
+} else {
+	save(predictions, model_out, accuracy, file = args[3])
+}
 save(umap, file = args[4])
