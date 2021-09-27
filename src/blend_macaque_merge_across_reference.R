@@ -11,6 +11,7 @@ library(glue)
 metadata <- read_tsv(args[3])
 setwd(working_dir)
 patterns <- scan(args[4], what = character(), sep='\n') %>% paste0(collapse = '|')
+genes_to_retain_from_giga_HVG <- read_csv('giga_scVI/scVIprojectionSO_scEiaD_model/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8/var_names.csv', col_names = FALSE) %>% pull(1)
 load_rdata <- function(x){
   load(x)
   env <- ls.str()
@@ -28,15 +29,16 @@ maca_hs_matrix <- load_rdata('pipeline_data/clean_quant/Macaca_fascicularis/hs-h
 #                                            'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>% 
 #   select(-hs_gene_id_v)
 
-#### This first part is to blend the macaque and human counts 
-gene_id_converter <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque_chick_ZF.tsv.gz'), skip = 1,
-                              col_names= c('hs_gene_id','hs_gene_id_v',
-                                           'gg_gene_id', 'gg_gene_name',
-                                           'mf_gene_id', 'mf_gene_name',
-                                           'mm_gene_id', 'mm_gene_name',
-                                           'zf_gene_id', 'zf_gene_name',
-                                           'hs_gene_name')) %>%
-  select(-hs_gene_id_v)
+#### This first part is to blend the macaque and human counts
+source(glue('{git_dir}src/make_gene_id_converter_table.R')) 
+#gene_id_converter <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque_chick_ZF.tsv.gz'), skip = 1,
+#                              col_names= c('hs_gene_id','hs_gene_id_v',
+#                                           'gg_gene_id', 'gg_gene_name',
+#                                           'mf_gene_id', 'mf_gene_name',
+#                                           'mm_gene_id', 'mm_gene_name',
+#                                           'zf_gene_id', 'zf_gene_name',
+#                                           'hs_gene_name')) %>%
+#  select(-hs_gene_id_v)
 
 ## first calculate the total counts across each build
 maca_mf_rowSums <- tibble(mf_gene_id = rownames(maca_mf_matrix),  mf_total = rowSums(maca_mf_matrix))
@@ -107,9 +109,9 @@ save(all_cells_macaque_hs_ids, file ='pipeline_data/clean_quant/Macaca_fascicula
 
 
 ## free up some memory
-gdata::keep(all_cells_macaque_hs_ids, gene_id_converter, joined, load_rdata, git_dir, working_dir, hs_to_mf, 
-            hs_genes,merge_macaque_references,patterns, sure = T)
-args = commandArgs(trailingOnly=TRUE)
+gdata::keep(args, all_cells_macaque_hs_ids, gene_id_converter, joined, load_rdata, git_dir, working_dir, hs_to_mf, 
+            hs_genes,merge_macaque_references,patterns, genes_to_retain_from_giga_HVG, sure = T)
+#args = commandArgs(trailingOnly=TRUE)
 metadata <- read_tsv(args[3])
 
 intron_maca_mf_matrix <- load_rdata('pipeline_data/clean_quant/Macaca_fascicularis/mf-macaca_mulatta_full_sparse_unspliced_matrix.Rdata')
@@ -140,13 +142,12 @@ all_shared_gene_ids <- gene_id_converter %>%
   filter(#hs_gene_id %in% rownames(all_cells_macaque_hs_ids),
          hs_gene_id %in% rownames(homo_hs_matrix),
          mm_gene_id %in% rownames(mus_mm_matrix),
-         !is.na(mm_gene_id))%>%
-  filter(!duplicated(mm_gene_id), # remove mouse genes that map to the same gene ID
-         mm_gene_id %in% rownames(mus_mm_matrix)) #%>% 
+         !is.na(mm_gene_id))#%>%
+#  filter(!duplicated(mm_gene_id), # remove mouse genes that map to the same gene ID
+#         mm_gene_id %in% rownames(mus_mm_matrix)) #%>% 
   
 
 all_shared_gene_ids_hs_mm <- all_shared_gene_ids %>% select(hs_gene_id, mm_gene_id) %>% distinct
-
 ## merge everything together 
 mus_mm_matrix_cg <- mus_mm_matrix[all_shared_gene_ids_hs_mm$mm_gene_id, ]
 # merge duplicate mouse -> human gene names into the human gene name
@@ -178,13 +179,17 @@ process_extra_species <- function(species, file, prefix, converter_table){
    spec_col <- paste0(prefix, 'gene_id')
    converter_cols <- c('hs_gene_id', spec_col )
    print('converter table')
-   converter_table <- converter_table %>% 
+   converter_table <- converter_table %>%
+	 select(hs_gene_id, all_of(spec_col)) %>% unique() %>% 
      filter(!is.na(.[,spec_col]),
             .[[spec_col]] %in% rownames(species_counts)
-            )
+            ) 
    print('filter')
    species_counts_filtered <- species_counts[converter_table[[spec_col]],]
    rownames(species_counts_filtered) <- converter_table$hs_gene_id
+   # in cases where multiple chick genes match one human gene, sum the chick gene counts
+   # (aggregated by human gene id)
+   species_counts_filtered <- aggregate.Matrix(species_counts_filtered, groupings = rownames(species_counts_filtered), fun = 'sum')
    return(species_counts_filtered)
 }
 extra_species <- lapply(split(extra_species_metadata, 1:nrow(extra_species_metadata)), 
@@ -194,10 +199,62 @@ extra_species <- lapply(split(extra_species_metadata, 1:nrow(extra_species_metad
                                          all_shared_gene_ids)
        )
 
-all_species_matrices <- c(list(homo_hs_matrix_cg,mus_mm_matrix_cg, maca_all_matrix_cg ), 
-                          extra_species)
+############
+# eh, drop this <- these will get tossed later anyways as I can only keep top N expressed genes or HVG
+###########
+# ID genes that are detected in fewer than 100 cells in both mouse and human
+# remove these genes
+# would have kept them but having issues with running out of memory
+# doing the matrix merging 
+#humanCount <- rowCounts(homo_hs_matrix_cg, value = 0)
+#names(humanCount) <- rownames(homo_hs_matrix_cg)
+#zeroCountHuman <- ncol(homo_hs_matrix_cg)  - humanCount
+#mouseCount <- rowCounts(mus_mm_matrix_cg, value = 0)
+#names(mouseCount) <- rownnames(mus_mm_matrix_cg)
+#zeroCountMouse <- ncol(mus_mm_matrix_cg) - mouseCount
 
+# for each species ID top 5k HVG
+# to ensure they are not removed
+findHVG <- function(mat){
+	seurat <- CreateSeuratObject(mat)
+	seurat <- NormalizeData(seurat)
+	seurat <- FindVariableFeatures(seurat, selection.method = "vst", nfeatures = 5000)
+	hvg <- seurat@assays$RNA@var.features
+	return(hvg)
+}
+humanHVG <- findHVG(homo_hs_matrix_cg)
+mouseHVG <- findHVG(mus_mm_matrix_cg)
+macaqueHVG <- findHVG(maca_all_matrix_cg)
+chickHVG <- findHVG(extra_species[[1]])
+allHVG <- c(humanHVG, mouseHVG, macaqueHVG, chickHVG) %>% unique()
+
+# keep highest expression genes + HVG
+# again because of matrix merge issues
+humanGeneCount <- rowSums(homo_hs_matrix_cg)
+mouseGeneCount <- rowSums(mus_mm_matrix_cg)
+topN <- (humanGeneCount + mouseGeneCount) %>% sort(decreasing = TRUE)  %>% head(5000) %>% names()
+# add HVG and HVG used in gigascience pub
+topN <- c(topN, allHVG, genes_to_retain_from_giga_HVG) %>% unique()
+# R is for reduced
+homo_hs_matrix_cgR <- homo_hs_matrix_cg[row.names(homo_hs_matrix_cg) %in% topN,]
+mus_mm_matrix_cgR <- mus_mm_matrix_cg[row.names(mus_mm_matrix_cg) %in% topN,]
+maca_all_matrix_cgR <- maca_all_matrix_cg[row.names(maca_all_matrix_cg) %in% topN,]
+chick_all_matrix_cgR <- extra_species[[1]][row.names(extra_species[[1]]) %in% topN,]
+# now make "opppsite" matrices for the genes not included
+homo_hs_matrix_cgLOW <- homo_hs_matrix_cg[!row.names(homo_hs_matrix_cg) %in% topN,]
+mus_mm_matrix_cgLOW <- mus_mm_matrix_cg[!row.names(mus_mm_matrix_cg) %in% topN,]
+maca_all_matrix_cgLOW <- maca_all_matrix_cg[!row.names(maca_all_matrix_cg) %in% topN,]
+chick_all_matrix_cgLOW <- extra_species[[1]][!row.names(extra_species[[1]]) %in% topN,]
+
+# merge together (THIS IS WHERE YOU GET THE CHOLMOD / vec ISSUES)
+all_species_matrices <- c(list(homo_hs_matrix_cgR,mus_mm_matrix_cgR, maca_all_matrix_cgR ), 
+                          chick_all_matrix_cgR)
 all_cells_all_species_matrix <-  reduce(all_species_matrices, RowMergeSparseMatrices)
+
+## LOW merge
+all_cells_all_species_matrix_remainder <- reduce(c(list(homo_hs_matrix_cgLOW, mus_mm_matrix_cgLOW, maca_all_matrix_cgLOW, chick_all_matrix_cgLOW)), RowMergeSparseMatrices)
+
+
 
 
 all_cell_info <- colnames(all_cells_all_species_matrix) %>% enframe() %>% 
@@ -211,12 +268,14 @@ all_cell_info <- colnames(all_cells_all_species_matrix) %>% enframe() %>%
 
 print('save big matrix')
 save(all_cells_all_species_matrix, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata', compress = F)
+save(all_cells_all_species_matrix_remainder, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix_remainder.Rdata', compress = F)
 
 print('save all cell info')
 write_tsv(all_cell_info, path  = 'pipeline_data/cell_info/all_cell_info.tsv')
 gene_id_converter %>% select(hs_gene_id, hs_gene_name) %>% distinct %>% write_tsv('references/ENSG2gene_name.tsv.gz')
 
 ## make intron quant for mouse 
+all_shared_gene_ids_hs_mm_filtered <- all_shared_gene_ids_hs_mm %>% filter(hs_gene_id %in% row.names(all_cells_all_species_matrix))
 rm(all_cells_all_species_matrix)
 
 intron_mus_mm_matrix <- load_rdata('pipeline_data/clean_quant/Mus_musculus/mm-mus_musculus_full_sparse_unspliced_matrix.Rdata')
@@ -234,12 +293,17 @@ intron_chick_gg_matrix <-load_rdata('pipeline_data/clean_quant/Gallus_gallus/gg-
 
 save(intron_chick_gg_matrix, file ='pipeline_data/clean_quant/Gallus_gallus/full_sparse_unspliced_matrix.Rdata')
 
-### merge all intron quant 
-mm_intron_keep = rownames(intron_mus_mm_matrix) %in% all_shared_gene_ids_hs_mm$mm_gene_id
-all_shared_gene_ids_hs_mm_intron  =  {tibble(mm_gene_id = rownames(intron_mus_mm_matrix))} %>% 
-  inner_join(all_shared_gene_ids_hs_mm)
-intron_mus_mm_matrix <- aggregate.Matrix(intron_mus_mm_matrix[mm_intron_keep, ],  
-                                         all_shared_gene_ids_hs_mm_intron$hs_gene_id, fun='sum')
+### merge all intron quant
+all_shared_gene_ids_hs_mm_intron <- all_shared_gene_ids_hs_mm %>% select(hs_gene_id, mm_gene_id) %>% filter(mm_gene_id %in%  rownames(intron_mus_mm_matrix))
+intron_mus_mm_matrix <- intron_mus_mm_matrix[all_shared_gene_ids_hs_mm_intron$mm_gene_id, ]
+intron_mus_mm_matrix <- aggregate.Matrix(intron_mus_mm_matrix, all_shared_gene_ids_hs_mm_intron$hs_gene_id, fun='sum')
+
+ 
+#mm_intron_keep = rownames(intron_mus_mm_matrix) %in% all_shared_gene_ids_hs_mm_filtered$mm_gene_id
+#all_shared_gene_ids_hs_mm_intron  =  {tibble(mm_gene_id = rownames(intron_mus_mm_matrix))} %>% 
+#  inner_join(all_shared_gene_ids_hs_mm_filtered)
+#intron_mus_mm_matrix <- aggregate.Matrix(intron_mus_mm_matrix[mm_intron_keep, ],  
+#                                         all_shared_gene_ids_hs_mm_intron$hs_gene_id, fun='sum')
 intron_homo_hs_matrix <- intron_homo_hs_matrix[rownames(intron_homo_hs_matrix)%in% rownames(intron_mus_mm_matrix), ]
 #all_intron_macaque_data = all_intron_macaque_data[rownames(intron_mus_mm_matrix), ]
 all_intron_macaque_data = all_intron_macaque_data[rownames(intron_mus_mm_matrix)[rownames(intron_mus_mm_matrix) %in% row.names(all_cells_macaque_hs_ids)], ]
