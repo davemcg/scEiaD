@@ -105,8 +105,9 @@
 	},
 	"make_rawh5ad_objs":
 	{
-		"mem" : "200G",
-		"time" : "4:00:00"
+		"partition" : "largemem",
+		"mem" : "400G",
+		"time" : "2:00:00"
 	},
 	"integrate_01" :
 	{
@@ -123,7 +124,7 @@
 	{
 		"mem" : "75G",
 		"partition" : "gpu",
-		"time" : "4:00:00",
+		"time" : "6:00:00",
 		"extra" : " --gres=gpu:p100:1,lscratch:1"
 	},
 	"calculate_tsne" : 
@@ -154,7 +155,7 @@
 	"extract_cluster" :
 	{
 		"mem" : "80G",
-		"time" : "00:30:00"
+		"time" : "00:45:00"
 	},
 	"predict_missing_cell_types_00" :
 	{
@@ -218,16 +219,23 @@
 	},
 	"make_h5ad_object" :
 	{
-		"mem" : "200G",
+		"mem" : "300G",
 		"time" : "1:00:00",
 		"partition" : "norm"
 	},
 	"diff_test_wilcox" :
 	{
-		"mem" : "1000G",
-		"time" : "30:00:00",
-		"partition" : "largemem",
-		"extra" : " --gres=lscratch:20"
+		"mem" : "150G",
+		"time" : "6:00:00",
+		"partition" : "norm",
+		"extra" : " --gres=lscratch:2"
+	},
+	"combine_diff_test_wilcox" :
+	{
+		"mem" : "32G",
+		"time" : "1:00:00",
+		"partition" : "quick",
+		"extra" : " --gres=lscratch:2"
 	},
 	"build_monocle_obj" :
 	{
@@ -273,10 +281,14 @@
 	},
 	"sqlite_add_tables" :
 	{
-		"mem" : "100G",
-		"time" : "36:00:00",
+		"mem" : "200G",
+		"time" : "4:00:00",
 		"partition" : "norm",
 		"extra" : " --gres=lscratch:50"
+	},
+	"sqlite_add_haystack" :
+	{
+		"mem" : "32G"
 	},
 	"project_scVI_onto_all_data" :
 	{

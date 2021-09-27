@@ -67,7 +67,7 @@ elif rule in custom_config_rules:
         else:
             params['mem'] = '750G'
             params['partition']='largemem'
-            params['time'] = '4:00:00'
+            params['time'] = '8:00:00'
     if rule == 'integrate_00':
         if re.search('scVI', job_properties['wildcards']['method']):
             params['partition']='gpu'
@@ -81,9 +81,9 @@ elif rule in custom_config_rules:
             params['mem'] = '100G'
         elif job_properties['wildcards']['method'] == 'scVIprojection':
             params['partition']='gpu'
-            params['extra'] = '--gres=gpu:k80:1,lscratch:20'
+            params['extra'] = '--gres=gpu:p100:1,lscratch:20'
             params['time'] = '8:00:00'
-            params['mem'] = '100G'
+            params['mem'] = '80G'
         elif job_properties['wildcards']['method'] == 'ldvae':
             params['partition']='gpu'
             params['extra'] = '--gres=gpu:1,lscratch:5'
