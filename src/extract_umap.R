@@ -1,4 +1,3 @@
-# extract UMAP coords labelled with meta data
 args= c('/data/swamyvs/scEiaD/rson_tmp/_7dbjtmv.json', 'UMAP')
 args <- commandArgs(trailingOnly = TRUE)
 library(Seurat)
@@ -10,14 +9,14 @@ rule <- read_json(args[1])
 # read in ENS <-> HGNC gene mapping info
 partition <- rule$wildcards$partition
 
-if(partition %in% c('Homo_sapiens',  'Mus_musculus')){
+if(partition %in% c('human',  'mouse','chick','macaque')){
   gene_map <- rtracklayer::readGFF(rule$input$gene_id_mapper) %>% 
     as_tibble %>% 
     filter(type == 'transcript') %>% 
     select(gene_id, gene_name) %>% distinct %>% 
     mutate(gene_name = toupper(gene_name),
            gene_id = str_split(gene_id ,'\\.') %>% sapply(function(x) x[1]))
-}else{
+} else {
   gene_map <- read_tsv(rule$input$gene_id_mapper) %>% 
     mutate(hs_gene_name = toupper(hs_gene_name))  %>% 
     rename(gene_id = hs_gene_id, gene_name = hs_gene_name)
