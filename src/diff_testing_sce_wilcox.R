@@ -9,16 +9,38 @@ args = commandArgs(trailingOnly=TRUE)
 load(args[1]) # seurat obj
 load(args[2]) # cluster
 load(args[3]) # cell type prediction
+chunk_to_run <- as.integer(args[8])
+how_many_chunks <- as.integer(args[9])
 x <- CreateSeuratObject(integrated_obj@assays$RNA@counts, assay = 'RNA')
 integrated_obj@assays$RNA <- x@assays$RNA
 
+# remove non-tissue from diff testing
+umap <- umap %>% filter(Source == 'Tissue')
 
 int_sce <-  as.SingleCellExperiment(integrated_obj)
 int_sce <- int_sce[,umap$Barcode]
 
 meta <- umap %>% select(Barcode) %>% left_join(meta)
 
-#umap <- umap %>% mutate(CellType = case_when(!CellType %in% c('Astrocytes', 'Fibroblasts', 'Red Blood Cells', 'RPE/Margin/Periocular Mesenchyme/Lens Epithelial Cells', 'Doublet', 'Doublets') ~ CellType))
+
+# save mem
+rm(integrated_obj)
+
+# make chunk
+chunk_coords <- list()
+for (i in seq(1:how_many_chunks)){
+    chunk <- round(nrow(int_sce)/how_many_chunks)
+    end = chunk * i
+    start = (chunk * i) - chunk + 1
+    if (i == how_many_chunks){
+        end = nrow(int_sce)
+    }
+    chunk_coords[[i]] <- c(start,end)
+}
+chunk_coords <- do.call(rbind, chunk_coords) %>% as.matrix()
+int_sce <-int_sce[seq(chunk_coords[chunk_to_run,][1], chunk_coords[chunk_to_run,][2]),]
+print("GO DIFF")
+# run diff testing
 if (all(colnames(int_sce) == (meta$Barcode))) {
 	int_sce$cluster <- meta[,2] %>% pull(1)
 	#int_sce$subcluster <- meta[,3] %>% pull(1)

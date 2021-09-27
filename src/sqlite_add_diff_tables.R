@@ -9,50 +9,19 @@ library(BiocParallel)
 args = commandArgs(trailingOnly=TRUE)
 print(args)
 
+git_dir = Sys.getenv('SCIAD_GIT_DIR')
 scEiaD <- dbPool(drv = SQLite(), dbname = args[1], idleTimeout = 3600000)
 
 
-load(args[2])
-tidy_data <- list()
-for (i in names(markers_wilcox)){
-	print(i)
-    tidy_data[[i]] <- markers_wilcox[i] %>% as_tibble(rownames = 'Gene') %>%
-        mutate(Base = i, Group = 'CellType (Predict)') %>%
-        pivot_longer(cols = starts_with('AUC'),  names_to = 'Tested Against', values_to = 'AUC')
-}
-diff_testing_CTp <- bind_rows(tidy_data) %>%
-                    dplyr::select(-group, -group_name) %>%
-                    mutate(`Tested Against` = gsub('\\.',' ', `Tested Against`) %>% gsub('AUC ','',.),
-                            `Tested Against` = case_when(`Tested Against` == 'AC HC_Precurs' ~ 'AC/HC Precursors',
-                                                            TRUE ~ `Tested Against`))
+load(args[2]) # CellType_predict
+diff_testing_CTp <- diff_testing
+
 
 load(args[3]) # CellType
-tidy_data <- list()
-for (i in names(markers_wilcox)){
-	print(i)
-    tidy_data[[i]] <- markers_wilcox[i] %>% as_tibble(rownames = 'Gene') %>%
-        mutate(Base = i, Group = 'CellType') %>%
-        pivot_longer(cols = starts_with('AUC'),  names_to = 'Tested Against', values_to = 'AUC')
-}
-
-diff_testing_CT <- bind_rows(tidy_data) %>%
-                    dplyr::select(-group, -group_name) %>%
-                    mutate(`Tested Against` = gsub('\\.',' ', `Tested Against`) %>% gsub('AUC ','',.),
-                            `Tested Against` = case_when(`Tested Against` == 'AC HC_Precurs' ~ 'AC/HC Precursors',
-                                                            TRUE ~ `Tested Against`))
+diff_testing_CT <- diff_testing
 
 load(args[4]) # cluster
-tidy_data <- list()
-for (i in names(markers_wilcox)){
-	print(i)
-    tidy_data[[i]] <- markers_wilcox[i] %>% as_tibble(rownames = 'Gene') %>%
-        mutate(Base = i, Group = 'Cluster') %>%
-        pivot_longer(cols = starts_with('AUC'),  names_to = 'Tested Against', values_to = 'AUC')
-}
-
-diff_testing_cluster <- bind_rows(tidy_data) %>%
-                    dplyr::select(-group, -group_name) %>%
-                    mutate(`Tested Against` = gsub('\\.',' ', `Tested Against`) %>% gsub('AUC ','',.))
+diff_testing_cluster <- diff_testing
 
 wilcox_diff_testing <- bind_rows(diff_testing_CTp, diff_testing_CT, diff_testing_cluster) %>% arrange(-AUC)
 
@@ -65,14 +34,15 @@ print('update gene name')
 #                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
 #  dplyr::select(-hs_gene_id_v)
 library(glue)
-gene_id_converter <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque_chick_ZF.tsv.gz'), skip = 1,
-                              col_names= c('hs_gene_id','hs_gene_id_v',
-                                           'gg_gene_id', 'gg_gene_name',
-                                           'mf_gene_id', 'mf_gene_name',
-                                           'mm_gene_id', 'mm_gene_name',
-                                           'zf_gene_id', 'zf_gene_name',
-                                           'hs_gene_name')) %>%
-  select(-hs_gene_id_v)
+source(glue('{git_dir}src/make_gene_id_converter_table.R'))
+#gene_id_converter <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque_chick_ZF.tsv.gz'), skip = 1,
+#                              col_names= c('hs_gene_id','hs_gene_id_v',
+#                                           'gg_gene_id', 'gg_gene_name',
+#                                           'mf_gene_id', 'mf_gene_name',
+#                                           'mm_gene_id', 'mm_gene_name',
+#                                           'zf_gene_id', 'zf_gene_name',
+#                                           'hs_gene_name')) %>%
+#  select(-hs_gene_id_v)
 print('diff testing tables')
 wilcox_diff_testing <- wilcox_diff_testing %>% left_join(gene_id_converter %>% dplyr::select(hs_gene_id, hs_gene_name) %>% unique(), by = c('Gene' = 'hs_gene_id')) %>% mutate(Gene = paste0(hs_gene_name, ' (', Gene, ')'))  %>% dplyr::select(-hs_gene_name)
 
@@ -148,8 +118,8 @@ cluster_labels <- meta_filter %>%
               group_by(cluster) %>% summarise(UMAP_1 = mean(UMAP_1), UMAP_2 = mean(UMAP_2))
 
 # haystack
-load(args[6])
-haystack <- scH$results %>% as_tibble(rownames = 'hs_gene_id') %>% left_join(gene_id_converter %>% dplyr::select(hs_gene_id, hs_gene_name) %>% unique()) %>% mutate(Gene = paste0(hs_gene_name, ' (', hs_gene_id, ')')) %>% dplyr::select(Gene, D_KL, `log.p.vals`, `log.p.adj`, `T.counts`)
+#load(args[6])
+#haystack <- scH$results %>% as_tibble(rownames = 'hs_gene_id') %>% left_join(gene_id_converter %>% dplyr::select(hs_gene_id, hs_gene_name) %>% unique()) %>% mutate(Gene = paste0(hs_gene_name, ' (', hs_gene_id, ')')) %>% dplyr::select(Gene, D_KL, `log.p.vals`, `log.p.adj`, `T.counts`)
 
 
 dbWriteTable(scEiaD, 'metadata_filter', meta_filter, overwrite = TRUE)
@@ -157,5 +127,5 @@ dbWriteTable(scEiaD, 'celltype_predict_labels', celltype_predict_labels, overwri
 dbWriteTable(scEiaD, 'celltype_labels', celltype_labels, overwrite = TRUE)
 dbWriteTable(scEiaD, 'tabulamuris_predict_labels', tabulamuris_predict_labels, overwrite = TRUE)
 dbWriteTable(scEiaD, 'cluster_labels', cluster_labels, overwrite = TRUE)
-dbWriteTable(scEiaD, 'haystack', haystack, overwrite = TRUE)
-db_create_index(scEiaD, table = 'haystack', columns = c('Gene'))
+#dbWriteTable(scEiaD, 'haystack', haystack, overwrite = TRUE)
+#db_create_index(scEiaD, table = 'haystack', columns = c('Gene'))
