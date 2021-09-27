@@ -25,7 +25,8 @@ clark_labels <- clark_labels %>%
 
 ## now get macosko labels
 # macosko et al
-macosko_labels <- read_tsv('http://mccarrolllab.org/wp-content/uploads/2015/05/retina_clusteridentities.txt', col_names = c('Cell','Cluster'))
+# http://mccarrolllab.org/wp-content/uploads/2015/05/retina_clusteridentities.txt
+macosko_labels <- read_tsv(glue('{git_dir}/data/mccaroll_retina_clusteridentities.txt'), col_names = c('Cell','Cluster'))
 macosko_labels <- macosko_labels %>% 
   mutate(CellType = case_when(Cluster == 1 ~ 'Horizontal Cells',
                               Cluster == 2 ~ 'Retinal Ganglion Cells',
