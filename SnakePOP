@@ -97,7 +97,8 @@ method = ['scArches', 'bbknn','insct','magic', 'scVI','CCA', 'scanorama', 'harmo
 transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
-combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe']
+combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe', 'universeHUMANHVG', 'universeGIGAHVG',
+				'mouse','human','chick','macaque']
 dims = [4,6,8,10,15, 20,25,30,50,75,100,200]
 epochs = [5,10,25,50,100]
 knn = [0.2,0,4,0.6, 5, 7, 10, 15, 20, 30]
@@ -105,8 +106,8 @@ model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.
 report: "report.rst"
 
 if config['subset_clustering'] == 'False':
-	 partitions_to_run = ['universe']
-	 scIB_partitions_to_run =  ['universe'] 
+	 partitions_to_run = ['universe', 'universeGIGAHVG', 'mouse','human','chick','macaque']
+	 scIB_partitions_to_run =  ['universe',  'universeGIGAHVG', 'mouse','human','chick','macaque'] 
 	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
 	#partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
 	#partitions_to_run = ['universe']
@@ -162,12 +163,40 @@ seu_obj_param =['n_features','transform','partition', 'covariate']
 seu_obj_sfx = 'preFilter.seuratV3.Rdata'
 
 
+def pick_quant(partition):
+	if 'universe' in partition:
+		return 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata'
+	elif 'human' in partition:
+		return 'pipeline_data/clean_quant/Homo_sapiens/full_sparse_matrix.Rdata'
+	elif 'chick' in partition:
+		return 'pipeline_data/clean_quant/Gallus_gallus/full_sparse_matrix.Rdata'
+	elif 'mouse' in partition:
+		return 'pipeline_data/clean_quant/Mus_musculus/full_sparse_matrix.Rdata'
+	elif 'macaque' in partition:
+		return 'pipeline_data/clean_quant/Macaca_fascicularis/full_sparse_matrix.Rdata'
+	else:
+		return 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata'
+
+def pick_mito(partition):
+	if 'human' in partition:
+		return 'references/mito_genes/hs-homo_sapiens_mitogenes.txt' 
+	elif 'chick' in partition:
+		return 'references/mito_genes/gg-gallus_gallus_mitogenes.txt'
+	elif 'mouse' in partition:
+		return 'references/mito_genes/mm-mus_musculus_mitogenes.txt'
+	elif 'macaque' in partition:
+		return 'references/mito_genes/mf-macaca_mulatta_mitogenes.txt' 
+	else:
+		return 'references/mito_genes/hs-homo_sapiens_mitogenes.txt'
+
 rule make_seurat_objs:
 	input:
 		cell_info = 'pipeline_data/cell_info/all_cell_info.tsv',
-		all_species_quant_file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
+		quant_file = lambda wildcards: pick_quant(wildcards.partition),
+		#all_species_quant_file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
 		labelled_cell_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
-		mitogene_list = 'references/mito_genes/hs-homo_sapiens_mitogenes.txt' # created by SnakeQUANT
+		HVG_var_names = config['HVG_var_names'],
+		mitogene_list = lambda wildcards: pick_mito(wildcards.partition), # created by SnakeQUANT
 	output:
 		seurat = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx)
 	params:
@@ -221,7 +250,8 @@ rule integrate_00:
 		#temp('seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
 		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx)
 	params:
-		mm = lambda wildcards: which_method(wildcards.method)
+		mm = lambda wildcards: which_method(wildcards.method),
+		model = directory('pipeline_data/model/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}')
 	threads: 2 	
 	shell:
 		"""
@@ -239,7 +269,8 @@ rule integrate_00:
 				  {output} \
 				  {wildcards.epochs} \
 				  {input.pattern} \
-				  {ref_samples}"
+				  {ref_samples} \
+				  {params.model} "
 		
 		echo $cmd
 		eval $cmd
@@ -333,10 +364,14 @@ rule extract_cluster:
 
 
 def set2mapper(set):
-	if set == 'Homo_sapiens':
+	if set == 'human':
 		return 'references/gtf/hs-homo_sapiens_anno.gtf.gz'
-	elif set == 'Mus_musculus':
+	elif set == 'mouse':
 		return 'references/gtf/mm-mus_musculus_anno.gtf.gz'
+	elif set == 'chick':
+		return 'references/gtf/gg-gallus_gallus_anno.gtf.gz'
+	elif set == 'macaque':
+		return 'references/gtf/mf-macaca_mulatta_anno.gtf.gz'
 	else:
 		return 'references/ENSG2gene_name.tsv.gz'
 
