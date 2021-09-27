@@ -15,16 +15,20 @@ gene_id_converter <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_m
                                            'hs_gene_name')) %>%
   select(-hs_gene_id_v)
 
-gene_length <- function(ref){
+gene_length <- function(ref, mm = FALSE){
     gtf <- rtracklayer::readGFF(ref)
 	if (grepl('ENSMUSG', gtf$gene_id[1])){
-		gene_size <- gtf %>% filter(type == 'transcript') %>% 
+		gene_size_MM <- gtf %>% filter(type == 'transcript') %>% 
 				select(gene_id, start, end) %>%
 				mutate(l = abs(as.numeric(end)-as.numeric(start)), 
-					   gene_id = gsub('\\.\\d+', '', gene_id)) %>%
+					   gene_id = gsub('\\.\\d+', '', gene_id))
+		gene_size <- gene_size_MM  %>%
 				left_join(gene_id_converter, by = c('gene_id' = 'mm_gene_id')) %>% 
 				group_by(hs_gene_id) %>%
 				summarise(size = mean(l))
+		if (mm){
+			gene_size <- gene_size_MM %>% mutate(size = l) %>% as_tibble()
+		}
 	} else {
 		gene_size <- gtf %>% filter(type == 'transcript') %>% 
 				select(gene_id, start, end) %>%
