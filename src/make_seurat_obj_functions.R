@@ -50,7 +50,7 @@ make_seurat_obj <- function(m,
     	mm_mat_cor <- mm_mat / geneL_mm[row.names(mm_mat)] * median(geneL_mm)
 		hs_mm <- cbind(hs_mat_cor, mm_mat_cor)
     	mat_cor <- hs_mm[, colnames(hs_mm) %in% colnames(mat)] %>% round()
-
+		mat_cor[is.na(mat_cor)] <- 0
   	  seurat_well <- CreateSeuratObject(mat_cor)
       seurat_well <- subset(seurat_well, subset = nFeature_RNA > 500)
       print('Length Correction for Well DONE!')
