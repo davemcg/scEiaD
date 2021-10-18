@@ -14,22 +14,22 @@ scEiaD <- dbPool(drv = SQLite(), dbname = args[1], idleTimeout = 3600000)
 
 
 load(args[2]) # CellType_predict
-diff_testing_CTp <- diff_testing
-diff_testing_CTp_summary <- diff_summary
+diff_testing_CTp <- diff_testing_wilcox
+diff_testing_CTp_summary <- diff_summary_wilcox
 
 load(args[3]) # CellType
-diff_testing_CT <- diff_testing
-diff_testing_CT_summary <- diff_summary
+diff_testing_CT <- diff_testing_wilcox
+diff_testing_CT_summary <- diff_summary_wilcox
 
 load(args[4]) # cluster
-diff_testing_cluster <- diff_testing
-diff_testing_cluster_summary <- diff_summary
+diff_testing_cluster <- diff_testing_wilcox
+diff_testing_cluster_summary <- diff_summary_wilcox
 
 wilcox_diff_testing <- bind_rows(diff_testing_CTp, diff_testing_CT, diff_testing_cluster) %>% arrange(-AUC)
 wilcox_diff_testing_geneVals <- bind_rows(diff_testing_CTp_summary, diff_testing_CT_summary, diff_testing_cluster_summary) %>% dplyr::rename(Gene = gene, p.value = pval)
 
 # yank out pval and FDR info (which are at the base - gene level)
-wilcox_diff_AUC <- wilcox_diff_testing %>% select(Gene, Base, `Tested Against`, AUC, Group)
+wilcox_diff_AUC <- wilcox_diff_testing %>% select(Gene, Base, `Tested Against`, AUC, logFC, Group)
 
 
 # update gene name
@@ -58,6 +58,7 @@ dbWriteTable(scEiaD, 'wilcox_diff_AUC', wilcox_diff_AUC, overwrite = TRUE)
 db_create_index(scEiaD, table = 'wilcox_diff_AUC', columns = c('Gene'))
 db_create_index(scEiaD, table = 'wilcox_diff_AUC', columns = c('Base'))
 db_create_index(scEiaD, table = 'wilcox_diff_AUC', columns = c('Group'))
+db_create_index(scEiaD, table = 'wilcox_diff_AUC', columns = c('Tested Against'))
 wilcox_group_base_sets <- wilcox_diff_AUC %>% dplyr::select(Group, Base)  %>% unique() %>% arrange(Group, Base)
 dbWriteTable(scEiaD, 'wilcox_diff_AUC_sets', wilcox_group_base_sets, overwrite = TRUE)
 wilcox_diff_AUC_genes <- wilcox_diff_AUC %>% pull(Gene) %>% unique()
@@ -141,4 +142,4 @@ dbWriteTable(scEiaD, 'gene_name_id', name_id, overwrite = TRUE)
 #dbWriteTable(scEiaD, 'haystack', haystack, overwrite = TRUE)
 #db_create_index(scEiaD, table = 'haystack', columns = c('Gene'))
 
-system(paste('touch', args[6]))
+system2('touch', args[6])
