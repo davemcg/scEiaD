@@ -23,6 +23,12 @@ out <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = '
 out_tm <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap %>% mutate(CellType = gsub("Cone Bipolar Cells", "Bipolar Cells", CellType)), by = 'Barcode') %>% filter(study_accession == 'SRP131661')
 out_tm$CellType <- out_tm$TabulaMurisCellType
 
+
+# reduce huge num of labeleld "brain choroid epithelial" down
+outC_epi  <- out %>% filter(Organ == 'Brain', CellType == 'Epithelial') %>% sample_n(2000)
+outC_epi_remainder <- out %>% filter(Organ == 'Brain', CellType == 'Epithelial', !Barcode %in% outC_epi$Barcode) %>% mutate(CellType = NA)
+outC_epi <- bind_rows(outC_epi, outC_epi_remainder)
+out <- bind_rows(outC_epi, out %>% filter(!Barcode %in% outC_epi$Barcode))
 # ensure Age is numeric
 out$Age <- as.numeric(out$Age)
 out_tm$Age <- as.numeric(out_tm$Age)
