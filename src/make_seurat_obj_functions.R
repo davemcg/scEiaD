@@ -13,16 +13,27 @@ make_seurat_obj <- function(m,
 							only_use_human_for_FVF = FALSE,
 							droplet_platform = c('DropSeq', '10xv2', '10xv3'),
 							well_platform = c('SMARTSeq_v2', 'SCRBSeq', 'SMARTerSeq_v3', 'SMARTSeq_v4'),
-							HVG = NA
+							HVG = NA,
+							nFeature_RNA_cutoff = 400
                             ){
+  nFeature_RNA_cutoff <- 450
+  print(paste('nFeature_RNA_cutoff is', nFeature_RNA_cutoff))
   if (keep_well){
       well_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% well_platform) %>% pull(value)]
      seurat_well <- CreateSeuratObject(well_m)
   }
   if (keep_droplet){
-     droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% droplet_platform) %>% pull(value)]
+     # custom handling for wacky E12 chick sanes data
+	 # trying a stricter cutoff as way too many cells (getting ~200k and their paper used ~50 ) are being kept
+	 droplet_e12_chick <- m[,cell_info %>% filter(sample_accession %in% c('SRS7483328','SRS7483329','SRS7483330','SRS7483331'), value %in% colnames(m)) %>% pull(value)]
+	 seurat_e12_chick <- CreateSeuratObject(droplet_e12_chick)
+	 seurat_e12_chick <- subset(seurat_e12_chick, subset = nFeature_RNA < 1000)
+	 # use seurat_e12_chick as cells to skip in this line:
+     droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), !value %in% colnames(seurat_e12_chick), Platform %in% droplet_platform) %>% pull(value)]
      seurat_droplet <- CreateSeuratObject(droplet_m)
-	 seurat_droplet <-  subset(seurat_droplet, subset = nFeature_RNA > 500)
+	 seurat_droplet <-  subset(seurat_droplet, subset = nFeature_RNA > 450)
+     
+	 print('seurat droplet obj made')
 	 #droplet_hs <- m[,cell_info %>% filter(value %in% colnames(m), organism %in% c('Homo sapiens')) %>% pull(value)]
 	 #hs_seurat_droplet <- CreateSeuratObject(droplet_hs)
   }

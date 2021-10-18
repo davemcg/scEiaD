@@ -36,6 +36,8 @@ transform = rule$wildcards$transform # SCT or standard seurat # mouse, mouse and
 n_features =as.numeric(rule$wildcards$n_features )
 cell_info <- data.table::fread(rule$input$cell_info) # cell_info.tsv
 cell_info$batch <- gsub(' ', '', cell_info$batch)
+sample_meta <- data.table::fread(rule$input$sample_meta)
+
 # set batch covariate for well data to NA, as any splits risks making the set too small
 print('cell info import')
 cell_info <- cell_info %>% 
@@ -63,18 +65,21 @@ m <- load_rdata(rule$input$quant_file)
 
 
 
-print('Splitting time')
-# # custom combos / sets
-
 source(glue('{git_dir}/src/make_seurat_obj_functions.R') )
 
 # load study exlucions list
 exclude <- scan(glue('{git_dir}/data/exclusion.txt'), what = 'character') 
 cell_info <- cell_info %>% filter(!study_accession %in% exclude, value %in% colnames(m))
+
+# remove samples that are commented out in the srr_sample_file
+keepers <- sample_meta %>% filter(!grepl('^#', sample_accession)) %>% pull(sample_accession)
+cell_info <- cell_info %>% filter(sample_accession %in% keepers)
+
 m <- m[, cell_info %>% pull(value)]
+nFeature_RNA_cutoff = 500
 
 if (set == 'universe'){
-  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids)
+  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, nFeature_RNA_cutoff = 500)
 } else if (set == 'universeHUMANHVG'){
   seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, only_use_human_for_FVF = TRUE)
 } else if (set == 'universeGIGAHVG'){
@@ -83,6 +88,8 @@ if (set == 'universe'){
   seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids)
 } else if (set %in% c('chick', 'macaque', 'human')){
   seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE)
+} else if (set == 'raw') {
+  seurat__standard <- m
 } 
 
 
