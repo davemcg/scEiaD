@@ -103,8 +103,7 @@ perf_two <- data %>% bind_rows() %>%
   mutate(Group = case_when(Score == 'nmi' ~ 'CellType-Cluster',
                            Score == 'nmi_sub' ~ 'SubCellType-Cluster',
                            Score == 'ari' ~ 'CellType-Cluster',
-                           Score == 'ari_sub' ~ 'SubCellType-Cluster',
-                           Score == 'pcr' ~ 'After-Before')) %>%
+                           Score == 'ari_sub' ~ 'SubCellType-Cluster')) %>% 
   mutate(Score = gsub('_sub','',Score)) %>% 
   mutate(Score = toupper(Score))
 
