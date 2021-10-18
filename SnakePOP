@@ -106,8 +106,8 @@ model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.
 report: "report.rst"
 
 if config['subset_clustering'] == 'False':
-	 partitions_to_run = ['universe', 'universeGIGAHVG', 'mouse','human','chick','macaque']
-	 scIB_partitions_to_run =  ['universe',  'universeGIGAHVG', 'mouse','human','chick','macaque'] 
+	 partitions_to_run = ['universe']
+	 scIB_partitions_to_run =  ['universe'] 
 	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
 	#partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
 	#partitions_to_run = ['universe']
@@ -185,7 +185,7 @@ def pick_mito(partition):
 	elif 'mouse' in partition:
 		return 'references/mito_genes/mm-mus_musculus_mitogenes.txt'
 	elif 'macaque' in partition:
-		return 'references/mito_genes/mf-macaca_mulatta_mitogenes.txt' 
+		return 'references/mito_genes/hs-homo_sapiens_mitogenes.txt' 
 	else:
 		return 'references/mito_genes/hs-homo_sapiens_mitogenes.txt'
 
@@ -197,6 +197,7 @@ rule make_seurat_objs:
 		labelled_cell_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
 		HVG_var_names = config['HVG_var_names'],
 		mitogene_list = lambda wildcards: pick_mito(wildcards.partition), # created by SnakeQUANT
+		sample_meta = config['srr_sample_file']
 	output:
 		seurat = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx)
 	params:
@@ -251,7 +252,7 @@ rule integrate_00:
 		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx)
 	params:
 		mm = lambda wildcards: which_method(wildcards.method),
-		model = directory('pipeline_data/model/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}')
+		model = directory('pipeline_data/model/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}')
 	threads: 2 	
 	shell:
 		"""
@@ -371,7 +372,7 @@ def set2mapper(set):
 	elif set == 'chick':
 		return 'references/gtf/gg-gallus_gallus_anno.gtf.gz'
 	elif set == 'macaque':
-		return 'references/gtf/mf-macaca_mulatta_anno.gtf.gz'
+		return  'references/gtf/hs-homo_sapiens_anno.gtf.gz' 
 	else:
 		return 'references/ENSG2gene_name.tsv.gz'
 
@@ -514,7 +515,8 @@ scIB_sfx = 'stats.csv'
 
 rule scIB_stats:
 	input:
-		make_wc_string(mk_h5ad_pfx, mk_h5ad_param, mk_h5ad_sfx)
+		make_wc_string(h5ad_rawobj_pfx, h5ad_rawobj_param, h5ad_rawobj_sfx),
+		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx)
 	output:
 		make_wc_string(scIB_pfx, scIB_param, scIB_sfx)
 	shell:
