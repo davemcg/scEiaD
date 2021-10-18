@@ -9,7 +9,7 @@ from snakemake.utils import read_job_properties
 #%%
 cluster_json_file =sys.argv[1]
 jobscript = sys.argv[2]
-custom_config_rules = ['integrate_00', 'calculate_umap', 'calculate_cluster', 'perf_metrics']
+custom_config_rules = ['make_h5ad_object', 'integrate_00', 'calculate_umap', 'calculate_cluster', 'perf_metrics']
 #%%
 
 #%%
@@ -33,6 +33,9 @@ if rule in cluster_json:
         params[key] = cluster_json[rule][key]
 elif rule in custom_config_rules:
     # specifify custom configureations specific rules
+    if rule == 'make_h5ad_object':
+        if job_properties['wildcards']['partition'] == 'macaque':
+            params['mem'] =  '25G'
     if rule == 'calculate_cluster':
         if job_properties['wildcards']['partition'] == 'onlyWELL':
             params['partition']='quick'
