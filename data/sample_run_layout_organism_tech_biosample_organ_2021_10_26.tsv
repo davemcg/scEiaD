@@ -1,27 +1,27 @@
 sample_accession	run_accession	library_layout	organism	Platform	UMI	study_accession	Tissue	Covariate	Age	integration_group	TissueNote	Source	bam10x	Comment	biosample	Organ	sex	retina_region	strain	biosample_title
-SRX8884952	SRR12386341	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		70	Early	Cornea/Conjunctiva	Tissue			SAMN15729615	Eye				RNA-Seq Dev Cor/Conj 10PCW 14615
-SRX8884953	SRR12386342	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		70	Early	Cornea/Conjunctiva	Tissue			SAMN15729614	Eye				RNA-Seq Dev Cor/Conj 10PCW 14849
-SRX8884954	SRR12386343	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		84	Early	Cornea/Conjunctiva	Tissue			SAMN15729613	Eye				RNA-Seq Dev Cor/Conj 12PCW 14823
-SRX8884955	SRR12386344	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		84	Early	Cornea/Conjunctiva	Tissue			SAMN15729612	Eye				RNA-Seq Dev Cor/Conj 12PCW 15192
-SRX8884956	SRR12386345	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		84	Early	Cornea/Conjunctiva	Tissue			SAMN15729611	Eye				RNA-Seq Dev Cor/Conj 12PCW 15209
-SRX8884957	SRR12386346	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		84	Early	Cornea/Conjunctiva	Tissue			SAMN15729610	Eye				RNA-Seq Dev Cor/Conj 12PCW 15210
-SRX8884958	SRR12386347	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		91	Early	Cornea/Conjunctiva	Tissue			SAMN15729609	Eye				RNA-Seq Dev Cor/Conj 13PCW 15176
-SRX8884959	SRR12386348	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		91	Early	Cornea/Conjunctiva	Tissue			SAMN15729608	Eye				RNA-Seq Dev Cor/Conj 13PCW 15205
-SRX8884960	SRR12386349	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		98	Early	Cornea/Conjunctiva	Tissue			SAMN15729607	Eye				RNA-Seq Dev Cor/Conj 14PCW 15208
-SRX8884961	SRR12386350	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		98	Early	Cornea/Conjunctiva	Tissue			SAMN15729606	Eye				RNA-Seq Dev Cor/Conj 14PCW 15357
-SRX8884962	SRR12386351	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		112	Early	Cornea/Conjunctiva	Tissue			SAMN15729605	Eye				RNA-Seq Dev Cor/Conj 16PCW 15057
-SRX8884963	SRR12386352	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		112	Early	Cornea/Conjunctiva	Tissue			SAMN15729604	Eye				RNA-Seq Dev Cor/Conj 16PCW 15232
-SRX8884964	SRR12386353	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		119	Early	Cornea/Conjunctiva	Tissue			SAMN15729603	Eye				RNA-Seq Dev Cor/Conj 17PCW 14613
-SRX8884965	SRR12386354	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		126	Early	Cornea/Conjunctiva	Tissue			SAMN15729602	Eye				RNA-Seq Dev Cor/Conj 18PCW 14954
-SRX8884966	SRR12386355	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		140	Early	Cornea/Conjunctiva	Tissue			SAMN15729601	Eye				RNA-Seq Dev Cor/Conj 20PCW 14556
-SRX8884967	SRR12386356	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		140	Early	Cornea/Conjunctiva	Tissue			SAMN15729600	Eye				RNA-Seq Dev Cor/Conj 20PCW 15183
-SRX8884968	SRR12386357	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		147	Early	Cornea/Conjunctiva	Tissue			SAMN15729599	Eye				RNA-Seq Dev Cor/Conj 21PCW 15184
-SRX8884969	SRR12386358	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		Adult	Late	Cornea/Conjunctiva	Tissue			SAMN15729598	Eye				RNA-Seq Ad Cor/Conj 257T
-SRX8884970	SRR12386359	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		Adult	Late	Cornea/Conjunctiva	Tissue			SAMN15729597	Eye				RNA-Seq Ad Cor/Conj 246Z
-SRX8884971	SRR12386360	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		Adult	Late	Cornea/Conjunctiva	Tissue			SAMN15729596	Eye				RNA-Seq Ad Cor/Conj 719I
-SRX8884972	SRR12386361	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		Adult	Late	Cornea/Conjunctiva	Tissue			SAMN15729595	Eye				RNA-Seq Ad Cor/Conj 283P
-SRX8884973	SRR12386362	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		Adult	Late	Central Cornea	Tissue			SAMN15729594	Eye				RNA-Seq Ad Cen Cor C-4046
-SRX8884974	SRR12386363	PAIRED	Homo sapiens	10xv3	Yes	SRP275814	Cornea		Adult	Late	Limbal Ring	Tissue			SAMN15729593	Eye				RNA-Seq Ad Limbal Ring C-4046
+SRX8884952	SRR12386341	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		70	Early	Cornea/Conjunctiva	Tissue	SRX8884952		SAMN15729615	Eye				RNA-Seq Dev Cor/Conj 10PCW 14615
+SRX8884953	SRR12386342	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		70	Early	Cornea/Conjunctiva	Tissue	SRX8884953		SAMN15729614	Eye				RNA-Seq Dev Cor/Conj 10PCW 14849
+SRX8884954	SRR12386343	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		84	Early	Cornea/Conjunctiva	Tissue	SRX8884954		SAMN15729613	Eye				RNA-Seq Dev Cor/Conj 12PCW 14823
+SRX8884955	SRR12386344	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		84	Early	Cornea/Conjunctiva	Tissue	SRX8884955		SAMN15729612	Eye				RNA-Seq Dev Cor/Conj 12PCW 15192
+SRX8884956	SRR12386345	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		84	Early	Cornea/Conjunctiva	Tissue	SRX8884956		SAMN15729611	Eye				RNA-Seq Dev Cor/Conj 12PCW 15209
+SRX8884957	SRR12386346	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		84	Early	Cornea/Conjunctiva	Tissue	SRX8884957		SAMN15729610	Eye				RNA-Seq Dev Cor/Conj 12PCW 15210
+SRX8884958	SRR12386347	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		91	Early	Cornea/Conjunctiva	Tissue	SRX8884958		SAMN15729609	Eye				RNA-Seq Dev Cor/Conj 13PCW 15176
+SRX8884959	SRR12386348	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		91	Early	Cornea/Conjunctiva	Tissue	SRX8884959		SAMN15729608	Eye				RNA-Seq Dev Cor/Conj 13PCW 15205
+SRX8884960	SRR12386349	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		98	Early	Cornea/Conjunctiva	Tissue	SRX8884960		SAMN15729607	Eye				RNA-Seq Dev Cor/Conj 14PCW 15208
+SRX8884961	SRR12386350	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		98	Early	Cornea/Conjunctiva	Tissue	SRX8884961		SAMN15729606	Eye				RNA-Seq Dev Cor/Conj 14PCW 15357
+SRX8884962	SRR12386351	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		112	Early	Cornea/Conjunctiva	Tissue	SRX8884962		SAMN15729605	Eye				RNA-Seq Dev Cor/Conj 16PCW 15057
+SRX8884963	SRR12386352	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		112	Early	Cornea/Conjunctiva	Tissue	SRX8884963		SAMN15729604	Eye				RNA-Seq Dev Cor/Conj 16PCW 15232
+SRX8884964	SRR12386353	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		119	Early	Cornea/Conjunctiva	Tissue	SRX8884964		SAMN15729603	Eye				RNA-Seq Dev Cor/Conj 17PCW 14613
+SRX8884965	SRR12386354	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		126	Early	Cornea/Conjunctiva	Tissue	SRX8884965		SAMN15729602	Eye				RNA-Seq Dev Cor/Conj 18PCW 14954
+SRX8884966	SRR12386355	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		140	Early	Cornea/Conjunctiva	Tissue	SRX8884966		SAMN15729601	Eye				RNA-Seq Dev Cor/Conj 20PCW 14556
+SRX8884967	SRR12386356	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		140	Early	Cornea/Conjunctiva	Tissue	SRX8884967		SAMN15729600	Eye				RNA-Seq Dev Cor/Conj 20PCW 15183
+SRX8884968	SRR12386357	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		147	Early	Cornea/Conjunctiva	Tissue	SRX8884968		SAMN15729599	Eye				RNA-Seq Dev Cor/Conj 21PCW 15184
+SRX8884969	SRR12386358	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		Adult	Late	Cornea/Conjunctiva	Tissue	SRX8884969		SAMN15729598	Eye				RNA-Seq Ad Cor/Conj 257T
+SRX8884970	SRR12386359	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		Adult	Late	Cornea/Conjunctiva	Tissue	SRX8884970		SAMN15729597	Eye				RNA-Seq Ad Cor/Conj 246Z
+SRX8884971	SRR12386360	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		Adult	Late	Cornea/Conjunctiva	Tissue	SRX8884971		SAMN15729596	Eye				RNA-Seq Ad Cor/Conj 719I
+SRX8884972	SRR12386361	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		Adult	Late	Cornea/Conjunctiva	Tissue	SRX8884972		SAMN15729595	Eye				RNA-Seq Ad Cor/Conj 283P
+SRX8884973	SRR12386362	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		Adult	Late	Central Cornea	Tissue	SRX8884973		SAMN15729594	Eye				RNA-Seq Ad Cen Cor C-4046
+SRX8884974	SRR12386363	PAIRED	Homo sapiens	10xv2	Yes	SRP275814	Cornea		Adult	Late	Limbal Ring	Tissue	SRX8884974		SAMN15729593	Eye				RNA-Seq Ad Limbal Ring C-4046
 SRS7729953	SRR13075732	PAIRED	Homo sapiens	10xv2	Yes	SRP292721	Trachea	NA	Adult	NA	GSM4850591: Trachea_cDNA; Homo sapiens; RNA-Seq | An adult male donor who died of a traumatic brain injury | Trachea_cDNA	Tissue	NA	NA	SAMN16523262	Trachea	Male	NA	NA	Trachea_cDNA
 SRS7729951	SRR13075731	PAIRED	Homo sapiens	10xv2	Yes	SRP292721	Stomach	NA	Adult	NA	GSM4850590: Stomach_cDNA; Homo sapiens; RNA-Seq | An adult male donor who died of a traumatic brain injury | Stomach_cDNA	Tissue	NA	NA	SAMN16523263	Stomach	Male	NA	NA	Stomach_cDNA
 SRS7729952	SRR13075730	PAIRED	Homo sapiens	10xv2	Yes	SRP292721	Spleen	NA	Adult	NA	GSM4850589: Spleen_cDNA; Homo sapiens; RNA-Seq | An adult male donor who died of a traumatic brain injury | Spleen_cDNA	Tissue	NA	NA	SAMN16523264	Spleen	Male	NA	NA	Spleen_cDNA
@@ -12485,9 +12485,11 @@ SRX8241389	SRR11680524	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	
 SRX8241390	SRR11680525	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1e+06	12/09/2020	MouseACS8;P19 Mouse retina	Tissue	MouseACS8.bam	NA	SAMN14791402	Eye	NA	NA	Chx10-cre-GFP mouse strain	MouseACS8
 SRX8241391	SRR11680526	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1e+06	12/09/2020	MouseACS9;P19 Mouse retina	Tissue	MouseACS9.bam	NA	SAMN14791401	Eye	NA	NA	Chx10-cre-GFP mouse strain	MouseACS9
 SRX8241392	SRR11680527	PAIRED	Mus musculus	10xv2	YES	SRP259930	Retina	SRP259930	1e+06	12/09/2020	MouseACS10;P19 Mouse retina	Tissue	MouseACS10.bam	NA	SAMN14791400	Eye	NA	NA	Chx10-cre-GFP mouse strain	MouseACS10
-SRX9537750	SRR13091935	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1e+06	12/09/2020	Retina_het	Tissue	NA	NA	SAMN16846318	Eye	NA	NA	C57BL/6/129	Atoh7-zsGreen/+ E14.5 scRNA-seq
-SRX9537751	SRR13091936	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1e+06	12/09/2020	Retina	Tissue	NA	NA	SAMN16846317	Eye	NA	NA	C57BL/6/129	Atoh7-zsGreen/lacZ E14.5 scRNA-seq
-SRX8149876	SRR11582194	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	1e+06	12/09/2020	Retina	Tissue	NA	NA	SAMN14654553	Eye	NA	NA	C57BL/6/129	Atoh7 heterozygous
+SRX9537750	SRR13091935	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	-4.5	12/09/2020	Retina_het	Tissue	NA	NA	SAMN16846318	Eye	NA	NA	C57BL/6/129	Atoh7-zsGreen/+ E14.5 scRNA-seq
+#SRX9537751	SRR13091936	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	-4.5	12/09/2020	Retina	Tissue	NA	NA	SAMN16846317	Eye	NA	NA	C57BL/6/129	Atoh7-zsGreen/lacZ E14.5 scRNA-seq
+SRX8149876	SRR11582194	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	-1.5	12/09/2020	Retina	Tissue	NA	NA	SAMN14654553	Eye	NA	NA	C57BL/6/129	Atoh7 heterozygous
+SRX9537754	SRR13091939	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	-1.5	12/09/2020	Retina	Tissue	NA	NA	SAMN16846323	Eye	NA	NA	C57BL/6/129	Pou4f2-tdTomato/+ E17.5 scRNA-seq
+SRX9537752	SRR13091937	PAIRED	Mus musculus	10xv2	YES	SRP257758	Retina	SRP257758	-1.5	12/09/2020	Retina	Tissue	NA	NA	SAMN16846316	Eye	NA	NA	C57BL/6/129	Atoh7-zsGreen/+ E17.5 scRNA-seq
 SRS5434853	SRR10182336	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	Retina  gestation;dissociated retina	Tissue	Hgw9_retina.bam	NA	SAMN12842173	Eye	NA	NA	NA	Hgw9 retina scRNA-seq
 SRS5434853	SRR10182336	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	Retina  gestation;dissociated retina	Tissue	Hgw9_retina.bam	NA	SAMN12842173	Eye	NA	NA	NA	Hgw9 retina scRNA-seq
 SRS5434853	SRR10182336	PAIRED	Homo sapiens	10xv2	YES	SRP223254	Retina	NA	-217	Early	Retina  gestation;dissociated retina	Tissue	Hgw9_retina.bam	NA	SAMN12842173	Eye	NA	NA	NA	Hgw9 retina scRNA-seq
