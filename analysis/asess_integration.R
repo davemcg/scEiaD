@@ -17,7 +17,14 @@ accuracy <- accuracy %>%
 purity <- 1; balance <- 1; mixing <- 1
 partition = 'universe'
 method = 'scvIprojection'
-perf %>%  
+
+accuracy %>% 
+  filter(partition %in% c('universe')) %>% 
+  group_by(norm, nf, dims, method, knn, epochs) %>% 
+  summarise(bad_score_sum = sum(score < 0.8), xgboost_score = mean(score)) %>% 
+  arrange(-xgboost_score)
+
+perf %>% 
   filter(partition %in% c('universe')) %>% 
   select(-clusterN, -clusterMedian, -subset) %>% 
   pivot_wider(names_from = c('Score','Group'), values_from = Value) %>% 
@@ -56,7 +63,8 @@ perf %>%
          method = gsub('scVIprojection', 'scVI-projection',method),
          method = gsub('scVI$', 'scVI-standard', method),
          method = factor(method, levels = c('scVI-standard','scVI-projection'))) %>% 
-  ggplot(aes(x=Score, y = nf, color = `scVI latent dims`, shape = as.factor(epochs))) + 
+  
+ggplot(aes(x=Score, y = nf, color = `scVI latent dims`, shape = as.factor(epochs))) + 
   facet_wrap(~Run) +
   
   ggbeeswarm::geom_quasirandom(groupOnX=FALSE, size = 4) +

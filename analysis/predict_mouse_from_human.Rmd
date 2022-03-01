@@ -1,16 +1,18 @@
----
-title: "R Notebook"
-output: html_notebook
----
-
-```{r}
-library(Seurat)
-library(tidyverse)
 library(glue)
 library(reticulate)
-load('/data/OGVFB_BG/scEiaD/2021_03_18/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaD.seuratV3.Rdata')
+conda_dir <- '/data/mcgaugheyd/conda/'
+git_dir <- '/home/mcgaugheyd/git/scEiaD/'
+label_id_col <- 'cell_type_id'
+label_name_col <- 'CellType'
+use_python(glue('{conda_dir}/envs/integrate_scRNA/bin/python'), required = TRUE)
+source_python( glue('{git_dir}/src/cell_type_predictor.py'))
+library(Seurat)
+library(tidyverse)
 
-load('/data/OGVFB_BG/scEiaD/2021_03_18/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaD__dist-0.1__neighbors-50.umapFilter.predictions.Rdata')
+
+load('n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaD.seuratV3.Rdata')
+
+load('n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8__preFilter.scEiaD__dist-0.1__neighbors-50.umapFilter.predictions.Rdata')
 
 out <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap, by = 'Barcode') %>% 
   filter(study_accession != 'SRP131661')
@@ -51,7 +53,7 @@ rm_outlier <- function(out, TM = FALSE){
 	out %>% filter(Barcode %in% (bc_retain %>% unlist()))
 }
 
-keep_cells <-  c("AC/HC_Precurs", "Amacrine Cells","Astrocytes",	"Bipolar Cells", "Cones",	"Horizontal Cells", "Muller Glia",	"Neurogenic Cells", "RPCs", "Photoreceptor Precursors","Rods")
+keep_cells <-  c("AC/HC_Precurs", "Amacrine Cells","Astrocytes",	"Bipolar Cells", "Cones",	"Horizontal Cells", "Muller Glia",	"Neurogenic Cells", "RPCs", "Photoreceptor Precursors","Rods", "Retinal Ganglion Cells", "Rod Bipolar Cells", "Microglia")
 
 out <- cluster_outlier(out) %>% rm_outlier(.)
 out <- out %>% mutate(CellType = replace(CellType, grepl('Bipolar', CellType), 'Bipolar Cells'),
@@ -62,17 +64,10 @@ out_human <- out %>% filter(organism == 'Homo sapiens')
 out_mouse <- out %>% filter(organism == 'Mus musculus')
 out_monk <- out %>% filter(organism == "Macaca fascicularis")
 
-conda_dir <- '/data/swamyvs/anaconda3/'
-git_dir <- '/data/swamyvs/scEiad_quant/'
-label_id_col <- 'cell_type_id'
-label_name_col <- 'CellType'
-use_python(glue('{conda_dir}/envs/integrate_scRNA/bin/python'), required = TRUE)
-source_python( glue('{git_dir}/src/cell_type_predictor.py'))
-```
+
 
 ## train human,  predict others 
 
-```{r}
 train_test_predictions <- scEiaD_classifier_train(
                         inputMatrix=out_human, labelIdCol=label_id_col,
                         labelNameCol=label_name_col,
@@ -97,13 +92,12 @@ HSpredictions_monk <- scEiaD_classifier_predict(inputMatrix=out_monk,labelIdCol=
 cr(HSpredictions_mouse$true_CellType, HSpredictions_mouse$predict_CellType)
 cr(HSpredictions_monk$true_CellType, HSpredictions_monk$predict_CellType)
 
-```
+human_model__scoring <- bind_rows(
+(mltest::ml_test(factor(HSpredictions_monk$predict_CellType, levels = factor(HSpredictions_monk$true_CellType) %>% levels()), HSpredictions_monk$true_CellType))$F1 %>% enframe() %>% mutate(organism = 'Macaque'),
+(mltest::ml_test(factor(HSpredictions_mouse$predict_CellType, levels = factor(HSpredictions_mouse$true_CellType) %>% levels()), HSpredictions_mouse$true_CellType))$F1 %>% enframe() %>% mutate(organism = 'Mouse'))
 
+#Train mouse, predict on human maca
 
-Train mouse, predict on human maca
-
-
-```{r}
 train_test_predictions <- scEiaD_classifier_train(
                         inputMatrix=out_mouse, labelIdCol=label_id_col,
                         labelNameCol=label_name_col,
@@ -120,31 +114,16 @@ MMpredictions_human <- scEiaD_classifier_predict(inputMatrix=out_human,labelIdCo
 
 MMpredictions_monk <- scEiaD_classifier_predict(inputMatrix=out_monk,labelIdCol=label_id_col,
                                                 labelNameCol=label_name_col,
-                                                trainedModelFile='testing/model.out',
+                                                trainedModelFile='testing/mouse.out',
 	                                              featureCols=features,  predProbThresh=.5) %>% 
   select(Barcode, predict_CellType = CellType) %>% 
   inner_join(out_monk %>% select(Barcode, true_CellType = CellType))
 
-cr(MMpredictions_human$true_CellType, MMpredictions_human$predict_CellType)
-cr(MMpredictions_monk$true_CellType, MMpredictions_monk$predict_CellType)
-```
 
 
+mouse_model__scoring <- bind_rows(
+(mltest::ml_test(factor(MMpredictions_monk$predict_CellType, levels = factor(MMpredictions_monk$true_CellType) %>% levels()), MMpredictions_monk$true_CellType))$F1 %>% enframe() %>% mutate(organism = 'Macaque'),
+(mltest::ml_test(factor(MMpredictions_human$predict_CellType, levels = factor(MMpredictions_human$true_CellType) %>% levels()), MMpredictions_human$true_CellType))$F1 %>% enframe() %>% mutate(organism = 'Human'))
+                               
 
-```{r}
-
-train_test_predictions <- scEiaD_classifier_train(inputMatrix=out_mouse, labelIdCol=label_id_col, labelNameCol=label_name_col,
-                        trainedModelFile='testing/model.out',featureCols=features, predProbThresh=.5,
-                        generateProb=TRUE,
-                        bad_cell_types = list("RPE/Margin/Periocular Mesenchyme/Lens Epithelial Cells", "Droplet", "Droplets", 'Doublet', 'Doublets', 'Smooth Muscle Cell', 'Choriocapillaris','Artery')
-                        )
-
-full_embedding_predictions <-scEiaD_classifier_predict(inputMatrix=out_human,labelIdCol=label_id_col, labelNameCol=label_name_col, trainedModelFile='testing/model.out',
-	                                                       featureCols=features,  predProbThresh=.5)
-
-
-df <- full_embedding_predictions %>% select(Barcode, predict_CellType = CellType) %>% 
-  inner_join(out_human %>% select(Barcode, true_CellType = CellType))
-cr(df$true_CellType, df$predict_CellType)
-```
 
