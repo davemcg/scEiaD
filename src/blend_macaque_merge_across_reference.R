@@ -11,7 +11,7 @@ library(glue)
 metadata <- read_tsv(args[3])
 setwd(working_dir)
 patterns <- scan(args[4], what = character(), sep='\n') %>% paste0(collapse = '|')
-genes_to_retain_from_giga_HVG <- read_csv('giga_scVI/scVIprojectionSO_scEiaD_model/n_features-5000__transform-counts__partition-universe__covariate-batch__method-scVIprojectionSO__dims-8/var_names.csv', col_names = FALSE) %>% pull(1)
+genes_to_retain_from_giga_HVG <- read_csv('~/git/scEiaD/data/scEiaD_2021_03_17_GIGA_HVG.csv', col_names = FALSE) %>% pull(1)
 load_rdata <- function(x){
   load(x)
   env <- ls.str()
@@ -220,19 +220,22 @@ findHVG <- function(mat){
 	seurat <- NormalizeData(seurat)
 	seurat <- FindVariableFeatures(seurat, selection.method = "vst", nfeatures = 5000)
 	hvg <- seurat@assays$RNA@var.features
-	return(hvg)
+	out <- list()
+	out$hvg <- hvg
+	out$meta <- seurat@meta.data
+	return(out)
 }
 humanHVG <- findHVG(homo_hs_matrix_cg)
 mouseHVG <- findHVG(mus_mm_matrix_cg)
 macaqueHVG <- findHVG(maca_all_matrix_cg)
 chickHVG <- findHVG(extra_species[[1]])
-allHVG <- c(humanHVG, mouseHVG, macaqueHVG, chickHVG) %>% unique()
+allHVG <- c(humanHVG$hvg, mouseHVG$hvg, macaqueHVG$hvg, chickHVG$hvg) %>% unique()
 
 # keep highest expression genes + HVG
 # again because of matrix merge issues
 humanGeneCount <- rowSums(homo_hs_matrix_cg)
 mouseGeneCount <- rowSums(mus_mm_matrix_cg)
-topN <- (humanGeneCount + mouseGeneCount) %>% sort(decreasing = TRUE)  %>% head(5000) %>% names()
+topN <- (humanGeneCount + mouseGeneCount) %>% sort(decreasing = TRUE)  %>% head(3000) %>% names()
 # add HVG and HVG used in gigascience pub
 topN <- c(topN, allHVG, genes_to_retain_from_giga_HVG) %>% unique()
 # R is for reduced
@@ -245,6 +248,7 @@ homo_hs_matrix_cgLOW <- homo_hs_matrix_cg[!row.names(homo_hs_matrix_cg) %in% top
 mus_mm_matrix_cgLOW <- mus_mm_matrix_cg[!row.names(mus_mm_matrix_cg) %in% topN,]
 maca_all_matrix_cgLOW <- maca_all_matrix_cg[!row.names(maca_all_matrix_cg) %in% topN,]
 chick_all_matrix_cgLOW <- extra_species[[1]][!row.names(extra_species[[1]]) %in% topN,]
+
 
 # merge together (THIS IS WHERE YOU GET THE CHOLMOD / vec ISSUES)
 all_species_matrices <- c(list(homo_hs_matrix_cgR,mus_mm_matrix_cgR, maca_all_matrix_cgR ), 
@@ -266,6 +270,10 @@ all_cell_info <- colnames(all_cells_all_species_matrix) %>% enframe() %>%
          batch3 = paste(Platform, Covariate, sep = '_')) %>% 
   select(-name )
 
+# grab gene names
+all_species_full_sparse_genes <- row.names(all_cells_all_species_matrix)
+all_species_full_sparse_remainder_genes <- row.names(all_cells_all_species_matrix_remainder)
+save(all_species_full_sparse_genes, all_species_full_sparse_remainder_genes, file = 'pipeline_data/clean_quant/gene_names.Rdata')
 print('save big matrix')
 save(all_cells_all_species_matrix, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata', compress = F)
 save(all_cells_all_species_matrix_remainder, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix_remainder.Rdata', compress = F)
@@ -274,59 +282,6 @@ print('save all cell info')
 write_tsv(all_cell_info, path  = 'pipeline_data/cell_info/all_cell_info.tsv')
 gene_id_converter %>% select(hs_gene_id, hs_gene_name) %>% distinct %>% write_tsv('references/ENSG2gene_name.tsv.gz')
 
-## make intron quant for mouse 
-all_shared_gene_ids_hs_mm_filtered <- all_shared_gene_ids_hs_mm %>% filter(hs_gene_id %in% row.names(all_cells_all_species_matrix))
-rm(all_cells_all_species_matrix)
-
-intron_mus_mm_matrix <- load_rdata('pipeline_data/clean_quant/Mus_musculus/mm-mus_musculus_full_sparse_unspliced_matrix.Rdata')
-intron_mus_mm_matrix  = intron_mus_mm_matrix[rownames(intron_mus_mm_matrix)%in%mus_mm__keep_genes, ]
-save(intron_mus_mm_matrix, file ='pipeline_data/clean_quant/Mus_musculus/full_sparse_unspliced_matrix.Rdata')
-
-## human intron quant 
-intron_homo_hs_matrix <-load_rdata('pipeline_data/clean_quant/Homo_sapiens/hs-homo_sapiens_full_sparse_unspliced_matrix.Rdata')
-
-save(intron_homo_hs_matrix, file ='pipeline_data/clean_quant/Homo_sapiens/full_sparse_unspliced_matrix.Rdata')
-
-
-## chick intron quant
-intron_chick_gg_matrix <-load_rdata('pipeline_data/clean_quant/Gallus_gallus/gg-gallus_gallus_full_sparse_unspliced_matrix.Rdata')
-
-save(intron_chick_gg_matrix, file ='pipeline_data/clean_quant/Gallus_gallus/full_sparse_unspliced_matrix.Rdata')
-
-### merge all intron quant
-all_shared_gene_ids_hs_mm_intron <- all_shared_gene_ids_hs_mm %>% select(hs_gene_id, mm_gene_id) %>% filter(mm_gene_id %in%  rownames(intron_mus_mm_matrix))
-intron_mus_mm_matrix <- intron_mus_mm_matrix[all_shared_gene_ids_hs_mm_intron$mm_gene_id, ]
-intron_mus_mm_matrix <- aggregate.Matrix(intron_mus_mm_matrix, all_shared_gene_ids_hs_mm_intron$hs_gene_id, fun='sum')
-
- 
-#mm_intron_keep = rownames(intron_mus_mm_matrix) %in% all_shared_gene_ids_hs_mm_filtered$mm_gene_id
-#all_shared_gene_ids_hs_mm_intron  =  {tibble(mm_gene_id = rownames(intron_mus_mm_matrix))} %>% 
-#  inner_join(all_shared_gene_ids_hs_mm_filtered)
-#intron_mus_mm_matrix <- aggregate.Matrix(intron_mus_mm_matrix[mm_intron_keep, ],  
-#                                         all_shared_gene_ids_hs_mm_intron$hs_gene_id, fun='sum')
-intron_homo_hs_matrix <- intron_homo_hs_matrix[rownames(intron_homo_hs_matrix)%in% rownames(intron_mus_mm_matrix), ]
-#all_intron_macaque_data = all_intron_macaque_data[rownames(intron_mus_mm_matrix), ]
-all_intron_macaque_data = all_intron_macaque_data[rownames(intron_mus_mm_matrix)[rownames(intron_mus_mm_matrix) %in% row.names(all_cells_macaque_hs_ids)], ]
-# all_cells_macaque_hs_ids[rownames(mus_mm_matrix_cg)[rownames(mus_mm_matrix_cg) %in% row.names(all_cells_macaque_hs_ids)],  ]
-all_intron_data = RowMergeSparseMatrices(intron_homo_hs_matrix, intron_mus_mm_matrix) %>%  
-  RowMergeSparseMatrices(all_intron_macaque_data)
-#### add new round data
-extra_species_unspliced_metadata <- tibble(species = 'Gallus gallus',
-                                 file = 'pipeline_data/clean_quant/Gallus_gallus/gg-gallus_gallus_full_sparse_unspliced_matrix.Rdata',
-                                 prefix = 'gg_')
-extra_species_unspliced <- lapply(split(extra_species_unspliced_metadata, 1:nrow(extra_species_unspliced_metadata)),
-       function(x) process_extra_species(x$species,
-                                         x$file,
-                                         x$prefix,
-                                         all_shared_gene_ids)
-       )
-
-all_intron_data_list <- c(list(all_intron_data),
-                          extra_species)
-
-all_intron_data <-  reduce(all_intron_data_list, RowMergeSparseMatrices)
-
-save(all_intron_data, file ='pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata')
 
 stats_files <- list.files('pipeline_data/clean_quant', pattern = 'stats.tsv', recursive= T, full.names=T) %>% 
   .[!grepl('droplet_quant_stats.tsv', .)]
@@ -338,4 +293,41 @@ all_stats <- lapply(seq_along(stats_files), function(i) read_tsv(stats_files[i])
 
 write_tsv(all_stats, 'pipeline_data/clean_quant/droplet_quant_stats.tsv')
 
+# intron pull 
+extra_species_metadata_intron <- bind_rows(tibble(species = 'Gallus gallus',
+                                                              file = 'pipeline_data/clean_quant/Gallus_gallus/gg-gallus_gallus_full_sparse_unspliced_matrix.Rdata',
+                                                              prefix = 'gg_'),
+                                                  tibble(species = 'Mus musculus',
+                                                                     file = 'pipeline_data/clean_quant/Mus_musculus/mm-mus_musculus_full_sparse_unspliced_matrix.Rdata',
+                                                                     prefix = 'mm_'))
 
+extra_species_intron <- lapply(split(extra_species_metadata_intron, 1:nrow(extra_species_metadata_intron)),
+        function(x) process_extra_species(x$species,
+                                          x$file,
+                                          x$prefix,
+                                         all_shared_gene_ids)
+       )
+
+intron_homo_hs_matrix <- load_rdata('pipeline_data/clean_quant/Homo_sapiens/hs-homo_sapiens_full_sparse_unspliced_matrix.Rdata')
+intron_homo_hs_matrix <- intron_homo_hs_matrix[rownames(intron_homo_hs_matrix)%in%homo_hs__keep_genes, ]
+all_intron_data_list <- c(extra_species_intron[[1]], extra_species_intron[[2]], intron_homo_hs_matrix, all_intron_macaque_data)
+
+reduced_data_list <- list()
+for (i in 1:length(all_intron_data_list)){
+	print(dim(all_intron_data_list[[i]]))
+	mat <- all_intron_data_list[[i]]
+	reduced_data_list[[i]] <- mat[row.names(mat) %in% all_species_full_sparse_genes, ]
+}
+all_cells_all_species_matrix_intron = reduce(reduced_data_list, RowMergeSparseMatrices)
+
+for (i in 1:length(all_intron_data_list)){
+	print(dim(all_intron_data_list[[i]]))
+	mat <- all_intron_data_list[[i]]
+	reduced_data_list[[i]] <- mat[row.names(mat) %in% all_species_full_sparse_remainder_genes, ]
+}
+all_cells_all_species_matrix_intron_remainder = reduce(reduced_data_list, RowMergeSparseMatrices)
+
+
+
+save(all_cells_all_species_matrix_intron, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix_intron.Rdata', compress = F)
+save(all_cells_all_species_matrix_intron_remainder, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix_intron_remainder.Rdata', compress = F)
