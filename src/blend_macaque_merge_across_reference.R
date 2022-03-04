@@ -24,28 +24,18 @@ load_rdata <- function(x){
 maca_mf_matrix <- load_rdata('pipeline_data/clean_quant/Macaca_fascicularis/mf-macaca_mulatta_full_sparse_matrix.Rdata')
 maca_hs_matrix <- load_rdata('pipeline_data/clean_quant/Macaca_fascicularis/hs-homo_sapiens_full_sparse_matrix.Rdata')
 
-# gene_id_converter <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque.tsv'), skip = 1,
-#                               col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
-#                                            'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>% 
-#   select(-hs_gene_id_v)
+# ortholog info
+ensembl_ortho <- read_tsv(glue("{git_dir}/data/ensembl105_orthologues_hs_mm_mf_gg_zf.tsv.gz"))
+colnames(ensembl_ortho) <- c('hs_gene_id', 'hs_gene_name', 'gg_gene_id', 'gg_gene_name','mm_gene_id','mm_gene_name','mf_gene_id','mf_gene_name','Source','zf_gene_id','zf_gene_name')
+ensembl_ortho <- ensembl_ortho %>% select(-Source)
 
-#### This first part is to blend the macaque and human counts
-source(glue('{git_dir}src/make_gene_id_converter_table.R')) 
-#gene_id_converter <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque_chick_ZF.tsv.gz'), skip = 1,
-#                              col_names= c('hs_gene_id','hs_gene_id_v',
-#                                           'gg_gene_id', 'gg_gene_name',
-#                                           'mf_gene_id', 'mf_gene_name',
-#                                           'mm_gene_id', 'mm_gene_name',
-#                                           'zf_gene_id', 'zf_gene_name',
-#                                           'hs_gene_name')) %>%
-#  select(-hs_gene_id_v)
 
 ## first calculate the total counts across each build
 maca_mf_rowSums <- tibble(mf_gene_id = rownames(maca_mf_matrix),  mf_total = rowSums(maca_mf_matrix))
 maca_hs_rowSums <- tibble(hs_gene_id = rownames(maca_hs_matrix),  hs_total = rowSums(maca_hs_matrix))
 
 ## merge counts together
-joined <- gene_id_converter %>% select(hs_gene_id, mf_gene_id) %>% distinct %>% 
+joined <- ensembl_ortho  %>% select(hs_gene_id, mf_gene_id) %>% distinct %>% 
   left_join(maca_mf_rowSums) %>% left_join(maca_hs_rowSums) %>% 
   mutate(mf_total = replace_na(mf_total, 0), 
          hs_total = replace_na(hs_total, 0))
@@ -58,7 +48,7 @@ min_hs_exp <- maca_mf_rowSums%>% filter(mf_total > 0) %>% pull(mf_total) %>% qua
 ## next, pick macaque genes that have greater expression than human genes;
 mf_genes_id_greater <- joined %>% filter(hs_total < mf_total) %>% pull(mf_gene_id) %>% unique
 ## check to see whether the better gene also has a mapping to a human gene id
-mf_genes_in_hs <- gene_id_converter %>% filter(mf_gene_id %in% mf_genes_id_greater) %>%  pull(mf_gene_id) %>% unique
+mf_genes_in_hs <- ensembl_ortho %>% filter(mf_gene_id %in% mf_genes_id_greater) %>%  pull(mf_gene_id) %>% unique
 hs_genes_outright_better <- joined %>% filter(hs_total > mf_total, hs_total > min_hs_exp) %>% pull(hs_gene_id)
 hs_genes_outright_better_mfid <- joined %>% filter(hs_total > mf_total, hs_total > min_hs_exp) %>% pull(mf_gene_id)
 ### at this point, any genes that haven't been found have a human expession greater than macaque exprssion, with counts less than 9,
@@ -70,7 +60,7 @@ hs_genes_mf_missing <- joined %>% filter(mf_gene_id %in% mf_genes_id_greater, !m
 hs_genes <- c(hs_genes_outright_better, hs_genes_mf_missing)
 
 ## convert macaque gene ids to human gene ids and fix rownames accordingly
-hs_to_mf <- gene_id_converter %>% 
+hs_to_mf <- ensembl_ortho  %>% 
   filter(mf_gene_id %in% mf_genes_in_hs) %>% 
   select(hs_gene_id, mf_gene_id) %>% 
   distinct %>% 
@@ -109,7 +99,7 @@ save(all_cells_macaque_hs_ids, file ='pipeline_data/clean_quant/Macaca_fascicula
 
 
 ## free up some memory
-gdata::keep(args, all_cells_macaque_hs_ids, gene_id_converter, joined, load_rdata, git_dir, working_dir, hs_to_mf, 
+gdata::keep(all_cells_macaque_hs_ids, joined, load_rdata, git_dir, working_dir, hs_to_mf, 
             hs_genes,merge_macaque_references,patterns, genes_to_retain_from_giga_HVG, sure = T)
 #args = commandArgs(trailingOnly=TRUE)
 metadata <- read_tsv(args[3])
@@ -138,7 +128,7 @@ homo_hs__keep_genes = rownames(homo_hs_matrix_cg)
 rm(homo_hs_matrix_cg)
 
 ### now make the merged quantfile
-all_shared_gene_ids <- gene_id_converter %>% 
+all_shared_gene_ids <- ensembl_ortho  %>% 
   filter(#hs_gene_id %in% rownames(all_cells_macaque_hs_ids),
          hs_gene_id %in% rownames(homo_hs_matrix),
          mm_gene_id %in% rownames(mus_mm_matrix),
@@ -148,18 +138,47 @@ all_shared_gene_ids <- gene_id_converter %>%
   
 
 all_shared_gene_ids_hs_mm <- all_shared_gene_ids %>% select(hs_gene_id, mm_gene_id) %>% distinct
-## merge everything together 
-mus_mm_matrix_cg <- mus_mm_matrix[all_shared_gene_ids_hs_mm$mm_gene_id, ]
-# merge duplicate mouse -> human gene names into the human gene name
-mus_mm_matrix_cg <- aggregate.Matrix(mus_mm_matrix_cg, all_shared_gene_ids_hs_mm$hs_gene_id, fun='sum')
+
+# two "alt" situations remain
+## one human gene maps to multiple mouse genes 
+## one mouse gene maps to multiple human genes
+
+## let us remove those from the match
+## missing genes in a species can be added later for diff testing / viz / etc
+
+## mouse genes that multi-match human genes
+mm_multimap <- all_shared_gene_ids_hs_mm %>% group_by(mm_gene_id) %>% summarise(Count = n()) %>% filter(Count > 1)
+## human
+hs_multimap <- all_shared_gene_ids_hs_mm %>% group_by(hs_gene_id) %>% summarise(Count = n()) %>% filter(Count > 1)
+
+all_shared_gene_ids_hs_mm_one_to_one <- all_shared_gene_ids_hs_mm %>% filter(!mm_gene_id %in% mm_multimap$mm_gene_id) %>%
+																	  filter(!hs_gene_id %in% hs_multimap$hs_gene_id)
+## IF (big IF) there is a 1 to 1 match between human  name and mouse name then use that 
+one_to_ones <- all_shared_gene_ids %>% 
+				filter(
+					(mm_gene_id %in% 
+					mm_multimap$mm_gene_id) |
+					(hs_gene_id %in%
+				    hs_multimap$hs_gene_id)) %>% 
+				filter(hs_gene_name == toupper(mm_gene_name)) %>% 
+				select(hs_gene_id, mm_gene_id) %>% 
+				distinct()
+
+all_shared_gene_ids_hs_mm_one_to_one <- bind_rows(all_shared_gene_ids_hs_mm_one_to_one, one_to_ones)
+
+# again check for oen to many
+again_check <- bind_rows(one_to_ones %>% group_by(mm_gene_id) %>% summarise(Count = n()) %>% filter(Count > 1), one_to_ones %>% group_by(hs_gene_id) %>% summarise(Count = n()) %>% filter(Count > 1))
+
+all_shared_gene_ids_hs_mm_one_to_one <- all_shared_gene_ids_hs_mm_one_to_one %>% filter(!hs_gene_id %in% again_check$hs_gene_id) %>% filter(!mm_gene_id %in% again_check$mm_gene_id)
+
+## cut down to shared one to one genes
+mus_mm_matrix_cg <- mus_mm_matrix[all_shared_gene_ids_hs_mm_one_to_one$mm_gene_id, ]
+row.names(mus_mm_matrix_cg) <- all_shared_gene_ids_hs_mm_one_to_one$hs_gene_id
 # fix row names for homo gene names (remove .\\d+ endings)
 row.names(homo_hs_matrix) <- str_replace_all(row.names(homo_hs_matrix),'\\.\\d+', '')
 homo_hs_matrix_cg <- homo_hs_matrix[rownames(mus_mm_matrix_cg), ]
-# NEW approach which ensures that "missing" genes in the macaque matrix don't trip this step up
-# (because you are only using hte mouse and human data to find intersecting names)
-# hoping this doesn't explode and hurt me, but i don't like reducing genes by 1000 or so just BC they aren't in the macaque data
-# which has a shit reference AND way fewer cells (and no developing ones) compared to human/mouse
-#maca_all_matrix_cg = all_cells_macaque_hs_ids[rownames(mus_mm_matrix_cg),  ]# BUGFIX: - was not removing nonshared genes from macaque
+
+# cut down macaque matrix to just gene IDs in mus_mm_matrix_cg (which is now using ENSG huma nids)
 maca_all_matrix_cg = all_cells_macaque_hs_ids[rownames(mus_mm_matrix_cg)[rownames(mus_mm_matrix_cg) %in% row.names(all_cells_macaque_hs_ids)],  ]
 
 rm(mus_mm_matrix, homo_hs_matrix)# free up more mem 
@@ -184,7 +203,10 @@ process_extra_species <- function(species, file, prefix, converter_table){
      filter(!is.na(.[,spec_col]),
             .[[spec_col]] %in% rownames(species_counts)
             ) 
-   print('filter')
+   # remove one to many from spec to hs
+   one_to_many <- converter_table %>% group_by_at(vars(all_of(spec_col))) %>% summarise(Count = n()) %>% filter(Count > 1)
+   converter_table %>% filter(!.data[[spec_col]] %in% (one_to_many %>% pull(1)) )
+	print('filter')
    species_counts_filtered <- species_counts[converter_table[[spec_col]],]
    rownames(species_counts_filtered) <- converter_table$hs_gene_id
    # in cases where multiple chick genes match one human gene, sum the chick gene counts
@@ -199,66 +221,15 @@ extra_species <- lapply(split(extra_species_metadata, 1:nrow(extra_species_metad
                                          all_shared_gene_ids)
        )
 
-############
-# eh, drop this <- these will get tossed later anyways as I can only keep top N expressed genes or HVG
-###########
-# ID genes that are detected in fewer than 100 cells in both mouse and human
-# remove these genes
-# would have kept them but having issues with running out of memory
-# doing the matrix merging 
-#humanCount <- rowCounts(homo_hs_matrix_cg, value = 0)
-#names(humanCount) <- rownames(homo_hs_matrix_cg)
-#zeroCountHuman <- ncol(homo_hs_matrix_cg)  - humanCount
-#mouseCount <- rowCounts(mus_mm_matrix_cg, value = 0)
-#names(mouseCount) <- rownnames(mus_mm_matrix_cg)
-#zeroCountMouse <- ncol(mus_mm_matrix_cg) - mouseCount
 
-# for each species ID top 5k HVG
-# to ensure they are not removed
-findHVG <- function(mat){
-	seurat <- CreateSeuratObject(mat)
-	seurat <- NormalizeData(seurat)
-	seurat <- FindVariableFeatures(seurat, selection.method = "vst", nfeatures = 5000)
-	hvg <- seurat@assays$RNA@var.features
-	out <- list()
-	out$hvg <- hvg
-	out$meta <- seurat@meta.data
-	return(out)
-}
-humanHVG <- findHVG(homo_hs_matrix_cg)
-mouseHVG <- findHVG(mus_mm_matrix_cg)
-macaqueHVG <- findHVG(maca_all_matrix_cg)
-chickHVG <- findHVG(extra_species[[1]])
-allHVG <- c(humanHVG$hvg, mouseHVG$hvg, macaqueHVG$hvg, chickHVG$hvg) %>% unique()
-
-# keep highest expression genes + HVG
-# again because of matrix merge issues
-humanGeneCount <- rowSums(homo_hs_matrix_cg)
-mouseGeneCount <- rowSums(mus_mm_matrix_cg)
-topN <- (humanGeneCount + mouseGeneCount) %>% sort(decreasing = TRUE)  %>% head(3000) %>% names()
-# add HVG and HVG used in gigascience pub
-topN <- c(topN, allHVG, genes_to_retain_from_giga_HVG) %>% unique()
-# R is for reduced
-homo_hs_matrix_cgR <- homo_hs_matrix_cg[row.names(homo_hs_matrix_cg) %in% topN,]
-mus_mm_matrix_cgR <- mus_mm_matrix_cg[row.names(mus_mm_matrix_cg) %in% topN,]
-maca_all_matrix_cgR <- maca_all_matrix_cg[row.names(maca_all_matrix_cg) %in% topN,]
-chick_all_matrix_cgR <- extra_species[[1]][row.names(extra_species[[1]]) %in% topN,]
-# now make "opppsite" matrices for the genes not included
-homo_hs_matrix_cgLOW <- homo_hs_matrix_cg[!row.names(homo_hs_matrix_cg) %in% topN,]
-mus_mm_matrix_cgLOW <- mus_mm_matrix_cg[!row.names(mus_mm_matrix_cg) %in% topN,]
-maca_all_matrix_cgLOW <- maca_all_matrix_cg[!row.names(maca_all_matrix_cg) %in% topN,]
-chick_all_matrix_cgLOW <- extra_species[[1]][!row.names(extra_species[[1]]) %in% topN,]
-
+chick_all_matrix_cg <- extra_species[[1]] 
+save(homo_hs_matrix_cg, mus_mm_matrix_cg, maca_all_matrix_cg, chick_all_matrix_cg, file = 'pipeline_data/clean_quant/gene_name_norm.mat.Rdata')
 
 # merge together (THIS IS WHERE YOU GET THE CHOLMOD / vec ISSUES)
-all_species_matrices <- c(list(homo_hs_matrix_cgR,mus_mm_matrix_cgR, maca_all_matrix_cgR ), 
-                          chick_all_matrix_cgR)
+all_species_matrices <- c(list(homo_hs_matrix_cg,mus_mm_matrix_cg, maca_all_matrix_cg), 
+                          chick_all_matrix_cg)
+
 all_cells_all_species_matrix <-  reduce(all_species_matrices, RowMergeSparseMatrices)
-
-## LOW merge
-all_cells_all_species_matrix_remainder <- reduce(c(list(homo_hs_matrix_cgLOW, mus_mm_matrix_cgLOW, maca_all_matrix_cgLOW, chick_all_matrix_cgLOW)), RowMergeSparseMatrices)
-
-
 
 
 all_cell_info <- colnames(all_cells_all_species_matrix) %>% enframe() %>% 
@@ -272,16 +243,13 @@ all_cell_info <- colnames(all_cells_all_species_matrix) %>% enframe() %>%
 
 # grab gene names
 all_species_full_sparse_genes <- row.names(all_cells_all_species_matrix)
-all_species_full_sparse_remainder_genes <- row.names(all_cells_all_species_matrix_remainder)
 save(all_species_full_sparse_genes, all_species_full_sparse_remainder_genes, file = 'pipeline_data/clean_quant/gene_names.Rdata')
 print('save big matrix')
 save(all_cells_all_species_matrix, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata', compress = F)
-save(all_cells_all_species_matrix_remainder, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix_remainder.Rdata', compress = F)
 
 print('save all cell info')
 write_tsv(all_cell_info, path  = 'pipeline_data/cell_info/all_cell_info.tsv')
 gene_id_converter %>% select(hs_gene_id, hs_gene_name) %>% distinct %>% write_tsv('references/ENSG2gene_name.tsv.gz')
-
 
 stats_files <- list.files('pipeline_data/clean_quant', pattern = 'stats.tsv', recursive= T, full.names=T) %>% 
   .[!grepl('droplet_quant_stats.tsv', .)]
@@ -289,45 +257,7 @@ studies = str_split(stats_files, '/') %>% sapply(function(x)x[3])
 all_stats <- lapply(seq_along(stats_files), function(i) read_tsv(stats_files[i]) %>%  
                       mutate(study_accession = studies[i]) %>% 
                       select(study_accession, everything())) %>% bind_rows 
-  
+ 
 
 write_tsv(all_stats, 'pipeline_data/clean_quant/droplet_quant_stats.tsv')
 
-# intron pull 
-extra_species_metadata_intron <- bind_rows(tibble(species = 'Gallus gallus',
-                                                              file = 'pipeline_data/clean_quant/Gallus_gallus/gg-gallus_gallus_full_sparse_unspliced_matrix.Rdata',
-                                                              prefix = 'gg_'),
-                                                  tibble(species = 'Mus musculus',
-                                                                     file = 'pipeline_data/clean_quant/Mus_musculus/mm-mus_musculus_full_sparse_unspliced_matrix.Rdata',
-                                                                     prefix = 'mm_'))
-
-extra_species_intron <- lapply(split(extra_species_metadata_intron, 1:nrow(extra_species_metadata_intron)),
-        function(x) process_extra_species(x$species,
-                                          x$file,
-                                          x$prefix,
-                                         all_shared_gene_ids)
-       )
-
-intron_homo_hs_matrix <- load_rdata('pipeline_data/clean_quant/Homo_sapiens/hs-homo_sapiens_full_sparse_unspliced_matrix.Rdata')
-intron_homo_hs_matrix <- intron_homo_hs_matrix[rownames(intron_homo_hs_matrix)%in%homo_hs__keep_genes, ]
-all_intron_data_list <- c(extra_species_intron[[1]], extra_species_intron[[2]], intron_homo_hs_matrix, all_intron_macaque_data)
-
-reduced_data_list <- list()
-for (i in 1:length(all_intron_data_list)){
-	print(dim(all_intron_data_list[[i]]))
-	mat <- all_intron_data_list[[i]]
-	reduced_data_list[[i]] <- mat[row.names(mat) %in% all_species_full_sparse_genes, ]
-}
-all_cells_all_species_matrix_intron = reduce(reduced_data_list, RowMergeSparseMatrices)
-
-for (i in 1:length(all_intron_data_list)){
-	print(dim(all_intron_data_list[[i]]))
-	mat <- all_intron_data_list[[i]]
-	reduced_data_list[[i]] <- mat[row.names(mat) %in% all_species_full_sparse_remainder_genes, ]
-}
-all_cells_all_species_matrix_intron_remainder = reduce(reduced_data_list, RowMergeSparseMatrices)
-
-
-
-save(all_cells_all_species_matrix_intron, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix_intron.Rdata', compress = F)
-save(all_cells_all_species_matrix_intron_remainder, file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix_intron_remainder.Rdata', compress = F)
