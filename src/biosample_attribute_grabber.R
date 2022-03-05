@@ -35,28 +35,3 @@ attribute_df_maker <- function(id){
   attribute_df <- bind_rows(attribute_df, c(attribute = 'biosample_title', value = biosample_title, 'id' = id))
   return(attribute_df)
 }
-
-attribute_l <- list()
-for (i in unique(bind_rows(new_meta %>% filter(!biosample %in% 
-                                               attribute_df$id), 
-                           orig_meta %>% mutate(Age = as.character(Age)) %>%  
-                           filter(!biosample %in% attribute_df$id)) %>% pull(biosample))){
-  print(i)
-  attribute_l[[i]] <- try({attribute_df_maker(i)})
-  Sys.sleep(1)
-}
-
-
-
-# remove failed data pulls
-failed <- c()
-for (i in 1:length(attribute_l)){
-  if (class(attribute_l[[i]]) == 'try-error'){
-    failed <- c(failed, i)
-}}
-
-attribute_c <- attribute_l
-attribute_c[failed] <- NULL
-attribute_df <- attribute_c %>% bind_rows() %>% as_tibble()
-save(attribute_df, attribute_l, file = 'data/2021_06_07_attribute_df.Rdata')
-
