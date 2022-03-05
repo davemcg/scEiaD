@@ -1,22 +1,22 @@
 sample_accession	run_accession	library_layout	organism	Platform	UMI	study_accession	Tissue	Covariate	Age	integration_group	TissueNote	Source	bam10x	Comment	biosample	Donor	Organ	sex	Batch	biosample_title	retina_region	strain	batch
-SRX11077088	SRR14742510	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	Cornea	Cornea_72	Adult	Late	Cornea 72	Tissue	NA	72	SAMN19587387	72	Eye	NA	Cornea_72	Cornea72_scRNA-Seq	NA	NA	NA
-SRX11077089	SRR14742511	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	Cornea	Cornea_73	Adult	Late	Cornea 73	Tissue	NA	73	SAMN19587386	73	Eye	NA	Cornea_73	Cornea73_scRNA-Seq	NA	NA	NA
-SRX11077090	SRR14742512	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	Iris	Iris_73	Adult	Late	Iris 73	Tissue	NA	73	SAMN19587385	73	Eye	NA	Iris_73	Iris73_scRNA-Seq	NA	NA	NA
-SRX11077091	SRR14742513	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	Iris	Iris_74	Adult	Late	Iris 74	Tissue	NA	74	SAMN19587384	74	Eye	NA	Iris_74	Iris74_scRNA-Seq	NA	NA	NA
+SRX11077088	SRR14742510	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	Cornea	Cornea_72	Adult	Late	Cornea 72	Tissue	NA	72	SAMN19587387	72	Eye	NA	Cornea_72	Cornea72_scRNA-Seq	NA	NA	NA
+SRX11077089	SRR14742511	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	Cornea	Cornea_73	Adult	Late	Cornea 73	Tissue	NA	73	SAMN19587386	73	Eye	NA	Cornea_73	Cornea73_scRNA-Seq	NA	NA	NA
+SRX11077090	SRR14742512	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	Iris	Iris_73	Adult	Late	Iris 73	Tissue	NA	73	SAMN19587385	73	Eye	NA	Iris_73	Iris73_scRNA-Seq	NA	NA	NA
+SRX11077091	SRR14742513	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	Iris	Iris_74	Adult	Late	Iris 74	Tissue	NA	74	SAMN19587384	74	Eye	NA	Iris_74	Iris74_scRNA-Seq	NA	NA	NA
 SRX8047145	SRR11470709	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	Choroid	Choroid_75	Adult	Late	Choroid 75	Tissue	NA	75	SAMN14525765	75	Eye	NA	Choroid_75	Choroid75_scRNA-Seq	NA	NA	NA
-SRX8047146	SRR11470710	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	Cornea	Cornea_76	Adult	Late	Cornea 76	Tissue	NA	76	SAMN14525764	76	Eye	NA	Cornea_76	Cornea76_scRNA-Seq	NA	NA	NA
-SRX8047147	SRR11470711	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	IrisMuscle	IrisMuscle_76	Adult	Late	IrisMuscle 76	Tissue	NA	76	SAMN14525763	76	Eye	NA	IrisMuscle_76	IrisMuscle76_scRNA-Seq	NA	NA	NA
-SRX8047148	SRR11470712	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	Sclera	Sclera_75	Adult	Late	Sclera 75	Tissue	NA	75	SAMN14525762	75	Eye	NA	Sclera_75	Sclera75_scRNA-Seq	NA	NA	NA
-SRX8047149	SRR11470713	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	IrisPE	IrisPE_76	Adult	Late	IrisPE 76	Tissue	NA	76	SAMN14525761	76	Eye	NA	IrisPE_76	IrisPE76_scRNA-Seq	NA	NA	NA
-SRX8047150	SRR11470714	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	IrisStroma	IrisStroma_76	Adult	Late	IrisStroma 76	Tissue	NA	76	SAMN14525760	76	Eye	NA	IrisStroma_76	IrisStroma76_scRNA-Seq	NA	NA	NA
-SRX8047151	SRR11470715	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	Retina	Retina_76	Adult	Late	Retina 76	Tissue	NA	76	SAMN14525759	76	Eye	NA	Retina_76	Retina76_scRNA-Seq	NA	NA	NA
-SRX8047152	SRR11470716	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	RPE	RPE_76	Adult	Late	RPE 76	Tissue	NA	76	SAMN14525758	76	Eye	NA	RPE_76	RPE76_scRNA-Seq	NA	NA	NA
-SRX8047153	SRR11470717	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	Retina	Retina_78	Adult	Late	Retina 78	Tissue	NA	78	SAMN14525757	78	Eye	NA	Retina_78	Retina78_scRNA-Seq	NA	NA	NA
-SRX8047154	SRR11470718	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	RPE	RPE_78	Adult	Late	RPE 78	Tissue	NA	78	SAMN14525756	78	Eye	NA	RPE_78	RPE78_scRNA-Seq	NA	NA	NA
-SRX8047159	SRR11470723	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	IrisPE	IrisPE_75	Adult	Late	IrisPE 75	Tissue	NA	75	SAMN14525751	75	Eye	NA	IrisPE_75	IrisPE75_scRNA-Seq	NA	NA	NA
-SRX8047160	SRR11470724	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	IrisStroma	IrisStroma_75	Adult	Late	IrisStroma 75	Tissue	NA	75	SAMN14525750	75	Eye	NA	IrisStroma_75	IrisStroma75_scRNA-Seq	NA	NA	NA
-SRX8047161	SRR11470725	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	Retina	Retina_74	Adult	Late	Retina 74	Tissue	NA	74	SAMN14525749	74	Eye	NA	Retina_74	Retina74_scRNA-Seq	NA	NA	NA
-SRX8047162	SRR11470726	PAIRED	Homo sapiens	10xv3	Yes	SRP255012	Retina	Retina_75	Adult	Late	Retina 75	Tissue	NA	75	SAMN14525748	75	Eye	NA	Retina_75	Retina75_scRNA-Seq	NA	NA	NA
+SRX8047146	SRR11470710	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	Cornea	Cornea_76	Adult	Late	Cornea 76	Tissue	NA	76	SAMN14525764	76	Eye	NA	Cornea_76	Cornea76_scRNA-Seq	NA	NA	NA
+SRX8047147	SRR11470711	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	IrisMuscle	IrisMuscle_76	Adult	Late	IrisMuscle 76	Tissue	NA	76	SAMN14525763	76	Eye	NA	IrisMuscle_76	IrisMuscle76_scRNA-Seq	NA	NA	NA
+SRX8047148	SRR11470712	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	Sclera	Sclera_75	Adult	Late	Sclera 75	Tissue	NA	75	SAMN14525762	75	Eye	NA	Sclera_75	Sclera75_scRNA-Seq	NA	NA	NA
+SRX8047149	SRR11470713	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	IrisPE	IrisPE_76	Adult	Late	IrisPE 76	Tissue	NA	76	SAMN14525761	76	Eye	NA	IrisPE_76	IrisPE76_scRNA-Seq	NA	NA	NA
+SRX8047150	SRR11470714	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	IrisStroma	IrisStroma_76	Adult	Late	IrisStroma 76	Tissue	NA	76	SAMN14525760	76	Eye	NA	IrisStroma_76	IrisStroma76_scRNA-Seq	NA	NA	NA
+SRX8047151	SRR11470715	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	Retina	Retina_76	Adult	Late	Retina 76	Tissue	NA	76	SAMN14525759	76	Eye	NA	Retina_76	Retina76_scRNA-Seq	NA	NA	NA
+SRX8047152	SRR11470716	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	RPE	RPE_76	Adult	Late	RPE 76	Tissue	NA	76	SAMN14525758	76	Eye	NA	RPE_76	RPE76_scRNA-Seq	NA	NA	NA
+SRX8047153	SRR11470717	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	Retina	Retina_78	Adult	Late	Retina 78	Tissue	NA	78	SAMN14525757	78	Eye	NA	Retina_78	Retina78_scRNA-Seq	NA	NA	NA
+SRX8047154	SRR11470718	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	RPE	RPE_78	Adult	Late	RPE 78	Tissue	NA	78	SAMN14525756	78	Eye	NA	RPE_78	RPE78_scRNA-Seq	NA	NA	NA
+SRX8047159	SRR11470723	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	IrisPE	IrisPE_75	Adult	Late	IrisPE 75	Tissue	NA	75	SAMN14525751	75	Eye	NA	IrisPE_75	IrisPE75_scRNA-Seq	NA	NA	NA
+SRX8047160	SRR11470724	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	IrisStroma	IrisStroma_75	Adult	Late	IrisStroma 75	Tissue	NA	75	SAMN14525750	75	Eye	NA	IrisStroma_75	IrisStroma75_scRNA-Seq	NA	NA	NA
+SRX8047161	SRR11470725	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	Retina	Retina_74	Adult	Late	Retina 74	Tissue	NA	74	SAMN14525749	74	Eye	NA	Retina_74	Retina74_scRNA-Seq	NA	NA	NA
+SRX8047162	SRR11470726	PAIRED	Homo sapiens	10xv2	Yes	SRP255012	Retina	Retina_75	Adult	Late	Retina 75	Tissue	NA	75	SAMN14525748	75	Eye	NA	Retina_75	Retina75_scRNA-Seq	NA	NA	NA
 SRX14336032	SRR18188993	PAIRED	Homo sapiens	10xv2	Yes	SRP362101	Cornea	1087901	19345	Late	healthy donor	Tissue	NA	NA	SAMN26350432	NA	Eye	male	1087901	Human sample from Homo sapiens	NA	NA	NA
 SRX14336031	SRR18188994	PAIRED	Homo sapiens	10xv2	Yes	SRP362101	Cornea	1087901	19345	Late	healthy donor	Tissue	NA	NA	SAMN26350432	NA	Eye	male	1087901	Human sample from Homo sapiens	NA	NA	NA
 SRX14336030	SRR18188995	PAIRED	Homo sapiens	10xv2	Yes	SRP362101	Cornea	1087901	19345	Late	healthy donor	Tissue	NA	NA	SAMN26350432	NA	Eye	male	1087901	Human sample from Homo sapiens	NA	NA	NA
