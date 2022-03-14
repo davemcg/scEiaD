@@ -47,11 +47,20 @@ names(study_counts_list) <- srs_names
 
 # find 10xv3
 v3 <- str_extract(srs_directories, '10xv3')
+
+# for SRP362101 set the cells_above_min_umi_val to a higher value as 200 is too low for some reason
+if (grepl('SRP362101', args[1])){
+	print("ALTERING MIN UMI CUTOFF TO 600")
+	cells_above_min_umi_val = 600
+} else {
+	cells_above_min_umi_val = 200
+}
 # run filtering
 filtered_counts <- lapply(seq_along(study_counts_list), function(i) remove_empty_droplets(study_counts_list[[i]], 
                                                                                          names(study_counts_list)[i],
                                                                                          mito_genelist,
-																						 v3[i]))
+																						 v3[i],
+																						 cells_above_min_umi_val))
 filtered_counts_orig <- filtered_counts
 # if there is a sample with fewer than 50 cells, then just combine them all
 low_n_count <- 0
@@ -69,7 +78,8 @@ if (ambient == 'decontX'){
 	decontX_counts_stats <- lapply(seq_along(study_counts_list), function(i) remove_empty_droplets(decontX_counts[[i]],
                                                                                          names(study_counts_list)[i],
                                                                                          mito_genelist,
-																						 v3[i]))
+																						 v3[i],
+																					     cells_above_min_umi_val))
 	# deal with edge case where no cells make it past the filtering (remove_empty_droplets) part 2
 	for (i in seq_along(study_counts_list)){
 		if (is.null(decontX_counts_stats[[i]]$spliced)){

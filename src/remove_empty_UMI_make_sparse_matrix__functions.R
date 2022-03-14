@@ -22,8 +22,8 @@ calc_spl_ratio <- function(x, cells){
 
 }
 
-remove_empty_droplets <- function(x, srs, mito_genelist, v3){
-
+remove_empty_droplets <- function(x, srs, mito_genelist, v3, cells_above_min_umi_val = 200){
+  print(paste0('cells_above_min_umi_val is: ', cells_above_min_umi_val))
   if (!is.na(v3)){
 		mito_cutoff <- 20
 	} else { mito_cutoff <- 10 
@@ -110,7 +110,7 @@ common <- bc_spliced_pass %>% intersect(prefilter_common)
 
   ## quality control: remove high mito cells, and remove high count(doublet) cells
 
-  cells_above_min_umi <-  seu$nFeature_RNA > 200
+  cells_above_min_umi <-  seu$nFeature_RNA > cells_above_min_umi_val
   cells_above_min_umi2 <-  seu$nFeature_RNA > 600
   cells_below_max_umi <- seu$nFeature_RNA < 100000
 
