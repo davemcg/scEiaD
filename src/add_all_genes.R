@@ -1,7 +1,9 @@
 # the merge methods to make the pan-species matrices only keeps genes that can be cross-matched
 # between mouse/human/macaque
+# 
+# plus due to cholmod issues only the top (by HVG or expression) 15000 genes or so can be used
 #
-# in no surprise, many genes are dropped
+# thus many genes are dropped
 # not a big deal for the integration
 # but a problem for the diff testing
 # and general db use
@@ -29,17 +31,9 @@ mm_gtf <- rtracklayer::readGFF('references/gtf/mm-mus_musculus_anno.gtf.gz') %>%
 mf_gtf <- rtracklayer::readGFF('references/gtf/mf-macaca_mulatta_anno.gtf.gz')
 gg_gtf <- rtracklayer::readGFF('references/gtf/gg-gallus_gallus_anno.gtf.gz')
 
-conv_tab <- read_tsv(glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque_chick_ZF.tsv.gz'), skip = 1,
-                              col_names= c('human_gene_id','verisioned_hid',
-                                           'chick_gene_id', 'chick_gene_name',
-                                           'macaque_gene_id', 'maca_gene_name',
-                                           'mouse_gene_id', 'mouse_gene_name',
-                                           'zf_gene_id', 'zf_gene_name',
-                                           'gene_name')) 
+conv_tab <- read_tsv(glue('{git_dir}/data/ensembl105_orthologues_hs_mm_mf_gg_zf.tsv.gz'), skip = 1,
+                              col_names= c('human_gene_id', 'gene_name', 'chick_gene_id', 'chick_gene_name','mouse_gene_id','mouse_gene_name','macaque_gene_id','macaque_gene_name','Source','zebrafish_gene_id','zebrafish_gene_name')) 
 
-#conv_tab <-  read_tsv('references/ensembl_biomart_human2mouse_macaque.tsv',
-#                      skip = 1,
-#                      col_names = c('human_gene_id', 'verisioned_hid','mouse_gene_id', 'macaque_gene_id', 'gene_name', 'mouse_gene_name', 'maca_gene_name')) 
 any_common_ctab <- full_join(   
   conv_tab %>% filter(!duplicated(human_gene_id), !duplicated(mouse_gene_id), !is.na(mouse_gene_id)) %>%
     select(human_gene_id, mouse_gene_id),
@@ -51,10 +45,9 @@ any_common_ctab <- full_join(
     select(human_gene_id, chick_gene_id)
   ) %>% inner_join(conv_tab %>% select(gene_name, human_gene_id) %>% distinct,.)
 
-metadata <- read_tsv(glue('{git_dir}data/sample_run_layout_organism_tech.tsv'))
 hs_msg_gene_ids <- hs_gtf %>% 
   filter(type == 'gene', !gene_id %in% any_common_ctab$human_gene_id, gene_type == 'protein_coding') %>% 
-  select(gene_name, human_gene_id=gene_id) %>% 
+  select(gene_name, human_gene_id=gene_id) %>%
   mutate(mouse_gene_id = NA, macaque_gene_id= NA, chick_gene_id = NA)
 mm_msg_gene_ids <-  mm_gtf %>% 
   filter(type == 'gene', !gene_id %in% any_common_ctab$mouse_gene_id, gene_type == 'protein_coding') %>%
