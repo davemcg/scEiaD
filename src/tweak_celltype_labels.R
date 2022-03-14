@@ -1,11 +1,14 @@
 # 1. hand moves over some common labels from tabula muris
-# 2. fixes the E12 sanes chick data by swapping over the horizontal labelling to amacrine
 hand_fixer <- function(umap){
-	umapN <- umap %>% 
-				mutate(CellType_predict = case_when(grepl('E12', biosample_title) & CellType_predict == 'Horizontal Cell' & organism == 'Gallus gallus' & CellType_predict_max_prob > 0.999 ~ 'Horizontal Cell',
-												grepl('E12', biosample_title) & CellType_predict == 'Horizontal Cell' & organism == 'Gallus gallus' & CellType_predict_max_prob < 0.999 ~ 'Amacrine Cell',
-												TRUE ~ CellType_predict)) %>% 
-        	    mutate(CellType_predict = case_when(TabulaMurisCellType_predict == 'T cell' ~ 'T/NK-Cell',
+	
+	umapN <- umap #%>% 
+				#mutate(CellType_predict = case_when(grepl('E12', biosample_title) & CellType_predict == 'Horizontal Cell' & organism == 'Gallus gallus' & CellType_predict_max_prob > 0.999 ~ 'Horizontal Cell',
+				#								grepl('E12', biosample_title) & CellType_predict == 'Horizontal Cell' & organism == 'Gallus gallus' & CellType_predict_max_prob < 0.999 ~ 'Amacrine Cell',
+				#								TRUE ~ CellType_predict)) 
+	if ('TabulaMurisCellType_predict'  %in% colnames(umapN)){
+	umapN <- umapN %>%
+        	    mutate(CellType_predict = case_when(
+									TabulaMurisCellType_predict == 'T cell' ~ 'T/NK-Cell',
                                     TabulaMurisCellType_predict == 'B cell' ~ 'B-Cell',
                                     TabulaMurisCellType_predict == 'endothelial cell' ~ 'Endothelial',
                                     TabulaMurisCellType_predict == 'epithelial cell' ~ 'Epithelial',
@@ -41,6 +44,7 @@ hand_fixer <- function(umap){
                             TabulaMurisCellType == 'natural killer cell' ~ 'T/NK-Cell',
                             TabulaMurisCellType == 'monocyte' ~ 'Monocyte',
                             TRUE ~ CellType))
+	}
 	
 	umapN
 

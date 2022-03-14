@@ -642,12 +642,155 @@ meta_SRP310237 <- cell_info %>%
 					mutate(BC = gsub("_.*","", value)) %>%
 					left_join(brainCPnuc %>% select(sample_accession, BC, CellType, SubCellType), by = c('BC','sample_accession')) %>%
 					mutate(Paper = 'Dani et al. 2021')			
+
+# SRP275814 collin lako cornea
+# 10pcw
+cornea <- data.table::fread(config$cell_info) %>%
+    filter(study_accession == 'SRP275814')
+pcw10 <- read_tsv(glue::glue('{git_dir}/data/lako_cornea_10PCW_meta.tsv'))
+cornea_pcw10 <- cornea %>% filter(grepl('10PCW', biosample_title))
+SRP275814_cornea_pcw10 <- cornea_pcw10 %>% mutate(cellName = str_extract(value, '^[ANGTC]+')) %>% left_join(pcw10) 
+
+cornea_pcw12 <- cornea %>% filter(grepl('12PCW', biosample_title))
+pcw12 <- read_tsv(glue::glue('{git_dir}/data/lako_cornea_12PCW_meta.tsv'))
+SRP275814_cornea_pcw12 <- cornea_pcw12 %>% mutate(cellName = str_extract(value, '^[ANGTC]+')) %>% 
+							left_join(pcw12 %>% mutate(run = str_extract(cellName, '\\d+'), 
+														cellName = str_extract(cellName, '^[ACGTN]+'),
+														sample_accession = case_when(run == '2' ~ 'SRX8884955',
+																					 run == '1' ~ 'SRX8884954',
+																					 run == '4' ~ 'SRX8884957',
+																					 run == '3' ~ 'SRX8884956')))
+												
+cornea_pcw1314 <- cornea %>% filter(grepl('13PCW|14PCW', biosample_title))
+pcw1314 <- read_tsv(glue::glue('{git_dir}/data/lako_cornea_13_14PCW_meta.tsv'))
+SRP275814_cornea_pcw1314 <- cornea_pcw1314 %>% mutate(cellName = str_extract(value, '^[ANGTC]+')) %>%
+                            left_join(pcw1314 %>% mutate(run = str_extract(cellName, '\\d+'),
+                                                        cellName = str_extract(cellName, '^[ACGTN]+'),
+                                                        sample_accession = case_when(run == '1' ~ 'SRX8884958',
+                                                                                     run == '4' ~ 'SRX8884961',
+                                                                                     run == '3' ~ 'SRX8884960',
+                                                                                     run == '2' ~ 'SRX8884959')))
+
+cornea_pcw16 <-  cornea %>% filter(grepl('16PCW', biosample_title))
+pcw16 <- read_tsv(glue::glue('{git_dir}/data/lako_cornea_16PCW_meta.tsv'))
+SRP275814_cornea_pcw16 <- cornea_pcw16 %>% mutate(cellName = str_extract(value, '^[ANGTC]+')) %>%
+                            left_join(pcw16 %>% mutate(run = str_extract(cellName, '\\d+'),
+                                                        cellName = str_extract(cellName, '^[ACGTN]+'),
+                                                        sample_accession = case_when(run == '1' ~ 'SRX8884962',
+                                                                                     run == '2' ~ 'SRX8884963')))
+
+cornea_pcw1718 <- cornea %>% filter(grepl('17PCW|18PCW', biosample_title))
+pcw1718 <- read_tsv(glue::glue('{git_dir}/data/lako_cornea_17_18PCW_meta.tsv'))
+SRP275814_cornea_pcw1718 <- cornea_pcw1718 %>% mutate(cellName = str_extract(value, '^[ANGTC]+')) %>%
+                            left_join(pcw1718 %>% mutate(run = str_extract(cellName, '\\d+'),
+                                                        cellName = str_extract(cellName, '^[ACGTN]+'),
+                                                        sample_accession = case_when(run == '1' ~ 'SRX8884964',
+                                                                                     run == '2' ~ 'SRX8884965')))
+cornea_pcw2021 <- cornea %>% filter(grepl('20PCW|21PCW', biosample_title))
+pcw2021 <- read_tsv(glue::glue('{git_dir}/data/lako_cornea_20_21PCW_meta.tsv'))
+SRP275814_cornea_pcw2021 <- cornea_pcw2021 %>% mutate(cellName = str_extract(value, '^[ANGTC]+')) %>%
+                            left_join(pcw2021 %>% mutate(run = str_extract(cellName, '\\d+'),
+                                                        cellName = str_extract(cellName, '^[ACGTN]+'),
+                                                        sample_accession = case_when(run == '1' ~ 'SRX8884966',
+                                                                                     run == '2' ~ 'SRX8884967',
+																					 run =='3' ~ 'SRX8884968')))
+cornea_adult <- cornea %>% filter(!grepl('PCW', biosample_title))
+adult <- read_tsv(glue::glue('{git_dir}/data/lako_cornea_adult_meta.tsv'))
+SRP275814_cornea_adult <- cornea_adult %>% mutate(cellName = str_extract(value, '^[ANGTC]+')) %>%
+                            left_join(adult %>% mutate(run = str_extract(cellName, '\\d+'),
+                                                        cellName = str_extract(cellName, '^[ACGTN]+'),
+                                                        sample_accession = case_when(run == '1' ~ 'SRX8884969',
+                                                                                     run == '2' ~ 'SRX8884971',
+																					 run == '4' ~ 'SRX8884972')))
+SRP275814 <- bind_rows(SRP275814_cornea_pcw10,
+						SRP275814_cornea_pcw12,
+						SRP275814_cornea_pcw1314,
+						SRP275814_cornea_pcw16,
+						SRP275814_cornea_pcw1718,
+						SRP275814_cornea_pcw2021,
+						SRP275814_cornea_adult) %>% 
+							mutate(CellType = case_when(cluster == 'neural crest' ~ 'Neural Crest',
+														grepl('corneal epithelium', cluster) ~ 'Corneal Epithelium',
+														grepl('corneal endothelium', cluster) ~ 'Corneal Endothelium',
+														cluster == 'conjunctival epithelium' ~ 'Conjunctival Epithelium',
+														grepl('proliferating', cluster) ~ 'Proliferating Cornea',
+														cluster == 'corneal nerves' ~ 'Corneal Nerve',
+														grepl('keratocytes', cluster) ~ 'Keratocyte',
+														cluster == 'ciliary margin' ~ 'Ciliary Margin',
+														grepl('vessel', cluster) ~ 'Blood Vessel',
+														grepl('red blood', cluster) ~ 'Red Blood Cell',
+														grepl('fibroblast', cluster) ~ 'Fibroblast',
+														grepl('mesoderm', cluster) ~ 'Mesoderm',
+														cluster == 'melanocytes' ~ 'Melanocyte',
+														cluster == 'epithelial basement membrane' ~ 'Corneal Basement Membrane',
+														grepl('progenitors', cluster, ignore.case = TRUE) ~ 'Corneal Progenitor',
+														cluster == 'limbal stem/progenitor cells' ~ 'Limbal Progenitor', 
+														grepl('limbal', cluster, ignore.case = TRUE) ~ 'Limbal'	),
+									SubCellType = cluster) %>%
+							select(-cluster, -cellName) %>% 
+							mutate(Paper = 'Collin et al. 2021')
+
+
+# Bala
+cell_info <- data.table::fread(config$cell_info) %>% select(-TissueNote)
+SRP228556 <- read_tsv(glue('{git_dir}/data/Balasubramanian_Zhang_metaData6.tsv.gz')) %>%
+				mutate(Paper = 'Balasubramanian et al. 2022', sample_accession = 'SRX7099188') %>% 
+				mutate(NAME = gsub('-1','',NAME),
+						Barcode = glue('{NAME}_{sample_accession}'),
+						Comment = condition,
+						SubCellType = CellType,
+						CellType = case_when(SubCellType == 'Photoreceptors' ~ 'Photoreceptor Precursor',
+											 SubCellType == 'ACs/HCs' ~  'AC/HC_Precursor',
+											 SubCellType ==  'RGCs' ~  'Retinal Ganglion Cell',
+											 grepl('RPC', SubCellType) ~ 'RPC',
+											 grepl('CM', SubCellType) ~ 'Ciliary Margin',
+											 grepl('Neurogenic', SubCellType) ~ 'Neurogenic Cell')) %>%
+						select(Barcode, CellType, SubCellType, Paper, Comment)
+
+SRP228556_meta <- cell_info %>% filter(sample_accession == 'SRX7099188') %>%
+					left_join(SRP228556, by = c('value' = 'Barcode'))
+											 
+# Gautam Loh
+swapper <- cell_info  %>% filter(study_accession == 'SRP255012') %>% select(Covariate, sample_accession)  %>% mutate(samp = gsub('_','',Covariate)) %>% unique()
+SRP255012 <- data.table::fread(glue('{git_dir}/data/Gautam_Loh_scp_metadata.txt.gz')) %>% as_tibble() %>% 
+					mutate(SubCellType = Sub_celltype,
+							CellType = case_when(grepl('T cells', SubCellType) ~ 'T/NK-Cell',
+										SubCellType == 'Amacrine cells' ~ 'Amacrine Cell',
+										grepl('endothelial', SubCellType) ~ 'Endothelial',
+										grepl('ciliary body', SubCellType, ignore.case = TRUE) ~ 'Ciliary Body',
+										SubCellType == 'Cone bipolar cells' ~ 'Bipolar Cell',
+										SubCellType == 'Cones' ~ 'Cone',
+										SubCellType == 'Conjunctival cells' ~ 'Conjunctival Epithelial',
+										SubCellType == 'Corneal epithelial cells' ~ 'Corneal Epithelial',
+										grepl('fibroblast', SubCellType, ignore.case = TRUE) ~ 'Fibroblast',
+										SubCellType == 'Endothelial cells' ~ 'Endothelial',
+										SubCellType == 'Horizontal cells' ~ 'Horizontal Cell',
+										SubCellType == 'Melanocytes' ~ 'Melanocyte',
+										SubCellType == 'Microglia' ~ 'Microglia',
+										SubCellType == 'Monocytes' ~ 'Monocyte',
+										SubCellType == 'Muller glia' ~ 'Muller Glia',
+										grepl('bipolar c', SubCellType) ~ 'Bipolar Cell',
+										SubCellType == 'RGCs' ~ 'Retinal Ganglion Cell',
+										SubCellType == 'Rod bipolar cells' ~ 'Rod Bipolar Cell',
+										SubCellType == 'Rods' ~ 'Rod',
+										SubCellType == 'RPE' ~ 'RPE',
+										SubCellType == 'Schwann cells' ~ 'Schwann',
+										SubCellType == 'Smooth muscle cells' ~ 'Smooth Muscle Cell',
+						)) %>%
+					left_join(swapper, by = c('biosample_id' = 'samp')) %>% 
+					mutate(bc = str_extract(NAME, '[ATGCN]+$'), Barcode = glue('{bc}_{sample_accession}'),
+							Paper = 'Gautam et al. 2022') %>%
+					select(Barcode, CellType, SubCellType)
+
+SRP255012_meta <- cell_info %>% filter(study_accession == 'SRP255012') %>%
+                    left_join(SRP255012, by = c('value' = 'Barcode'))
+
 # MERGE
 cell_info <- data.table::fread(config$cell_info)
 
 meta_SRP <- bind_rows(meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP075719, meta_MacaqueSanes, meta_SRP194595, 
 						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195, meta_EGAD00001006350, meta_SRP218652, meta_SRP259930, 
-						meta_SRP200499, outflow_meta, chick_meta, pan_human_meta, meta_SRP310237) %>%
+						meta_SRP200499, outflow_meta, chick_meta, pan_human_meta, meta_SRP310237, SRP275814, SRP228556_meta, SRP255012_meta) %>%
 			select(value:batch, CellType, SubCellType, TabulaMurisCellType, Paper) %>% 
 	mutate(CellType = gsub('AC/HC_Precur', 'AC/HC_Precursor', CellType),
 			CellType = gsub('Natural Killer', 'T/NK-Cell', CellType), 
