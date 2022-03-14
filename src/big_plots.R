@@ -42,7 +42,7 @@ umap <- umap %>%
 # attach colors to cell types
 cell_types <- umap %>% 
   pull(CellType) %>% unique() %>% sort()
-type_val <- setNames(c(pals::alphabet(), pals::alphabet2())[1:length(cell_types)], cell_types)
+type_val <- setNames(c(pals::alphabet(), pals::alphabet2(), pals::glasbey())[1:length(cell_types)], cell_types)
 type_col <- scale_colour_manual(values = type_val)
 type_fill <- scale_fill_manual(values = type_val)
 
