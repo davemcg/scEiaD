@@ -79,18 +79,28 @@ m <- m[, cell_info %>% pull(value)]
 nFeature_RNA_cutoff = 500
 
 if (set == 'universe'){
-  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, nFeature_RNA_cutoff = 500)
+  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, nFeature_RNA_cutoff = 500, only_use_human_for_FVF = TRUE)
 } else if (set == 'universeHUMANHVG'){
   seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, only_use_human_for_FVF = TRUE)
 } else if (set == 'universeGIGAHVG'){
   seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids,  HVG = HVG_var_names)
 } else if (set %in% c('mouse')){
-  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids)
-} else if (set %in% c('chick', 'macaque', 'human')){
-  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE)
+  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, chick_included = FALSE)
+} else if (set %in% c('chick')){
+  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE, nFeature_RNA_cutoff = 500)
+} else if (set %in% c( 'macaque', 'human')){
+  seurat__standard <- make_seurat_obj(m[, cell_info %>% filter(!Source %in% c('Organoid', 'Cell Culture')) %>% pull(value)], cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE, nFeature_RNA_cutoff = 500, chick_included  = FALSE)
 } else if (set == 'raw') {
   seurat__standard <- m
-} 
+} else if (set == 'PR') {
+  ct_m <- fst::read_fst('site/meta_filter.fst')
+  m_PR <- m[,(ct_m %>% filter(CellType_predict %in% c("Rod","Cone", "Photoreceptor Precursor"), TechType == 'Droplet', CellType_predict_max_prob > 0.9) %>% pull(Barcode))]
+  seurat__standard <- make_seurat_obj(m_PR, cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE, nFeature_RNA_cutoff = 500)
+} else if (set == 'BC') {
+  ct_m <- fst::read_fst('site/meta_filter.fst')
+  m_bc <- m[,(ct_m %>% filter(CellType_predict %in% c("Bipolar Cell"), TechType == 'Droplet', CellType_predict_max_prob > 0.9) %>% pull(Barcode))]
+  seurat__standard <- make_seurat_obj(m_bc, cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE, nFeature_RNA_cutoff = 500)
+}
 
 
 if (transform == 'SCT'){
