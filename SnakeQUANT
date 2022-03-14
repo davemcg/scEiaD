@@ -365,7 +365,7 @@ rule make_dropseq_whitelists:
 	input: 
 		DROPSEQ_samples_from_reference(quant_path, SRS_dict)
 	output:
-		'references/whitelist/DropSeq/barco/des.txt'
+		'references/whitelist/DropSeq/barcodes.txt'
 	shell:
 		'''
 		mkdir -p dropseq_temp
@@ -519,5 +519,5 @@ rule mv_clean_quant:
 		ambient = config['ambient']
 	shell:
 		"""
-		mv pipeline_data/clean_quant/ pipeline_data/clean_quant_{params.ambient} 
+		#mv pipeline_data/clean_quant/ pipeline_data/clean_quant_{params.ambient} 
 		"""
