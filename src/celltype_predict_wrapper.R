@@ -15,20 +15,33 @@ load(args[2]) # umap metadata
 label__id__col = args[5]# label_id_col is the name of a column that will be created and used interally within the python script,
 label__name__col = args[6]# label_name_col must a be a column in embedding/umap file - CellType, cluster etc 
 model_outfile <- args[7]
-partition = str_extract(args[1], "partition-\\w+_")
+partition = str_extract(args[1], "partition-\\w+_") %>% gsub('partition-|_','',.)
 
 print(args)
 
-out <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap %>% mutate(CellType = gsub("Cone Bipolar Cells", "Bipolar Cells", CellType)), by = 'Barcode')
-out_tm <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% left_join(umap %>% mutate(CellType = gsub("Cone Bipolar Cells", "Bipolar Cells", CellType)), by = 'Barcode') %>% filter(study_accession == 'SRP131661')
+umap <- umap %>% mutate(CellType = gsub("Cone Bipolar Cells", "Bipolar Cells", CellType),
+                                    CellType = gsub("SMC" , "Smooth Muscle Cell", CellType),
+                                    CellType = case_when(CellType == 'Cornea' ~ 'Corneal Epithelial',
+                                                            TRUE ~ CellType)) %>%
+				mutate(Compartment = case_when( grepl('Cornea|Outflow Tract|Iris', Tissue) ~ 'Front Eye', 
+												Tissue %in% c('Choroid','Endothelial','Retina','RPE','RPE-Choroid') ~ 'Back Eye', 
+												TRUE ~ 'Body'))
+
+out <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% 
+		left_join(umap, by = 'Barcode')
+out_tm <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% 
+		left_join(umap , by = 'Barcode') %>% 
+		filter(study_accession == 'SRP131661')
 out_tm$CellType <- out_tm$TabulaMurisCellType
 
 
-# reduce huge num of labeleld "brain choroid epithelial" down
-outC_epi  <- out %>% filter(Organ == 'Brain', CellType == 'Epithelial') %>% sample_n(2000)
-outC_epi_remainder <- out %>% filter(Organ == 'Brain', CellType == 'Epithelial', !Barcode %in% outC_epi$Barcode) %>% mutate(CellType = NA)
-outC_epi <- bind_rows(outC_epi, outC_epi_remainder)
-out <- bind_rows(outC_epi, out %>% filter(!Barcode %in% outC_epi$Barcode))
+if (grepl('mouse|univer', partition)){
+	# reduce huge num of labeleld "brain choroid epithelial" down
+	outC_epi  <- out %>% filter(Organ == 'Brain', CellType == 'Epithelial') %>% sample_n(2000)
+	outC_epi_remainder <- out %>% filter(Organ == 'Brain', CellType == 'Epithelial', !Barcode %in% outC_epi$Barcode) %>% mutate(CellType = NA)
+	outC_epi <- bind_rows(outC_epi, outC_epi_remainder)
+	out <- bind_rows(outC_epi, out %>% filter(!Barcode %in% outC_epi$Barcode))
+}
 # ensure Age is numeric
 out$Age <- as.numeric(out$Age)
 out_tm$Age <- as.numeric(out_tm$Age)
@@ -121,10 +134,32 @@ if (!grepl('universe',  partition)){
 	out <-  out %>% mutate(CellType = case_when(!is.na(TabulaMurisCellType) ~ TabulaMurisCellType, TRUE ~ CellType))
 	full_out <- full_out %>%  mutate(CellType = case_when(!is.na(TabulaMurisCellType) ~ TabulaMurisCellType, TRUE ~ CellType))
 }
-model_out <- run_xgboost_py(out, full_out, model_outfile, tm = FALSE, probThresh = 0.5)
-predictions <- model_out$predictions
-predictions$CellType_predict_max_prob <- model_out$predictions %>% select_if(is.numeric) %>% select(-CellTypeID) %>% mutate(CellType_predict_prob = do.call(pmax, select_if(., is.numeric))) %>% pull(CellType_predict_prob)
-umapX <- left_join(umap, predictions %>% select(Barcode, CellType_predict = CellType, CellType_predict_max_prob), by = 'Barcode')
+
+
+# run ML per compartment (front eye, back eye, body)
+predictions <- list()
+model_out <- list()
+umapX <- list()
+for (i in unique(umap$Compartment)){
+	print(i)
+	out_compartment = out %>% filter(Compartment == i)
+	# remove low n celltype
+	rm_ct <- out_compartment %>% group_by(CellType) %>% summarise(Count = n()) %>% filter(Count < 5) %>% pull(CellType)
+	out_compartment <- out_compartment %>% filter(!CellType %in% rm_ct)
+	full_out_compartment = full_out %>% filter(Compartment == i)	
+	
+	model_outfileC <- paste0(model_outfile, toupper(i))
+	model_out[[i]] <- run_xgboost_py(out_compartment, full_out_compartment, model_outfileC, tm = FALSE, probThresh = 0.5)
+	predictions[[i]] <- model_out[[i]]$predictions
+	predictions[[i]]$CellType_predict_max_prob <- model_out[[i]]$predictions %>% select_if(is.numeric) %>% select(-CellTypeID) %>% mutate(CellType_predict_prob = do.call(pmax, select_if(., is.numeric))) %>% pull(CellType_predict_prob)
+	umapX[[i]] <- left_join(umap %>% filter(Compartment == i), predictions[[i]] %>% select(Barcode, CellType_predict = CellType, CellType_predict_max_prob), by = 'Barcode')
+}
+
+umapX <- umapX %>% bind_rows()
+predictions <-  predictions %>% bind_rows()
+
+
+
 umapORIG <- umap
 umap <-umapX
 if (grepl('universe',  partition)){
