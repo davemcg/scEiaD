@@ -13,17 +13,28 @@ load(args[1])
 load(args[2])
 load(args[3])
 load(args[4])
-
+print('data loaded')
 # add study meta
 study_meta <- read_tsv(paste0(git_dir, '/data/GEO_Study_Level_Metadata.tsv'))
-umap <- umap %>% left_join(phate_2D$embedding %>% as_tibble(rownames = 'Barcode'))
+umap <- umap %>% left_join(pacmap)
 umap <- umap %>% left_join(., study_meta, by = c('study_accession'))
+
+# hand fix some labels
+source(glue::glue('{git_dir}/src/tweak_celltype_labels.R'))
+umap <- hand_fixer(umap)
+print('hand fixer done')
+if (!'TabulaMurisCellType_predict' %in% colnames(umap)){
+	umap$TabulaMurisCellType_predict <- ''
+	print('Empty TabulaMurisCellType_predict added')
+}
 
 # add scVI lower dim space
 embedding <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode')
 umap <- umap %>% left_join(embedding, by = 'Barcode')
+
+
 # make metadata
-metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, PHATE1, PHATE2, nCount_RNA, nFeature_RNA, Phase, percent_mt = `percent.mt`, S_Score = `S.Score`, G2M_Score = `G2M.Score`, batch, sample_accession, study_accession, Age, library_layout, retina_region, strain, sex, Source, Organ, Tissue, organism, Platform, UMI, Covariate, CellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, SubCellType, GSE, Summary, Citation, PMID, Design, contains('scVI_')) %>% 
+metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, pacmap_1, pacmap_2, nCount_RNA, nFeature_RNA, Phase, percent_mt = `percent.mt`, S_Score = `S.Score`, G2M_Score = `G2M.Score`, batch, sample_accession, study_accession, Age, library_layout, retina_region, strain, sex, Source, Organ, Tissue, organism, Platform, UMI, Covariate, CellType, CellType_predict, CellType_predict_max_prob, TabulaMurisCellType, TabulaMurisCellType_predict, SubCellType, GSE, Summary, Citation, PMID, Design, contains('scVI_')) %>% 
 		mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType)) %>%
 			left_join(., meta, by = 'Barcode')
 
@@ -54,7 +65,7 @@ meta_filter <- metadata %>%
 # cpm <- RelativeCounts(integrated_obj@assays$RNA@counts[, umap$Barcode], scale.factor= 1e6)
 # dropping cpm for raw counts for now
 # cpm was causing too many viz oddities
-counts <- integrated_obj@assays$RNA@counts[, umap$Barcode]
+counts <- integrated_obj@assays$RNA@counts[, as.character(umap$Barcode)]
 
 chunk_num = 20
 
