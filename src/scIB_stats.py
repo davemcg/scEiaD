@@ -17,7 +17,9 @@ adata.obs = obs_temp
 
 adata
 adata_filter  = adata[adata.obs['CellType'] != 'NA']
+adata_filter = adata_filter[adata_filter.obs['cluster'].notnull()]
 adata_filterSUB = adata[adata.obs['SubCellType'] != 'NA']
+adata_filterSUB = adata_filterSUB[adata_filterSUB.obs['subcluster'].notnull()]
 #silh = scIB.metrics.silhouette(adata, 'cluster', embed = 'X_scvi') # 3 hours
 
 #lisi = scIB.metrics.lisi(adata = adata, batch_key = 'batch', label_key = 'CellType') # 8 hours
