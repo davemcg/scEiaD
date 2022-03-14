@@ -3,7 +3,7 @@ library(SingleCellExperiment)
 library(scran)
 library(tidyverse)
 library(BiocParallel)
-
+git_dir = Sys.getenv('SCIAD_GIT_DIR')
 args = commandArgs(trailingOnly=TRUE)
 
 load(args[1]) # seurat obj
@@ -17,44 +17,9 @@ integrated_obj@assays$RNA <- x@assays$RNA
 rm(x)
 # remove non-tissue from diff testing
 umap <- umap %>% filter(Source == 'Tissue')
-# move some tabula muris info over to CellType
-umap <- umap %>% mutate(CellType_predict = case_when(TabulaMurisCellType_predict == 'T cell' ~ 'T/NK-Cell',
-                                    TabulaMurisCellType_predict == 'B cell' ~ 'B-Cell',
-                                    TabulaMurisCellType_predict == 'endothelial cell' ~ 'Endothelial',
-                                    TabulaMurisCellType_predict == 'epithelial cell' ~ 'Epithelial',
-                                    TabulaMurisCellType_predict == 'endothelial cell' ~ 'Epithelial',
-                                    TabulaMurisCellType_predict == 'keratinocyte' ~ 'Keratinocyte',
-                                    TabulaMurisCellType_predict == 'blood cell' ~ 'Red Blood Cell',
-                                    TabulaMurisCellType_predict == 'hepatocyte' ~ 'Hepatocyte',
-                                    TabulaMurisCellType_predict == 'mesenchymal cell' ~ 'Mesenchymal',
-                                    TabulaMurisCellType_predict == 'bladder cell' ~ 'Bladder',
-                                    TabulaMurisCellType_predict == 'mesenchymal stem cell' ~ 'Mesenchymal (Stem)',
-                                    TabulaMurisCellType_predict == 'bladder urothelial cell' ~ 'Bladder Urothelial',
-                                    TabulaMurisCellType_predict == 'kidney proximal straight tubule epithelial cell' ~ 'Kidney Proximal Tubule',
-                                    TabulaMurisCellType_predict == 'basal cell of epidermis' ~ 'Basal Cell',
-                                    TabulaMurisCellType_predict == 'macrophage' ~ 'Macrophage',
-                                    TabulaMurisCellType_predict == 'natural killer cell' ~ 'T/NK-Cell',
-                                    TabulaMurisCellType_predict == 'monocyte' ~ 'Monocyte',
-                                    TRUE ~ CellType_predict),
-       CellType = case_when(TabulaMurisCellType == 'T cell' ~ 'T/NK-Cell',
-                            TabulaMurisCellType == 'B cell' ~ 'B-Cell',
-                            TabulaMurisCellType == 'endothelial cell' ~ 'Endothelial',
-                            TabulaMurisCellType == 'epithelial cell' ~ 'Epithelial',
-                            TabulaMurisCellType == 'endothelial cell' ~ 'Epithelial',
-                            TabulaMurisCellType == 'keratinocyte' ~ 'Keratinocyte',
-                            TabulaMurisCellType == 'blood cell' ~ 'Red Blood Cell',
-                            TabulaMurisCellType == 'hepatocyte' ~ 'Hepatocyte',
-                            TabulaMurisCellType == 'mesenchymal cell' ~ 'Mesenchymal',
-                            TabulaMurisCellType == 'bladder cell' ~ 'Bladder',
-                            TabulaMurisCellType == 'mesenchymal stem cell' ~ 'Mesenchymal (Stem)',
-                            TabulaMurisCellType == 'bladder urothelial cell' ~ 'Bladder Urothelial',
-                            TabulaMurisCellType == 'kidney proximal straight tubule epithelial cell' ~ 'Kidney Proximal Tubule',
-                            TabulaMurisCellType == 'basal cell of epidermis' ~ 'Basal Cell',
-                            TabulaMurisCellType == 'macrophage' ~ 'Macrophage',
-                            TabulaMurisCellType == 'natural killer cell' ~ 'T/NK-Cell',
-                            TabulaMurisCellType == 'monocyte' ~ 'Monocyte',
-                            TRUE ~ CellType))
-
+# hand fix some labels
+source(glue::glue('{git_dir}/src/tweak_celltype_labels.R'))
+umap <- hand_fixer(umap)
 
 
 int_sce <-  as.SingleCellExperiment(integrated_obj)
