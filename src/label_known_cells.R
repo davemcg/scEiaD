@@ -792,14 +792,13 @@ meta_SRP <- bind_rows(meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP07
 						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195, meta_EGAD00001006350, meta_SRP218652, meta_SRP259930, 
 						meta_SRP200499, outflow_meta, chick_meta, pan_human_meta, meta_SRP310237, SRP275814, SRP228556_meta, SRP255012_meta) %>%
 			select(value:batch, CellType, SubCellType, TabulaMurisCellType, Paper) %>% 
-	mutate(CellType = gsub('AC/HC_Precur', 'AC/HC_Precursor', CellType),
+	mutate(CellType = gsub('AC/HC_Precur$', 'AC/HC_Precursor', CellType),
 			CellType = gsub('Natural Killer', 'T/NK-Cell', CellType), 
 			CellType = gsub('Artery', 'Blood Vessel', CellType),
 			CellType = gsub('Vein', 'Blood Vessel', CellType),
 			CellType = gsub('Erthyrocyte', 'Red Blood Cell', CellType),
 			CellType = gsub('Cone Bipolar Cells', 'Bipolar Cells', CellType),
 			CellType = gsub('B-cell', 'B Cell', CellType),
-			CellType = gsub('B Cell', 'B Cell', CellType),
 			CellType = gsub('T-Cell', 'T/NK-Cell', CellType),
 			CellType = gsub('ium$', 'ial', CellType),
 			CellType = gsub('Vascular ', '', CellType),
