@@ -366,6 +366,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_latent,
                          n_layers,
 						 'FALSE',
+                         covariate,
 						 args[10])
 		if (method == 'scVIprojection') {
     		scVI_command = paste(glue('{conda_dir}/envs/scvitools13/bin/./python {git_dir}/src/run_scVI_projection.py'),
@@ -380,6 +381,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_layers,
 						 'FALSE',
 						ref_samples,
+						covariate,
 					    args[10])
 		}
 		if (method == 'scVIprojectionSO') {
@@ -395,6 +397,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_layers,
 						 'FALSE',
 					     ref_samples,
+						 covariate,
 						 args[10])
 		}
   	  # run scVI     
