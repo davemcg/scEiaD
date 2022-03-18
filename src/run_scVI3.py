@@ -29,6 +29,7 @@ n_layers = int(args[9])
 var_names = pd.read_csv(args[2], header = None)
 rand = args[3]
 adata = sc.read_h5ad(args[1])
+covariate = args[11]
 print('adata loaded')
 ##############################
 # samples = pd.read_csv('/home/mcgaugheyd/git/scEiaD/data/human_ref_samples.txt', header = None)
@@ -37,7 +38,7 @@ adata_ref = adata[:, var_names[0]].copy()
 print('adata ref made')
 adata_ref.X = sparse.csr_matrix(adata_ref.X)
 print('adata converted to csr')
-scvi.data.setup_anndata(adata_ref, batch_key="batch", continuous_covariate_keys = ['percent.mt'])
+scvi.data.setup_anndata(adata_ref, batch_key=covariate, continuous_covariate_keys = ['percent.mt'])
 scvi_params = dict(
     n_layers=2,
     dispersion = 'gene',
@@ -56,7 +57,7 @@ vae_ref
 
 
 # save the reference model
-dir_path = args[11]
+dir_path = args[12]
 vae_ref.save(dir_path, overwrite=True)
 adata_ref.obsm["X_scVI"] = vae_ref.get_latent_representation()
 

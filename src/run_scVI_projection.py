@@ -29,6 +29,7 @@ n_layers = int(args[9])
 var_names = pd.read_csv(args[2], header = None)
 rand = args[3]
 adata = sc.read_h5ad(args[1])
+covariate = args[12]
 #adata.X = sparse.csr_matrix(adata.X)
 #adata.layers["counts"] = adata.X.copy()
 #adata.layers["counts"] = sparse.csr_matrix(adata.layers["counts"])
@@ -68,8 +69,8 @@ adata_query = adata[~ref, var_names[0]].copy()
 adata_ref.X = sparse.csr_matrix(adata_ref.X)
 adata_query.X = sparse.csr_matrix(adata_query.X)
 
-scvi.data.setup_anndata(adata_ref, batch_key="batch", continuous_covariate_keys = ['percent.mt'])
-scvi.data.setup_anndata(adata_query, batch_key="batch", continuous_covariate_keys = ['percent.mt'])
+scvi.data.setup_anndata(adata_ref, batch_key=covariate, continuous_covariate_keys = ['percent.mt'])
+scvi.data.setup_anndata(adata_query, batch_key=covariate, continuous_covariate_keys = ['percent.mt'])
 arches_params = dict(
     use_layer_norm="both",
     use_batch_norm="none",
@@ -90,8 +91,8 @@ vae_ref
 
 # save the reference model
 dir_path = "scVI_HSdroplet_model/" + str(adata.shape[1]) + "HVG_" + str(n_latent) + "ld/"
-if len(args) == 13:
-	dir_path = args[12]
+if len(args) == 14:
+	dir_path = args[13]
 vae_ref.save(dir_path, overwrite=True)
 adata_ref.obsm["X_scVI"] = vae_ref.get_latent_representation()
 
