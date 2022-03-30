@@ -18,11 +18,11 @@ quant_path = config['quant_path']
 config_abspath=config['config_abspath']
 
 dist = [0.001,0.1,0.2,0.3]
-method = ['bbknn','insct','magic', 'scVI','scVIprojection','scVIprojectionSO','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
+method = ['bbknn','insct','magic', 'scVI','scVIprojection','scANVIprojection', 'scVIprojectionSO','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
 transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens', 'all']
-combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe']
+combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe', 'PR']
 dims = [4,6,8,10,15,20,25,30,50,75,100,200]
 knn = [0.2,0,4,0.6, 5, 7, 10, 15]
 neighbors = [500, 50]
@@ -33,7 +33,7 @@ wildcard_constraints:
 	transform = '|'.join(transform),
 	covariate = '|'.join(covariate),
 	organism = '|'.join(organism),
-	nfeatures = '|'.join([str(x) for x in [2000,3000,4000,5000]]),
+	nfeatures = '|'.join([str(x) for x in [2000,3000,4000,5000, 6000]]),
 	dims = '|'.join([str(x) for x in dims]),
 	model = '|'.join(model),	
 	dist = '|'.join([str(x) for x in dist]),
@@ -43,7 +43,7 @@ rule all:
 	input:
 		'site/sqlite_add_tables_SUCCESS',
 		'site/scEiaD_all_seurat_v3.Rdata',
-		'site/MOARTABLES__anthology_limmaFALSE___' + config['n_features'] + '-counts-universe-batch-scVIprojection-' + config['dims'] + '-' + config['epochs'] + '-' + config['dist'] + '-' + config['neighbors'] + '-' + config['knn'] + '.sqlite.gz'
+		'site/MOARTABLES__anthology_limmaFALSE___' + config['n_features'] + '-counts-' + config['partition'] + '-study_accession-' + config['method'] + '-' + config['dims'] + '-' + config['epochs'] + '-' + config['dist'] + '-' + config['neighbors'] + '-' + config['knn'] + '.sqlite.gz'
 	
 # take output from SnakePOP
 # by output I mean
@@ -67,19 +67,18 @@ rule doublet_ID:
 		Rscript {git_dir}/src/doublet_ID.R {input} {output}
 		"""
 
-rule calculate_phate:
+rule calculate_pacmap:
 	input:
 		obj = 'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}__preFilter.seuratV3.Rdata'
 	output:
-		'pipeline_data/phate/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}__preFilter.phate.Rdata'
-	threads: 16
+		'pipeline_data/pacmap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}__preFilter.pacmap.Rdata'
 	shell:
 		"""
 		module load R/3.6
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
-		Rscript {git_dir}/src/run_phate.R {input} {output}
+		Rscript {git_dir}/src/run_pacmap.R {input} {output}
 		"""
 
 #slingshot trajectory
@@ -136,7 +135,7 @@ rule make_sqlite:
 		meta = 'pipeline_data/umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}__dist-{dist}__neighbors-{neighbors}__knn-{knn}.umapFilterPredictions.Rdata',
 		cluster = 'pipeline_data/cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}__knn-{knn}__cluster.Rdata',
 		#well_data =  'well_data_seurat_obj_labelled.Rdata',
-		phate = 'pipeline_data/phate/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}__preFilter.phate.Rdata'
+		pacmap = 'pipeline_data/pacmap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}__preFilter.pacmap.Rdata'
 	params:
 		'site/anthology_limma{correction}___{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{epochs}-{dist}-{neighbors}-{knn}.sqlite'
 	output:
@@ -151,7 +150,7 @@ rule make_sqlite:
 			{input.seurat} \
 			{input.meta} \
 			{input.cluster} \
-			{input.phate} \
+			{input.pacmap} \
 			{output} \
 			{wildcards.correction}
 		#pigz -p 32 {params}
@@ -187,6 +186,7 @@ rule diff_test_wilcox:
 	shell:
 		"""
 		module load R/4.0.3
+		export SCIAD_GIT_DIR={git_dir}
 		Rscript {git_dir}/src/diff_testing_sce_wilcox.R {input} {wildcards.group} {threads} {output} {wildcards.chunk} {wildcards.total_chunks}
 		"""
 
@@ -207,9 +207,9 @@ rule sqlite_add_tables:
 							correction = 'FALSE',
 							n_features = config['n_features'],
 							transform = 'counts',
-							partition = 'universe',
-							covariate = 'batch',
-							method = 'scVIprojection',
+							partition = config['partition'],
+							covariate = 'study_accession',
+							method = config['method'],
 							dims = config['dims'],
 							epochs = config['epochs'],
 							dist = config['dist'],
@@ -218,17 +218,17 @@ rule sqlite_add_tables:
 		doublet = expand('pipeline_data/doublet_calls/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}.doublets.Rdata',
 							n_features = config['n_features'],
 							transform = 'counts',
-							partition = 'universe',
-							covariate = 'batch',
-							method = 'scVIprojection',
+							partition = config['partition'],
+							covariate = 'study_accession',
+							method = config['method'],
 							dims = config['dims'],
 							epochs = config['epochs']),
 		diff_wilcox = expand('diff_testing/{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{epochs}-{knn}-{neighbors}-{dist}-{group}.sceWilcox.Rdata', \
 							n_features = config['n_features'],
 							transform = 'counts',
-							partition = 'universe',
-							covariate = 'batch',
-							method = 'scVIprojection',
+							partition = config['partition'],
+							covariate = 'study_accession',
+							method = config['method'],
 							dims = config['dims'],
 							epochs = config['epochs'],
 							dist = config['dist'],
@@ -256,9 +256,9 @@ rule sqlite_add_haystack:
 		haystack = expand('pipeline_data/haystack/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}__dist-{dist}__neighbors-{neighbors}.haystack.Rdata',
 							n_features = config['n_features'],
 							transform = 'counts',
-							partition = 'universe',
-							covariate = 'batch',
-							method = 'scVIprojection',
+							partition = config['partition'],
+							covariate = 'study_accession',
+							method = config['method'],
 							dims = config['dims'],
 							epochs = config['epochs'],
 							dist = config['dist'],
@@ -269,9 +269,9 @@ rule sqlite_add_haystack:
 							correction = 'FALSE',
 							n_features = config['n_features'],
 							transform = 'counts',
-							partition = 'universe',
-							covariate = 'batch',
-							method = 'scVIprojection',
+							partition = config['partition'],
+							covariate = 'study_accession',
+							method = config['method'],
 							dims = config['dims'],
 							epochs = config['epochs'],
 							dist = config['dist'],
@@ -304,12 +304,12 @@ rule compress_sqlite:
 
 rule make_PLAE_objs:
 	input:
-		sqlite = 'site/anthology_limmaFALSE___' + config['n_features'] + '-counts-universe-batch-scVIprojection-' + config['dims'] + '-' + config['epochs'] + '-' + config['dist'] + '-' + config['neighbors'] + '-' + config['knn'] + '.sqlite',
-		raw_obj = "seurat_obj/raw/n_features-1000__transform-counts__partition-raw__covariate-batch__preFilter.seuratV3.Rdata",
-		umapFilterPred = 'pipeline_data/umap/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojection__dims-' + config['dims'] + '__epochs-' + config['epochs'] + '__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '.umapFilterPredictions.Rdata',
-		seurat_umap = 'seurat_obj/integrated/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojection__dims-' + config['dims'] + '__epochs-' + config['epochs'] + '__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '.umap.Rdata',
-		cluster = 'pipeline_data/cluster/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojection__dims-' + config['dims'] + '__epochs-' + config['epochs'] + '__knn-' + config['knn'] + '__cluster.Rdata', 
-		seurat = 'seurat_obj/integrated/n_features-' + config['n_features'] + '__transform-counts__partition-universe__covariate-batch__method-scVIprojection__dims-' + config['dims'] + '__epochs-' + config['epochs'] + '__preFilter.seuratV3.Rdata',
+		sqlite = 'site/anthology_limmaFALSE___' + config['n_features'] + '-counts-' + config['partition'] + '-study_accession' + '-' + config['method'] + '-' + config['dims'] + '-' + config['epochs'] + '-' + config['dist'] + '-' + config['neighbors'] + '-' + config['knn'] + '.sqlite',
+		raw_obj = "seurat_obj/raw/n_features-1000__transform-counts__partition-raw__covariate-study_accession__preFilter.seuratV3.Rdata",
+		umapFilterPred = 'pipeline_data/umap/n_features-' + config['n_features'] + '__transform-counts__partition-' + config['partition'] + '__covariate-study_accession__method-' + config['method'] + '__dims-' + config['dims'] + '__epochs-' + config['epochs'] + '__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '__knn-' + config['knn'] + '.umapFilterPredictions.Rdata',
+		seurat_umap = 'seurat_obj/integrated/n_features-' + config['n_features'] + '__transform-counts__partition-' + config['partition'] + '__covariate-study_accession__method-' + config['method'] + '__dims-' + config['dims'] + '__epochs-' + config['epochs'] + '__dist-' + config['dist'] + '__neighbors-' + config['neighbors'] + '.umap.Rdata',
+		cluster = 'pipeline_data/cluster/n_features-' + config['n_features'] + '__transform-counts__partition-' + config['partition'] + '__covariate-study_accession__method-' + config['method'] + '__dims-' + config['dims'] + '__epochs-' + config['epochs'] + '__knn-' + config['knn'] + '__cluster.Rdata', 
+		seurat = 'seurat_obj/integrated/n_features-' + config['n_features'] + '__transform-counts__partition-' + config['partition'] + '__covariate-study_accession__method-' + config['method'] + '__dims-' + config['dims'] + '__epochs-' + config['epochs'] + '__preFilter.seuratV3.Rdata',
 		diff_tables = 'site/sqlite_add_tables_SUCCESS',
 		haystack = 'site/sqlite_add_haystack_SUCCESS'
 	output:
@@ -321,7 +321,7 @@ rule make_PLAE_objs:
 		export SCIAD_CONDA_DIR={conda_dir}
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
-		module load R/3.6
+		module load R/4.0.3
 		Rscript {git_dir}/src/output_objs_for_plae.R \
 			{input.seurat_umap} \
 			{input.seurat} \
@@ -329,9 +329,14 @@ rule make_PLAE_objs:
 			{input.cluster} \
 			{input.raw_obj} \
 			{input.sqlite}
-		Rscript {git_dir}/src/seurat_to_h5ad_core.R site/scEiaD_all_seurat_v3.Rdata scEiaD_droplet site/scEiaD_all_anndata.h5ad make_mini_split_data
+		Rscript {git_dir}/src/seurat_to_h5ad_core.R site/scEiaD_all_seurat_v3.Rdata scEiaD site/scEiaD_all_anndata.h5ad make_mini_split_data
 
 		Rscript {git_dir}/src/build_QC_stats.R {input.umapFilterPred} site/counts_unfiltered.Rdata
+		
+		Rscript ~/git/plaeApp/src/convert_metadata_to_fst.R {input.sqlite} site/meta_filter.fst
+
+		module load R/4.0.3
+		Rscript {git_dir}/src/seurat_to_seuratdisk.R
 		"""
 
 
