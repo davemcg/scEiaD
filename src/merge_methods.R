@@ -339,7 +339,7 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     
     seurat_obj[["scArches"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "scArches_", assay = DefaultAssay(seurat_obj))
 	obj <- seurat_obj 
-  } else if (grepl('scVI', method, ignore.case = TRUE)) { 
+  } else if (grepl('scVI|scANVI', method, ignore.case = TRUE)) { 
 	    # scVI ----
    	 	assay <- 'RNA'
     	vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
@@ -370,6 +370,22 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
 						 args[10])
 		if (method == 'scVIprojection') {
     		scVI_command = paste(glue('{conda_dir}/envs/scvitools13/bin/./python {git_dir}/src/run_scVI_projection.py'),
+                         out,
+						glue('hvg_{rand}.txt'),
+						rand,
+                         n_epochs,
+                         lr,
+                         use_cuda,
+                         n_hidden,
+                         n_latent,
+                         n_layers,
+						 'FALSE',
+						ref_samples,
+						covariate,
+					    args[10])
+		}
+		if (method == 'scANVIprojection') {
+    		scVI_command = paste(glue('{conda_dir}/envs/scvitools15/bin/./python {git_dir}/src/run_scANVI_projection.py'),
                          out,
 						glue('hvg_{rand}.txt'),
 						rand,
