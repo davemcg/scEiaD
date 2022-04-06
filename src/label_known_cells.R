@@ -56,7 +56,8 @@ cell_info <- cell_info %>% filter(study_accession == 'E-MTAB-7316') %>%
 												
 retina_wong <- read_csv(glue('{git_dir}/data/retina_wong_cellbc_cellid.csv')) %>%
 				mutate(CellType = gsub(' C\\d+', '', cell.id.orig)) %>% dplyr::select(`cell.bc`, CellType) %>%
-				mutate(CellType = case_when(grepl('RGC', CellType) ~ 'Retinal Ganglion Cells',
+				mutate(SubCellType = CellType,
+					   CellType = case_when(grepl('RGC', CellType) ~ 'Retinal Ganglion Cells',
 											grepl('Amacrine', CellType) ~ 'Amacrine Cells',
 											grepl('Bipolar', CellType) ~ 'Bipolar Cells',
 											grepl('Cone', CellType) ~ 'Cones',
@@ -185,7 +186,7 @@ cell_info <- data.table::fread(config$cell_info)
 lu_clark <- data.table::fread(glue('{git_dir}/data/GSE138002_Final_barcodes.csv.gz')) %>%
 							mutate(UMI = gsub('^.*\\.','', barcode) %>% gsub('-.*','',.)) %>%
 				dplyr::rename(CellType = umap2_CellType) %>%
-				mutate(CellType = gsub('BC/Photo_Precurs', 'Photoreceptor Precursors', CellType))
+				mutate(SubCellType = CellType, CellType = gsub('BC/Photo_Precurs', 'Photoreceptor Precursors', CellType))
 meta_srp223254 <- cell_info %>%
   filter(study_accession %in% c('SRP151023', 'SRP170761','SRP223254')) %>% 
   mutate(UMI = gsub('_\\w+', '', value)) %>% 
@@ -208,7 +209,7 @@ meta_srp223254 <- cell_info %>%
 							sample_accession == 'SRS5141025m' ~ 'Hpnd8_rep1',
 							sample_accession == 'SRS5141025p' ~ 'Hpnd8_rep2',
 							Age == 31360 ~ 'Adult')) %>%
-  left_join(lu_clark %>% select(UMI, sample, CellType),
+  left_join(lu_clark %>% select(UMI, sample, CellType, SubCellType),
 				by = c('UMI', 'sample')) %>% 
   select(value:batch,CellType) %>% mutate(Paper = 'Lu et al. 2020')
 ## sanes macaque 
@@ -281,7 +282,8 @@ mennon_seqwell <- read_tsv(glue('{git_dir}/data/GSE137846_Seq-Well_sample_annota
 mennon_drop <- read_tsv(glue('{git_dir}/data/GSE137537_sample_annotations.tsv.gz')) %>% 
   dplyr::select(barcode = Barcode, tissue, Labels)
 mennon <- bind_rows(mennon_seqwell, mennon_drop) %>% 
-  mutate(CellType = case_when(Labels == 'ACs' ~ 'Amacrine Cells',
+  mutate(SubCelltype = Labels, 
+		 CellType = case_when(Labels == 'ACs' ~ 'Amacrine Cells',
                               Labels == 'BPs' ~ 'Bipolar Cells',
                               Labels == 'Endo' ~ 'Vascular Endothelium',
                               Labels == 'HCs' ~ 'Horizontal Cells',
@@ -320,7 +322,8 @@ meta_mennon <- cell_info %>% filter(study_accession %in% c('SRP222001','SRP22295
 # choroid/vasculature scheetz/mullins
 load(glue('{git_dir}/data/SRP257883_GSE_meta.Rdata'))
 SRP257883_GSE_meta <- SRP257883_GSE_meta %>% 
-  mutate(CellType = case_when(celltype == 'smc' ~ 'Smooth Muscle Cell',
+  mutate(SubCellType = celltype, 
+         CellType = case_when(celltype == 'smc' ~ 'Smooth Muscle Cell',
                               celltype == 'RBC' ~ 'Red Blood Cells',
                               celltype == 'fibroblast' ~ 'Fibroblasts',
                               celltype == 'macrophage' ~ 'Macrophages',
@@ -491,7 +494,8 @@ meta_SRP200499 <- cell_info %>%
 						left_join(metaTN %>% select(sample_accession, TissueNote), by = 'sample_accession' ) %>% 
 						mutate(Sample = str_extract(TissueNote, 'GSM38545\\d+')) %>% 
 						left_join(heng, by = c('Sample','Barcode')) %>% 
-                        mutate(CellType = case_when(CT == 'Amacrine cells' ~ 'Amacrine Cells',
+                        mutate(SubCellType = CT,
+							   CellType = case_when(CT == 'Amacrine cells' ~ 'Amacrine Cells',
           							                CT == 'Astrocytes'  ~ 'Astrocytes',
 													CT == 'Cone bipolar cells' ~ 'Cone Bipolar Cells',
 													CT == 'Rod bipolar cells' ~ 'Rod Bipolar Cells',
@@ -792,7 +796,8 @@ meta_SRP <- bind_rows(meta_srp223254, meta_SRP158081, meta_SRP050054, meta_SRP07
 						meta_mennon, meta_SRP212151, meta_mtab7316, meta_SRP257883, meta_TM, meta_SRP255195, meta_EGAD00001006350, meta_SRP218652, meta_SRP259930, 
 						meta_SRP200499, outflow_meta, chick_meta, pan_human_meta, meta_SRP310237, SRP275814, SRP228556_meta, SRP255012_meta) %>%
 			select(value:batch, CellType, SubCellType, TabulaMurisCellType, Paper) %>% 
-	mutate(CellType = gsub('AC/HC_Precur$', 'AC/HC_Precursor', CellType),
+	mutate(CellType = gsub('AC/HC_Precursor', 'AC/HC Precursor', CellType),
+			CellType = gsub('AC/HC_Precur', 'AC/HC Precursor', CellType),
 			CellType = gsub('Natural Killer', 'T/NK-Cell', CellType), 
 			CellType = gsub('Artery', 'Blood Vessel', CellType),
 			CellType = gsub('Vein', 'Blood Vessel', CellType),
