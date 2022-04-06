@@ -25,8 +25,8 @@ out@meta.data <- nmeta_df
  
 if (args[4] == 'make_mini_split_data'){
 	ref_samples <- scan(glue('{git_dir}data/human_ref_samples.txt'), what = 'character')
-	ref_bc_mini <- scEiaD_droplet@meta.data %>% as_tibble(rownames = 'Barcode2') %>% filter(sample_accession %in% ref_samples) %>% group_by(batch) %>% sample_n(2000, replace = TRUE) %>% unique() %>% pull(Barcode2)
-	query_bc_mini <- scEiaD_droplet@meta.data %>% as_tibble(rownames = 'Barcode2') %>% filter(!sample_accession %in% ref_samples, study_accession != 'SRP131661') %>% group_by(batch) %>% sample_n(500, replace = TRUE) %>% unique() %>% pull(Barcode2)
+	ref_bc_mini <- scEiaD@meta.data %>% as_tibble(rownames = 'Barcode2') %>% filter(sample_accession %in% ref_samples) %>% group_by(batch) %>% sample_n(2000, replace = TRUE) %>% unique() %>% pull(Barcode2)
+	query_bc_mini <- scEiaD@meta.data %>% as_tibble(rownames = 'Barcode2') %>% filter(!sample_accession %in% ref_samples, study_accession != 'SRP131661') %>% group_by(batch) %>% sample_n(500, replace = TRUE) %>% unique() %>% pull(Barcode2)
 	out_ref = out[, ref_bc_mini]
 	out_query = out[, query_bc_mini]
 	sceasy::convertFormat(out_ref, from="seurat", to="anndata",
