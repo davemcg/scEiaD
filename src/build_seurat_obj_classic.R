@@ -94,12 +94,29 @@ if (set == 'universe'){
   seurat__standard <- m
 } else if (set == 'PR') {
   ct_m <- fst::read_fst('site/meta_filter.fst')
-  m_PR <- m[,(ct_m %>% filter(CellType_predict %in% c("Rod","Cone", "Photoreceptor Precursor"), TechType == 'Droplet', CellType_predict_max_prob > 0.9) %>% pull(Barcode))]
+  m_PR <- m[,(ct_m %>% filter(CellType_predict %in% c("Rod","Cone", "Photoreceptor Precursor"), TechType == 'Droplet', CellType_predict_max_prob > 0.95) %>% pull(Barcode))]
   seurat__standard <- make_seurat_obj(m_PR, cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE, nFeature_RNA_cutoff = 500)
 } else if (set == 'BC') {
   ct_m <- fst::read_fst('site/meta_filter.fst')
-  m_bc <- m[,(ct_m %>% filter(CellType_predict %in% c("Bipolar Cell"), TechType == 'Droplet', CellType_predict_max_prob > 0.9) %>% pull(Barcode))]
+  m_bc <- m[,(ct_m %>% filter(CellType_predict %in% c("Bipolar Cell"), TechType == 'Droplet', CellType_predict_max_prob > 0.95) %>% pull(Barcode))]
   seurat__standard <- make_seurat_obj(m_bc, cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE, nFeature_RNA_cutoff = 500)
+} else if (set == 'AC') {
+  ct_m <- fst::read_fst('site/meta_filter.fst')
+  m_bc <- m[,(ct_m %>% filter(CellType_predict %in% c("Amacrine Cell"), TechType == 'Droplet', CellType_predict_max_prob > 0.95) %>% pull(Barcode))]
+  seurat__standard <- make_seurat_obj(m_bc, cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE, nFeature_RNA_cutoff = 500)
+} else if (set == 'MG') {
+  ct_m <- fst::read_fst('site/meta_filter.fst')
+  m_bc <- m[,(ct_m %>% filter(CellType_predict %in% c("Muller Glia"), TechType == 'Droplet', CellType_predict_max_prob > 0.95) %>% pull(Barcode))]
+  seurat__standard <- make_seurat_obj(m_bc, cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE, nFeature_RNA_cutoff = 500)
+} else if (set == 'RG') {
+  ct_m <- fst::read_fst('site/meta_filter.fst')
+  m_bc <- m[,(ct_m %>% filter(CellType_predict %in% c("Retinal Ganglion Cell"), TechType == 'Droplet', CellType_predict_max_prob > 0.95) %>% pull(Barcode))]
+  seurat__standard <- make_seurat_obj(m_bc, cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE, nFeature_RNA_cutoff = 500)
+} else if (set == 'FrontEye'){
+  ct_m <- fst::read_fst('site/meta_filter.fst')
+  m_bc <- m[,(ct_m %>% filter(grepl('Iris|Cornea|Lens', Tissue), TechType == 'Droplet', CellType_predict_max_prob > 0.95) %>% pull(Barcode))]
+  seurat__standard <- make_seurat_obj(m_bc, cell_info, split.by = covariate, lengthCor = TRUE, dont_use_well_for_FVF = TRUE, mito_geneids = mito_geneids, keep_well = FALSE, nFeature_RNA_cutoff = 500)
+
 }
 
 
