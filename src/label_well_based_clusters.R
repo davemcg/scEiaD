@@ -38,10 +38,12 @@ seurat_obj <- FindClusters(seurat_obj, resolution = 0.5)
 #DimPlot(seurat_obj, reduction = 'mnnUMAP')
 
 retina <- readr::read_tsv('https://raw.githubusercontent.com/davemcg/eyeMarkers/master/lists/retina_single_cell_markers__cowan2020.tsv')
-gene_id_converter <- read_tsv('~/data/massive_integrated_eye_scRNA/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
-                              col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
-                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
-  select(-hs_gene_id_v)
+library(tidyverse)
+source(glue('{git_dir}src/make_gene_id_converter_table.R'))
+#gene_id_converter <- read_tsv('~/data/massive_integrated_eye_scRNA/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
+#                              col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
+#                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
+#  select(-hs_gene_id_v)
 
 neb_plots <- list()
 for (i in retina$CellType %>% unique()){

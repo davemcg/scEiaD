@@ -1,0 +1,146 @@
+# ESI: Evaluate Studies Independently
+# i.e. no integration, just do PCA on each study
+# and evaluate how it looks
+import pprint
+pp = pprint.PrettyPrinter(width=41, compact=True) 
+import subprocess as sp
+import tempfile
+import yaml
+import json
+import string
+import itertools
+import time 
+def dict_product(dicts):
+	#https://stackoverflow.com/questions/11277432/how-to-remove-a-key-from-a-python-dictionary
+	return (dict(zip(dicts, x)) for x in itertools.product(*dicts.values()))
+
+## use a json to layout integration configs
+def parse_integration_config(file, output_string, which_partitions):
+	file_string = output_string
+	rule_output =[]
+	with open(file) as cfg_file:
+		iconfig = json.load(cfg_file)
+	gparam_dict={} 
+	for key in iconfig['global_default']:
+		gparam_dict[key] = iconfig['global_default'][key]
+	
+	for partition in which_partitions:
+		default_params = gparam_dict.copy()
+		## load default params and generate strings
+		for param in iconfig[partition]['default']:
+			default_params[param] = iconfig[partition]['default'][param]
+		# for paritions that all have the same methods, ie subset clustering, its easier 
+		# to add partition back to the default. 
+		# This is so we dont over write it by accident
+		if 'partition' not in default_params:
+			default_params['partition'] = [partition]
+		rule_output+=[file_string.format_map(dp) for dp in dict_product(default_params) ]
+		## generate outptut for method with alternate params
+		if len(iconfig[partition].keys()) > 1: # multiple methods
+			methods = [m for m in iconfig[partition].keys() if m!= 'default']
+			for method in methods:
+				#reset default back to base for this
+				base_default_params = default_params.copy()
+				for param in iconfig[partition][method]:
+					base_default_params[param] = iconfig[partition][method][param]
+				# overwrite previous method
+				base_default_params['method'] = [method]
+				rule_output+=[file_string.format_map(dp) for dp in dict_product(base_default_params)]
+	return rule_output
+
+RSON_TEMP_DIR=config['rson_temp_dir']
+## make sure lambda is in this order when using-  lambda wildcards, input, output
+sp.run(f'mkdir -p {RSON_TEMP_DIR}',shell=True)
+def export_rule_info(**kwargs):
+	with tempfile.NamedTemporaryFile( mode= 'w+',  prefix =RSON_TEMP_DIR, suffix ='.json', delete=False) as outjson:
+		json.dump(kwargs, outjson)
+		return outjson.name
+
+git_dir = config['git_dir']
+working_dir = config['working_dir']
+conda_dir = config['conda_dir']
+config_abspath=config['config_abspath']
+pattern_file=config['samplename_patterns']
+transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
+dims = [4,6,8,10,15, 20,25,30,50,75,100,200]
+report: "report.rst"
+with open(config['ESI_samples']) as f:
+    ESI_samples = f.readlines()
+ESI_samples = [x.strip() for x in ESI_samples]
+
+wildcard_constraints:
+	n_features = '|'.join([str(x) for x in [2000,3000,4000,5000, 6000]])
+
+rule all:
+	input:
+		expand('sample_level/plots/{sample}__nf{n_features}__dims{dims}__norm{norm}.png', sample = ESI_samples, n_features = 2000, dims = [30,8], norm = ['standard']),
+		'sample_level/perf/all_perf.tsv'
+
+rule label_known_cells_with_type:
+	input:
+		'pipeline_data/cell_info/all_cell_info.tsv',
+		config['srr_sample_file']		
+	output:
+		'pipeline_data/cell_info/cell_info_labelled.Rdata'
+	shell:
+		"""
+		module load R/3.6
+		export SCIAD_GIT_DIR={git_dir}
+		export SCIAD_CONFIG={config_abspath}
+		Rscript {git_dir}/src/label_known_cells.R 
+		"""
+
+
+# build study seurat obj
+# run PCA, do UMAP
+rule run_seurat:
+	input:
+		count_matrix = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
+		cell_info = 'pipeline_data/cell_info/all_cell_info.tsv',
+		labelled_cells = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
+		scEiaD_meta = config['scEiaD_meta']
+	output:
+		seurat = 'sample_level/{sample}__nf{n_features}__dims{dims}__norm{norm}.Rdata' 
+	params:
+		rson = lambda wildcards, input, output: export_rule_info(input = dict(input), output=dict(output), wildcards = dict(wildcards))
+	shell:
+		"""
+		module load R/4.0.3
+		export SCIAD_GIT_DIR={git_dir}
+		export SCIAD_CONFIG={config_abspath}
+		Rscript {git_dir}/src/seurat_simple.R {params.rson} {config_abspath}
+		"""
+
+rule little_plot:
+	input:
+		'sample_level/{sample}__nf{n_features}__dims{dims}__norm{norm}.Rdata'
+	output:
+		'sample_level/plots/{sample}__nf{n_features}__dims{dims}__norm{norm}.png'
+	shell:
+		"""
+		module load R/4.0.3
+		Rscript {git_dir}/src/little_plots.R {input} {output}
+		"""
+
+rule little_perf:
+	input:
+		'sample_level/{sample}__nf{n_features}__dims{dims}__norm{norm}.Rdata'
+	output:
+		'sample_level/perf/{sample}__nf{n_features}__dims{dims}__norm{norm}.tsv'
+	shell:
+		"""
+		module load R/4.0.3
+		Rscript {git_dir}/src/little_perf.R {input} {output}
+
+		"""
+
+rule merge_perf:
+	input:
+		expand('sample_level/perf/{sample}__nf{n_features}__dims{dims}__norm{norm}.tsv', sample = ESI_samples, n_features = 2000, dims = [30,8], norm = ['standard'])
+	output:
+		'sample_level/perf/all_perf.tsv'
+	shell:
+		"""
+		module load R/4.0.3
+		Rscript {git_dir}/src/merge_little_perf.R {output}
+		"""

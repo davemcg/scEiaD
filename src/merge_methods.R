@@ -42,8 +42,20 @@ covariate = args[3]
 latent = args[4] %>% as.numeric()
 #args[5] <- gsub('counts', 'standard', args[5])
 load(args[5])
+nfeatures = str_extract(args[5], 'n_features-\\d+') %>% str_extract(., '\\d+')
+partition = str_extract(args[5], 'partition-\\w+_') %>% gsub('partition-|_','',.)
+# https://github.com/mojaveazure/loomR/issues/40#issuecomment-649141851
+for(j in 1:ncol(seurat__standard@meta.data)){
+	if(is.factor(seurat__standard@meta.data[,j]) == T){
+	seurat__standard@meta.data[,j] = as.character(seurat__standard@meta.data[,j]) # Force the variable type to be character
+	seurat__standard@meta.data[,j][is.na(seurat__standard@meta.data[,j])] <- "N.A"
+}
+if(is.character(seurat__standard@meta.data[,j]) == T){
+	seurat__standard@meta.data[,j][is.na(seurat__standard@meta.data[,j])] <- "N.A"
+ }
+}
 
-
+ref_samples = args[9]
 run_integration <- function(seurat_obj, method, covariate = 'study_accession', transform = 'standard', latent = 50, file = args[5], n_epochs = 5){
   # covariate MUST MATCH what was used in build_seurat_obj.R
   # otherwise weird-ness may happen
@@ -339,73 +351,40 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
     
     seurat_obj[["scArches"]] <- CreateDimReducObject(embeddings = latent_dims %>% as.matrix(), key = "scArches_", assay = DefaultAssay(seurat_obj))
 	obj <- seurat_obj 
-  } else if (grepl('scVI', method, ignore.case = TRUE)) { #method == 'scVI') {
-    # scVI ----
-    assay <- 'RNA'
-    vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
-    if (transform == 'counts'){
-      matrix = seurat_obj@assays$RNA@counts[vfeatures, ]
-    } else if (transform == 'SCT'){
-      assay <- 'SCT'
-      vfeatures <- grep('^MT-', seurat_obj@assays$SCT@var.features, invert =TRUE, value = TRUE)
-      matrix = seurat_obj@assays$SCT@scale.data[vfeatures, ] %>% Matrix(., sparse = TRUE)
-    } else {
-      matrix = seurat_obj@assays$RNA@scale.data[vfeatures, ]
-    }
-	rand <- sample(1e7:9e7,1)
-    out <- paste0('loom/', method, '_', covariate, '_', transform, '_', length(vfeatures), '_', rand, '_',  latent, '.loom')
+  } else if (grepl('scVI|scANVI', method, ignore.case = TRUE)) { 
+	    # scVI ----
+   	 	assay <- 'RNA'
+    	vfeatures <- grep('^MT-', seurat_obj@assays$RNA@var.features, invert =TRUE, value = TRUE)
 	
-	# add count to one cell if all are zero
-	vfeature_num <- length(vfeatures)
-	one0 <- vector(mode = 'numeric', length = vfeature_num)
-	one0[2] <- 1
-	if (sum(colSums(matrix)==0) > 0){
-		matrix[,colSums(matrix) == 0] <- one0
-	}
-	seurat_obj@meta.data$SA = row.names(seurat__standard@meta.data) %>%  str_extract(., '(SRX|EGAF|ERS|SRS|iPSC_RPE_scRNA_)\\d+')	
-	create(filename= out, 
-           overwrite = TRUE,
-           data = matrix, 
-           cell.attrs = list(batch = seurat_obj@meta.data[,covariate],
-						     sample_accession = seurat_obj@meta.data[,'SA'],
-                             batch_indices = seurat_obj@meta.data[,covariate] %>% 
-                               as.factor() %>% 
-                               as.numeric()))
-    # connect to new loom file, then disconnect...otherwise python call gets borked for 
-    # as we are connected into the file on create
-    loom <- connect(out, mode = 'r')
-    loom$close_all() 
-    #n_epochs = 5 # use 1e6/# cells of epochs
-    lr = 0.001 
-    #use_batches = 'True'
-    use_cuda = 'True'
-    n_hidden = 128 
-    n_latent = latent
-    n_layers = 2 
+	    out <- glue('h5ad/raw/n_features-{nfeatures}__transform-{transform}__partition-{partition}__covariate-{covariate}__preFilter.anndata.h5ad')
+		rand = sample(10000:20000,1)
+		write(vfeatures, file = glue('hvg_{rand}.txt'))
+		#n_epochs = 5 # use 1e6/# cells of epochs
+   		 lr = 0.001 
+  		  #use_batches = 'True'
+    	use_cuda = 'True'
+    	n_hidden = 128 
+    	n_latent = latent
+    	n_layers = 2 
      
-    scVI_command = paste(glue('{conda_dir}/envs/scvitools090/bin/./python {git_dir}/src/run_scVI2.py'),
+    	scVI_command = paste(glue('{conda_dir}/envs/scvitools13/bin/./python {git_dir}/src/run_scVI3.py'),
                          out,
-                         n_epochs,
+                        glue('hvg_{rand}.txt'), 
+						rand,
+						n_epochs,
                          lr,
                          use_cuda,
                          n_hidden,
                          n_latent,
                          n_layers,
-						 'FALSE')
-	if (method == 'scVIprojection') {
-    	scVI_command = paste(glue('{conda_dir}/envs/scvitools090/bin/./python {git_dir}/src/run_scVI_projection.py'),
+						 'FALSE',
+                         covariate,
+						 args[10])
+		if (method == 'scVIprojection') {
+    		scVI_command = paste(glue('{conda_dir}/envs/scvitools13/bin/./python {git_dir}/src/run_scVI_projection.py'),
                          out,
-                         n_epochs,
-                         lr,
-                         use_cuda,
-                         n_hidden,
-                         n_latent,
-                         n_layers,
-						 'FALSE')
-	}
-	if (method == 'scVIprojectionSO') {
-    	scVI_command = paste(glue('{conda_dir}/envs/scvitools090/bin/./python {git_dir}/src/run_scVI_projection.py'),
-                         out,
+						glue('hvg_{rand}.txt'),
+						rand,
                          n_epochs,
                          lr,
                          use_cuda,
@@ -413,29 +392,59 @@ run_integration <- function(seurat_obj, method, covariate = 'study_accession', t
                          n_latent,
                          n_layers,
 						 'FALSE',
-						 args[8],
-						 args[9])
-	}
-    # run scVI     
-	print(scVI_command) 
-    system(scVI_command)
-    # import reduced dim (latent)
-	meta <- read_csv(paste0(out, '.meta.csv'))
-	#ld <- read_csv('scVIlatent_MM-MF_projected_to_HS.csv')
+						ref_samples,
+						covariate,
+					    args[10])
+		}
+		if (method == 'scANVIprojection') {
+    		scVI_command = paste(glue('{conda_dir}/envs/scvitools15/bin/./python {git_dir}/src/run_scANVI_projection.py'),
+                         out,
+						glue('hvg_{rand}.txt'),
+						rand,
+                         n_epochs,
+                         lr,
+                         use_cuda,
+                         n_hidden,
+                         n_latent,
+                         n_layers,
+						 'FALSE',
+						ref_samples,
+						covariate,
+					    args[10])
+		}
+		if (method == 'scVIprojectionSO') {
+    		scVI_command = paste(glue('{conda_dir}/envs/scvitools13/bin/./python {git_dir}/src/run_scVI_projection.py'),
+                         out,
+						glue('hvg_{rand}.txt'),
+						rand,
+                         n_epochs,
+                         lr,
+                         use_cuda,
+                         n_hidden,
+                         n_latent,
+                         n_layers,
+						 'FALSE',
+					     ref_samples,
+						 covariate,
+						 args[10])
+		}
+  	  # run scVI     
+		print(scVI_command) 
+	    system(scVI_command)
+	    # import reduced dim (latent)
+		meta <- read_csv(paste0(out, '.', rand, '.meta.csv'))
+		#ld <- read_csv('scVIlatent_MM-MF_projected_to_HS.csv')
 		
-	ld <- read_csv(paste0(out, '.latent.csv'))
-	metald <- cbind(meta, ld[,2:ncol(ld)])
-	ld_ordered <- seurat__standard@meta.data %>% as_tibble(rownames = 'Barcode') %>% left_join(metald %>% mutate(Barcode = gsub('-1$|-0$','', X1)), by = c('Barcode'))
-	scVI_cols <- grep('^\\d+$', colnames(ld_ordered))
-	ld_ordered <- ld_ordered[,scVI_cols] 
-	colnames(ld_ordered) <- paste0("scVI_", 1:ncol(ld_ordered))
-	ld_ordered <- ld_ordered %>% as.matrix()
-	row.names(ld_ordered) <- colnames(seurat__standard)
-	seurat_obj[["scVI"]] <- CreateDimReducObject(embeddings = ld_ordered, key = "scVI_", assay = DefaultAssay(seurat_obj))	
-#seurat_obj <- SetAssayData(object = seurat_obj, slot = 'scale.data', new.data = normalized_values)
-	#save(normalized_values, file = gsub('.seuratV3.Rdata', '.scVI_scaled.Rdata', args[6]), compress = FALSE)
-	# system(paste0('rm ', out, '.normalized.csv'))
-	obj <- seurat_obj 
+		ld <- read_csv(paste0(out, '.', rand, '.latent.csv'))
+        metald <- cbind(meta, ld[,2:ncol(ld)])
+		ld_ordered <- seurat__standard@meta.data %>% as_tibble(rownames = 'Barcode') %>% left_join(metald %>% mutate(Barcode = value), by = c('Barcode'))
+		scVI_cols <- grep('^\\d+$', colnames(ld_ordered))
+		ld_ordered <- ld_ordered[,scVI_cols] 
+		colnames(ld_ordered) <- paste0("scVI_", 1:ncol(ld_ordered))
+		ld_ordered <- ld_ordered %>% as.matrix()
+		row.names(ld_ordered) <- colnames(seurat__standard)
+		seurat_obj[["scVI"]] <- CreateDimReducObject(embeddings = ld_ordered, key = "scVI_", assay = DefaultAssay(seurat_obj))	
+		obj <- seurat_obj 
     
   } else if (method == 'harmony'){
     ## uses one seurat obj (give covariate in meta.data to group.by.vars)

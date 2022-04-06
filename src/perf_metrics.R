@@ -51,10 +51,12 @@ if (grepl('onlyWELL', args[2])){
 
 	cutdown <- umap %>% 
 	  rowid_to_column('ID') %>% 
-	  filter(!CellType %in% c('Doublet', 'Doublets'),
+	  filter(CellType != 'RPE/Margin/Periocular Mesenchyme/Lens Epithelial Cell',
+			 !grepl('Corneal', CellType),
+			 !CellType %in% c('Doublet', 'Doublets'),
 	         !is.na(CellType)) %>% 
-	  group_by(organism, CellType) %>% 
-	  sample_n(1000, replace = TRUE) %>% 
+	  group_by(study_accession, CellType) %>% 
+	  sample_n(300, replace = TRUE) %>% 
 	  unique()
 	# remove celltypes which have fewer than 100 cells
 	keep <- umap %>% group_by(CellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(CellType)
@@ -71,6 +73,21 @@ if (grepl('onlyWELL', args[2])){
 	# remove celltypes which have fewer than 100 cells
 	keep <- umap %>% group_by(SubCellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(SubCellType)
 	cutdownSUB <- cutdownSUB %>% filter(SubCellType %in% keep)
+	
+	#cutdown BIG
+	cutdownBIG <- umap %>% 
+	  rowid_to_column('ID') %>% 
+	  filter(CellType != 'RPE/Margin/Periocular Mesenchyme/Lens Epithelial Cell',
+			 !grepl('Corneal', CellType),
+			 !CellType %in% c('Doublet', 'Doublets'),
+	         !is.na(CellType)) %>% 
+	  group_by(study_accession, CellType) %>% 
+	  sample_n(10000, replace = TRUE) %>% 
+	  unique()
+	# remove celltypes which have fewer than 100 cells
+	keep <- umap %>% group_by(CellType) %>% summarise(count = n()) %>% filter(count > 99) %>% pull(CellType)
+	cutdownBIG <- cutdownBIG %>% filter(CellType %in% keep)
+	
 }
 # kBET silhouette function
 # user can select what silhoette is calcualted AGAINST 
@@ -96,18 +113,19 @@ colnames(cluster_count) <- c('Cluster','Count')
 scores$cluster_count <- cluster_count 
 print('scoring starts')
 print('silhouette')
+print(dim(cutdown))
 scores$silhouette_batch <- silhouette(cutdown)
-if (!grepl('onlyWELL', args[2])){
-	scores$silhouette_celltype <- silhouette(cutdown, against = 'CellType')
-	scores$silhouette_subcelltype <- silhouette(cutdownSUB, against = 'SubCellType')
-}
+#if (!grepl('onlyWELL', args[2])){
+#	scores$silhouette_celltype <- silhouette(cutdown, against = 'CellType')
+#	scores$silhouette_subcelltype <- silhouette(cutdownSUB, against = 'SubCellType')
+#}
 
 scores$silhouette_cluster <- silhouette(cutdown, against = 'cluster')
 # run silhouette by cell type
-#print('silhouette by celltype')
-#scores$silhouette_CellType <- cutdown %>% 
-#  group_by(CellType) %>% group_map(~ silhouette(.x))
-
+print('silhouette by celltype by celltype')
+scores$silhouette_CellType_groupBy <- cutdownBIG %>% 
+  group_by(CellType) %>% group_map(~ silhouette(.x))
+names(scores$silhouette_CellType_groupBy) <- cutdownBIG %>% group_by(CellType) %>% summarise(Count = n()) %>% pull(CellType)
 # batch <- umap[cutdown,'batch'] %>% pull(1) %>% as.factor() %>% as.numeric()
 # not much point running kBET for me as it returns fail for everything
 # batch.estimate <- kBET::kBET(faux_pca$x, batch)
@@ -119,20 +137,33 @@ scores$silhouette_cluster <- silhouette(cutdown, against = 'cluster')
 # generates a score PER CELL which is a metric of number of types of neighbors
 # lower is better (pure cell population within region)
 print('lisi')
+LISI_info <- function(df, cutdown_obj){
+	df$Barcode <- cutdown_obj$Barcode
+	df
+}
 if (!grepl('onlyWELL', args[2])){	
 	scores$LISI_subcelltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdownSUB$ID,], 
                                   cutdownSUB,
                                   'SubCellType')
-	scores$LISI_celltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,], 
-                                  cutdown,
+	scores$LISI_celltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdownBIG$ID,], 
+                                  cutdownBIG,
                                   'CellType')
+	scores$LISI_subcelltype <- LISI_info(scores$LISI_subcelltype, cutdownSUB)
+	scores$LISI_celltype <- LISI_info(scores$LISI_celltype, cutdownBIG)
 }
-scores$LISI_batch <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,],
-                                  cutdown,
+scores$LISI_batch <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdownBIG$ID,],
+                                  cutdownBIG,
                                   'batch')
-scores$LISI_cluster <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,],
-                                  cutdown,
+scores$LISI_cluster <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdownBIG$ID,],
+                                  cutdownBIG,
                                   'cluster')
+
+scores$LISI_batch <- LISI_info(scores$LISI_batch, cutdownBIG)
+scores$LISI_cluster <- LISI_info(scores$LISI_cluster, cutdownBIG)
+
+#scores$LISI_celltype <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]@cell.embeddings[cutdown$ID,],
+#                                  cutdown,
+#                                  'CellType')
 # ARI
 # https://davetang.org/muse/2017/09/21/adjusted-rand-index/
 # very slow
@@ -153,5 +184,6 @@ scores$LISI_cluster <- lisi::compute_lisi(integrated_obj@reductions[[reduction]]
 
 scores$Barcode <- cutdown %>% ungroup() %>% select(Barcode)
 scores$umap_cutdown <- cutdown
-
+scores$Barcode_big <- cutdownBIG %>% ungroup() %>% select(Barcode)
+scores$umap_big <- cutdownBIG
 save(scores, file = args[4])

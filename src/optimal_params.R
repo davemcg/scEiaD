@@ -20,12 +20,13 @@ area_chull <- function(x,y){
 }
 
 perf_all <- list()
+perf_CT <- list()
 for (x in partitions_run){
   #for (x in c('.*TabulaDroplet.*', '.*onlyWELL.*', '.*universe.*')){
   print(x)
   # load all clustering params -----
   files <- list.files('pipeline_data/perf_metrics',
-                      pattern = paste0(x, '.*Rdata'),
+                      pattern = paste0(x, '_.*Rdata'),
                       full.names = TRUE)
   for (i in files){
     print(i)
@@ -56,17 +57,30 @@ for (x in partitions_run){
     method = str_extract(i, 'method-[a-zA-Z]+') %>% gsub('method-','',.)
     knn = str_extract(i, 'knn-\\d+\\.\\d+|knn-\\d+') %>% gsub('knn-', '', .) %>% as.numeric()
     epochs = str_extract(i, 'epochs-\\d+') %>% gsub('epochs-','',.) %>% as.numeric()
-    table_score$clusterN = max(as.numeric(scores$cluster_count$Cluster))
-	table_score$clusterMedian = median(as.numeric(scores$cluster_count$Count))
-	table_score$dims = dims
-    table_score$nf = nf
-    table_score$knn <- knn
-    table_score$epochs <- epochs
-    table_score$method <- method	
-    table_score$normalization <- norm
-    table_score$subset <- x
-    table_score$set <- x
-    perf_all[[i]] <- table_score
+  	labeller <- function(table){
+    	table$clusterN = max(as.numeric(scores$cluster_count$Cluster))
+		table$clusterMedian = median(as.numeric(scores$cluster_count$Count))
+		table$dims = dims
+   		table$nf = nf
+	   	table$knn <- knn
+  	    table$epochs <- epochs
+   	    table$method <- method	
+   	    table$normalization <- norm
+   	    table$subset <- x
+   	    table$set <- x
+		table
+	}
+    perf_all[[i]] <- labeller(table_score)
+
+	ct_scoring_lisi <- labeller(scores$LISI_celltype %>% left_join(scores$umap_big %>% select(Barcode, CellType, organism) %>% ungroup(), by = 'Barcode')  %>% group_by(CellType.y, organism) %>% summarise(Value = mean(`CellType.x`)))
+    ct_scoring_lisi$Score <- 'LISI'
+	colnames(ct_scoring_lisi)[1] <- 'CellType'
+	
+    ct_scoring_silh <- labeller(scores$silhouette_CellType_groupBy %>% unlist() %>% enframe())
+	ct_scoring_silh$Score <- 'Silhouette'
+	colnames(ct_scoring_silh)[1:2] <- c('CellType','Value')
+	
+	perf_CT[[i]] <- bind_rows(ct_scoring_lisi, ct_scoring_silh)
   }
   #perf_all <- perf_all %>% bind_rows()
 }
@@ -103,10 +117,9 @@ perf_two <- data %>% bind_rows() %>%
   mutate(Group = case_when(Score == 'nmi' ~ 'CellType-Cluster',
                            Score == 'nmi_sub' ~ 'SubCellType-Cluster',
                            Score == 'ari' ~ 'CellType-Cluster',
-                           Score == 'ari_sub' ~ 'SubCellType-Cluster',
-                           Score == 'pcr' ~ 'After-Before')) %>%
+                           Score == 'ari_sub' ~ 'SubCellType-Cluster')) %>% 
   mutate(Score = gsub('_sub','',Score)) %>% 
   mutate(Score = toupper(Score))
 
 perf <- bind_rows(perf_one %>% filter(Score != 'ARI'), perf_two) %>% arrange(Score, desc(Value))
-save(perf, file = rule$output$merged_stats)
+save(perf, perf_CT, file = rule$output$merged_stats)

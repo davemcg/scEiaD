@@ -1,6 +1,7 @@
 library(pool)
 library(tidyverse)
 library(Seurat)
+library(Matrix)
 args = commandArgs(trailingOnly=TRUE)
 
 # get umap embeddings
@@ -20,6 +21,11 @@ integrated_obj@reductions$scviUMAP <- CreateDimReducObject(embeddings = temp@red
                                                       projected = temp@reductions$scviUMAP@feature.loadings.projected,
                                                       key = 'scVIUMAP_',
                                                       assay = 'RNA')
+
+var.features <- integrated_obj@assays$RNA@var.features
+integrated_obj@assays$RNA <- temp@assays$RNA
+integrated_obj@assays$RNA@var.features <- var.features
+
 load(args[3])
 #load('umap/Mus_musculus_Macaca_fascicularis_Homo_sapiens__n_features5000__counts__TabulaDroplet__batch__scVI__dims8__preFilter__mindist0.1__nneighbors15.umap.Rdata')
 
@@ -36,9 +42,9 @@ load(args[4])
 
 integrated_obj <- AddMetaData(integrated_obj, meta[,2] %>% pull(1), col.name = 'cluster')
 
-scEiaD_droplet <- integrated_obj
+scEiaD <- integrated_obj
 
-save(scEiaD_droplet, file = 'site/scEiaD_all_seurat_v3.Rdata')
+save(scEiaD, file = 'site/scEiaD_all_seurat_v3.Rdata')
 
 #load(args[5])
 #load('well_data_seurat_obj_labelled.Rdata')
@@ -54,9 +60,7 @@ raw_counts <- seurat__standard
 save(raw_counts, file = 'site/counts_unfiltered.Rdata')
 
 # extract counts and cpm
-#cpm <- RelativeCounts(integrated_obj@assays$RNA@counts, scale.factor= 1e6)
 counts = integrated_obj@assays$RNA@counts
-#save(cpm, file = 'site/cpm.Rdata')
 save(counts, file = 'site/counts.Rdata')
 
 # extract meta filter
