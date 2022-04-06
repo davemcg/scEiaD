@@ -1,0 +1,20 @@
+{
+    "__default__" :
+    {
+        "partition" : "quick",
+        "time" : "01:00:00",
+        "mem" : "16g",
+        "extra" : " --gres=lscratch:2",
+        "output"  : "00log/{rule}_{wildcards}.out",
+        "error" : "00log/{rule}_{wildcards}.err"
+    },
+    "run_seurat" :
+    {
+        "mem" : "50G",
+        "extra" : " --gres=lscratch:1"
+    },
+	"little_perf" :
+	{
+		"mem" : "64G"
+	}
+}
