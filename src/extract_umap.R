@@ -73,7 +73,7 @@ if (method == 'CCA'){
 } else if (method == 'liger'){
   reduction <- 'iNMF'
   reduction.key <- 'iNMFUMAP_'
-} else if (grepl('scVI', method)) {
+} else if (grepl('scVI|scANV', method)) {
    reduction <- 'scVI'
    reduction.key <- 'scviUMAP_'
 } else {
@@ -93,7 +93,8 @@ orig_meta <- integrated_obj@meta.data %>% as_tibble(rownames = 'Barcode')
 umap <- Embeddings(integrated_obj[[reduction.name]]) %>% as_tibble(rownames = 'Barcode') %>% 
   left_join(., orig_meta) %>% 
   left_join(., cell_info_labels %>% select(-contains(c('study_accession', 'Age', 'batch'))) %>% rename(Barcode = value),
-            by = 'Barcode') 
+            by = 'Barcode') %>%
+  mutate(CellType = gsub('AC/HC_Precursorsor', 'AC/HC_Precursor', CellType))
 #  left_join(., predictions %>% 
 #              as_tibble(rownames = 'Barcode') %>% 
 #              select(Barcode, CellType_predict = `predicted.id`)) %>% 
