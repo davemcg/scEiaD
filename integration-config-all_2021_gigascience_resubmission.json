@@ -1,0 +1,33 @@
+{
+    "global_default" :{
+		"epochs" : [5],
+        "covariate" : ["batch"],
+        "combination" : ["Mus_musculus_Macaca_fascicularis_Homo_sapiens"]
+    },
+    "universe":{
+        "default": {
+            "transform" : ["libSize","sqrt","scran", "standard"],
+			"method" : ["CCA", "bbknn","insct",  "magic", "scanorama", "harmony", "fastMNN", "combat",  "none"],
+			"n_features" : [2000],
+			"add_intron" : ["N"],
+			"dims" : [8, 30],
+            "knn" : [20],
+            "dist" : [0.1], 
+		    "neighbors" : [50]
+        },
+        "scVI" : {
+            "transform" : ["counts"],
+            "add_intron": ["Y", "N"],
+            "n_features" : [2000],
+            "dims" : [8,30],
+            "knn" : [20],
+            "dist": [0.1],
+            "neighbors": [500]
+        },
+        "scArches":{
+            "transform" : ["counts"],
+            "dist" : [0.1], 
+		    "neighbors" : [50]
+        }
+    }
+}

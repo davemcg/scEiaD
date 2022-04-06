@@ -99,16 +99,19 @@ covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
 dims = [4,6,8,10,15, 20,25,30,50,75,100,200]
 epochs = [5,10,25,50,100]
+
 knn = [0.2,0,4,0.6, 5, 7, 10, 15, 20, 30]
 report: "report.rst"
 
 partitions_to_run = config['partition']
 scIB_partitions_to_run =  config['scIB_partition'] 
 
+
 if not config['skip_CT_learning']:
 	skip_CT_learning = 'no'
 else: 
 	skip_CT_learning = config['skip_CT_learning']
+
 
 if skip_CT_learning.lower()  == 'yes':
 	rule all:
@@ -120,7 +123,7 @@ else:
 			'pipeline_data/results/merged_xgboost.Rdata',
 			'pipeline_data/results/merged_stats.Rdata',
 			"seurat_obj/raw/n_features-1000__transform-counts__partition-raw__covariate-" + config['covariate'] + "__preFilter.seuratV3.Rdata"
-	
+
 rule label_known_cells_with_type:
 	input:
 		'pipeline_data/cell_info/all_cell_info.tsv',

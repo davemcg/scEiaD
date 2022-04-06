@@ -47,7 +47,7 @@ elif rule in custom_config_rules:
             params['time'] = '12:00:00'
         else:
             params['partition']='norm'
-            params['mem'] = '200G'
+            params['mem'] = '250G'
     if rule == 'calculate_umap':
         if job_properties['wildcards']['partition'] == 'onlyWELL':
             params['partition']='quick'
@@ -100,8 +100,8 @@ elif rule in custom_config_rules:
         elif job_properties['wildcards']['method'] == 'CCA':
             params['partition']='largemem'
             params['time']='96:00:00'
-            params['mem']='600G'
-            params['time']='96:00:00'
+            params['mem']='750G'
+            params['time']='120:00:00'
             params['extra'] = '--gres=lscratch:5'
         elif job_properties['wildcards']['method'] == 'CCA' and job_properties['wildcards']['partition'] == 'onlyWELL':
             params['partition']='norm'

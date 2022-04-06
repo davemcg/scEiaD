@@ -36,12 +36,12 @@ umap_cut <- umap_cut %>% mutate(UMAP_1 = UMAP_1 * 1, UMAP_2 = UMAP_2 * -1)
 
 ```{r, fig.width=15, fig.height=10}
 
-lin <- sling$lineage
+lin <- slingE$lineage
 
 node_pos <- umap_cut %>%
-  group_by(seurat_cluster_CT) %>% 
+  group_by(CellType_predict) %>% 
   summarise(x=mean(UMAP_1), y = mean(UMAP_2)) %>% 
-  rename(name = seurat_cluster_CT)
+  dplyr::rename(name = CellType_predict)
 xy = colnames(lin@adjacency) %>% 
   enframe(name = 'row', value = 'name') %>% 
   left_join(node_pos) %>% select(name, x,y) %>% 
@@ -65,7 +65,7 @@ for (i in seq(1:(embedded@lineages %>% length()))){
   embedded_i = slingCurves(embedded)[[i]]
   path[[i]] = data.frame(embedded_i$s[embedded_i$ord,]) 
   path[[i]][,1] <- path[[i]][,1] * 1
-  path[[i]][,2] <- path[[i]][,2] * -1
+  path[[i]][,2] <- path[[i]][,2] * 1
   path[[i]]$curve <- i
 }
 psTime <- slingshot::slingPseudotime(sling$sling )
