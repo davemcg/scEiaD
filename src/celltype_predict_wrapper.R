@@ -26,7 +26,9 @@ umap <- umap %>% mutate(CellType = gsub("Cone Bipolar Cells", "Bipolar Cells", C
 				mutate(Compartment = case_when( grepl('Cornea|Outflow Tract|Iris', Tissue) ~ 'Front Eye', 
 												Tissue %in% c('Choroid','Endothelial','Retina','RPE','RPE-Choroid') ~ 'Back Eye', 
 												TRUE ~ 'Body'))
-
+# remove hufnagel iRPE labels from training set
+umap <- umap %>% mutate(CellType = case_when(study_accession != 'OGVFB_Hufnagel_iPSC_RPE' ~ CellType))
+ 
 out <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% 
 		left_join(umap, by = 'Barcode')
 out_tm <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode') %>% 
