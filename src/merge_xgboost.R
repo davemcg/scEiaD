@@ -4,6 +4,7 @@ args = commandArgs(trailingOnly=TRUE)
 
 accuracy_list <- list()
 for (i in args){
+	print(i)
 	load(i)
 	accuracy_list[[i]] <- accuracy %>% mutate(file = i)
 }
