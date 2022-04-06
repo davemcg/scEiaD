@@ -17,8 +17,6 @@ make_seurat_obj <- function(m,
 							nFeature_RNA_cutoff = 400,
 							custom_nFeature = TRUE
                             ){
-  nFeature_RNA_cutoff <- 450
-  print(paste('nFeature_RNA_cutoff is', nFeature_RNA_cutoff))
   if (keep_well){
       well_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% well_platform) %>% pull(value)]
      seurat_well <- CreateSeuratObject(well_m)
@@ -41,7 +39,7 @@ make_seurat_obj <- function(m,
      droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), !value %in% c(e12_chick_bc_rm, SRP362101_bc_rm), Platform %in% droplet_platform) %>% pull(value)]
      
 	 seurat_droplet <- CreateSeuratObject(droplet_m)
-	 seurat_droplet <-  subset(seurat_droplet, subset = nFeature_RNA > 450)
+	 seurat_droplet <-  subset(seurat_droplet, subset = nFeature_RNA > 350)
      
 	 print('seurat droplet obj made')
 	 #droplet_hs <- m[,cell_info %>% filter(value %in% colnames(m), organism %in% c('Homo sapiens')) %>% pull(value)]
@@ -51,7 +49,7 @@ make_seurat_obj <- function(m,
   if (keep_droplet & !custom_nFeature){
     droplet_m <- m[,cell_info %>% filter(value %in% colnames(m), Platform %in% droplet_platform) %>% pull(value)] 
 	seurat_droplet <- CreateSeuratObject(droplet_m)
-	 seurat_droplet <-  subset(seurat_droplet, subset = nFeature_RNA > 450)
+	 seurat_droplet <-  subset(seurat_droplet, subset = nFeature_RNA > 350)
      
 	 print('seurat droplet obj made')
   }
