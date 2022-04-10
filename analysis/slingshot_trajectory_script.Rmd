@@ -4,7 +4,7 @@ output:
   html_document:
     code_folding: hide
 params:
-    data: "~/data/scEiaD/HS_traj_sling__clus8__subdivideFALSE.Rdata"
+    data: "~/data/scEiaD/sling_traj_HS_celltype_earlyRPC_start.Rdata"
 ---
 
 
@@ -19,15 +19,15 @@ library(ggraph)
 library(tidygraph)
 library(tidymodels)
 library(rsample)
-#load('~/data/massive_integrated_eye_scRNA/sling_trajectory.Rdata')
+#load('~/data/scEiaD/sling_trajectory.Rdata')
 #load('/Volumes/data/projects/nei/mcgaughey/scEiaD_me/site_make/sling_mus.Rdata')
 load(params$data) #sling and diffPT in one
-#load('~/data/massive_integrated_eye_scRNA/slingHS_2020_12_29.diff.Rdata')
-gene_id_converter <- suppressWarnings(read_tsv('~/git/massive_integrated_eye_scRNA//data/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
+#load('~/data/scEiaD/slingHS_2020_12_29.diff.Rdata')
+gene_id_converter <- suppressWarnings(read_tsv('~/git/scEiaD//data/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
                               col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
                                            'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
   select(-hs_gene_id_v))
-tf <- suppressWarnings(readxl::read_xlsx('~/git/massive_integrated_eye_scRNA//data/1-s2.0-S0092867418301065-mmc2.xlsx', skip = 1, sheet = 'Table S1. Related to Figure 1B'))
+tf <- suppressWarnings(readxl::read_xlsx('~/git/scEiaD//data/1-s2.0-S0092867418301065-mmc2.xlsx', skip = 1, sheet = 'Table S1. Related to Figure 1B'))
 source('../src/pseudotime_analysis.R')
 org <- umap_cut$organism %>% unique()
 umap <- umap %>% mutate(UMAP_1 = UMAP_1 * 1, UMAP_2 = UMAP_2 * -1)
@@ -39,9 +39,9 @@ umap_cut <- umap_cut %>% mutate(UMAP_1 = UMAP_1 * 1, UMAP_2 = UMAP_2 * -1)
 lin <- sling$lineage
 
 node_pos <- umap_cut %>%
-  group_by(seurat_cluster_CT) %>% 
+  group_by(CellType_predict) %>% 
   summarise(x=mean(UMAP_1), y = mean(UMAP_2)) %>% 
-  rename(name = seurat_cluster_CT)
+  rename(name = CellType_predict)
 xy = colnames(lin@adjacency) %>% 
   enframe(name = 'row', value = 'name') %>% 
   left_join(node_pos) %>% select(name, x,y) %>% 
