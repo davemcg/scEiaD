@@ -24,7 +24,7 @@ snakemake -s /home/mcgaugheyd/git/scEiaD/SnakeSCEIAD \
 --cluster-config /home/mcgaugheyd/git/scEiaD/cluster.json \
 --cluster "$sbcmd"  --latency-wait 120 --rerun-incomplete \
 -k --restart-times 0 \
---resources parallel=4
+--resources parallel=4 
 
 
 conda deactivate

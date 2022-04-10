@@ -16,7 +16,7 @@ tech2rl <- case_when(tech == '10xv2' ~ 98,
 
 
 
-if(ref == 'hs-homo_sapiens'| ref == 'DNTX'){
+if (ref == 'hs-homo_sapiens'| ref == 'DNTX'){
     library(BSgenome.Hsapiens.UCSC.hg38)
     get_velocity_files(gtf, L = tech2rl, Genome = BSgenome.Hsapiens.UCSC.hg38, 
                        out_path =outdir , 
@@ -36,6 +36,11 @@ if(ref == 'hs-homo_sapiens'| ref == 'DNTX'){
                    out_path =outdir , 
                    isoform_action = "separate")
 
+} else if (ref =='gg-gallus_gallus') {
+	library(BSgenome.Ggallus.UCSC.galGal6)
+    get_velocity_files(gtf, L = tech2rl, Genome = BSgenome.Ggallus.UCSC.galGal6, 
+                   out_path =outdir , 
+                   isoform_action = "separate")
 } else{
     message('ERROR')
     quit()

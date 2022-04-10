@@ -9,7 +9,7 @@ args <- commandArgs(trailingOnly = TRUE)
 red <- args[1]
 load(args[2])
 ptsize = 4
-ALPHA=.1
+ALPHA=.07
 if (grepl('onlyWELL', args[2])){
 	umapO <- umap
 	load(args[4])
@@ -42,9 +42,14 @@ umap <- umap %>%
 # attach colors to cell types
 cell_types <- umap %>% 
   pull(CellType) %>% unique() %>% sort()
-type_val <- setNames(c(pals::alphabet(), pals::alphabet2())[1:length(cell_types)], cell_types)
+type_val <- setNames(c(pals::alphabet(), pals::alphabet2(), pals::glasbey())[1:length(cell_types)], cell_types)
 type_col <- scale_colour_manual(values = type_val)
 type_fill <- scale_fill_manual(values = type_val)
+
+# make labels
+labels <- umap %>% group_by(CellType) %>% 
+  summarise(UMAP_1 = mean(UMAP_1),
+            UMAP_2 = mean(UMAP_2))
 
 # cell type known
 ncells <- nrow(umap)
@@ -52,11 +57,12 @@ plot1 <- umap %>%
   ggplot() + 
   geom_scattermore(aes(x=umap[,paste0(red,'_1')] %>% pull(1), 
                        y = umap[,paste0(red,'_2')] %>% pull(1), 
-                       colour = CellType), pointsize = (ptsize/3), alpha = ALPHA) + 
+                       colour = CellType), pointsize = (ptsize/5), alpha = ALPHA) + 
   guides(colour = guide_legend(override.aes = list(size=8, alpha = 1))) + 
   theme_cowplot() + 
   #geom_label_repel(data = cluster_labels, aes(x=x, y=y, label = seurat_cluster_CellType_num ), alpha = 0.8, size = 2) +
   type_col + 
+  ggrepel::geom_label_repel(data = labels, aes(x=UMAP_1, y=UMAP_2, label = CellType ), alpha = 0.8, size = 2.2) +
   theme(axis.text.x=element_text(angle = 90, vjust = 0.5)) +
   xlab(paste(red, '1')) + ylab(paste(red, '2')) + 
   ggtitle(glue('Number of Cells: {ncells}'))
@@ -150,6 +156,8 @@ plot7 <- umapO  %>%
 				ggplot(aes(x=UMAP_1,y=UMAP_2, color = study_accession)) + 
 				scattermore::geom_scattermore(pointsize = 0, alpha = 0.8) + 
 				scale_color_manual(values = c(pals::alphabet(), pals::alphabet2()) %>% unname()) + cowplot::theme_cowplot() + facet_wrap(~Known) 
-png(args[3], width = 2400, height = 9500, res = 150)
+
+png(args[3], width = 5000, height = 18000, res = 300)
+
 plot_grid(plot1, plot4, plot5, plot6, plot7,  ncol = 1, rel_heights = c(0.5,0.5,1, 1,0.5))
 dev.off()

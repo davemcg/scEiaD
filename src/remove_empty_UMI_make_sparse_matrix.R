@@ -1,15 +1,13 @@
-#!/usr/bin/env Rscript
+#!/usr/bin/env Rscript/
 
 args = commandArgs(trailingOnly=TRUE)
-save(args, file = 'testing/nu_reumi_args.Rdata')
+# save(args, file = 'testing/nu_reumi_args.Rdata')
 
-#base_dir = args[5]
-#SRS = args[1]
-#REF = args[2]
 outdir <- args[1]
 mito_genelist <-scan(args[2], what = character(), sep = '\n')
 # patterns <- args[3]
-srs_directories <- args[-(1:3)]
+git_dir <- args[5]
+srs_directories <- args[-(1:5)]
 ########################################################
 # base_dir = '/data/swamyvs/scEiaD/'
 # SRS = 'SRS6424747'
@@ -31,166 +29,72 @@ library(DropletUtils)
 library(readr)
 library(zeallot)
 library(glue)
+library(celda) #decontX
 # input data from project
 ## its embarssing i didnt think of this first.
 patterns <- scan(args[3], what = character(), sep='\n') %>% paste0(collapse = '|')
+ambient <- args[4]
 
-read_bus <- function(indir){
-  sample_id <- str_extract(indir, glue('({patterns})\\d+') )
-  l <- read_velocity_output(spliced_dir = indir,
-                       spliced_name = "spliced",
-                       unspliced_dir = indir,
-                       unspliced_name = "unspliced") 
-  colnames(l$spliced) <- paste(colnames(l$spliced), sample_id, sep = ':')
-  if( length(colnames(l$spliced)) != length(colnames(l$spliced))  ){
-    message(' more cells than barcodes')
-    }
-  
-  colnames(l$unspliced) <- paste(colnames(l$unspliced), sample_id, sep = ':')
-  return(l)
-}
+# load scripts
+source(glue('{git_dir}/src/remove_empty_UMI_make_sparse_matrix__functions.R'))
 
-calc_spl_ratio <- function(x, cells){
-  spl_sum <- sum(x$spliced[,cells])
-  uns_sum <- sum(x$unspliced[,cells])
-  return(uns_sum / (uns_sum + spl_sum))
-  
-}
-
-remove_empty_droplets <- function(x, srs, mito_genelist){
-
-  tot_count_spliced <- colSums(x$spliced)
-  tot_count_unspliced <- colSums(x$unspliced)
-  
-  prefilter_common <- intersect(colnames(x$spliced), colnames(x$unspliced))
-  
-  bc_spliced <- tryCatch( expr = barcodeRanks(x$spliced), error=function(cond) return(NULL) )
-  if(is.null(bc_spliced)){
-    message('sample failed to meet umi threshold')
-    df <- tibble(
-      sample=srs,
-      ncell_pf_spliced = -1,
-      ncell_pf_unspliced = -1,
-      pref_common  = -1,
-      nbc_pass_spliced =  -1,
-      nbc_pass_unspliced = -1,
-      nbc_common = -1,
-      nbc_union = -1,
-      common_spl_ratio = -1,
-      union_spl_ratio = -1
-    )
-    return(list(spliced = NULL,
-                unspliced = NULL,
-                stats = df))
-  }
-  bc_unspliced <- tryCatch( expr = barcodeRanks(x$unspliced), error=function(cond) return(NULL))
-  if(is.null(bc_unspliced)){
-    # keep only the spliced cells that meet filtering, but keep the other spliced cells as well,
-    # to keep data the same shape
-    bc_spliced_pass <- colnames(x$spliced)[tot_count_spliced > metadata(bc_spliced)$inflection]
-    bc_unspliced_pass <- bc_spliced_pass
-    df <- tibble(
-      sample=srs,
-      ncell_pf_spliced = ncol(x$spliced),
-      ncell_pf_unspliced = ncol(x$unspliced),
-      pref_common  = length(prefilter_common),
-      nbc_pass_spliced = length(bc_spliced_pass),
-      nbc_pass_unspliced = 0,
-      nbc_common =-1,
-      nbc_union = -1,
-      common_spl_ratio = -1,
-      union_spl_ratio = -1,
-      
-    )
-  } else{
-    bc_spliced_pass <- colnames(x$spliced)[tot_count_spliced > metadata(bc_spliced)$inflection]
-    bc_unspliced_pass <- colnames(x$unspliced)[tot_count_unspliced > metadata(bc_unspliced)$inflection]
-    
-    
-    common <- intersect(bc_spliced_pass, bc_unspliced_pass)
-    bc_union <- union(bc_spliced_pass, bc_unspliced_pass) %>% intersect(prefilter_common)
-    df <- tibble(
-      sample=srs,
-      ncell_pf_spliced = ncol(x$spliced),
-      ncell_pf_unspliced = ncol(x$unspliced),
-      pref_common  = length(prefilter_common),
-      nbc_pass_spliced = length(bc_spliced_pass),
-      nbc_pass_unspliced = length(bc_unspliced_pass),
-      nbc_common = common %>% length,
-      nbc_union = length(bc_union),
-      common_spl_ratio = calc_spl_ratio(x, common),
-      union_spl_ratio = calc_spl_ratio(x, bc_union),
-      
-    )
-    
-  }
-  #keep cells that meet criteria in splcied data 
-  common <- bc_spliced_pass %>% intersect(prefilter_common)
-  spliced = x$spliced[,common] 
-  unspliced = x$unspliced[,common]
-  if(all(grepl('\\.\\d+$', sample(rownames(spliced), 10))) & 
-     all(!grepl('\\.\\d+$', mito_genelist, 10))) {
-    #if rownames have version, but  mito genes do not, remove  versions before making seurat object
-    s <- spliced# however, do not change the output rownames. the versions will be removed in the
-    # next step 
-    rownames(s) <- str_remove_all(rownames(spliced), '\\.\\d+$')
-    seu <- CreateSeuratObject(s)
-  }else {
-    seu <- CreateSeuratObject(spliced)
-  }
-  
-  ## quality control: remove high mito cells, and remove high count(doublet) cells 
-  
-  cells_above_min_umi <-  seu$nFeature_RNA > 200
-  cells_below_max_umi <- seu$nFeature_RNA < 3000 
-  
-  seu[["percent.mt"]] <- PercentageFeatureSet(seu, features = mito_genelist)
-  pct_mt_df = tibble(srs=srs,barcode = colnames(seu), `percent.mt` = seu$percent.mt)
-  cells_below_max_mito_pt <-  seu$percent.mt < 10
-  keep_cells <- cells_below_max_mito_pt & cells_above_min_umi & cells_below_max_umi
-  df <- df %>% mutate(ncells_pre_qc = ncol(spliced), 
-                      ncells_failed_min_umi = sum(!cells_above_min_umi), 
-                      ncells_failed_max_umi = sum(!cells_below_max_umi), 
-                      ncells_failed_mito = sum(!cells_below_max_mito_pt), 
-                      ncells_total_pass_qc = sum(keep_cells))
-  if(sum(keep_cells)>1){
-    spliced_out = spliced[,keep_cells]
-    unspliced_out = unspliced[,keep_cells]
-    stats_out = df 
-    pct_mt_df_out = pct_mt_df
-  } else{# rare edge case where sample has only one cell
-    
-    spliced_out = Matrix(spliced[,keep_cells], ncol=1)
-    unspliced_out = Matrix(unspliced[,keep_cells], ncol=1)
-    colnames(spliced_out) <- colnames(unspliced_out) <- colnames(spliced)[keep_cells]
-    rownames(spliced_out) <- rownames(spliced)
-    rownames(unspliced_out) <- rownames(unspliced)
-    stats_out = df 
-    pct_mt_df_out = pct_mt_df
-  }
-  return(list(spliced = spliced_out,
-              unspliced = unspliced_out,
-              stats = stats_out, 
-              pct_mt_df = pct_mt_df_out))
-
-}
-
-
+# data import
 study_counts_list <- lapply(srs_directories,read_bus) 
 
-
+# grab srs names
 srs_names <- str_extract(srs_directories, glue('({patterns})\\d+') )
 names(study_counts_list) <- srs_names
 
+# find 10xv3
+v3 <- str_extract(srs_directories, '10xv3')
+
+# for SRP362101 set the cells_above_min_umi_val to a higher value as 200 is too low for some reason
+if (grepl('SRP362101', args[1])){
+	print("ALTERING MIN UMI CUTOFF TO 600")
+	cells_above_min_umi_val = 600
+} else {
+	cells_above_min_umi_val = 200
+}
+# run filtering
 filtered_counts <- lapply(seq_along(study_counts_list), function(i) remove_empty_droplets(study_counts_list[[i]], 
                                                                                          names(study_counts_list)[i],
-                                                                                         mito_genelist))
-
-
+                                                                                         mito_genelist,
+																						 v3[i],
+																						 cells_above_min_umi_val))
+filtered_counts_orig <- filtered_counts
+# if there is a sample with fewer than 50 cells, then just combine them all
+low_n_count <- 0
+for (i in seq_along(filtered_counts)){
+	if ( (filtered_counts[[i]]$spliced %>% ncol() ) < 30){
+		low_n_count <- low_n_count + 1 
+	}
+}
+# run decontX ambient RNA removal
+if (ambient == 'decontX'){
+	library(parallel)
+	decontX_counts <- mclapply(seq_along(study_counts_list), mc.cores = 4, function(i) run_decontX(filtered_counts[[i]],
+																				study_counts_list[[i]]))
+	# rerun remove_empty_droplets to remove cells dropping under 300 counts
+	decontX_counts_stats <- lapply(seq_along(study_counts_list), function(i) remove_empty_droplets(decontX_counts[[i]],
+                                                                                         names(study_counts_list)[i],
+                                                                                         mito_genelist,
+																						 v3[i],
+																					     cells_above_min_umi_val))
+	# deal with edge case where no cells make it past the filtering (remove_empty_droplets) part 2
+	for (i in seq_along(study_counts_list)){
+		if (is.null(decontX_counts_stats[[i]]$spliced)){
+			decontX_counts_stats[[i]]$spliced <- filtered_counts[[i]]$spliced
+		}
+		if (is.null(decontX_counts_stats[[i]]$unspliced)){
+			decontX_counts_stats[[i]]$unspliced <- filtered_counts[[i]]$unspliced
+		}
+	}
+	filtered_counts <- decontX_counts_stats
+}
 spliced <- lapply(filtered_counts, function(x) x[['spliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
 unspliced <- lapply(filtered_counts, function(x) x[['unspliced']]) %>% purrr::reduce(RowMergeSparseMatrices)
-stats <-  lapply(filtered_counts, function(x) x[['stats']]) %>% bind_rows
-pct_mt = lapply(filtered_counts, function(x) x[['pct_mt_df']]) %>% bind_rows
+stats <-  lapply(filtered_counts_orig, function(x) x[['stats']]) %>% bind_rows
+pct_mt = lapply(filtered_counts_orig, function(x) x[['pct_mt_df']]) %>% bind_rows
 write_tsv(stats, path = stats_file)
 write_tsv(pct_mt, path = pct_mt_file)
 # save pared down counts

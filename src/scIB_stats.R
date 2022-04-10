@@ -28,4 +28,11 @@ if (method == 'CCA'){
 }
 
 args[1] <- paste0('X_', tolower(reduction))
+
+# cluster
+load(args[3])
+colnames(meta)[c(1,2,3)] <- c('value','cluster','subcluster')
+args[3] <- gsub('.Rdata', '.csv', args[3])
+
+write.csv(meta, file = args[3])
 system(paste(glue('{conda_dir}/envs/scIB/bin/python {git_dir}/src/scIB_stats.py '), paste(args, collapse = ' ')))

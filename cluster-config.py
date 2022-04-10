@@ -9,7 +9,7 @@ from snakemake.utils import read_job_properties
 #%%
 cluster_json_file =sys.argv[1]
 jobscript = sys.argv[2]
-custom_config_rules = ['integrate_00', 'calculate_umap', 'calculate_cluster', 'perf_metrics']
+custom_config_rules = ['make_h5ad_object', 'integrate_00', 'calculate_umap', 'calculate_cluster', 'perf_metrics']
 #%%
 
 #%%
@@ -33,6 +33,9 @@ if rule in cluster_json:
         params[key] = cluster_json[rule][key]
 elif rule in custom_config_rules:
     # specifify custom configureations specific rules
+    if rule == 'make_h5ad_object':
+        if job_properties['wildcards']['partition'] == 'macaque':
+            params['mem'] =  '25G'
     if rule == 'calculate_cluster':
         if job_properties['wildcards']['partition'] == 'onlyWELL':
             params['partition']='quick'
@@ -65,23 +68,33 @@ elif rule in custom_config_rules:
             params['partition']='largemem'
             params['time'] = '12:00:00'
         else:
-            params['mem'] = '225G'
-            params['partition']='quick'
-            params['time'] = '4:00:00'
+            params['mem'] = '1000G'
+            params['partition']='largemem'
+            params['time'] = '6:00:00'
     if rule == 'integrate_00':
         if re.search('scVI', job_properties['wildcards']['method']):
             params['partition']='gpu'
-            params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
+            params['extra'] = '--gres=gpu:1,lscratch:5'
             params['time'] = '8:00:00'
-            params['mem'] = '200G'
+            params['mem'] = '100G'
         if job_properties['wildcards']['method'] == 'scVI':
             params['partition']='gpu'
-            params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
-            params['time'] = '8:00:00'
-            params['mem'] = '200G'
+            params['extra'] = '--gres=gpu:p100:1,lscratch:5'
+            params['time'] = '2:00:00'
+            params['mem'] = '100G'
+        elif job_properties['wildcards']['method'] == 'scVIprojection':
+            params['partition']='gpu'
+            params['extra'] = '--gres=gpu:p100:1,lscratch:20'
+            params['time'] = '3:00:00'
+            params['mem'] = '80G'
+        elif job_properties['wildcards']['method'] == 'scANVIprojection':
+            params['partition']='gpu'
+            params['extra'] = '--gres=gpu:p100:1,lscratch:20'
+            params['time'] = '3:00:00'
+            params['mem'] = '80G'
         elif job_properties['wildcards']['method'] == 'ldvae':
             params['partition']='gpu'
-            params['extra'] = '--gres=gpu:v100x:1,lscratch:5'
+            params['extra'] = '--gres=gpu:1,lscratch:5'
             params['time'] = '48:00:00'
             params['mem'] = '200G'
         elif job_properties['wildcards']['method'] == 'CCA':
@@ -106,10 +119,10 @@ elif rule in custom_config_rules:
             params['extra'] = '--gres=lscratch:5'
         else:
             print(job_properties['wildcards']['method'])
-            params['partition']='norm'
-            params['extra'] = ''
-            params['time'] = '24:00:00'
-            params['mem'] = '300G'
+            params['partition']='gpu'
+            params['extra'] = '--gres=gpu:1,lscratch:5'
+            params['time'] = '8:00:00'
+            params['mem'] = '200G'
     if rule == "make_seurat_objs" and job_properties['wildcards']['transform'] == 'scran':
         params['mem'] = '1000G'
 

@@ -4,7 +4,7 @@ library(Seurat)
 library(tidyverse)
 library(dtplyr)
 library(data.table)
-
+library(glue)
 args = commandArgs(trailingOnly=TRUE)
 
 git_dir = Sys.getenv('SCIAD_GIT_DIR')
@@ -13,14 +13,28 @@ load(args[1])
 load(args[2])
 load(args[3])
 load(args[4])
-
+print('data loaded')
 # add study meta
 study_meta <- read_tsv(paste0(git_dir, '/data/GEO_Study_Level_Metadata.tsv'))
-umap <- umap %>% left_join(phate_2D$embedding %>% as_tibble(rownames = 'Barcode'))
+umap <- umap %>% left_join(pacmap)
 umap <- umap %>% left_join(., study_meta, by = c('study_accession'))
 
+# hand fix some labels
+source(glue::glue('{git_dir}/src/tweak_celltype_labels.R'))
+umap <- hand_fixer(umap)
+print('hand fixer done')
+if (!'TabulaMurisCellType_predict' %in% colnames(umap)){
+	umap$TabulaMurisCellType_predict <- ''
+	print('Empty TabulaMurisCellType_predict added')
+}
+
+# add scVI lower dim space
+embedding <- integrated_obj@reductions$scVI@cell.embeddings %>% as_tibble(rownames = 'Barcode')
+umap <- umap %>% left_join(embedding, by = 'Barcode')
+
+
 # make metadata
-metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, PHATE1, PHATE2, nCount_RNA, nFeature_RNA, Phase, percent_mt = `percent.mt`, S_Score = `S.Score`, G2M_Score = `G2M.Score`, batch, sample_accession, study_accession, Age, library_layout, organism, Platform, UMI, Covariate, CellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, SubCellType, GSE, Summary, Citation, PMID, Design) %>% 
+metadata <- umap %>% select(Barcode, UMAP_1, UMAP_2, pacmap_1, pacmap_2, nCount_RNA, nFeature_RNA, Phase, percent_mt = `percent.mt`, S_Score = `S.Score`, G2M_Score = `G2M.Score`, batch, sample_accession, study_accession, Age, library_layout, retina_region, strain, sex, Source, Organ, Tissue, organism, Platform, UMI, Covariate, CellType, CellType_predict, CellType_predict_max_prob, TabulaMurisCellType, TabulaMurisCellType_predict, SubCellType, GSE, Summary, Citation, PMID, Design, contains('scVI_')) %>% 
 		mutate(SubCellType = gsub('p_','', SubCellType)) %>% mutate(SubCellType = gsub('f_','', SubCellType)) %>%
 			left_join(., meta, by = 'Barcode')
 
@@ -51,16 +65,21 @@ meta_filter <- metadata %>%
 # cpm <- RelativeCounts(integrated_obj@assays$RNA@counts[, umap$Barcode], scale.factor= 1e6)
 # dropping cpm for raw counts for now
 # cpm was causing too many viz oddities
-counts <- integrated_obj@assays$RNA@counts[, umap$Barcode]
+counts <- integrated_obj@assays$RNA@counts[, as.character(umap$Barcode)]
 
 chunk_num = 20
 
 print(dim(counts))	
 # replace with new gene names including HGNC
-gene_id_converter <- read_tsv('references/ensembl_biomart_human2mouse_macaque.tsv', skip = 1,
-                              col_names= c('hs_gene_id','hs_gene_id_v', 'mm_gene_id', 'mf_gene_id',
-                                           'hs_gene_name', 'mf_gene_name', 'mm_gene_name')) %>%
-  select(-hs_gene_id_v)
+source(glue('{git_dir}src/make_gene_id_converter_table.R'))
+#gene_id_converter <- read_tsv(glue::glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque_chick_ZF.tsv.gz'), skip = 1,
+#                              col_names= c('hs_gene_id','hs_gene_id_v',
+#                                           'gg_gene_id', 'gg_gene_name',
+#                                           'mf_gene_id', 'mf_gene_name',
+#                                           'mm_gene_id', 'mm_gene_name',
+#                                           'zf_gene_id', 'zf_gene_name',
+#                                           'hs_gene_name')) %>%
+#  select(-hs_gene_id_v)
 
 gene_id_converter2 <- bind_rows(gene_id_converter %>% filter(!is.na(hs_gene_id)), gene_id_converter %>% filter(!is.na(mm_gene_id)) %>% mutate(hs_gene_id = mm_gene_id, hs_gene_name = mm_gene_name))
 # fill in missing mouse gene id
@@ -146,9 +165,9 @@ dbWriteTable(pool, "genes", genes, overwrite = TRUE)
 long <- lazy_dt(long)
 meta_filter <- lazy_dt(meta_filter)
 
-long <- left_join(long, meta_filter %>% select(Barcode, batch, study_accession, library_layout, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, Phase, GSE, Citation, PMID, cluster), by = 'Barcode') 
+long <- left_join(long, meta_filter %>% select(Barcode, batch, study_accession, library_layout, retina_region, strain, sex, Source, Organ, Tissue, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, Phase, GSE, Citation, PMID, cluster), by = 'Barcode') 
 
-grouped_stats <- long %>% group_by(Gene, batch, study_accession, library_layout, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, Phase, GSE, Citation, PMID, cluster) %>%
+grouped_stats <- long %>% group_by(Gene, batch, study_accession, library_layout, retina_region, strain, sex, Source, Organ, Tissue, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, TabulaMurisCellType, TabulaMurisCellType_predict, Phase, GSE, Citation, PMID, cluster) %>%
 						summarise(cell_ct = n(), cell_exp_ct = sum(counts > 0), counts = mean(counts)) 
 # turn back into tibble
 # previous left_join and group_by were lazily evaluated
@@ -157,7 +176,7 @@ grouped_stats <- as_tibble(grouped_stats)
 dbWriteTable(pool, 'grouped_stats', grouped_stats, overwrite = TRUE)
 db_create_index(pool, table = 'grouped_stats', columns = c('Gene'))
 
-#meta_only_grouped_stats <- long %>% group_by(batch, study_accession, library_layout, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, GSE, Summary, Citation, PMID, cluster) %>%
+#meta_only_grouped_stats <- long %>% group_by(batch, study_accession, library_layout, retina_region, strain, sex, Source, Organ, Tissue, organism,Stage, Platform, Covariate, CellType, SubCellType, CellType_predict, GSE, Summary, Citation, PMID, cluster) %>%
 #                        summarise(cell_ct = n())
 #dbWriteTable(pool, 'meta_only_grouped_stats', grouped_stats, overwrite = TRUE)
 

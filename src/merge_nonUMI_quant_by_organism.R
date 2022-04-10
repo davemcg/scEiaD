@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
-save(args, file = 'testing/spnew_mnumi_arg.Rdata')
+#save(args, file = 'testing/spnew_mnumi_arg.Rdata')
 library(tximport)
 library(readr)
 library(stringr)

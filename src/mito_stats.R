@@ -14,12 +14,14 @@ outfile = args[6]
 files_drop <- list.files('pipeline_data/', pattern = drop_mt_pfx, recursive=TRUE, full.names=TRUE)
 files_well <- list.files(quant_path, pattern = 'abundance.tsv.gz', recursive=TRUE, full.names=TRUE)
 mito_gene_files <- list.files('references/', pattern = mito_gene_stem, full.names = T, recursive = T)
-drop_mito <- lapply(files_drop, read_tsv) %>% bind_rows
+
+
+drop_mito <- mclapply(files_drop, read_tsv, mc.cores = 8) %>% bind_rows
 mito_genes <- lapply(mito_gene_files, function(x) scan(x, character(), sep= '\n')) %>%  reduce( c)
 
 read_well_pt_mito <- function(file){
   sample <- str_extract(file, glue('({patterns})\\d+') )
-  mat <- read_tsv(file, )
+  mat <- read_tsv(file )
   m <- mat[,3, drop = FALSE] %>% as.matrix()
   row.names(m) <- mat$target_id
   colnames(m) <- sample
@@ -29,7 +31,7 @@ read_well_pt_mito <- function(file){
   return(tibble(srs=sample,barcode= sample, `percent.mt` = perc))
 }
 
-well_meta <- lapply(files_well, read_well_pt_mito)
+well_meta <- mclapply(files_well, read_well_pt_mito, mc.cores = 12)
 
 well_mito <- well_meta %>% bind_rows()
 mito <- bind_rows(well_mito, drop_mito)

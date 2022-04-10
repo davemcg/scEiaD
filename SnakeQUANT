@@ -25,7 +25,7 @@ def metadata_builder(file, SRS_dict = {}, discrepancy = False):
 					    	  'paired':True if info[2]=='PAIRED' else False, 
 					          'organism':info[3].replace(' ', '_'),
 		            	      'tech':info[4],
-						      'UMI':True if info[5]=='YES' else False,
+						      'UMI':True if info[5].upper()=='YES' else False,
 							  'Study': info[6]}
 			else:
 				# this is mostly for SRA having the 'paired' status wrong
@@ -71,7 +71,7 @@ def SRP_2_SRS(quant_path, SRP, reference, sfx, srs_dict):
 
 def well_and_droplet_input(organism, reference, quant_path, SRP_droplet_dict, otd, sfx):
 	target_srps = [ srp for srp in  SRP_droplet_dict.keys() if SRP_droplet_dict[srp]['organism'] == organism ] 
-	if organism == 'Macaca_fascicularis':
+	if organism in droplet_only_org:
 		out = [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]
 	else:
 		out = [f'{quant_path}/quant/{organism}/well/{reference}__counts.Rdata' ] + [f'pipeline_data/clean_quant/{srp}/{reference}/{sfx}' for srp in target_srps]	
@@ -97,6 +97,8 @@ def ORG_ref(organism, which_return):
 		refs = ['hs-homo_sapiens']
 	elif organism.lower() == 'macaca_fascicularis':
 		refs = ['hs-homo_sapiens','mf-macaca_mulatta']
+	elif organism.lower() == 'gallus_gallus':
+		refs = ['gg-gallus_gallus']
 	else:
 		print(organism + ' NO MATCH')
 		exit()
@@ -134,10 +136,9 @@ srr_sample_file = config['srr_sample_file']
 SRS_dict = metadata_builder(srr_sample_file)
 sample_names = list(SRS_dict.keys())
 
-
 # build organism <-> SRS dict for nonUMI data
 organism_well_dict = {}
-organism_welltech_dict ={'Homo_sapiens':[], 'Mus_musculus':[], 'Macaca_fascicularis':[] }
+organism_welltech_dict ={'Homo_sapiens':[], 'Mus_musculus':[], 'Macaca_fascicularis':[], 'Gallus_gallus':[] }
 for x in SRS_dict:
 	if not SRS_dict[x]['UMI']:# not UMI == Well
 		organism = SRS_dict[x]['organism']
@@ -190,7 +191,9 @@ for SRS in SRS_dict.keys():
 		SRS_nonUMI_samples.append(SRS)
 
 
-organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
+organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens', 'Gallus_gallus']
+# macaque and chicken don't have well data
+droplet_only_org = config['droplet_only_org'] # ['Macaca_fascicularis', 'Gallus_gallus']
 # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
 report: "report.rst"
 
@@ -207,10 +210,10 @@ else:
 
 rule all:
 	input:
-		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
-		'pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata',
+		'pipeline_data/clean_quant_' + config['ambient'] + '/all_species_full_sparse_matrix.Rdata',
+		#'pipeline_data/clean_quant_' + config['ambient'] + '/all_species_full_sparse_unspliced_matrix.Rdata',
 		'pipeline_data/cell_info/all_cell_info.tsv',
-		'pipeline_data/clean_quant/mito_counts.tsv'
+		'pipeline_data/clean_quant_' + config['ambient'] + '/mito_counts.tsv'
 	
 # get annotation for each species 
 rule make_sample_name_prefixs:
@@ -231,13 +234,15 @@ rule download_annotation:
 		mouse_anno='references/gtf/mm-mus_musculus_anno.gtf.gz',
 		#macaque_faca_anno='references/gtf/macaca_fascicularis_anno.gtf.gz',
 		macaque_mul_anno= 'references/gtf/mf-macaca_mulatta_anno.gtf.gz',
-		human_anno='references/gtf/hs-homo_sapiens_anno.gtf.gz'
+		human_anno='references/gtf/hs-homo_sapiens_anno.gtf.gz',
+		chick_anno='references/gtf/gg-gallus_gallus_anno.gtf.gz'
 	shell:
 		'''
 		mkdir -p references
 		wget -O {output.mouse_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M25/gencode.vM25.annotation.gtf.gz
 		wget -O {output.macaque_mul_anno} ftp://ftp.ensembl.org/pub/release-101/gtf/macaca_mulatta/Macaca_mulatta.Mmul_10.101.gtf.gz
 		wget -O {output.human_anno} ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_35/gencode.v35.annotation.gtf.gz
+		wget -O {output.chick_anno} http://ftp.ensembl.org/pub/release-104/gtf/gallus_gallus/Gallus_gallus.GRCg6a.104.gtf.gz
 		'''
 		#wget -O {output.macaque_faca_anno} ftp://ftp.ensembl.org/pub/release-98/gtf/macaca_fascicularis/Macaca_fascicularis.Macaca_fascicularis_5.0.98.gtf.gz
 
@@ -261,11 +266,13 @@ rule make_mitochondiral_gene_lists:
 	input:
 		mouse_anno = 'references/gtf/mm-mus_musculus_anno.gtf.gz',
 		macaque_mul_anno = 'references/gtf/mf-macaca_mulatta_anno.gtf.gz',
-		human_anno = 'references/gtf/hs-homo_sapiens_anno.gtf.gz'
+		human_anno = 'references/gtf/hs-homo_sapiens_anno.gtf.gz',
+		chick_anno = 'references/gtf/gg-gallus_gallus_anno.gtf.gz'
 	output:
 		mouse_mito = 'references/mito_genes/mm-mus_musculus_mitogenes.txt',
 		macaque_mito = 'references/mito_genes/mf-macaca_mulatta_mitogenes.txt',
-		human_mito = 'references/mito_genes/hs-homo_sapiens_mitogenes.txt'
+		human_mito = 'references/mito_genes/hs-homo_sapiens_mitogenes.txt',
+		chick_anno = 'references/mito_genes/gg-gallus_gallus_mitogenes.txt'
 	shell:
 		'''
 		module load R/4.0.3
@@ -401,9 +408,7 @@ rule bustools_whitelist_correct_count:
 		'''
 	
 	
-
-## need to fix this script	
-
+# decontX (could) be run here, depending on what the yaml says
 rule create_sparse_matrix:
 	input:
 		spliced = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, 'spliced.mtx', SRS_dict),
@@ -416,22 +421,20 @@ rule create_sparse_matrix:
 		spliced_matrix = 'pipeline_data/clean_quant/{srp}/{reference}/matrix.Rdata',
 		unspliced_matrix = 'pipeline_data/clean_quant/{srp}/{reference}/unspliced_matrix.Rdata'
 	params:
+		ambient = config['ambient'],
 		matrix_outdir = lambda wildcards: f'pipeline_data/clean_quant/{wildcards.srp}/{wildcards.reference}/',
-		bus_outdirs = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, '', SRS_dict)
-	#group: "bus"	
+		bus_outdirs = lambda wildcards:  SRP_2_SRS(quant_path, wildcards.srp, wildcards.reference, '', SRS_dict),
 	shell:
 		"""
 		module load R/4.0.3 #need 1.10 of droplet utils 
-		
-        Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {input.mito_genelist} {pattern_file} {params.bus_outdirs}
-
+        Rscript {git_dir}/src/remove_empty_UMI_make_sparse_matrix.R {params.matrix_outdir} {input.mito_genelist} {pattern_file} {params.ambient} {git_dir} {params.bus_outdirs} 
 		"""		
 # spit out both intron and exon counts 
 
 rule merge_nonUMI_quant_by_organism:
 	input:
 		quant = lambda wildcards: expand(quant_path + '/quant/{SRS}/well/{{reference}}/abundance.tsv.gz', 
-										SRS = [srs for srs in SRS_dict.keys() if SRS_dict[srs]['organism'] == wildcards.organism and SRS_dict[srs]['tech'] not in ['DropSeq', '10xv2', '10xv3']]),
+										SRS = [srs for srs in SRS_dict.keys() if SRS_dict[srs]['organism'] == wildcards.organism and SRS_dict[srs]['tech'] not in ['DropSeq', '10xv1', '10xv2', '10xv3']]),
 		tx_map = 'references/velocity/well/{reference}/tr2g.tsv',
 		gtf = 'references/gtf/{reference}_anno.gtf.gz'
 	output:
@@ -460,6 +463,9 @@ rule combine_well_and_umi:
 	shell:
 		"""
 		module load R/3.6
+		echo {wildcards.organism}
+		echo {wildcards.reference}
+		echo {input.spliced_counts}
 		Rscript {git_dir}/src/build_sparse_matrix.R {wildcards.organism} {output} {input.srr_metadata} {input.gtf} {input.spliced_counts}
 		"""
 
@@ -483,19 +489,35 @@ rule mito_stats:
 
 rule merge_across_references:
 	input:
-		matrix = [ORG_ref(organism, 'matrix') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ],
-		cell_info = [ORG_ref(organism, 'cell_info') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens'] ],
+		srr_metadata = config['srr_sample_file'],
+		matrix = [ORG_ref(organism, 'matrix') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens', 'Gallus_gallus'] ],
+		cell_info = [ORG_ref(organism, 'cell_info') for organism in ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens', 'Gallus_gallus'] ],
 		pattern_file =pattern_file
 	output:
 		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
 		'pipeline_data/clean_quant/all_species_full_sparse_unspliced_matrix.Rdata',
 		'pipeline_data/cell_info/all_cell_info.tsv',
 		'references/ENSG2gene_name.tsv.gz',
-		expand('pipeline_data/clean_quant/{species}/full_sparse_matrix.Rdata',species= ['Homo_sapiens', 'Mus_musculus']),
-		expand('pipeline_data/clean_quant/{species}/full_sparse_unspliced_matrix.Rdata',species= ['Homo_sapiens', 'Mus_musculus']),
+		expand('pipeline_data/clean_quant/{species}/full_sparse_matrix.Rdata',species= ['Homo_sapiens', 'Mus_musculus', 'Gallus_gallus']),
+		expand('pipeline_data/clean_quant/{species}/full_sparse_unspliced_matrix.Rdata',species= ['Homo_sapiens', 'Mus_musculus', 'Gallus_gallus']),
 		'pipeline_data/clean_quant/droplet_quant_stats.tsv'
 	shell:
 		"""
 		module load R/3.6
-		Rscript {git_dir}/src/blend_macaque_merge_across_reference.R {working_dir} {git_dir} {pattern_file}
-		"""	
+		Rscript {git_dir}/src/blend_macaque_merge_across_reference.R {working_dir} {git_dir} {input.srr_metadata} {pattern_file}
+		"""
+
+localrules: mv_clean_quant
+rule mv_clean_quant:
+	input:
+		'pipeline_data/clean_quant/mito_counts.tsv',
+		'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
+	output:
+		'pipeline_data/clean_quant_' + config['ambient'] + '/mito_counts.tsv',
+		'pipeline_data/clean_quant_' + config['ambient'] + '/all_species_full_sparse_matrix.Rdata'
+	params:
+		ambient = config['ambient']
+	shell:
+		"""
+		#mv pipeline_data/clean_quant/ pipeline_data/clean_quant_{params.ambient} 
+		"""

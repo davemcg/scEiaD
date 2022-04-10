@@ -15,10 +15,11 @@ conda_sh=$5
 source ${conda_sh}
 module load python
 snakemake -s $snakefile \
--pr --jobs 1999 \
+-pr --jobs 1999 --cores 4 \
 --configfile $config \
 --use-conda \
 --cluster "python3 ${cluster_config} ${cluster_json}"  --latency-wait 120 --rerun-incomplete \
 -k --restart-times 0 \
---resources parallel=4
+--resources parallel=4 \
+--resources integration_gpu=8
 

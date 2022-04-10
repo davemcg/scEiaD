@@ -91,36 +91,39 @@ fastq_path = config['fastq_path']
 fi_tsne_dir = config['fi_tsne_dir']
 quant_path = config['quant_path']
 config_abspath=config['config_abspath']
+pattern_file=config['samplename_patterns']
 
 method = ['scArches', 'bbknn','insct','magic', 'scVI','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
 transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
 organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens']
-combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe']
-dims = [4,6,8,10,20,25,30,50,75,100,200]
+dims = [4,6,8,10,15, 20,25,30,50,75,100,200]
 epochs = [5,10,25,50,100]
-knn = [0.2,0,4,0.6, 5, 7, 10, 15, 20]
-model = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] # A is ~seuratCluster+batch+percent.mt and B is ~seuratCluster+batch+percent.mt+organism
+
+knn = [0.2,0,4,0.6, 5, 7, 10, 15, 20, 30]
 report: "report.rst"
 
-if config['subset_clustering'] == 'False':
-	 partitions_to_run = ['universe' ]
-	 scIB_partitions_to_run =  ['universe'] 
-	# Homo_sapiens/Mus_musculus are droplet only, species specific quantification
-	#partitions_to_run = [ 'TabulaDroplet', 'onlyWELL', "Homo_sapiens", "Mus_musculus"]
-	#partitions_to_run = ['universe']
-	#scIB_partitions_to_run =  ['universe' ] 
+partitions_to_run = config['partition']
+scIB_partitions_to_run =  config['scIB_partition'] 
+
+
+if not config['skip_CT_learning']:
+	skip_CT_learning = 'no'
+else: 
+	skip_CT_learning = config['skip_CT_learning']
+
+
+if skip_CT_learning.lower()  == 'yes':
+	rule all:
+		input:
+			'pipeline_data/results/merged_stats.Rdata',
 else:
-	partitions_to_run = ['celltype_subset']
-	scIB_partitions_to_run = ['celltype_subset']
+	rule all:
+		input:
+			'pipeline_data/results/merged_xgboost.Rdata',
+			'pipeline_data/results/merged_stats.Rdata',
+			"seurat_obj/raw/n_features-1000__transform-counts__partition-raw__covariate-" + config['covariate'] + "__preFilter.seuratV3.Rdata"
 
-
-rule all:
-	input:
-		#'pipeline_data/results/merged_xgboost.Rdata',
-		'pipeline_data/results/merged_stats.Rdata',
-		"seurat_obj/raw/n_features-1000__transform-counts__partition-raw__covariate-batch__preFilter.seuratV3.Rdata"
-	
 rule label_known_cells_with_type:
 	input:
 		'pipeline_data/cell_info/all_cell_info.tsv',
@@ -161,12 +164,41 @@ seu_obj_param =['n_features','transform','partition', 'covariate']
 seu_obj_sfx = 'preFilter.seuratV3.Rdata'
 
 
+def pick_quant(partition):
+	if 'universe' in partition:
+		return 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata'
+	elif 'human' in partition:
+		return 'pipeline_data/clean_quant/Homo_sapiens/full_sparse_matrix.Rdata'
+	elif 'chick' in partition:
+		return 'pipeline_data/clean_quant/Gallus_gallus/full_sparse_matrix.Rdata'
+	elif 'mouse' in partition:
+		return 'pipeline_data/clean_quant/Mus_musculus/full_sparse_matrix.Rdata'
+	elif 'macaque' in partition:
+		return 'pipeline_data/clean_quant/Macaca_fascicularis/full_sparse_matrix.Rdata'
+	else:
+		return 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata'
+
+def pick_mito(partition):
+	if 'human' in partition:
+		return 'references/mito_genes/hs-homo_sapiens_mitogenes.txt' 
+	elif 'chick' in partition:
+		return 'references/mito_genes/gg-gallus_gallus_mitogenes.txt'
+	elif 'mouse' in partition:
+		return 'references/mito_genes/mm-mus_musculus_mitogenes.txt'
+	elif 'macaque' in partition:
+		return 'references/mito_genes/hs-homo_sapiens_mitogenes.txt' 
+	else:
+		return 'references/mito_genes/hs-homo_sapiens_mitogenes.txt'
+
 rule make_seurat_objs:
 	input:
 		cell_info = 'pipeline_data/cell_info/all_cell_info.tsv',
-		all_species_quant_file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
+		quant_file = lambda wildcards: pick_quant(wildcards.partition),
+		#all_species_quant_file = 'pipeline_data/clean_quant/all_species_full_sparse_matrix.Rdata',
 		labelled_cell_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
-		mitogene_list = 'references/mito_genes/hs-homo_sapiens_mitogenes.txt' # created by SnakeQUANT
+		HVG_var_names = config['HVG_var_names'],
+		mitogene_list = lambda wildcards: pick_mito(wildcards.partition), # created by SnakeQUANT
+		sample_meta = config['srr_sample_file']
 	output:
 		seurat = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx)
 	params:
@@ -177,6 +209,23 @@ rule make_seurat_objs:
 		export SCIAD_GIT_DIR={git_dir}
 		export SCIAD_CONFIG={config_abspath}
 		Rscript {git_dir}/src/build_seurat_obj_classic.R {params.rson} {config_abspath}
+		"""
+h5ad_rawobj_pfx = 'h5ad/raw/'
+h5ad_rawobj_param = ['n_features','transform','partition', 'covariate']
+h5ad_rawobj_sfx = 'preFilter.anndata.h5ad'
+
+rule make_rawh5ad_objs:
+	input:
+		seurat = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx)
+	output:
+		h5ad = make_wc_string(h5ad_rawobj_pfx, h5ad_rawobj_param, h5ad_rawobj_sfx)
+	shell:
+		"""
+		module load R/3.6
+		export SCIAD_CONDA_DIR={conda_dir}
+        export SCIAD_GIT_DIR={git_dir}
+        export SCIAD_CONFIG={config_abspath}
+		Rscript {git_dir}/src/seurat_to_h5ad_core.R {input} seurat__standard {output} NO
 		"""
 
 intg_obj_pfx ='seurat_obj/integrated/'
@@ -192,15 +241,20 @@ def which_method(p):
 	else:
 		return 'merge_methods.R'
 
+ref_samples = config['ref_samples']
 rule integrate_00:
 	input:
 		cell_label_info = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
-		obj = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx)
+		obj = make_wc_string(seu_obj_pfx, seu_obj_param, seu_obj_sfx),
+		h5ad = make_wc_string(h5ad_rawobj_pfx, h5ad_rawobj_param, h5ad_rawobj_sfx),
+		pattern = pattern_file,
+		ref = ref_samples	
 	output:
-		#temp('seurat_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter.seuratV3.Rdata')
 		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx)
 	params:
-		mm = lambda wildcards: which_method(wildcards.method)
+		mm = lambda wildcards: which_method(wildcards.method),
+		model = directory('pipeline_data/model/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}')
+	resources: integration_gpu=1
 	threads: 2 	
 	shell:
 		"""
@@ -216,7 +270,10 @@ rule integrate_00:
 				  {wildcards.dims} \
 				  {input.obj} \
 				  {output} \
-				  {wildcards.epochs}"
+				  {wildcards.epochs} \
+				  {input.pattern} \
+				  {ref_samples} \
+				  {params.model} "
 		
 		echo $cmd
 		eval $cmd
@@ -310,10 +367,14 @@ rule extract_cluster:
 
 
 def set2mapper(set):
-	if set == 'Homo_sapiens':
+	if set == 'human':
 		return 'references/gtf/hs-homo_sapiens_anno.gtf.gz'
-	elif set == 'Mus_musculus':
+	elif set == 'mouse':
 		return 'references/gtf/mm-mus_musculus_anno.gtf.gz'
+	elif set == 'chick':
+		return 'references/gtf/gg-gallus_gallus_anno.gtf.gz'
+	elif set == 'macaque':
+		return  'references/gtf/hs-homo_sapiens_anno.gtf.gz' 
 	else:
 		return 'references/ENSG2gene_name.tsv.gz'
 
@@ -328,7 +389,6 @@ rule extract_umap:
 		cluster_rdata = make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx),
 		cell_info_labeled = 'pipeline_data/cell_info/cell_info_labelled.Rdata',
 		gene_id_mapper = lambda wildcards: set2mapper(wildcards.partition)
-		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 	output:
 		umap_data =make_wc_string(extr_umap_pfx, extr_umap_param, extr_umap_sfx)
 	params:
@@ -346,7 +406,6 @@ rule extract_tsne:
 		make_wc_string(tsne_obj_pfx, tsne_obj_param, tsne_obj_sfx),
 		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx),
 		'pipeline_data/cell_info/cell_info_labelled.Rdata'
-		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
 	output:
 		make_wc_string(extr_tsne_pfx, extr_tsne_param, extr_tsne_sfx)
 	shell:
@@ -439,8 +498,6 @@ rule make_h5ad_object:
 		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx),
 		make_wc_string(intg_obj_pfx, intg_obj_param, intg_obj_sfx),
 		'pipeline_data/cell_info/cell_info_labelled.Rdata',
-		#'predictions/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter_cell_info_predictions.Rdata'
-		#'monocle_obj/{combination}__add_intron-{add_intron}__n_features{n_features}__{transform}__{partition}__{covariate}__{method}__dims{dims}__preFilter__mindist{dist}__nneighbors{neighbors}__{knn}.monocle.Rdata'
 	output:
 		make_wc_string(mk_h5ad_pfx, mk_h5ad_param, mk_h5ad_sfx)
 	shell:
@@ -456,7 +513,8 @@ scIB_sfx = 'stats.csv'
 
 rule scIB_stats:
 	input:
-		make_wc_string(mk_h5ad_pfx, mk_h5ad_param, mk_h5ad_sfx)
+		make_wc_string(h5ad_rawobj_pfx, h5ad_rawobj_param, h5ad_rawobj_sfx),
+		make_wc_string(extr_clst_pfx, extr_clst_param, extr_clst_clst_sfx)
 	output:
 		make_wc_string(scIB_pfx, scIB_param, scIB_sfx)
 	shell:
