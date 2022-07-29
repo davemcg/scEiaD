@@ -17,13 +17,13 @@ db_create_index(scEiaD, table = 'haystack', columns = c('Gene'))
 
 # label most likely [ ] specificity for each gene
 # where [ ] is clsuter, celtype, celltype_predict
-ctp <- scEiaD %>% tbl('wilcox_diff_testing') %>% filter(Group == 'CellType (Predict)') %>% collect() %>% group_by(Gene) %>% slice_min(p.value,n = 3) %>% slice_max(mean_logFC, n = 1) %>% filter(FDR < 1 , mean_logFC > 0.1) %>% select(-`Gene Name`) %>% unique()
+ctp <- scEiaD %>% tbl('diff_testing') %>% filter(Group == 'CellType (Predict)') %>% collect() %>% group_by(Gene) %>% slice_min(pvalue,n = 3) %>% slice_max(abs(log2FoldChange), n = 1) %>% filter(padj < 1 , abs(log2FoldChange) > 0.5) %>% select(-`Gene Name`) %>% unique()
 
 
- allowed_ct <- scEiaD %>% tbl('wilcox_diff_testing') %>% filter(Group == 'CellType (Predict)') %>% collect() %>% pull(Base) %>% unique()
-ct <- scEiaD %>% tbl('wilcox_diff_testing') %>% filter(Group == 'CellType', Base %in% allowed_ct) %>% collect() %>% group_by(Gene) %>% slice_min(p.value,n = 3) %>% slice_max(mean_logFC, n = 1) %>% filter(FDR < 1 , mean_logFC > 0.1) %>% select(-`Gene Name`) %>% unique()
+ allowed_ct <- scEiaD %>% tbl('diff_testing') %>% filter(Group == 'CellType (Predict)') %>% collect() %>% pull(Base) %>% unique()
+ct <- scEiaD %>% tbl('diff_testing') %>% filter(Group == 'CellType', Base %in% allowed_ct) %>% collect() %>% group_by(Gene) %>% slice_min(pvalue,n = 3) %>% slice_max(abs(log2FoldChange), n = 1) %>% filter(padj < 1 , abs(log2FoldChange) > 0.5) %>% select(-`Gene Name`) %>% unique()
 
-cluster <- scEiaD %>% tbl('wilcox_diff_testing') %>% filter(Group == 'Cluster') %>% collect() %>% group_by(Gene) %>% slice_min(p.value,n = 3) %>% slice_max(mean_logFC, n = 1) %>% filter(FDR < 1, mean_logFC > 0.1) %>% select(-`Gene Name`) %>% unique()
+cluster <- scEiaD %>% tbl('diff_testing') %>% filter(Group == 'Cluster') %>% collect() %>% group_by(Gene) %>% slice_min(pvalue,n = 3) %>% slice_max(abs(log2FoldChange), n = 1) %>% filter(padj < 1, abs(log2FoldChange) > 0.5) %>% select(-`Gene Name`) %>% unique()
 
 gene_auto_label <- ctp %>% select(Gene, CellType_predict = Base) %>% full_join(cluster %>% select(Gene, Cluster = Base))  %>% full_join(ct %>% select(Gene, CellType = Base))
 

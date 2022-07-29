@@ -13,24 +13,6 @@ git_dir = Sys.getenv('SCIAD_GIT_DIR')
 scEiaD <- dbPool(drv = SQLite(), dbname = args[1], idleTimeout = 3600000)
 
 
-load(args[2]) # CellType_predict
-diff_testing_CTp <- diff_testing_wilcox
-diff_testing_CTp_summary <- diff_summary_wilcox
-
-load(args[3]) # CellType
-diff_testing_CT <- diff_testing_wilcox
-diff_testing_CT_summary <- diff_summary_wilcox
-
-load(args[4]) # cluster
-diff_testing_cluster <- diff_testing_wilcox
-diff_testing_cluster_summary <- diff_summary_wilcox
-
-wilcox_diff_testing <- bind_rows(diff_testing_CTp, diff_testing_CT, diff_testing_cluster) %>% arrange(-AUC)
-wilcox_diff_testing_geneVals <- bind_rows(diff_testing_CTp_summary, diff_testing_CT_summary, diff_testing_cluster_summary) %>% dplyr::rename(Gene = gene, p.value = pval)
-
-# yank out pval and FDR info (which are at the base - gene level)
-wilcox_diff_AUC <- wilcox_diff_testing %>% select(Gene, Base, `Tested Against`, AUC, logFC, Group)
-
 
 # update gene name
 print('update gene name')
@@ -49,38 +31,78 @@ source(glue('{git_dir}src/make_gene_id_converter_table.R'))
 #                                           'hs_gene_name')) %>%
 #  select(-hs_gene_id_v)
 print('diff testing tables')
-wilcox_diff_AUC_human <- wilcox_diff_AUC %>% filter(grepl('ENSG', Gene)) %>% left_join(gene_id_converter %>% dplyr::select(hs_gene_id, hs_gene_name, human_name) %>% unique(), by = c('Gene' = 'hs_gene_id')) %>% mutate(Gene = paste0(hs_gene_name, ' (', Gene, ')'))  %>% dplyr::select(-hs_gene_name)
 
-wilcox_diff_AUC_mouse <- wilcox_diff_AUC %>% filter(grepl('ENSMUS', Gene)) %>% left_join(gene_id_converter %>% dplyr::select(mm_gene_id, mm_gene_name, human_name) %>% unique(), by = c('Gene' = 'mm_gene_id')) %>% mutate(Gene = paste0(mm_gene_name, ' (', Gene, ')'))  %>% dplyr::select(-mm_gene_name)
 
-wilcox_diff_AUC <- bind_rows(wilcox_diff_AUC_human, wilcox_diff_AUC_mouse) %>% dplyr::rename(`Gene Name` = human_name) %>% mutate(AUC = as.numeric(AUC)) %>% arrange(-AUC)
-dbWriteTable(scEiaD, 'wilcox_diff_AUC', wilcox_diff_AUC, overwrite = TRUE)
-db_create_index(scEiaD, table = 'wilcox_diff_AUC', columns = c('Gene'))
-db_create_index(scEiaD, table = 'wilcox_diff_AUC', columns = c('Base'))
-db_create_index(scEiaD, table = 'wilcox_diff_AUC', columns = c('Group'))
-db_create_index(scEiaD, table = 'wilcox_diff_AUC', columns = c('Tested Against'))
-wilcox_group_base_sets <- wilcox_diff_AUC %>% dplyr::select(Group, Base)  %>% unique() %>% arrange(Group, Base)
-dbWriteTable(scEiaD, 'wilcox_diff_AUC_sets', wilcox_group_base_sets, overwrite = TRUE)
-wilcox_diff_AUC_genes <- wilcox_diff_AUC %>% pull(Gene) %>% unique()
-wilcox_diff_AUC_genes <- wilcox_diff_AUC_genes %>% tibble::enframe(value = 'Gene') %>% dplyr::select(-name) %>% arrange()
-dbWriteTable(scEiaD, 'wilcox_diff_AUC_genes', wilcox_diff_AUC_genes, overwrite = TRUE)
-## now the pval table
-wilcox_diff_testing_geneVals__human <- wilcox_diff_testing_geneVals %>% filter(grepl('ENSG', Gene)) %>% left_join(gene_id_converter %>% dplyr::select(hs_gene_id, hs_gene_name, human_name) %>% unique(), by = c('Gene' = 'hs_gene_id')) %>% mutate(Gene = paste0(hs_gene_name, ' (', Gene, ')'))  %>% dplyr::select(-hs_gene_name)
-wilcox_diff_testing_geneVals__mouse <- wilcox_diff_testing_geneVals  %>% filter(grepl('ENSMUS', Gene)) %>% left_join(gene_id_converter %>% dplyr::select(mm_gene_id, mm_gene_name, human_name) %>% unique(), by = c('Gene' = 'mm_gene_id')) %>% mutate(Gene = paste0(mm_gene_name, ' (', Gene, ')'))  %>% dplyr::select(-mm_gene_name)
-wilcox_diff_testing <- bind_rows(wilcox_diff_testing_geneVals__human, wilcox_diff_testing_geneVals__mouse) %>% dplyr::rename(`Gene Name` = human_name) %>% 
-							mutate(p.value = as.numeric(p.value), mean_auc = as.numeric(mean_auc)) %>%
-							arrange(`p.value`, -mean_auc) %>% dplyr::rename(Base = cluster, auc_count_070 = count)
-dbWriteTable(scEiaD, 'wilcox_diff_testing', wilcox_diff_testing, overwrite = TRUE)
-db_create_index(scEiaD, table = 'wilcox_diff_testing', columns = c('Gene'))
-db_create_index(scEiaD, table = 'wilcox_diff_testing', columns = c('Base'))
-db_create_index(scEiaD, table = 'wilcox_diff_testing', columns = c('Group'))
 
+diff <- data.table::fread(args[2])
+
+join_by_diff_test <- function(diff_table, group, against = 'All'){
+  diff_sub_hs<- diff_table %>% filter(Against %in% against, Group == group, grepl('ENSG', Gene))
+  diff_sub_NOThs<- diff_table %>% filter(Against %in% against, Group == group, !grepl('ENSG', Gene))
+  
+  out_hs <- left_join(as_tibble(diff_sub_hs), 
+                      gene_id_converter %>% select(hs_gene_id, hs_gene_name, human_name) %>% unique(), 
+                      by = c('Gene' = 'hs_gene_id')) %>% 
+    as_tibble()%>% 
+    dplyr::rename(gene_name = hs_gene_name)
+  
+  out_NOThs <- left_join(as_tibble(diff_sub_NOThs), 
+                         gene_id_converter %>% select(mf_gene_id, mf_gene_name, human_name) %>% unique(), 
+                         by = c('Gene' = 'mf_gene_id')) %>% 
+    as_tibble() %>% 
+    dplyr::rename(gene_name = mf_gene_name)
+  
+  bind_rows(out_hs, out_NOThs)
+}
+
+types  <- diff$Against %>% unique()
+
+ctp_all <- join_by_diff_test(diff, 'CellType_predict', 'All')
+ctp_pairwise <- join_by_diff_test(diff, 'CellType_predict', types[types != 'All'])
+
+
+
+ct_all <- join_by_diff_test(diff, 'CellType', 'All')
+ct_pairwise <- join_by_diff_test(diff, 'CellType', types[types != 'All'])
+
+cluster_all <- join_by_diff_test(diff, 'cluster', 'All')
+cluster_pairwise <- join_by_diff_test(diff, 'cluster', types[types != 'All'])
+
+diff_data <- bind_rows(ctp_all,
+                       ctp_pairwise,
+                       ct_all,
+                       ct_pairwise,
+                       cluster_all,
+                       cluster_pairwise)
+
+
+diff_data <- diff_data %>% 
+  mutate(Gene = paste0(gene_name, ' (', Gene, ')')) %>% select(-gene_name) %>% dplyr::rename(`Gene Name` = human_name) %>% arrange(padj) %>% 
+  mutate(Group = case_when(Group == 'cluster' ~ 'Cluster',
+                           Group == 'CellType_predict' ~ 'CellType (Predict)',
+                           TRUE ~ Group))
+
+dbWriteTable(scEiaD, 'diff_testing', diff_data, overwrite = TRUE)
+
+db_create_index(scEiaD, table = 'diff_testing', columns = c('Gene'))
+db_create_index(scEiaD, table = 'diff_testing', columns = c('Base'))
+db_create_index(scEiaD, table = 'diff_testing', columns = c('Group'))
+db_create_index(scEiaD, table = 'diff_testing', columns = c('Against'))
+
+group_base <- diff_data %>% select(Group, Base) %>% unique()
+group_base_against <- diff_data %>% select(Group, Base, Against) %>% unique() %>% filter(Against != 'All')
+diff_genes <- diff_data$Gene %>% unique() %>% enframe() %>% select(Gene = value)
+
+
+
+dbWriteTable(scEiaD, 'diff_testing_sets', group_base_against, overwrite = TRUE)
+dbWriteTable(scEiaD, 'diff_testing_genes', diff_genes, overwrite = TRUE)
 
 
 
 # doublets
 print('write doublets')
-load(args[5])
+load(args[3])
 dbWriteTable(scEiaD, 'doublets', doublet_call_table, overwrite = TRUE)
 db_create_index(scEiaD, table = 'doublets', columns = c('Barcode'))
 # update meta table
@@ -142,4 +164,4 @@ dbWriteTable(scEiaD, 'gene_name_id', name_id, overwrite = TRUE)
 #dbWriteTable(scEiaD, 'haystack', haystack, overwrite = TRUE)
 #db_create_index(scEiaD, table = 'haystack', columns = c('Gene'))
 
-system2('touch', args[6])
+system2('touch', args[4])

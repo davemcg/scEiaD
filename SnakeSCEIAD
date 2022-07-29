@@ -21,7 +21,7 @@ dist = [0.001,0.1,0.2,0.3]
 method = ['bbknn','insct','magic', 'scVI','scVIprojection','scANVIprojection', 'scVIprojectionSO','CCA', 'scanorama', 'harmony', 'fastMNN', 'combat', 'none', 'liger']
 transform = ['libSize', 'sqrt', 'counts','standard', 'SCT','scran']
 covariate = ['study_accession', 'batch']
-organism = ['Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens', 'all']
+organism = ['Gallus_gallus', 'Mus_musculus', 'Macaca_fascicularis', 'Homo_sapiens', 'all']
 combination = ['Mus_musculus', 'Mus_musculus_Macaca_fascicularis', 'Mus_musculus_Macaca_fascicularis_Homo_sapiens', 'universe', 'PR']
 dims = [4,6,8,10,15,20,25,30,50,75,100,200]
 knn = [0.2,0,4,0.6, 5, 7, 10, 15]
@@ -41,6 +41,7 @@ wildcard_constraints:
 	group = '|'.join(group)
 rule all:
 	input:
+		'diff_testing/all.tsv.gz',
 		'site/sqlite_add_tables_SUCCESS',
 		'site/scEiaD_all_seurat_v3.Rdata',
 		'site/MOARTABLES__anthology_limmaFALSE___' + config['n_features'] + '-counts-' + config['partition'] + '-study_accession-' + config['method'] + '-' + config['dims'] + '-' + config['epochs'] + '-' + config['dist'] + '-' + config['neighbors'] + '-' + config['knn'] + '.sqlite.gz'
@@ -174,32 +175,60 @@ rule haystack:
 			{output}
 		"""
 
-rule diff_test_wilcox:
+rule diff_test_deseq2:
 	input:
 		'seurat_obj/integrated/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}__dist-{dist}__neighbors-{neighbors}.umap.Rdata',
 		'pipeline_data/cluster/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}__knn-{knn}__cluster.Rdata',
 		'pipeline_data/umap/n_features-{n_features}__transform-{transform}__partition-{partition}__covariate-{covariate}__method-{method}__dims-{dims}__epochs-{epochs}__dist-{dist}__neighbors-{neighbors}__knn-{knn}.umapFilterPredictions.Rdata'
 	output:
-		'diff_testing/{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{epochs}-{knn}-{neighbors}-{dist}-{group}-{chunk}-{total_chunks}.sceWilcox.Rdata',
-		'diff_testing/{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{epochs}-{knn}-{neighbors}-{dist}-{group}-{chunk}-{total_chunks}.sceWilcox_summary.Rdata'
-	threads: 2
+		'diff_testing/{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{epochs}-{knn}-{neighbors}-{dist}-{group}-{organism}.deseq2obj.Rdata',
+	threads: 16
 	shell:
 		"""
 		module load R/4.0.3
 		export SCIAD_GIT_DIR={git_dir}
-		Rscript {git_dir}/src/diff_testing_sce_wilcox.R {input} {wildcards.group} {threads} {output} {wildcards.chunk} {wildcards.total_chunks}
+		Rscript {git_dir}/src/build_pseudoBulk.R {input} {wildcards.group} {wildcards.organism} {threads} {output}
 		"""
 
-rule combine_diff_test_wilcox:
+rule pull_contrasts:
 	input:
-		expand('diff_testing/{{n_features}}-{{transform}}-{{partition}}-{{covariate}}-{{method}}-{{dims}}-{{epochs}}-{{knn}}-{{neighbors}}-{{dist}}-{{group}}-{chunk}-{total_chunks}.sceWilcox.Rdata', chunk= list(range(1,21)), total_chunks = 20),
+		'diff_testing/{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{epochs}-{knn}-{neighbors}-{dist}-{group}-{organism}.deseq2obj.Rdata',
 	output:
-		'diff_testing/{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{epochs}-{knn}-{neighbors}-{dist}-{group}.sceWilcox.Rdata',
+		'diff_testing/{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{epochs}-{knn}-{neighbors}-{dist}-{group}-{organism}.tsv.gz',
+	threads: 16
 	shell:
 		"""
-		module load R/3.6
-		Rscript {git_dir}/src/diff_testing_sce_wilcox_merge.R {input} {wildcards.group} {output}
+		module load R/4.0.3
+		export SCIAD_GIT_DIR={git_dir}
+		Rscript {git_dir}/src/extract_contrast.R {input} {wildcards.group} {output}
 		"""
+
+rule merge_diff_data:
+	input:
+		expand('diff_testing/{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{epochs}-{knn}-{neighbors}-{dist}-{group}-{organism}.tsv.gz',
+							n_features = config['n_features'],
+							transform = 'counts',
+							partition = config['partition'],
+							covariate = 'study_accession',
+							method = config['method'],
+							dims = config['dims'],
+							epochs = config['epochs'],
+							dist = config['dist'],
+							neighbors =  config['neighbors'],
+							knn = config['knn'],
+							group = ['CellType', 'CellType_predict', 'cluster'],
+							organism = ['Homo_sapiens', 'Mus_musculus', 'Macaca_fascicularis'])
+	output:
+		'diff_testing/all.tsv.gz'
+	shell:
+		"""
+		zcat {input} | zgrep -v baseMean - > diff_testing/temp.diff
+		zcat {input} | grep baseMean  | uniq > diff_testing/temp.header
+		cat diff_testing/temp.header diff_testing/temp.diff | gzip > diff_testing/all.tsv.gz
+		rm diff_testing/temp.diff
+		rm diff_testing/temp.header
+		"""
+
 
 rule sqlite_add_tables:
 	input:
@@ -223,18 +252,7 @@ rule sqlite_add_tables:
 							method = config['method'],
 							dims = config['dims'],
 							epochs = config['epochs']),
-		diff_wilcox = expand('diff_testing/{n_features}-{transform}-{partition}-{covariate}-{method}-{dims}-{epochs}-{knn}-{neighbors}-{dist}-{group}.sceWilcox.Rdata', \
-							n_features = config['n_features'],
-							transform = 'counts',
-							partition = config['partition'],
-							covariate = 'study_accession',
-							method = config['method'],
-							dims = config['dims'],
-							epochs = config['epochs'],
-							dist = config['dist'],
-							neighbors =  config['neighbors'],
-							knn = config['knn'],
-							group = ['CellType_predict','CellType', 'cluster'])
+		diff = 'diff_testing/all.tsv.gz'
 	output:
 		'site/sqlite_add_tables_SUCCESS',
 	shell:
@@ -245,7 +263,7 @@ rule sqlite_add_tables:
 		export SCIAD_CONFIG={config_abspath}
 		module load R/3.6
 		Rscript {git_dir}/src/sqlite_add_diff_tables.R {input.sqlite} \
-			{input.diff_wilcox} \
+			{input.diff} \
 			{input.doublet} \
 			{output}
 		"""

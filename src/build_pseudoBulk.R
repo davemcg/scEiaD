@@ -31,18 +31,18 @@ row.names(f_meta) <- f_meta$Barcode
 integrated_obj@meta.data <- f_meta
 
 int_sce <-  as.SingleCellExperiment(integrated_obj)
+colData(int_sce)$cluster <- as.factor(colData(int_sce)$cluster)
 
 rm(integrated_obj)
 
 # species level matrices
 summer <- function(sce, against, species){
-	# replace NA with "00missing" to make this the first contrast (which is lost in the formula setup)
-	colData(int_sce)[,group][is.na(colData(int_sce)[,group])] <- '00missing'	
+	print(against)
 	sce_org <- sce[, umap %>% filter(organism == species) %>% pull(Barcode)]
-	# remove groupings "against" that have fewer than 20 cells
+	# remove groupings "against" that have fewer than 50 cells
 	bc_to_keep <- colData(sce_org) %>% as_tibble() %>% 
 		group_by(across(all_of(against))) %>% summarise(Count = n(), bc = list(Barcode)) %>% 
-		filter(Count >= 20)  %>% 
+		filter(Count >= 50)  %>% 
 		pull(bc) %>% 
 		unlist()
 	sce_org <- sce_org[, bc_to_keep]
@@ -52,14 +52,16 @@ summer <- function(sce, against, species){
 }
 
 org_mat <- summer(int_sce, c(group, 'study_accession'), organism)
+colData(org_mat)$cluster <- as.factor(colData(org_mat)$cluster)
 
-
-deseq2_runner <- function(summed, formula){
+deseq2_runner <- function(summed, group, formula){
 
 	mat <- assay(summed, 'counts')
+	colData(summed)$group <- colData(summed)[,group]
 	colnames(mat) <-colData(summed) %>% as_tibble() %>% 
-		  mutate(names = glue::glue("{study_accession}_{CellType_predict}")) %>% 
-			pull(names)
+		  mutate(names = glue::glue("{study_accession}_{group}")) %>% 
+			     
+			pull(names) 
 	# remove 0 count genes
 	genes_keep <- rowSums(mat) %>% enframe() %>% filter(value > 0) %>% pull(name)
 	mat <- mat[genes_keep, ]
@@ -72,7 +74,7 @@ deseq2_runner <- function(summed, formula){
 }
 
 #deseq2_obj <- deseq2_runner(org_mat, paste0("~ 0 + ", group, " + study_accession"))
-deseq2_obj <- deseq2_runner(org_mat, paste0("~ ", group, " + study_accession"))
+deseq2_obj <- deseq2_runner(org_mat, group, paste0("~ ", group, " + study_accession"))
 
 save(deseq2_obj, org_mat, file = output)
 
