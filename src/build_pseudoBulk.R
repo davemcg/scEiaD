@@ -78,6 +78,15 @@ deseq2_obj <- deseq2_runner(org_mat, group, paste0("~ ", group, " + study_access
 
 save(deseq2_obj, org_mat, file = output)
 
+# output tables
+meta <- colData(org_mat)
+counts <- assay(org_mat)
+colnames(counts) <- paste(meta$study_accession,
+                            meta[,group],
+                                sep = '__')
+write_tsv(as_tibble(meta), file = gsub('diff_testing', 'site', output) %>% gsub('deseq2obj.Rdata', 'meta.tsv.gz', .))
+write_tsv(as_tibble(counts, rownames = 'Gene') , file = gsub('diff_testing', 'site', output) %>% gsub('deseq2obj.Rdata', 'pseudoCounts.tsv.gz', .))
+
 #deseq_res <- results(homo_deseq2, 
 #                     contrast = c("CellType_predict", "Rod", "Cone"),
 #                     parallel = TRUE)
