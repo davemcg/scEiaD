@@ -347,5 +347,18 @@
 	{
 		"mem" : "180G",
 		"extra" : " --gres=lscratch:5"
+	},
+	"pull_contrasts" :
+	{
+		"mem" : "64G",
+		"extra" : " --gres=lscratch:5",
+		"time" : "12:00:00"
+	},
+	"diff_test_deseq2" :
+	{
+		"mem" : "240G",
+		"extra" : " --gres=lscratch:5",
+		"time" : "2:00:00",
+		"partition" : "quick"
 	}
 }	
