@@ -13,6 +13,10 @@
   - 5 epochs
   - 15 latent dimensions
 
+## Yaml files
+
+ - config.yaml for SnakeQUANT and SnakePOP
+ - configSCEIAD.yaml for SnakeSCEIAD
 
  # Numbers
  - 44 datasets
@@ -25,9 +29,11 @@
  
 
 # Data
+  - [scEiaD database for PLAE](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2022_03_22/MOARTABLES__anthology_limmaFALSE___4000-counts-universe-study_accession-scANVIprojection-15-5-0.1-50-20__pointRelease01.sqlite.gz)
   - [Seurat (v3)](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2022_03_22/scEiaD_all_seurat_v3.Rdata)
   - [anndata (h5ad)](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2022_03_22/scEiaD_all_anndata.h5ad)
   - [Cell Level Metadata](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2022_03_22/metadata_filter.tsv.gz)
+  - [Cell Level Metadata in FST format used by web app](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2022_03_22/meta_filter.fst)
   - [Counts (Rdata sparse matrix)](http://hpc.nih.gov/~mcgaugheyd/scEiaD/2022_03_22/counts.Rdata)
 
 # Moar data?
