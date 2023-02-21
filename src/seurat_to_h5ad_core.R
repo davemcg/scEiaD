@@ -16,11 +16,12 @@ out <- get(args[2])
 
 load('pipeline_data/cell_info/cell_info_labelled.Rdata')
 
-nmeta <- out@meta.data %>% as_tibble(rownames = 'value') %>% select(-batch, -Age, -study_accession) %>% left_join(cell_info_labels, by = 'value')
-nmeta_df <- data.frame(nmeta)
-row.names(nmeta_df) <- nmeta$value
+# apparently cell_info_lablled has zero new info and just causes name collision????
+#nmeta <- out@meta.data %>% as_tibble(rownames = 'value') %>% select(-batch, -Age, -study_accession) 
+#nmeta_df <- data.frame(nmeta)
+#row.names(nmeta_df) <- nmeta$value
 
-out@meta.data <- nmeta_df
+#out@meta.data <- nmeta_df
 
  
 if (args[4] == 'make_mini_split_data'){
