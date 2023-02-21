@@ -6,12 +6,12 @@ kallisto index gencode.v35.transcripts.fa.gz -i gencode.v35.transcripts.idx
 kallisto index gencode.vM25.transcripts.fa.gz -i gencode.vM25.transcripts.idx
 
 
-zgrep "^>" gencode.v35.transcripts.fa.gz | sed 's/>//g' | awk 'BEGIN {OFS = "\t"; FS = "|"}; {print $0, $2, $2}' | > v35.tr2g.tsv
+zgrep "^>" gencode.v35.transcripts.fa.gz | sed 's/>//g' | awk 'BEGIN {OFS = "\t"; FS = "|"}; {print $0, $2, $2}'  > v35.tr2g.tsv
 # remove .\d+ ending
 cat v35.tr2g.tsv |  awk -F'\t' -vOFS='\t' '{ gsub("\\.[0-9]*", "", $2) ; print }' | awk -F'\t' -vOFS='\t' '{ gsub("\\.[0-9]*", "", $3) ; print }' > v35.tr2gX.tsv
 
 # mouse time
-zgrep "^>" gencode.vM25.transcripts.fa.gz | sed 's/>//g' | awk 'BEGIN {OFS = "\t"; FS = "|"}; {print $0, $2, $2}' | > vM25.tr2g.tsv
+zgrep "^>" gencode.vM25.transcripts.fa.gz | sed 's/>//g' | awk 'BEGIN {OFS = "\t"; FS = "|"}; {print $0, $2, $2}'  > vM25.tr2g.tsv
 # remove .\d+ ending
 cat vM25.tr2g.tsv |  awk -F'\t' -vOFS='\t' '{ gsub("\\.[0-9]*", "", $2) ; print }' | awk -F'\t' -vOFS='\t' '{ gsub("\\.[0-9]*", "", $3) ; print }' > vM25.tr2gX.tsv
 
