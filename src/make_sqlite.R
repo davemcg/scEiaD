@@ -71,7 +71,7 @@ chunk_num = 20
 
 print(dim(counts))	
 # replace with new gene names including HGNC
-source(glue('{git_dir}src/make_gene_id_converter_table.R'))
+#source(glue('{git_dir}src/make_gene_id_converter_table.R'))
 #gene_id_converter <- read_tsv(glue::glue('{git_dir}/data/ensembl_biomart_human2mouse_macaque_chick_ZF.tsv.gz'), skip = 1,
 #                              col_names= c('hs_gene_id','hs_gene_id_v',
 #                                           'gg_gene_id', 'gg_gene_name',
@@ -81,13 +81,14 @@ source(glue('{git_dir}src/make_gene_id_converter_table.R'))
 #                                           'hs_gene_name')) %>%
 #  select(-hs_gene_id_v)
 
-gene_id_converter2 <- bind_rows(gene_id_converter %>% filter(!is.na(hs_gene_id)), gene_id_converter %>% filter(!is.na(mm_gene_id)) %>% mutate(hs_gene_id = mm_gene_id, hs_gene_name = mm_gene_name))
+#gene_id_converter2 <- bind_rows(gene_id_converter %>% filter(!is.na(hs_gene_id)), gene_id_converter %>% filter(!is.na(mm_gene_id)) %>% mutate(hs_gene_id = mm_gene_id, hs_gene_name = mm_gene_name))
 # fill in missing mouse gene id
 hs_gtf <- rtracklayer::import('references/gtf/hs-homo_sapiens_anno.gtf.gz') %>% as_tibble() %>% select(hs_gene_id = gene_id, hs_gene_name = gene_name) %>% mutate(hs_gene_id = gsub('\\.\\d+','', hs_gene_id)) %>% unique()
 mf_gtf <- rtracklayer::import('references/gtf/mf-macaca_mulatta_anno.gtf.gz') %>% as_tibble() %>% select(hs_gene_id = gene_id, hs_gene_name = gene_name) %>% mutate(hs_gene_id = gsub('\\.\\d+','', hs_gene_id)) %>% unique()
 mm_gtf <- rtracklayer::import('references/gtf/mm-mus_musculus_anno.gtf.gz') %>% as_tibble() %>% select(hs_gene_id = gene_id, hs_gene_name = gene_name) %>% mutate(hs_gene_id = gsub('\\.\\d+','', hs_gene_id)) %>% unique()
 gene_id_converter2 <- bind_rows(hs_gtf, mf_gtf, mm_gtf) %>% unique()
-
+#system('mkdir -p site')
+#write_tsv(gene_id_converter2 %>% select(id = hs_gene_id, name = hs_gene_name), file = 'site/gene_id_converter.tsv.gz')
 
 row.names(counts) <- row.names(counts) %>% enframe(value = 'hs_gene_id') %>% dplyr::select(-name) %>% left_join(gene_id_converter2 %>% select(hs_gene_id, hs_gene_name) %>% unique()) %>% mutate(nname = paste0(hs_gene_name, ' (', hs_gene_id, ')')) %>% pull(nname)
 
