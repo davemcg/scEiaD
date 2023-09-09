@@ -32,7 +32,6 @@ integrated_obj@meta.data <- f_meta
 
 int_sce <-  as.SingleCellExperiment(integrated_obj)
 colData(int_sce)$cluster <- as.factor(colData(int_sce)$cluster)
-
 rm(integrated_obj)
 
 # species level matrices
@@ -81,9 +80,7 @@ save(deseq2_obj, org_mat, file = output)
 # output tables
 meta <- colData(org_mat)
 counts <- assay(org_mat)
-colnames(counts) <- paste(meta$study_accession,
-                            meta[,group],
-                                sep = '__')
+colnames(counts) <- apply(meta[,c("study_accession", group)], 1, paste , collapse = "__")
 write_tsv(as_tibble(meta), file = gsub('diff_testing', 'site', output) %>% gsub('deseq2obj.Rdata', 'meta.tsv.gz', .))
 write_tsv(as_tibble(counts, rownames = 'Gene') , file = gsub('diff_testing', 'site', output) %>% gsub('deseq2obj.Rdata', 'pseudoCounts.tsv.gz', .))
 
