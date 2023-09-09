@@ -1,0 +1,65 @@
+
+#import scanpy as sc
+
+#big_h5ad = config['h5ad']
+
+#adata = sc.read_h5ad(big_h5ad)
+
+#well_counts = adata[adata.obs['TechType'].isin(['SMARTSeq_v2'])].obs[['batch']].value_counts()
+#well_batches = list(well_counts[well_counts > 150].reset_index()['batch'])
+
+#droplet_counts = adata[~adata.obs['TechType'].isin(['SMARTSeq_v2'])].obs[['sample_accession']].value_counts()
+#droplet_samples = list(droplet_counts[droplet_counts > 150].reset_index()['sample_accession'])
+
+well_file = open("well_batches.txt", "r")
+well_batches = well_file.readlines()
+well_batches = [a.rstrip('\n') for a in well_batches]
+
+droplet_file = open("droplet_counts.txt", "r")
+droplet_samples = droplet_file.readlines()
+droplet_samples = [a.rstrip('\n') for a in droplet_samples]
+
+print(well_batches)
+
+big_h5ad = config['h5ad']
+
+wildcard_constraints:
+    sample = '|'.join(droplet_samples),
+    batch = '|'.join(well_batches),
+
+rule all:
+	input:
+		expand('seacells/{sample}.obs.csv.gz', sample = droplet_samples),
+		expand('seacells/{batch}.obs.csv.gz', batch = well_batches)
+
+rule seacell_droplet:
+	input:
+		h5ad = big_h5ad,
+	output:
+		obs = 'seacells/{sample}.obs.csv.gz',
+		seacell = 'seacells/{sample}.seacell_aggr.csv.gz'
+	shell:
+		"""
+		/data/mcgaugheyd/conda/envs/seacells/bin/python \
+			/home/mcgaugheyd/git/scEiaD/src/make_seacells.py \
+			{input} \
+			{wildcards.sample} \
+			{output} \
+			sample_accession
+		"""	
+
+rule seacell_well:
+	input:
+		h5ad = big_h5ad
+	output:
+		obs = 'seacells/{batch}.obs.csv.gz',
+		seacell = 'seacells/{batch}.seacell_aggr.csv.gz'
+	shell:
+		"""
+		/data/mcgaugheyd/conda/envs/seacells/bin/python \
+			 /home/mcgaugheyd/git/scEiaD/src/make_seacells.py \
+			{input} \
+			{wildcards.batch} \
+			{output} \
+			batch
+		"""	
