@@ -360,5 +360,14 @@
 		"extra" : " --gres=lscratch:5",
 		"time" : "2:00:00",
 		"partition" : "quick"
+	},
+	"seacell_well" :
+	{
+		"mem" : "32G"
+	},
+	"seacell_droplet" :
+	{
+		"mem" : "32G",
+		"extra" : " --gres=lscratch:5"
 	}
 }	
