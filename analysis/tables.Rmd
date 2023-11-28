@@ -18,12 +18,13 @@ library(htmltools)
 library(pool)
 library(RSQLite)
 # all cells
-load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/cell_info_labelled.Rdata')
-
+load('~/data/scEiaD/cell_info_labelled.Rdata')
+# pre mt filtering
+mito <- read_tsv('~/data/scEiaD/mito_counts.tsv')
 # load('/Volumes/data/projects/nei/mcgaughey/massive_integrated_eye_scRNA/fastMNN_umap_full.Rdata')
-study_meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/GEO_Study_Level_Metadata.tsv')
-
-scEiaD <- dbPool(drv = SQLite(), dbname = "~/data/massive_integrated_eye_scRNA/scEiaD__2020_08_13__Mus_musculus_Macaca_fascicularis_Homo_sapiens-5000-counts-TabulaDroplet-batch-scVI-8-0.1-15-7.sqlite", idleTimeout = 3600000)
+study_meta <- read_tsv('~/git/scEiaD/data/GEO_Study_Level_Metadata.tsv')
+sample_meta <- read_tsv('~/git/scEiaD/data/sample_run_layout_organism_tech.tsv')
+scEiaD <- dbPool(drv = SQLite(), dbname = "~/data/scEiaD/2021_02_05_MOARTABLES__anthology_limmaFALSE___5000-transform-counts-universe-batch-scVIprojectionSO-8-0.1-50-0.6.sqlite", idleTimeout = 3600000)
 meta <- scEiaD %>% tbl('metadata') %>% as_tibble()
 
 stats <- meta %>% group_by(study_accession, Platform) %>% summarise(Counts = n())
@@ -78,9 +79,14 @@ post <- stats %>% rename(`Post QC<br/>Count` = Counts) %>%
   group_by(study_accession, Platform) %>% 
   summarise(`Post QC<br/>Count` = sum(`Post QC<br/>Count`))
 
-table01 <- cell_info_labels %>% 
-  filter(!is.na(study_accession)) %>% 
+table01 <- mito %>% 
+  mutate(barcode = gsub(':','_',barcode)) %>% 
+  rename(sample_accession = srs) %>% 
+  full_join(sample_meta %>% select(sample_accession, study_accession, organism, Platform, Source) %>% unique()) %>% 
   left_join(study_meta) %>% 
+  left_join(cell_info_labels %>% select(barcode = value, CellType)) %>% 
+   filter(Source != 'Cell Culture', Source != 'Organoid', study_accession != 'SRP166660') %>% 
+   filter(!is.na(study_accession)) %>% 
   mutate(PMID = as.character(PMID)) %>% 
   mutate(Citation = case_when(is.na(Citation) ~ '',
                               TRUE ~ paste0(substr(Citation, 1, 30), ' ...')),
@@ -94,7 +100,8 @@ table01 <- cell_info_labels %>%
   arrange(organism, -Count) %>% 
   left_join(., post %>% 
               rename(`SRA Accession` = study_accession)) %>% 
-  select(Citation:Count, `Post QC<br/>Count`, Labels)
+  select(Citation:Count, `Post QC<br/>Count`, Labels) %>% 
+  filter(`Post QC<br/>Count` > 0)
 
 table01$`Post QC<br/>Count`[is.na(table01$`Post QC<br/>Count`)] <- 0
 formattable_01 <- table01 %>% 
@@ -166,7 +173,7 @@ meta %>%
                            direction = "y", size = 2.7,
                            aes(label = CellType_predict),
                            nudge_x = c(rep(c(10),32))) +
-  # ggfittext::geom_fit_text(stat = "stratum", width = 1/4, min.size = 2,
+# ggfittext::geom_fit_text(stat = "stratum", width = 1/4, min.size = 2,
   #                          aes(label = CellType_predict)) +
   # #ggfittext::geom_fit_text(stat = "stratum", width = 1/4, min.size = 2,
   # #                         aes(label = CellType)) +
