@@ -10,18 +10,20 @@ library(uwot)
 library(ggplot2)
 
 # load counts
-load('/data/mcgaugheyd/datashare/scEiaD/2022_03_22/counts.Rdata')
+load('~/data/scEiaD_2022_02/counts.Rdata')
 
 # load consist diff from plae manuscript
 consist_diff <- read_tsv('~/git/eyeMarkers/lists/plae_consist_diff.tsv')
 # load metadata for counts
-meta_filter <- data.table::fread('/data/mcgaugheyd/datashare/scEiaD/2022_03_22/metadata_filter.tsv2') %>% 
+meta_filter <- data.table::fread('~/data/scEiaD_2023_12/metadata_filter.tsv.gz') %>% 
   as_tibble() %>%
+  # remove known mis-calls from celltype_predict
+  mutate(CellType_predict = case_when(CellType_predict == CellType ~ CellType_predict)) %>% 
   mutate(CellType_predict = case_when(!is.na(TabulaMurisCellType_predict) & !is.na(CellType_predict) ~ 'Tabula Muris',
                                       is.na(CellType_predict) ~ 'Unlabelled',
                                       TRUE ~ CellType_predict)) 
 
-# edit metadata
+# tweak metadata
 meta_filter3 <- meta_filter %>%
   filter(#organism == 'Homo sapiens',
     Organ == 'Eye',
@@ -32,74 +34,7 @@ meta_filter3 <- meta_filter %>%
                           grepl("Outf", Tissue) ~ 'OutflowTract',
                           grepl("Iris", Tissue) ~ 'Iris',
                           grepl("Sclera", Tissue) ~ 'Cornea',
-                          TRUE ~ Tissue)) %>%
-  # Stage = case_when(sample_accession %in% c('SRS5878929','SRS5878930','SRS5878931') ~ 'Developing',
-  #                   TRUE ~ Stage),
-  # Stage =  case_when(Stage == 'Mature' ~ 'Mature',
-  #                    TRUE ~ 'Developing'),
-  mutate(CellType = case_when(CellType == 'Blood Vessel' ~ 'Endothelial',
-							  CellType == 'Enterocyte' ~ 'Unknown',
-                              grepl("RPC|Neuro",CellType) ~ "Retinal Precursor",
-                              grepl("Endoth", CellType) ~ "Endothelial",
-                              grepl("Epitheli",CellType) ~ "Epithelial",
-                              TRUE ~ CellType)) %>%
-  mutate(CellType_predict = case_when(CellType_predict == 'Blood Vessel' ~ 'Endothelial',
-									  CellType == 'Enterocyte' ~ 'Unknown',
-									  grepl("RPC|Neuro",CellType_predict) ~ "Retinal Precursor",
-                                      grepl("Endoth", CellType_predict) ~ "Endothelial",
-                                      grepl("Epitheli",CellType_predict) ~ "Epithelial",
-                                      TRUE ~ CellType_predict)) %>% 
-  mutate(Age = case_when(Age == '1000' & study_accession == 'SRP158528' ~ 'Adult',
-                         sample_accession %in% c("SRS4036124","SRS4036123") ~ (15.5-19) %>% as.character(),
-                         sample_accession %in% c("SRS4885298","SRS4885299") ~ (14.5-19) %>% as.character(),
-                         sample_accession %in% c("SRS4715840","SRS4715843") ~ (89*365) %>% as.character(),
-                         sample_accession %in% c("SRS4715841","SRS4715844") ~ (54*365) %>% as.character(),
-                         sample_accession %in% c("SRS4715839","SRS4715842") ~ (82*365) %>% as.character(),
-                         sample_accession == 'SRS5878934' ~ (105-280) %>% as.character(),
-                         sample_accession %in% c('SRS5878929','SRS5878930','SRS5878931') ~ (80-280) %>% as.character(),
-                         sample_accession == 'SRS4386075' ~ (240) %>% as.character(),
-                         sample_accession == 'SRS7483320' ~ (18-21) %>% as.character(),
-                         sample_accession == 'SRS7483330' ~ (12-21) %>% as.character(),
-                         sample_accession == 'SRS7483329' ~ (12-21) %>% as.character(),
-                         sample_accession == 'SRS7483331' ~ (12-21) %>% as.character(),
-                         sample_accession == 'SRS7483327' ~ (16-21) %>% as.character(),
-                         sample_accession == 'SRS7483326' ~ (16-21) %>% as.character(),
-                         sample_accession == 'SRS7483325' ~ (16-21) %>% as.character(),
-                         sample_accession == 'SRS7483324' ~ (16-21) %>% as.character(),
-                         sample_accession == 'SRS7483323' ~ (18-21) %>% as.character(),
-                         sample_accession == 'SRS7483322' ~ (18-21) %>% as.character(),
-                         sample_accession == 'SRS7483328' ~ (12-21) %>% as.character(),
-                         sample_accession == 'SRS7483321' ~ (18-21) %>% as.character(),
-                         sample_accession == 'SRS3443574' ~ ((18*7)-280) %>% as.character(),
-                         sample_accession == 'SRS3443572' ~ ((16*7)-280) %>% as.character(),
-                         sample_accession == 'SRS3443573' ~ ((14*7)-280) %>% as.character(),
-                         sample_accession == 'SRS3443571' ~ ((12*7)-280) %>% as.character(),
-                         sample_accession == 'SRS3443578' ~ ((27*7)-280) %>% as.character(),
-                         sample_accession == 'SRS3443577' ~ ((24*7)-280) %>% as.character(),
-                         sample_accession == 'SRS3443575' ~ ((24*7)-280) %>% as.character(),
-                         sample_accession == 'SRS3443576' ~ ((22*7)-280) %>% as.character(),
-                         sample_accession == 'SRS5090837' ~ ((20*7)-280) %>% as.character(),
-                         sample_accession == 'SRS5090836' ~ ((20*7)-280) %>% as.character(),
-                         sample_accession == 'SRS51410250000' ~ (8) %>% as.character(),
-                         sample_accession == 'SRS51410250001' ~ (8) %>% as.character(),
-                         sample_accession == 'SRS5434860' ~ (86*365) %>% as.character(),
-                         sample_accession == 'SRS5434859' ~ ((19*7)-280) %>% as.character(),
-                         sample_accession == 'SRS5434858' ~ ((19*7)-280) %>% as.character(),
-                         sample_accession == 'SRS5434857' ~ ((17*7)-280) %>% as.character(),
-                         sample_accession == 'SRS5434856' ~ ((15*7)-280) %>% as.character(),
-                         sample_accession == 'SRS5434855' ~ ((13*7)-280) %>% as.character(),
-                         sample_accession == 'SRS5434854' ~ ((11*7)-280) %>% as.character(),
-                         sample_accession == 'SRS5434853' ~ ((9*7)-280) %>% as.character(),
-                         sample_accession == 'SRS5434853' ~ ((9*7)-280) %>% as.character(),
-                         sample_accession == 'SRX7423411' ~ (76*365) %>% as.character(),
-                         sample_accession == 'SRX7423413' ~ (76*365) %>% as.character(),
-                         study_accession == 'SRP275814' ~ ((str_extract(batch, '\\d+PCW') %>% 
-                                                              gsub("PCW","",.) %>% as.integer() * 7) - 280) %>% as.character(),
-                         TRUE ~ Age
-  ))
-
-
-meta_filter3 <- meta_filter3 %>% 
+                          TRUE ~ Tissue)) %>% 
   mutate(Stage = case_when(as.numeric(Age) <= 10 ~ 'Developing', 
                            as.numeric(Age) > 100 ~ 'Mature',
                            TRUE ~ 'Mature')) %>% 
@@ -114,7 +49,7 @@ meta_filter3 <- meta_filter3 %>%
 # cut down to *one* study 
 # then roll through each batch within a study and use metamorph/harmony to align with each other
 # use the batch with the most labelled cell types (and then cells) as the internal ref
-#ref <- 'Homo_sapiens__Cornea__Mature__SRP255012'
+ref <- 'Homo_sapiens__Cornea__Mature__SRP255012'
 meta_morph <- meta_filter3 %>%
   filter(IDq == ref)
 # pull the batch with the most unique celltypes - break ties on total cell count
@@ -142,8 +77,8 @@ ref_bcs <- meta_morph %>%
   filter(ID == ref_batch) %>% 
   group_by(CellType_predict) %>% 
   slice_sample(n = round(min(1000,
-                       mm_mean + (2*mm_sd)), 
-                       0),
+                             mm_mean + (2*mm_sd)), 
+                         0),
                replace = FALSE) %>% 
   unique() %>% 
   pull(Barcode)
@@ -194,16 +129,16 @@ g <- bluster::makeSNNGraph(mm_study[,1:num_pcs], k = 20)
 clusterN <- igraph::cluster_leiden(g, resolution_parameter = 0.5)$membership
 print(unique(clusterN) %>% length())
 suspect_bc <- bind_cols(mm_study %>% 
-                           as_tibble(rownames = 'Barcode'), tibble(clusterN)) %>% 
-   select(Barcode, clusterN) %>% 
-   left_join(meta_filter3) %>% group_by(clusterN, CellType_predict) %>% 
-   summarise(Count = n(), Barcode = list(Barcode)) %>% 
-   mutate(Ratio = Count / sum(Count)) %>% 
-   filter(Ratio < cluster_purity) %>% 
-   pull(Barcode) %>% 
-   unlist()
- print(length(suspect_bc))
- print(nrow(mm_study))
+                          as_tibble(rownames = 'Barcode'), tibble(clusterN)) %>% 
+  select(Barcode, clusterN) %>% 
+  left_join(meta_filter3) %>% group_by(clusterN, CellType_predict) %>% 
+  summarise(Count = n(), Barcode = list(Barcode)) %>% 
+  mutate(Ratio = Count / sum(Count)) %>% 
+  filter(Ratio < cluster_purity) %>% 
+  pull(Barcode) %>% 
+  unlist()
+print(length(suspect_bc))
+print(nrow(mm_study))
 ######################
 
 ######################
