@@ -10,12 +10,13 @@ library(uwot)
 library(ggplot2)
 
 # load counts
-load('~/data/scEiaD_2022_02/counts.Rdata')
+load('/data/mcgaugheyd/datashare/scEiaD/2022_03_22/counts.Rdata')
+#load('~/data/scEiaD_2022_02/counts.Rdata')
 
 # load consist diff from plae manuscript
 consist_diff <- read_tsv('~/git/eyeMarkers/lists/plae_consist_diff.tsv')
 # load metadata for counts
-meta_filter <- data.table::fread('~/data/scEiaD_2023_12/metadata_filter.tsv.gz') %>% 
+meta_filter <- data.table::fread('/data/mcgaugheyd/projects/nei/mcgaughey/scEiaD_2023_12/metadata_filter.tsv.gz') %>% 
   as_tibble() %>%
   # remove known mis-calls from celltype_predict
   mutate(CellType_predict = case_when(CellType_predict == CellType ~ CellType_predict)) %>% 
