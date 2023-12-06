@@ -4,16 +4,16 @@ library(glue)
 
 
 
-config=read_yaml(Sys.getenv('SCIAD_CONFIG'))
-git_dir=config$git_dir
-working_dir=config$working_dir# this is where cell_info lives 
+#config=read_yaml(Sys.getenv('SCIAD_CONFIG'))
+#git_dir=config$git_dir
+#working_dir=config$working_dir# this is where cell_info lives 
 
-# config <- list()
-# git_dir <- '~/git/scEiaD/'
-# working_dir= '~/data/scEiaD_2022_02/'
-# config$srr_sample_file <- '~/git/scEiaD/data/sample_run_layout_organism_tech_biosample_organ_2022_03_04.tsv'
-# config$cell_info <- 'pipeline_data/cell_info/all_cell_info.tsv'
-# load(glue('{git_dir}/data/sra_metadata_extended.Rdata'))
+ config <- list()
+ git_dir <- '~/git/scEiaD/'
+ working_dir= '/data/mcgaugheyd/projects/nei/mcgaughey/scEiaD_2022_02'
+ config$srr_sample_file <- '~/git/scEiaD/data/sample_run_layout_organism_tech_biosample_organ_2022_03_04.tsv'
+ config$cell_info <- 'pipeline_data/cell_info/all_cell_info.tsv'
+ load(glue('{git_dir}/data/sra_metadata_extended.Rdata'))
 
 setwd(working_dir)
 meta <- read_tsv(config$srr_sample_file) %>% select(-TissueNote)
@@ -851,7 +851,7 @@ if ( sum(is.na(cell_info_labels$study_accession)) > 0 ) {
 cell_info <- data.table::fread('pipeline_data/cell_info/all_cell_info.tsv') %>% select(-TissueNote) %>% filter(!is.na(study_accession))
 if (((cell_info_labels$value %>% duplicated) %>% sum() == 0) & 
 	(nrow(cell_info) == nrow(cell_info_labels))) {
-	save(cell_info_labels, file = 'pipeline_data/cell_info/cell_info_labelled.Rdata')
+	save(cell_info_labels, file = 'pipeline_data/cell_info/cell_info_labelled_2023.Rdata')
 	print('SUCCESS')
 } else {
 	save(meta_SRP218652x, meta_SRP218652y, cell_info_labels, cell_info, file = 'pipeline_data/cell_info/cell_info_labelled_fail.Rdata')
