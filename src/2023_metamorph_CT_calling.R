@@ -19,7 +19,7 @@ consist_diff <- read_tsv('~/git/eyeMarkers/lists/plae_consist_diff.tsv')
 meta_filter <- fst::read_fst('/data/mcgaugheyd/projects/nei/mcgaughey/scEiaD_2023_12/meta_filter.fst') %>% 
   as_tibble() %>%
   # remove known mis-calls from celltype_predict
-  mutate(CellType_predict = case_when(CellType_predict == CellType ~ CellType_predict)) %>% 
+  mutate(CellType_predict = case_when(CellType_predict == CellType  | is.na(CellType) ~ CellType_predict)) %>% 
   mutate(CellType_predict = case_when(!is.na(TabulaMurisCellType_predict) & !is.na(CellType_predict) ~ 'Tabula Muris',
                                       is.na(CellType_predict) ~ 'Unlabelled',
                                       TRUE ~ CellType_predict)) 
@@ -111,12 +111,10 @@ for ( i in batches){
   harmony_meta <- factor(c(rep("new", nrow(morphed)),
                            rep("reference", nrow(mm$PCA$x))),
                          levels = c("reference","new"))
-  harmony_embeddings <- harmony::HarmonyMatrix(rbind(morphed, 
+  harmony_embeddings <- harmony::RunHarmony(rbind(morphed, 
                                                      mm$PCA$x),
-                                               harmony_meta,
-                                               do_pca = FALSE,
-                                               reference_values = 'reference',
-                                               verbose = FALSE)
+                                               harmony_meta, max_iter = 30, ncores = 4,
+                                               verbose = TRUE)
   morphed_list[[i]] <- harmony_embeddings[1:nrow(morphed),] %>% data.frame()
 }
 # new morphed PCs for the study ----
@@ -125,7 +123,7 @@ mm_study <- morphed_list %>% bind_rows()
 
 # do clustering to remove cell type labels ----
 ### that are in the minority within a cluster
-### using a VERY stringent 80% cutoff
+### using a user given cutoff (0.5 to 0.8 or so)
 g <- bluster::makeSNNGraph(mm_study[,1:num_pcs], k = 20)
 clusterN <- igraph::cluster_leiden(g, resolution_parameter = 0.5)$membership
 print(unique(clusterN) %>% length())
@@ -133,6 +131,7 @@ suspect_bc <- bind_cols(mm_study %>%
                           as_tibble(rownames = 'Barcode'), tibble(clusterN)) %>% 
   select(Barcode, clusterN) %>% 
   left_join(meta_filter3) %>% group_by(clusterN, CellType_predict) %>% 
+  filter(CellType_predict != 'Unlabelled') %>% 
   summarise(Count = n(), Barcode = list(Barcode)) %>% 
   mutate(Ratio = Count / sum(Count)) %>% 
   filter(Ratio < cluster_purity) %>% 
@@ -148,6 +147,7 @@ print(nrow(mm_study))
 ref_bcs <- meta_morph %>%
   filter(!Barcode %in% suspect_bc) %>%  
   group_by(CellType_predict) %>% 
+  filter(CellType_predict != 'Unlabelled') %>% 
   slice_sample(n = round(min(1000,
                              mm_mean + (2*mm_sd)), 
                          0),
@@ -156,11 +156,11 @@ ref_bcs <- meta_morph %>%
   pull(Barcode)
 ref_cts <- ref_bcs %>% enframe(value = 'Barcode') %>% 
   left_join(meta_morph) %>% pull(CellType_predict)
-ref_cts[ref_cts == 'Unlabelled'] <- NA
 
+library(parsnip)
 model <- model_build(mm_study[ref_bcs,1:num_pcs],
                      ref_cts, model = model_type)
-ctp <- model_apply(model[names(model) != 'NA'],mm_study[,1:num_pcs]) %>% rename(prediction = predict_stringent, Barcode = sample_id)
+ctp <- model_apply(model, mm_study[,1:num_pcs]) %>% rename(prediction = predict_stringent, Barcode = sample_id)
 ctp %>% left_join(meta_filter3) %>% filter(CellType_predict != 'Unlabelled', predict == CellType_predict) %>% nrow()
 ctp %>% left_join(meta_filter3) %>% filter(CellType_predict != 'Unlabelled', predict != CellType_predict) %>% nrow()
 #######################
@@ -183,11 +183,10 @@ for (query in
   harmony_meta <- factor(c(rep("new", nrow(morphed)),
                            rep("reference", nrow(mm$PCA$x))),
                          levels = c("reference","new"))
-  harmony_embeddings <- harmony::HarmonyMatrix(rbind(morphed, mm$PCA$x),
+  harmony_embeddings <- harmony::RunHarmony(rbind(morphed, mm$PCA$x),
                                                harmony_meta,
-                                               do_pca = FALSE,
-                                               reference_values = 'reference',
-                                               max.iter.harmony = 30,
+												ncores = 4,
+                                               max_iter = 30,
                                                verbose = TRUE)
   morphed <- harmony_embeddings[1:nrow(morphed),] %>% data.frame()
   morphed_list[[query]] <- morphed
