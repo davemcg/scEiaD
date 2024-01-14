@@ -7,10 +7,17 @@ library(glue)
 config=read_yaml(Sys.getenv('SCIAD_CONFIG'))
 git_dir=config$git_dir
 working_dir=config$working_dir# this is where cell_info lives 
-setwd(working_dir)
 
-load(glue('{git_dir}/data/sra_metadata_extended.Rdata'))
+# config <- list()
+# git_dir <- '~/git/scEiaD/'
+# working_dir= '~/data/scEiaD_2022_02/'
+# config$srr_sample_file <- '~/git/scEiaD/data/sample_run_layout_organism_tech_biosample_organ_2022_03_04.tsv'
+# config$cell_info <- 'pipeline_data/cell_info/all_cell_info.tsv'
+# load(glue('{git_dir}/data/sra_metadata_extended.Rdata'))
+
+setwd(working_dir)
 meta <- read_tsv(config$srr_sample_file) %>% select(-TissueNote)
+
 # load labelled data from clark et all
 # NO WRONG NOW https://www.dropbox.com/s/y5lho9ifzoktjcs/10x_mouse_retina_development_phenotype.csv?dl=1
 clark_labels <- data.table::fread(glue('{git_dir}/data/GSE118614_barcodes.tsv.gz'))
@@ -249,6 +256,7 @@ meta_MacaqueSanes <- meta_MacaqueSanes %>%
 # reload
 # meta <- read_tsv('~/git/massive_integrated_eye_scRNA/data/sample_run_layout_organism_tech.tsv') %>% select(-TissueNote)
 # scheetz human fovea
+Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 10)
 scheetz_files <- list.files(glue('{git_dir}/data/'), pattern = 'GSM374599.*donor.*gz', full.names = TRUE)
 scheetz <- scheetz_files %>% 
   map(read_tsv, col_types = cols_only(barcode = col_character(), cluster_label = col_character())) %>% 
@@ -379,7 +387,7 @@ yan_pr <- yan_pr %>%
          SubCellType = Cluster,
          sample = str_extract(NAME, 'H\\d+\\w+S\\d')) %>% 
   filter(!is.na(CellType)) %>% left_join(sample_meta %>%
-                                           mutate(sample = str_extract(TissueNote, 'H\\d+\\w+S\\d')), 
+                                           mutate(sample = str_extract(bam10x, 'H\\d+\\w+S\\d')), 
                                          by = 'sample') %>% 
   filter(!is.na(sample_accession)) %>% 
   separate(NAME, into = c('samp','UMI','lane'), sep = "[_|-]") %>% 
@@ -429,15 +437,19 @@ mullins <- mullins_files %>%
   map(read_delim, delim = ' ', col_types = cols_only(barcode = col_character(), final_cluster_labels = col_character(), library = col_character())) %>%
   set_names(mullins_files) %>%
   bind_rows(.id = 'sample') %>%
-  mutate(barcode = final_cluster_labels,
-		 final_cluster_label = library) %>%
-  select(sample, barcode, final_cluster_label) %>% 
+ # mutate(barcode = final_cluster_labels,
+		 mutate(final_cluster_label = final_cluster_labels) %>%
+  select(sample, barcode, final_cluster_label, library) %>% 
   mutate(sample = gsub(".*GSM\\d+_|_expression.*","",sample),
          barcode = gsub('-\\d+|_\\d+','', barcode)) %>%
   mutate(sample = paste0(str_extract(sample, 'macula|peripheral'), '_donor', str_extract(sample, '\\d+')))
+sample_meta <- read_tsv(config$srr_sample_file) %>% filter(study_accession == 'SRP218652') %>% select(-run_accession) %>% unique()
 meta_SRP218652 <- cell_info %>% filter(study_accession == 'SRP218652') %>%
   unique() %>%
-  mutate(sample = paste0(str_extract(TissueNote, 'Macula|Peripheral') %>% tolower() , '_', str_extract(TissueNote, 'donor\\d+')),
+  #left_join(sample_meta, by = "sample_accession") %>% 
+  mutate(TissueNote = biosample_title) %>% 
+  mutate(sample = paste0(retina_region %>% tolower() , '_', 
+                         str_extract(batch, 'donor\\d+')),
          barcode = gsub('_.*','', value)) %>%
   left_join(mullins, by =c('sample', 'barcode')) %>%
   mutate(CellType = case_when(grepl('enriched', TissueNote) & final_cluster_label %in% c('1','2') ~ 'Schwann',
@@ -467,8 +479,8 @@ sanes_mmAC <- read_csv(glue('{git_dir}/data/MouseAC_metafile.csv'), skip=1) %>% 
 meta_SRP259930 <- cell_info %>% 
 						mutate(Barcode = gsub("_.*","", value)) %>% 
 						select(-TissueNote) %>% 
-						left_join(metaTN %>% select(sample_accession, TissueNote), by = 'sample_accession' ) %>% 
-						mutate(Mouse = str_extract(TissueNote, 'MouseACS\\d+')) %>% 
+						#left_join(metaTN %>% select(sample_accession, biosample_title), by = 'sample_accession' ) %>% 
+						mutate(Mouse = str_extract(biosample_title, 'MouseACS\\d+')) %>% 
 						left_join(sanes_mmAC, by = c('Mouse','Barcode')) %>% 
 						mutate(CellType = case_when(!is.na(group) ~ 'Amacrine Cells'), SubCellType = group) %>%
 						filter(!is.na(group)) %>%  
@@ -490,9 +502,13 @@ heng <- heng_files %>%
  select(Sample, Barcode, CT)
 meta_SRP200499 <- cell_info %>% 
 						mutate(Barcode = gsub("_.*","", value)) %>% 
-						select(-TissueNote) %>% 
-						left_join(metaTN %>% select(sample_accession, TissueNote), by = 'sample_accession' ) %>% 
-						mutate(Sample = str_extract(TissueNote, 'GSM38545\\d+')) %>% 
+						#select(-TissueNote) %>% 
+						left_join(metaTN %>% select(sample_accession, biosample_title), by = 'sample_accession' ) %>% 
+						#mutate(Sample = str_extract(biosample_title, 'GSM38545\\d+')) %>% 
+            mutate(Sample = case_when(sample_accession == 'SRX5975001' ~ 'GSM3854512',
+                                      sample_accession == 'SRX5975003' ~ 'GSM3854514',
+                                      sample_accession == 'SRX5975005' ~ 'GSM3854516',
+                                      sample_accession == 'SRX5975007' ~ 'GSM3854518')) %>% 
 						left_join(heng, by = c('Sample','Barcode')) %>% 
                         mutate(SubCellType = CT,
 							   CellType = case_when(CT == 'Amacrine cells' ~ 'Amacrine Cells',
@@ -582,7 +598,7 @@ chick_meta <- chick_atlas %>% select(Chick, BC, Cluster, sample_accession) %>%
 cell_info <- data.table::fread(config$cell_info) %>%
     filter(study_accession %in%  c('SRP292721'))
 pan_human <- read_tsv(glue('{git_dir}/data/SRP292721_Annotation_AHCA_alltissues_meta.data_84363_cell.txt.gz')) %>%  
-	separate(X1, c('Organ', 'cDNA', 'BC'), sep = '_') %>%
+	separate(`...1`, c('Organ', 'cDNA', 'BC'), sep = '_') %>%
 	mutate(BC = gsub('-\\d+','',BC)) %>%
     mutate(CellType = case_when(Cell_type_in_merged_data == 'Absorptive Cell' ~ 'Absorptive Cell',
 								grepl('B Cell', Cell_type_in_merged_data, ignore.case = TRUE) ~ 'B-Cell',
